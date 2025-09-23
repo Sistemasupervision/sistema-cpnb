@@ -366,6 +366,33 @@
         padding: 0 10px;
     }
 }
+        /* Logo flotante en el lado derecho del fondo */
+.floating-logo {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    opacity: 0.15; /* Transparencia para que no distraiga */
+    pointer-events: none; /* Para que no interfiera con los clics */
+}
+
+.floating-logo img {
+    width: 120px; /* Ajusta el tamaño según necesites */
+    height: auto;
+    object-fit: contain;
+}
+
+/* Versión responsive para móviles */
+@media (max-width: 768px) {
+    .floating-logo {
+        right: 10px;
+    }
+    
+    .floating-logo img {
+        width: 80px;
+    }
+}
     </style>
 </head>
 <body>
@@ -424,6 +451,11 @@
         </div>
         
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+
+        <div class="floating-logo">
+    <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo-derecha.png" alt="Logo Derecha">
+</div>
+        
     </div>
 
     <script>
