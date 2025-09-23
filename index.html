@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -91,7 +93,8 @@
             transform: rotate(-45deg);
         }
         
-        .login-container {
+        /* Estilos comunes para contenedores */
+        .container {
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -104,7 +107,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .login-container::before {
+        .container::before {
             content: '';
             position: absolute;
             top: 0;
@@ -175,6 +178,7 @@
             border-radius: 2px;
         }
         
+        /* Estilos específicos del login */
         .input-group {
             margin-bottom: 20px;
         }
@@ -225,10 +229,6 @@
             background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(12, 36, 64, 0.5);
-        }
-        
-        .login-btn:active {
-            transform: translateY(0);
         }
         
         .login-btn::before {
@@ -302,38 +302,16 @@
             color: white;
         }
         
-        /* Panel principal styles */
-        .dashboard-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            width: 100%;
+        /* Estilos específicos del dashboard */
+        #dashboardContainer {
             max-width: 600px;
             padding: 50px;
-            position: relative;
-            overflow: hidden;
-            z-index: 10;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
             display: none;
         }
         
-        .dashboard-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
-        }
-        
         .dashboard-title {
-            color: #0c2440;
             font-size: 28px;
-            font-weight: bold;
             margin-bottom: 20px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .user-info {
@@ -356,7 +334,7 @@
             font-weight: bold;
         }
         
-        .back-btn {
+        .action-btn {
             margin-top: 25px;
             padding: 12px 24px;
             background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
@@ -371,14 +349,27 @@
             display: inline-block;
         }
         
-        .back-btn:hover {
+        .action-btn:hover {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(26, 54, 93, 0.4);
         }
         
+        /* Mensaje de error */
+        .error-message {
+            color: #e53e3e;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+        
         @media (max-width: 480px) {
-            .login-container, .dashboard-container {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            #dashboardContainer {
                 padding: 30px 20px;
             }
             
@@ -404,10 +395,6 @@
                 height: 35px;
             }
             
-            .dashboard-container {
-                padding: 30px 20px;
-            }
-            
             .user-info {
                 padding: 20px;
             }
@@ -429,7 +416,7 @@
     </div>
     
     <!-- Login Form -->
-    <div id="loginContainer" class="login-container">
+    <div id="loginContainer" class="container">
         <div class="logo-container">
             <div class="logo"></div>
             <h1 class="title">Sistema de Supervisión y Control de CPNB</h1>
@@ -437,8 +424,8 @@
         
         <form id="loginForm">
             <div class="input-group">
-                <label for="username">Usuario</label>
-                <input type="text" id="username" placeholder="Ingrese su nombre de usuario" required>
+                <label for="username">Email</label>
+                <input type="email" id="username" placeholder="Ingrese su email" required>
             </div>
             
             <div class="input-group">
@@ -447,6 +434,7 @@
             </div>
             
             <button type="submit" class="login-btn">Iniciar Sesión</button>
+            <div id="errorMessage" class="error-message"></div>
         </form>
         
         <div class="security-info">
@@ -462,10 +450,10 @@
     </div>
     
     <!-- Dashboard Panel -->
-    <div id="dashboardContainer" class="dashboard-container">
+    <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <div class="logo"></div>
-            <h1 class="dashboard-title">Panel Principal</h1>
+            <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         
         <div class="user-info">
@@ -473,30 +461,84 @@
             <p id="userNameDisplay">Nombre del Usuario</p>
         </div>
         
-        <button id="backBtn" class="back-btn">Cerrar Sesión</button>
+        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            
-            // Mostrar el panel principal
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-            
-            // Mostrar el nombre del usuario
-            document.getElementById('userNameDisplay').textContent = username;
-        });
+        // CONFIGURACIÓN DE SUPABASE - DEBES REEMPLAZAR ESTOS VALORES
+        const supabaseUrl = 'https://TU_PROYECTO.supabase.co';
+        const supabaseAnonKey = 'TU_ANON_KEY_AQUÍ';
         
-        document.getElementById('backBtn').addEventListener('click', function() {
-            // Volver al formulario de login
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('loginContainer').style.display = 'block';
+        // Inicializar Supabase
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
+        // Función para mostrar mensajes de error
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Función para manejar el inicio de sesión
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
             
-            // Limpiar el formulario
-            document.getElementById('loginForm').reset();
-        });
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // Login exitoso
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = email;
+                
+            } catch (error) {
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
+            }
+        }
+        
+        // Función para manejar el cierre de sesión
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        }
+        
+        // Verificar si el usuario ya está autenticado al cargar la página
+        async function checkAuthState() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = user.email;
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        
+        // Verificar estado de autenticación al cargar
+        checkAuthState();
     </script>
 </body>
 </html>
