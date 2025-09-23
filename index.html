@@ -117,18 +117,22 @@
             background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         
-        .-container {
+        .logo-container {
             text-align: center;
             margin-bottom: 30px;
         }
         
         /* NUEVOS ESTILOS PARA IMÁGENES DE GITHUB */
         .logo-img {
-             width: 120px;
-    height: 120px;
-    object-fit: cover;
-    margin: 0 auto 20px;
-    display: block;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid #ffcc00;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            object-fit: cover;
+            margin: 0 auto 20px;
+            display: block;
+        }
         
         .title {
             text-align: center;
@@ -248,11 +252,15 @@
         }
         
         /* NUEVOS ESTILOS PARA LOGOS PEQUEÑOS */
-    .small-logo-img {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-}
+        .small-logo-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #ffcc00;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            object-fit: cover;
+        }
+        
         /* Estilos específicos del dashboard */
         #dashboardContainer {
             max-width: 600px;
@@ -329,11 +337,8 @@
             }
             
             .logo-img {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-    margin: 0 auto 20px;
-    display: block;
+                width: 100px;
+                height: 100px;
             }
             
             .security-info {
@@ -373,7 +378,7 @@
     <div id="loginContainer" class="container">
         <div class="logo-container">
             <!-- LOGO PRINCIPAL DE GITHUB - CAMBIA ESTA URL -->
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo-principal.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control de CPNB</h1>
         </div>
         
