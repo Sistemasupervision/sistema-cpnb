@@ -1,1 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Supervisión y Control - Policía Nacional Bolivariana</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a3a6c, #2c5282);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            background: #1a3a6c;
+            border-radius: 12px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            line-height: 1.2;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            color: #1a3a6c;
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1.4;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #2c5282;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #1a3a6c, #2c5282);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(135deg, #2c5282, #1a3a6c);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(26, 58, 108, 0.4);
+        }
+        
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        .note {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .note strong {
+            color: #1a3a6c;
+            font-weight: 600;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #27ae60;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .decorative-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .circle-1 {
+            width: 200px;
+            height: 200px;
+            top: -50px;
+            left: -50px;
+        }
+        
+        .circle-2 {
+            width: 150px;
+            height: 150px;
+            bottom: -30px;
+            right: -30px;
+        }
+        
+        .circle-3 {
+            width: 100px;
+            height: 100px;
+            top: 40%;
+            right: 10%;
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+            
+            .logo-container {
+                width: 60px;
+                height: 60px;
+                font-size: 10px;
+                margin-bottom: 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Elementos decorativos -->
+    <div class="decorative-elements">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+    </div>
+    
+    <!-- Contenedor de inicio de sesión -->
+    <div class="login-container">
+        <div class="header">
+            <div class="logo-container">
+                LOGO
+            </div>
+            <h1>Sistema de Supervisión y Control</h1>
+            <p>Cuerpo de Policía Nacional Bolivariana</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Correo Electrónico</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="Ingrese su correo institucional"
+                    required
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Ingrese su contraseña"
+                    required
+                >
+            </div>
+            
+            <button type="submit" class="login-btn">Iniciar Sesión</button>
+        </form>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
+        <div class="note">
+            <p><strong>Nota:</strong> Este sistema solo permite el inicio de sesión con credenciales previamente registradas en la base de datos institucional (Supabase). No se permite el registro de nuevos usuarios desde esta interfaz.</p>
+        </div>
+    </div>
 
+    <script>
+        // CONFIGURACIÓN DE SUPABASE - DEBES REEMPLAZAR ESTOS VALORES CON TUS CREDENCIALES REALES
+        const supabaseUrl = 'https://TU_PROYECTO.supabase.co';
+        const supabaseAnonKey = 'TU_CLAVE_ANÓNIMA_AQUÍ';
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        async function signIn(email, password) {
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                return { success: true, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            const result = await signIn(email, password);
+            
+            if (result.success) {
+                successMessage.textContent = 'Inicio de sesión exitoso. Redirigiendo...';
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    alert('¡Bienvenido al Sistema de Supervisión y Control!');
+                }, 2000);
+            } else {
+                errorMessage.textContent = 'Error: ' + result.error;
+                errorMessage.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
