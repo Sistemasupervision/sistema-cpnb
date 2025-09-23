@@ -117,7 +117,7 @@
             background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         
-        .logo-container {
+        .-container {
             text-align: center;
             margin-bottom: 30px;
         }
@@ -252,15 +252,11 @@
         }
         
         /* NUEVOS ESTILOS PARA LOGOS PEQUEÑOS */
-        .small-logo-img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid #ffcc00;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            object-fit: cover;
-        }
-        
+    .small-logo-img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
         /* Estilos específicos del dashboard */
         #dashboardContainer {
             max-width: 600px;
@@ -337,8 +333,11 @@
             }
             
             .logo-img {
-                width: 100px;
-                height: 100px;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    margin: 0 auto 20px;
+    display: block;
             }
             
             .security-info {
