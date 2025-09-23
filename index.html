@@ -36,6 +36,20 @@
             border: 2px solid rgba(255,255,255,0.2);
         }
         
+        .dashboard-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            display: none;
+        }
+        
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -101,7 +115,7 @@
             box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
         }
         
-        .login-btn {
+        .login-btn, .logout-btn {
             width: 100%;
             padding: 14px;
             background: linear-gradient(135deg, #1a3a6c, #2c5282);
@@ -115,14 +129,24 @@
             margin-top: 10px;
         }
         
-        .login-btn:hover {
+        .login-btn:hover, .logout-btn:hover {
             background: linear-gradient(135deg, #2c5282, #1a3a6c);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(26, 58, 108, 0.4);
         }
         
-        .login-btn:active {
+        .login-btn:active, .logout-btn:active {
             transform: translateY(0);
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            margin-top: 20px;
+        }
+        
+        .logout-btn:hover {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
         }
         
         .note {
@@ -162,13 +186,88 @@
             border: 1px solid #bbf7d0;
         }
         
-        .debug-info {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f3f4f6;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #4b5563;
+        /* Estilos para el panel de selección de REDIP */
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-header h2 {
+            color: #1a3a6c;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .dashboard-header p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .redip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .redip-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #e1e8ed;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .redip-card:hover {
+            transform: translateY(-5px);
+            border-color: #2c5282;
+            box-shadow: 0 8px 25px rgba(26, 58, 108, 0.3);
+            background: #f8f9ff;
+        }
+        
+        .redip-card h3 {
+            color: #1a3a6c;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .redip-card p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .redip-card i {
+            display: block;
+            width: 50px;
+            height: 50px;
+            background: #1a3a6c;
+            border-radius: 50%;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .user-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .user-info span {
+            color: #1a3a6c;
+            font-weight: bold;
         }
         
         .decorative-elements {
@@ -209,7 +308,7 @@
         }
         
         @media (max-width: 480px) {
-            .login-container {
+            .login-container, .dashboard-container {
                 margin: 20px;
                 padding: 30px 20px;
             }
@@ -221,8 +320,12 @@
                 margin-bottom: 15px;
             }
             
-            .header h1 {
+            .header h1, .dashboard-header h2 {
                 font-size: 20px;
+            }
+            
+            .redip-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -236,7 +339,7 @@
     </div>
     
     <!-- Contenedor de inicio de sesión -->
-    <div class="login-container">
+    <div class="login-container" id="loginContainer">
         <div class="header">
             <div class="logo-container">
                 LOGO
@@ -277,14 +380,56 @@
         <div class="note">
             <p><strong>Nota:</strong> Este sistema solo permite el inicio de sesión con credenciales previamente registradas en la base de datos institucional (Supabase). No se permite el registro de nuevos usuarios desde esta interfaz.</p>
         </div>
-        
-        <!-- Información de depuración (puedes eliminar esto en producción) -->
-        <div class="debug-info">
-            <strong>Para resolver problemas de inicio de sesión:</strong><br>
-            1. Verifica que el usuario esté CONFIRMADO en Supabase<br>
-            2. Asegúrate de usar las credenciales correctas<br>
-            3. Revisa la consola del navegador (F12) para ver errores detallados
+    </div>
+
+    <!-- Panel de Dashboard (oculto inicialmente) -->
+    <div class="dashboard-container" id="dashboardContainer">
+        <div class="dashboard-header">
+            <div class="logo-container">
+                LOGO
+            </div>
+            <h2>Panel de Supervisión y Control</h2>
+            <p>Seleccione una REDIP para continuar</p>
         </div>
+        
+        <div class="user-info">
+            <p>Bienvenido, <span id="userName">Usuario</span></p>
+        </div>
+        
+        <div class="redip-grid">
+            <div class="redip-card" onclick="selectRedip('REDIP 01 - Caracas')">
+                <i>01</i>
+                <h3>REDIP 01</h3>
+                <p>Caracas - Distrito Capital</p>
+            </div>
+            <div class="redip-card" onclick="selectRedip('REDIP 02 - Miranda')">
+                <i>02</i>
+                <h3>REDIP 02</h3>
+                <p>Miranda</p>
+            </div>
+            <div class="redip-card" onclick="selectRedip('REDIP 03 - Aragua')">
+                <i>03</i>
+                <h3>REDIP 03</h3>
+                <p>Aragua</p>
+            </div>
+            <div class="redip-card" onclick="selectRedip('REDIP 04 - Carabobo')">
+                <i>04</i>
+                <h3>REDIP 04</h3>
+                <p>Carabobo</p>
+            </div>
+            <div class="redip-card" onclick="selectRedip('REDIP 05 - Zulia')">
+                <i>05</i>
+                <h3>REDIP 05</h3>
+                <p>Zulia</p>
+            </div>
+            <div class="redip-card" onclick="selectRedip('REDIP 06 - Lara')">
+                <i>06</i>
+                <h3>REDIP 06</h3>
+                <p>Lara</p>
+            </div>
+        </div>
+        
+        <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
     </div>
 
     <script>
@@ -292,36 +437,56 @@
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co'; // ← Reemplaza esto
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q'; // ← Reemplaza esto
         
-        // Verificar si las credenciales están configuradas
-        if (supabaseUrl.includes('TU_PROYECTO') || supabaseAnonKey.includes('TU_CLAVE')) {
-            alert('⚠️ CONFIGURACIÓN REQUERIDA:\n\nDebes reemplazar las credenciales de Supabase en el código JavaScript.\n\nVe a Settings > API en tu proyecto Supabase y copia tu URL y clave pública.');
-        }
-        
         const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        // Verificar si hay sesión activa al cargar la página
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                showDashboard(session.user.email);
+            }
+        });
         
         async function signIn(email, password) {
             try {
-                console.log('Intentando iniciar sesión con:', email);
-                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
                 if (error) {
-                    console.error('Error de Supabase:', error);
                     throw error;
                 }
                 
-                console.log('Inicio de sesión exitoso:', data);
                 return { success: true, data };
             } catch (error) {
-                console.error('Error en signIn:', error);
                 return { 
                     success: false, 
                     error: error.message || 'Error desconocido al iniciar sesión' 
                 };
             }
+        }
+        
+        function showDashboard(userEmail) {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            document.getElementById('userName').textContent = userEmail.split('@')[0];
+        }
+        
+        function showLogin() {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+        }
+        
+        function selectRedip(redipName) {
+            alert(`Ha seleccionado: ${redipName}\n\nEn una implementación real, esto redirigiría al módulo correspondiente de supervisión para esta REDIP.`);
+        }
+        
+        async function logout() {
+            await supabase.auth.signOut();
+            showLogin();
         }
         
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -332,7 +497,6 @@
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
             
-            // Validación básica
             if (!email || !password) {
                 errorMessage.textContent = 'Por favor complete todos los campos';
                 errorMessage.style.display = 'block';
@@ -340,11 +504,9 @@
                 return;
             }
             
-            // Ocultar mensajes anteriores
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
             
-            // Mostrar mensaje de carga
             const loginBtn = document.querySelector('.login-btn');
             const originalText = loginBtn.textContent;
             loginBtn.textContent = 'Conectando...';
@@ -354,15 +516,14 @@
                 const result = await signIn(email, password);
                 
                 if (result.success) {
-                    successMessage.textContent = '✅ Inicio de sesión exitoso. Redirigiendo...';
+                    successMessage.textContent = '✅ Inicio de sesión exitoso';
                     successMessage.style.display = 'block';
                     setTimeout(() => {
-                        // Aquí iría la redirección a tu dashboard
-                        alert('¡Bienvenido al Sistema de Supervisión y Control!');
-                    }, 2000);
+                        showDashboard(email);
+                    }, 1500);
                 } else {
                     errorMessage.innerHTML = `❌ <strong>Error:</strong> ${result.error}<br><br>
-                        <em>Verifica que tu usuario esté CONFIRMADO en Supabase > Authentication > Users</em>`;
+                        <em>Verifica que tu usuario esté CONFIRMADO en Supabase</em>`;
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
