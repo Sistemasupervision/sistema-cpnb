@@ -489,42 +489,61 @@
 
     <script>
         // ⚠️ REEMPLAZA ESTOS VALORES CON TUS CREDENCIALES REALES DE SUPABASE ⚠️
-        const supabaseUrl = 'hhttps://slkbmddaqsvjofhtuusb.supabase.co'; // ← Reemplaza esto con tu URL real
+        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co'; // ← Reemplaza esto con tu URL real
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q'; // ← Reemplaza esto con tu clave real
         
-        let supabase;
+        // Declarar supabase como variable global
+        let supabase = null;
         
-        // Verificar configuración antes de inicializar Supabase
-        function checkSupabaseConfig() {
+        // Verificar configuración y inicializar Supabase
+        function initializeSupabase() {
             const configWarning = document.getElementById('configWarning');
             
             if (supabaseUrl.includes('TU_PROYECTO') || supabaseAnonKey.includes('TU_CLAVE')) {
                 configWarning.style.display = 'block';
+                console.warn('⚠️ Configuración de Supabase incompleta. Reemplaza las credenciales en el código.');
                 return false;
             }
             
-            configWarning.style.display = 'none';
-            return true;
+            try {
+                supabase = createClient(supabaseUrl, supabaseAnonKey);
+                configWarning.style.display = 'none';
+                console.log('✅ Supabase inicializado correctamente');
+                return true;
+            } catch (error) {
+                console.error('❌ Error al inicializar Supabase:', error);
+                configWarning.style.display = 'block';
+                configWarning.innerHTML = '❌ Error al conectar con Supabase<br>Verifica la consola (F12) para más detalles';
+                return false;
+            }
         }
         
-        // Inicializar Supabase solo si la configuración es correcta
-        if (checkSupabaseConfig()) {
-            supabase = createClient(supabaseUrl, supabaseAnonKey);
+        // Verificar si hay sesión activa al cargar la página
+        async function checkExistingSession() {
+            if (!supabase) return;
             
-            // Verificar si hay sesión activa al cargar la página
-            window.addEventListener('DOMContentLoaded', async () => {
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (session) {
-                        showDashboard(session.user.email);
-                    }
-                } catch (error) {
-                    console.error('Error al verificar sesión:', error);
+            try {
+                const {  { session } } = await supabase.auth.getSession();
+                if (session) {
+                    showDashboard(session.user.email);
                 }
-            });
+            } catch (error) {
+                console.error('Error al verificar sesión existente:', error);
+            }
         }
+        
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initializeSupabase()) {
+                checkExistingSession();
+            }
+        });
         
         async function signIn(email, password) {
+            if (!supabase) {
+                throw new Error('Supabase no está inicializado');
+            }
+            
             try {
                 console.log('🔍 Intentando iniciar sesión con:', email);
                 
@@ -567,22 +586,26 @@
         }
         
         async function logout() {
+            if (!supabase) return;
+            
             try {
                 await supabase.auth.signOut();
                 showLogin();
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
-                showLogin(); // Mostrar login aunque falle el logout
+                showLogin();
             }
         }
         
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Verificar configuración nuevamente
-            if (!checkSupabaseConfig()) {
-                document.getElementById('errorMessage').textContent = '⚠️ Configura tus credenciales de Supabase primero';
-                document.getElementById('errorMessage').style.display = 'block';
+            // Verificar que Supabase esté inicializado
+            if (!supabase) {
+                if (!initializeSupabase()) {
+                    document.getElementById('errorMessage').textContent = '⚠️ Configura tus credenciales de Supabase primero';
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
                 return;
             }
             
@@ -618,7 +641,6 @@
                 } else {
                     let errorMessageText = '❌ Error al iniciar sesión';
                     
-                    // Mensajes de error más específicos
                     if (result.error.includes('Invalid login credentials')) {
                         errorMessageText = '❌ Credenciales inválidas. Verifique su email y contraseña';
                     } else if (result.error.includes('Email not confirmed')) {
@@ -641,7 +663,7 @@
             }
         });
         
-        // Mensaje en consola para ayudar con la depuración
+        // Mensaje de ayuda en consola
         console.log('🔧 Sistema de Supervisión y Control cargado');
         console.log('📝 Para configurar Supabase:');
         console.log('   1. Ve a Settings > API en tu proyecto Supabase');
