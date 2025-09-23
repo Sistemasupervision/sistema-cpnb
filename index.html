@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Supervisión y Control - Policía Nacional Bolivariana</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Sistema de Supervisión y Control</title>
     <style>
         * {
             margin: 0;
@@ -14,665 +13,490 @@
         }
         
         body {
-            background: linear-gradient(135deg, #1a3a6c, #2c5282);
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
             position: relative;
             overflow: hidden;
         }
         
-        .login-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 450px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            position: relative;
-            z-index: 10;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        
-        .dashboard-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 600px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            position: relative;
-            z-index: 10;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255,255,255,0.2);
-            display: none;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .logo-container {
-            width: 80px;
-            height: 80px;
-            background: #1a3a6c;
-            border-radius: 12px;
-            margin: 0 auto 20px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
-            line-height: 1.2;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        
-        .header h1 {
-            color: #1a3a6c;
-            font-size: 24px;
-            font-weight: bold;
-            line-height: 1.4;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-            margin-bottom: 8px;
-        }
-        
-        .header p {
-            color: #666;
-            font-size: 14px;
-            margin-top: 8px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #2c5282;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
-        }
-        
-        .login-btn, .logout-btn {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #1a3a6c, #2c5282);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-        
-        .login-btn:hover, .logout-btn:hover {
-            background: linear-gradient(135deg, #2c5282, #1a3a6c);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(26, 58, 108, 0.4);
-        }
-        
-        .login-btn:active, .logout-btn:active {
-            transform: translateY(0);
-        }
-        
-        .logout-btn {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            margin-top: 20px;
-        }
-        
-        .logout-btn:hover {
-            background: linear-gradient(135deg, #c0392b, #e74c3c);
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-        }
-        
-        .note {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-        
-        .note strong {
-            color: #1a3a6c;
-            font-weight: 600;
-        }
-        
-        .error-message {
-            color: #e74c3c;
-            text-align: center;
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
-            background: #fdf2f2;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #fecaca;
-            font-weight: bold;
-        }
-        
-        .success-message {
-            color: #27ae60;
-            text-align: center;
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
-            background: #f0fdf4;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #bbf7d0;
-            font-weight: bold;
-        }
-        
-        .config-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: bold;
-        }
-        
-        /* Estilos para el panel de selección de REDIP */
-        .dashboard-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .dashboard-header h2 {
-            color: #1a3a6c;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .dashboard-header p {
-            color: #666;
-            font-size: 16px;
-        }
-        
-        .redip-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .redip-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid #e1e8ed;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .redip-card:hover {
-            transform: translateY(-5px);
-            border-color: #2c5282;
-            box-shadow: 0 8px 25px rgba(26, 58, 108, 0.3);
-            background: #f8f9ff;
-        }
-        
-        .redip-card h3 {
-            color: #1a3a6c;
-            font-size: 18px;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        
-        .redip-card p {
-            color: #666;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        
-        .redip-card i {
-            display: block;
-            width: 50px;
-            height: 50px;
-            background: #1a3a6c;
-            border-radius: 50%;
-            margin: 0 auto 15px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            font-size: 20px;
-        }
-        
-        .user-info {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .user-info span {
-            color: #1a3a6c;
-            font-weight: bold;
-        }
-        
-        .debug-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-            font-size: 12px;
-        }
-        
-        .debug-section h4 {
-            color: #1a3a6c;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        
-        .debug-section ul {
-            text-align: left;
-            padding-left: 20px;
-        }
-        
-        .debug-section li {
-            margin-bottom: 5px;
-            color: #495057;
-        }
-        
-        .decorative-elements {
+        /* Fondo con vectores decorativos */
+        .vector-bg {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            z-index: 1;
+            opacity: 0.15;
+            z-index: 0;
         }
         
-        .circle {
+        .vector-circle {
             position: absolute;
+            border: 2px solid rgba(255, 204, 0, 0.3);
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
         }
         
-        .circle-1 {
+        .vector-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            left: -100px;
+        }
+        
+        .vector-circle:nth-child(2) {
             width: 200px;
             height: 200px;
-            top: -50px;
-            left: -50px;
+            bottom: -50px;
+            right: -50px;
+            border-color: rgba(255, 107, 0, 0.3);
         }
         
-        .circle-2 {
+        .vector-circle:nth-child(3) {
             width: 150px;
             height: 150px;
-            bottom: -30px;
-            right: -30px;
+            top: 30%;
+            right: 10%;
+            border-color: rgba(255, 204, 0, 0.4);
         }
         
-        .circle-3 {
-            width: 100px;
-            height: 100px;
-            top: 40%;
-            right: 10%;
+        .vector-circle:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            bottom: 20%;
+            left: 5%;
+            border-color: rgba(44, 82, 130, 0.4);
+        }
+        
+        .vector-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
+        }
+        
+        .vector-line:nth-child(5) {
+            width: 200px;
+            top: 15%;
+            left: 20%;
+            transform: rotate(30deg);
+        }
+        
+        .vector-line:nth-child(6) {
+            width: 150px;
+            bottom: 25%;
+            right: 25%;
+            transform: rotate(-45deg);
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            border: 4px solid #ffcc00;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .logo::before {
+            content: '👮';
+            font-size: 60px;
+            color: white;
+        }
+        
+        .logo::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 30px;
+            height: 30px;
+            background: #ffcc00;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+        
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1.4;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #ffcc00, #ff6b00);
+            border-radius: 2px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            background-color: white;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(12, 36, 64, 0.5);
+        }
+        
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .login-btn:hover::before {
+            left: 100%;
+        }
+        
+        .security-info {
+            text-align: center;
+            margin-top: 25px;
+            color: #4a5568;
+            font-size: 13px;
+            line-height: 1.6;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #3182ce;
+        }
+        
+        .security-info strong {
+            color: #0c2440;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .additional-logos {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 15px 0;
+        }
+        
+        .small-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #ffcc00;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .small-logo:nth-child(1)::before {
+            content: '🔒';
+            font-size: 20px;
+            color: white;
+        }
+        
+        .small-logo:nth-child(2)::before {
+            content: '🛡️';
+            font-size: 20px;
+            color: white;
+        }
+        
+        .small-logo:nth-child(3)::before {
+            content: '✅';
+            font-size: 20px;
+            color: white;
+        }
+        
+        /* Panel principal styles */
+        .dashboard-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 600px;
+            padding: 50px;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            display: none;
+        }
+        
+        .dashboard-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        
+        .dashboard-title {
+            color: #0c2440;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .user-info {
+            background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #3182ce;
+            margin-top: 20px;
+        }
+        
+        .user-info h3 {
+            color: #0c2440;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .user-info p {
+            color: #4a5568;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .back-btn {
+            margin-top: 25px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .back-btn:hover {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(26, 54, 93, 0.4);
         }
         
         @media (max-width: 480px) {
             .login-container, .dashboard-container {
-                margin: 20px;
                 padding: 30px 20px;
             }
             
-            .logo-container {
-                width: 60px;
-                height: 60px;
-                font-size: 10px;
-                margin-bottom: 15px;
-            }
-            
-            .header h1, .dashboard-header h2 {
+            .title, .dashboard-title {
                 font-size: 20px;
             }
             
-            .redip-grid {
-                grid-template-columns: 1fr;
+            .logo {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .security-info {
+                font-size: 12px;
+            }
+            
+            .additional-logos {
+                gap: 12px;
+            }
+            
+            .small-logo {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .dashboard-container {
+                padding: 30px 20px;
+            }
+            
+            .user-info {
+                padding: 20px;
+            }
+            
+            .vector-circle {
+                transform: scale(0.7);
             }
         }
     </style>
 </head>
 <body>
-    <!-- Elementos decorativos -->
-    <div class="decorative-elements">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-        <div class="circle circle-3"></div>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
     </div>
     
-    <!-- Contenedor de inicio de sesión -->
-    <div class="login-container" id="loginContainer">
-        <div class="header">
-            <div class="logo-container">
-                LOGO
-            </div>
-            <h1>Sistema de Supervisión y Control</h1>
-            <p>Cuerpo de Policía Nacional Bolivariana</p>
-        </div>
-        
-        <!-- Advertencia de configuración -->
-        <div class="config-warning" id="configWarning" style="display: none;">
-            ⚠️ CONFIGURACIÓN INCOMPLETA ⚠️<br>
-            Debes reemplazar las credenciales de Supabase en el código
+    <!-- Login Form -->
+    <div id="loginContainer" class="login-container">
+        <div class="logo-container">
+            <div class="logo"></div>
+            <h1 class="title">Sistema de Supervisión y Control de CPNB</h1>
         </div>
         
         <form id="loginForm">
-            <div class="form-group">
-                <label for="email">Correo Electrónico</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    placeholder="Ingrese su correo institucional"
-                    required
-                >
+            <div class="input-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" placeholder="Ingrese su nombre de usuario" required>
             </div>
             
-            <div class="form-group">
+            <div class="input-group">
                 <label for="password">Contraseña</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    placeholder="Ingrese su contraseña"
-                    required
-                >
+                <input type="password" id="password" placeholder="Ingrese su contraseña" required>
             </div>
             
-            <button type="submit" class="login-btn" id="loginBtn">Iniciar Sesión</button>
+            <button type="submit" class="login-btn">Iniciar Sesión</button>
         </form>
         
-        <div class="error-message" id="errorMessage"></div>
-        <div class="success-message" id="successMessage"></div>
-        
-        <div class="note">
-            <p><strong>Nota:</strong> Este sistema solo permite el inicio de sesión con credenciales previamente registradas en la base de datos institucional (Supabase). No se permite el registro de nuevos usuarios desde esta interfaz.</p>
+        <div class="security-info">
+            <strong>Seguridad de extremo a extremo</strong>
+            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
         
-        <!-- Sección de depuración -->
-        <div class="debug-section">
-            <h4>🔍 Pasos para solucionar problemas:</h4>
-            <ul>
-                <li>1. Verifica que el usuario esté <strong>CONFIRMADO</strong> en Supabase</li>
-                <li>2. Asegúrate de usar las <strong>credenciales correctas</strong></li>
-                <li>3. Abre la <strong>consola del navegador (F12)</strong> para ver errores</li>
-                <li>4. Revisa que la autenticación por email esté <strong>habilitada</strong></li>
-            </ul>
+        <div class="additional-logos">
+            <div class="small-logo"></div>
+            <div class="small-logo"></div>
+            <div class="small-logo"></div>
         </div>
     </div>
-
-    <!-- Panel de Dashboard (oculto inicialmente) -->
-    <div class="dashboard-container" id="dashboardContainer">
-        <div class="dashboard-header">
-            <div class="logo-container">
-                LOGO
-            </div>
-            <h2>Panel de Supervisión y Control</h2>
-            <p>Seleccione una REDIP para continuar</p>
+    
+    <!-- Dashboard Panel -->
+    <div id="dashboardContainer" class="dashboard-container">
+        <div class="logo-container">
+            <div class="logo"></div>
+            <h1 class="dashboard-title">Panel Principal</h1>
         </div>
         
         <div class="user-info">
-            <p>Bienvenido, <span id="userName">Usuario</span></p>
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Nombre del Usuario</p>
         </div>
         
-        <div class="redip-grid">
-            <div class="redip-card" onclick="selectRedip('REDIP 01 - Caracas')">
-                <i>01</i>
-                <h3>REDIP 01</h3>
-                <p>Caracas - Distrito Capital</p>
-            </div>
-            <div class="redip-card" onclick="selectRedip('REDIP 02 - Miranda')">
-                <i>02</i>
-                <h3>REDIP 02</h3>
-                <p>Miranda</p>
-            </div>
-            <div class="redip-card" onclick="selectRedip('REDIP 03 - Aragua')">
-                <i>03</i>
-                <h3>REDIP 03</h3>
-                <p>Aragua</p>
-            </div>
-            <div class="redip-card" onclick="selectRedip('REDIP 04 - Carabobo')">
-                <i>04</i>
-                <h3>REDIP 04</h3>
-                <p>Carabobo</p>
-            </div>
-            <div class="redip-card" onclick="selectRedip('REDIP 05 - Zulia')">
-                <i>05</i>
-                <h3>REDIP 05</h3>
-                <p>Zulia</p>
-            </div>
-            <div class="redip-card" onclick="selectRedip('REDIP 06 - Lara')">
-                <i>06</i>
-                <h3>REDIP 06</h3>
-                <p>Lara</p>
-            </div>
-        </div>
-        
-        <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+        <button id="backBtn" class="back-btn">Cerrar Sesión</button>
     </div>
 
     <script>
-        // ⚠️ REEMPLAZA ESTOS VALORES CON TUS CREDENCIALES REALES DE SUPABASE ⚠️
-        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co'; // ← Reemplaza esto con tu URL real
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q'; // ← Reemplaza esto con tu clave real
-        
-        // Declarar supabase como variable global
-        let supabase = null;
-        
-        // Verificar configuración y inicializar Supabase
-        function initializeSupabase() {
-            const configWarning = document.getElementById('configWarning');
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
             
-            if (supabaseUrl.includes('TU_PROYECTO') || supabaseAnonKey.includes('TU_CLAVE')) {
-                configWarning.style.display = 'block';
-                console.warn('⚠️ Configuración de Supabase incompleta. Reemplaza las credenciales en el código.');
-                return false;
-            }
-            
-            try {
-                supabase = createClient(supabaseUrl, supabaseAnonKey);
-                configWarning.style.display = 'none';
-                console.log('✅ Supabase inicializado correctamente');
-                return true;
-            } catch (error) {
-                console.error('❌ Error al inicializar Supabase:', error);
-                configWarning.style.display = 'block';
-                configWarning.innerHTML = '❌ Error al conectar con Supabase<br>Verifica la consola (F12) para más detalles';
-                return false;
-            }
-        }
-        
-        // Verificar si hay sesión activa al cargar la página - CORREGIDO
-        async function checkExistingSession() {
-            if (!supabase) return;
-            
-            try {
-                // SINTAXIS CORREGIDA: const { data } en lugar de const { { session } }
-                const { data } = await supabase.auth.getSession();
-                const session = data.session;
-                
-                if (session) {
-                    showDashboard(session.user.email);
-                }
-            } catch (error) {
-                console.error('Error al verificar sesión existente:', error);
-            }
-        }
-        
-        // Inicializar cuando el DOM esté listo
-        document.addEventListener('DOMContentLoaded', () => {
-            if (initializeSupabase()) {
-                checkExistingSession();
-            }
-        });
-        
-        async function signIn(email, password) {
-            if (!supabase) {
-                throw new Error('Supabase no está inicializado');
-            }
-            
-            try {
-                console.log('🔍 Intentando iniciar sesión con:', email);
-                
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-                
-                if (error) {
-                    console.error('❌ Error de Supabase:', error);
-                    throw error;
-                }
-                
-                console.log('✅ Inicio de sesión exitoso:', data);
-                return { success: true, data };
-            } catch (error) {
-                console.error('❌ Error en signIn:', error);
-                return { 
-                    success: false, 
-                    error: error.message || 'Error desconocido al iniciar sesión' 
-                };
-            }
-        }
-        
-        function showDashboard(userEmail) {
+            // Mostrar el panel principal
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userName').textContent = userEmail.split('@')[0];
-        }
-        
-        function showLogin() {
-            document.getElementById('loginContainer').style.display = 'block';
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('email').value = '';
-            document.getElementById('password').value = '';
-        }
-        
-        function selectRedip(redipName) {
-            alert(`Ha seleccionado: ${redipName}\n\nEn una implementación real, esto redirigiría al módulo correspondiente de supervisión para esta REDIP.`);
-        }
-        
-        async function logout() {
-            if (!supabase) return;
             
-            try {
-                await supabase.auth.signOut();
-                showLogin();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-                showLogin();
-            }
-        }
-        
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            // Verificar que Supabase esté inicializado
-            if (!supabase) {
-                if (!initializeSupabase()) {
-                    document.getElementById('errorMessage').textContent = '⚠️ Configura tus credenciales de Supabase primero';
-                    document.getElementById('errorMessage').style.display = 'block';
-                }
-                return;
-            }
-            
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
-            const loginBtn = document.getElementById('loginBtn');
-            
-            if (!email || !password) {
-                errorMessage.textContent = '❌ Por favor complete todos los campos';
-                errorMessage.style.display = 'block';
-                successMessage.style.display = 'none';
-                return;
-            }
-            
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-            
-            const originalText = loginBtn.textContent;
-            loginBtn.textContent = '🔄 Conectando...';
-            loginBtn.disabled = true;
-            
-            try {
-                const result = await signIn(email, password);
-                
-                if (result.success) {
-                    successMessage.textContent = '✅ Inicio de sesión exitoso';
-                    successMessage.style.display = 'block';
-                    setTimeout(() => {
-                        showDashboard(email);
-                    }, 1500);
-                } else {
-                    let errorMessageText = '❌ Error al iniciar sesión';
-                    
-                    if (result.error.includes('Invalid login credentials')) {
-                        errorMessageText = '❌ Credenciales inválidas. Verifique su email y contraseña';
-                    } else if (result.error.includes('Email not confirmed')) {
-                        errorMessageText = '❌ Email no confirmado. Verifique su bandeja de entrada';
-                    } else if (result.error.includes('User not found')) {
-                        errorMessageText = '❌ Usuario no encontrado. Verifique que esté registrado';
-                    }
-                    
-                    errorMessage.innerHTML = `${errorMessageText}<br><br>
-                        <small>💡 Verifique la consola del navegador (F12) para más detalles</small>`;
-                    errorMessage.style.display = 'block';
-                }
-            } catch (error) {
-                errorMessage.textContent = '❌ Error inesperado: ' + error.message;
-                errorMessage.style.display = 'block';
-                console.error('Error inesperado:', error);
-            } finally {
-                loginBtn.textContent = originalText;
-                loginBtn.disabled = false;
-            }
+            // Mostrar el nombre del usuario
+            document.getElementById('userNameDisplay').textContent = username;
         });
         
-        // Mensaje de ayuda en consola
-        console.log('🔧 Sistema de Supervisión y Control cargado');
-        console.log('📝 Para configurar Supabase:');
-        console.log('   1. Ve a Settings > API en tu proyecto Supabase');
-        console.log('   2. Copia tu URL del proyecto y tu clave pública (anon)');
-        console.log('   3. Reemplaza los valores en las variables supabaseUrl y supabaseAnonKey');
-        console.log('   4. Guarda el archivo y recarga la página');
+        document.getElementById('backBtn').addEventListener('click', function() {
+            // Volver al formulario de login
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            
+            // Limpiar el formulario
+            document.getElementById('loginForm').reset();
+        });
     </script>
 </body>
 </html>
