@@ -169,9 +169,10 @@
             font-size: 14px;
             display: none;
             background: #fdf2f2;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 8px;
             border: 1px solid #fecaca;
+            font-weight: bold;
         }
         
         .success-message {
@@ -181,9 +182,21 @@
             font-size: 14px;
             display: none;
             background: #f0fdf4;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 8px;
             border: 1px solid #bbf7d0;
+            font-weight: bold;
+        }
+        
+        .config-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
         }
         
         /* Estilos para el panel de selección de REDIP */
@@ -270,6 +283,31 @@
             font-weight: bold;
         }
         
+        .debug-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            font-size: 12px;
+        }
+        
+        .debug-section h4 {
+            color: #1a3a6c;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .debug-section ul {
+            text-align: left;
+            padding-left: 20px;
+        }
+        
+        .debug-section li {
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        
         .decorative-elements {
             position: absolute;
             top: 0;
@@ -348,6 +386,12 @@
             <p>Cuerpo de Policía Nacional Bolivariana</p>
         </div>
         
+        <!-- Advertencia de configuración -->
+        <div class="config-warning" id="configWarning" style="display: none;">
+            ⚠️ CONFIGURACIÓN INCOMPLETA ⚠️<br>
+            Debes reemplazar las credenciales de Supabase en el código
+        </div>
+        
         <form id="loginForm">
             <div class="form-group">
                 <label for="email">Correo Electrónico</label>
@@ -371,7 +415,7 @@
                 >
             </div>
             
-            <button type="submit" class="login-btn">Iniciar Sesión</button>
+            <button type="submit" class="login-btn" id="loginBtn">Iniciar Sesión</button>
         </form>
         
         <div class="error-message" id="errorMessage"></div>
@@ -379,6 +423,17 @@
         
         <div class="note">
             <p><strong>Nota:</strong> Este sistema solo permite el inicio de sesión con credenciales previamente registradas en la base de datos institucional (Supabase). No se permite el registro de nuevos usuarios desde esta interfaz.</p>
+        </div>
+        
+        <!-- Sección de depuración -->
+        <div class="debug-section">
+            <h4>🔍 Pasos para solucionar problemas:</h4>
+            <ul>
+                <li>1. Verifica que el usuario esté <strong>CONFIRMADO</strong> en Supabase</li>
+                <li>2. Asegúrate de usar las <strong>credenciales correctas</strong></li>
+                <li>3. Abre la <strong>consola del navegador (F12)</strong> para ver errores</li>
+                <li>4. Revisa que la autenticación por email esté <strong>habilitada</strong></li>
+            </ul>
         </div>
     </div>
 
@@ -434,32 +489,59 @@
 
     <script>
         // ⚠️ REEMPLAZA ESTOS VALORES CON TUS CREDENCIALES REALES DE SUPABASE ⚠️
-        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co'; // ← Reemplaza esto
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q'; // ← Reemplaza esto
+        const supabaseUrl = 'https://TU_PROYECTO.supabase.co'; // ← Reemplaza esto con tu URL real
+        const supabaseAnonKey = 'TU_CLAVE_ANÓNIMA_AQUÍ'; // ← Reemplaza esto con tu clave real
         
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        let supabase;
         
-        // Verificar si hay sesión activa al cargar la página
-        window.addEventListener('DOMContentLoaded', async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                showDashboard(session.user.email);
+        // Verificar configuración antes de inicializar Supabase
+        function checkSupabaseConfig() {
+            const configWarning = document.getElementById('configWarning');
+            
+            if (supabaseUrl.includes('TU_PROYECTO') || supabaseAnonKey.includes('TU_CLAVE')) {
+                configWarning.style.display = 'block';
+                return false;
             }
-        });
+            
+            configWarning.style.display = 'none';
+            return true;
+        }
+        
+        // Inicializar Supabase solo si la configuración es correcta
+        if (checkSupabaseConfig()) {
+            supabase = createClient(supabaseUrl, supabaseAnonKey);
+            
+            // Verificar si hay sesión activa al cargar la página
+            window.addEventListener('DOMContentLoaded', async () => {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session) {
+                        showDashboard(session.user.email);
+                    }
+                } catch (error) {
+                    console.error('Error al verificar sesión:', error);
+                }
+            });
+        }
         
         async function signIn(email, password) {
             try {
+                console.log('🔍 Intentando iniciar sesión con:', email);
+                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
                 if (error) {
+                    console.error('❌ Error de Supabase:', error);
                     throw error;
                 }
                 
+                console.log('✅ Inicio de sesión exitoso:', data);
                 return { success: true, data };
             } catch (error) {
+                console.error('❌ Error en signIn:', error);
                 return { 
                     success: false, 
                     error: error.message || 'Error desconocido al iniciar sesión' 
@@ -485,20 +567,33 @@
         }
         
         async function logout() {
-            await supabase.auth.signOut();
-            showLogin();
+            try {
+                await supabase.auth.signOut();
+                showLogin();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+                showLogin(); // Mostrar login aunque falle el logout
+            }
         }
         
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // Verificar configuración nuevamente
+            if (!checkSupabaseConfig()) {
+                document.getElementById('errorMessage').textContent = '⚠️ Configura tus credenciales de Supabase primero';
+                document.getElementById('errorMessage').style.display = 'block';
+                return;
+            }
+            
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
+            const loginBtn = document.getElementById('loginBtn');
             
             if (!email || !password) {
-                errorMessage.textContent = 'Por favor complete todos los campos';
+                errorMessage.textContent = '❌ Por favor complete todos los campos';
                 errorMessage.style.display = 'block';
                 successMessage.style.display = 'none';
                 return;
@@ -507,9 +602,8 @@
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
             
-            const loginBtn = document.querySelector('.login-btn');
             const originalText = loginBtn.textContent;
-            loginBtn.textContent = 'Conectando...';
+            loginBtn.textContent = '🔄 Conectando...';
             loginBtn.disabled = true;
             
             try {
@@ -522,18 +616,38 @@
                         showDashboard(email);
                     }, 1500);
                 } else {
-                    errorMessage.innerHTML = `❌ <strong>Error:</strong> ${result.error}<br><br>
-                        <em>Verifica que tu usuario esté CONFIRMADO en Supabase</em>`;
+                    let errorMessageText = '❌ Error al iniciar sesión';
+                    
+                    // Mensajes de error más específicos
+                    if (result.error.includes('Invalid login credentials')) {
+                        errorMessageText = '❌ Credenciales inválidas. Verifique su email y contraseña';
+                    } else if (result.error.includes('Email not confirmed')) {
+                        errorMessageText = '❌ Email no confirmado. Verifique su bandeja de entrada';
+                    } else if (result.error.includes('User not found')) {
+                        errorMessageText = '❌ Usuario no encontrado. Verifique que esté registrado';
+                    }
+                    
+                    errorMessage.innerHTML = `${errorMessageText}<br><br>
+                        <small>💡 Verifique la consola del navegador (F12) para más detalles</small>`;
                     errorMessage.style.display = 'block';
                 }
             } catch (error) {
-                errorMessage.textContent = 'Error inesperado: ' + error.message;
+                errorMessage.textContent = '❌ Error inesperado: ' + error.message;
                 errorMessage.style.display = 'block';
+                console.error('Error inesperado:', error);
             } finally {
                 loginBtn.textContent = originalText;
                 loginBtn.disabled = false;
             }
         });
+        
+        // Mensaje en consola para ayudar con la depuración
+        console.log('🔧 Sistema de Supervisión y Control cargado');
+        console.log('📝 Para configurar Supabase:');
+        console.log('   1. Ve a Settings > API en tu proyecto Supabase');
+        console.log('   2. Copia tu URL del proyecto y tu clave pública (anon)');
+        console.log('   3. Reemplaza los valores en las variables supabaseUrl y supabaseAnonKey');
+        console.log('   4. Guarda el archivo y recarga la página');
     </script>
 </body>
 </html>
