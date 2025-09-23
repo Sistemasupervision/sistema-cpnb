@@ -122,37 +122,16 @@
             margin-bottom: 30px;
         }
         
-        .logo {
+        /* NUEVOS ESTILOS PARA IMÁGENES DE GITHUB */
+        .logo-img {
             width: 120px;
             height: 120px;
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0 auto 20px;
             border: 4px solid #ffcc00;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .logo::before {
-            content: '👮';
-            font-size: 60px;
-            color: white;
-        }
-        
-        .logo::after {
-            content: '';
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            width: 30px;
-            height: 30px;
-            background: #ffcc00;
-            border-radius: 50%;
-            opacity: 0.7;
+            object-fit: cover;
+            margin: 0 auto 20px;
+            display: block;
         }
         
         .title {
@@ -272,34 +251,14 @@
             padding: 15px 0;
         }
         
-        .small-logo {
+        /* NUEVOS ESTILOS PARA LOGOS PEQUEÑOS */
+        .small-logo-img {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             border: 2px solid #ffcc00;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        
-        .small-logo:nth-child(1)::before {
-            content: '🔒';
-            font-size: 20px;
-            color: white;
-        }
-        
-        .small-logo:nth-child(2)::before {
-            content: '🛡️';
-            font-size: 20px;
-            color: white;
-        }
-        
-        .small-logo:nth-child(3)::before {
-            content: '✅';
-            font-size: 20px;
-            color: white;
+            object-fit: cover;
         }
         
         /* Estilos específicos del dashboard */
@@ -377,7 +336,7 @@
                 font-size: 20px;
             }
             
-            .logo {
+            .logo-img {
                 width: 100px;
                 height: 100px;
             }
@@ -390,7 +349,7 @@
                 gap: 12px;
             }
             
-            .small-logo {
+            .small-logo-img {
                 width: 35px;
                 height: 35px;
             }
@@ -418,7 +377,8 @@
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
-            <div class="logo"></div>
+            <!-- LOGO PRINCIPAL DE GITHUB - CAMBIA ESTA URL -->
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control de CPNB</h1>
         </div>
         
@@ -442,17 +402,19 @@
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
         
+        <!-- LOGOS PEQUEÑOS DE GITHUB - CAMBIA ESTAS URLS -->
         <div class="additional-logos">
-            <div class="small-logo"></div>
-            <div class="small-logo"></div>
-            <div class="small-logo"></div>
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo1.png" alt="Logo 1" class="small-logo-img">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo2.png" alt="Logo 2" class="small-logo-img">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo3.png" alt="Logo 3" class="small-logo-img">
         </div>
     </div>
     
     <!-- Dashboard Panel -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
-            <div class="logo"></div>
+            <!-- LOGO PRINCIPAL EN EL PANEL - MISMA URL -->
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo-principal.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         
