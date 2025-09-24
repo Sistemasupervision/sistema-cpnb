@@ -1,1 +1,48 @@
+<div id="rediOccidentalContent">
+    <div class="logo-container">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <h1 class="title">REDI OCCIDENTAL</h1>
+    </div>
+    <form id="occidentalForm">
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect" required>
+                <option value="">-- Elija una opción --</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="col">CCPE COL</option>
+            </select>
+        </div>
+        <button type="submit" class="form-btn">Continuar</button>
+    </form>
+    <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
+</div>
 
+<style>
+    #rediOccidentalContent .form-btn {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 10px;
+        box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
+    }
+    #rediOccidentalContent .back-btn {
+        background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+        width: auto;
+        display: inline-block;
+        padding: 10px 20px;
+        margin-top: 20px;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+    }
+</style>
