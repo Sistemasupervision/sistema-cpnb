@@ -124,15 +124,14 @@
         
         /* NUEVOS ESTILOS PARA IMÁGENES DE GITHUB */
         .logo-img {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    margin: 0 auto 20px;
-    display: block;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid #ffcc00;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            object-fit: cover;
+            margin: 0 auto 20px;
+            display: block;
         }
         
         .title {
@@ -242,7 +241,24 @@
             color: #0c2440;
             display: block;
             margin-bottom: 8px;
-            
+        }
+        
+        .additional-logos {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 15px 0;
+        }
+        
+        /* NUEVOS ESTILOS PARA LOGOS PEQUEÑOS */
+        .small-logo-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #ffcc00;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            object-fit: cover;
         }
         
         /* Estilos específicos del dashboard */
@@ -346,27 +362,6 @@
                 transform: scale(0.7);
             }
         }
-        /* Estilos para el texto de copyright */
-.copyright-text {
-    text-align: center;
-    margin-top: 20px;
-    padding: 15px 0;
-}
-
-.copyright-text p {
-    color: #4a5568;
-    font-size: 12px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-        @media (max-width: 480px) {
-    .copyright-text p {
-        font-size: 11px;
-        padding: 0 10px;
-    }
-                }
-            
     </style>
 </head>
 <body>
@@ -383,7 +378,7 @@
     <div id="loginContainer" class="container">
         <div class="logo-container">
             <!-- LOGO PRINCIPAL DE GITHUB - CAMBIA ESTA URL -->
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo-principal.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control de CPNB</h1>
         </div>
         
@@ -407,15 +402,19 @@
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
         
-<div class="copyright-text">
-    <p>copyright© REDIP OCCIDENTAL OTIC ZULIA</p>
-</div>
+        <!-- LOGOS PEQUEÑOS DE GITHUB - CAMBIA ESTAS URLS -->
+        <div class="additional-logos">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo1.png" alt="Logo 1" class="small-logo-img">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo2.png" alt="Logo 2" class="small-logo-img">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo3.png" alt="Logo 3" class="small-logo-img">
+        </div>
+    </div>
     
     <!-- Dashboard Panel -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <!-- LOGO PRINCIPAL EN EL PANEL - MISMA URL -->
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo-principal.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         
@@ -429,8 +428,8 @@
 
     <script>
         // CONFIGURACIÓN DE SUPABASE - DEBES REEMPLAZAR ESTOS VALORES
-        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
+        const supabaseUrl = 'https://TU_PROYECTO.supabase.co';
+        const supabaseAnonKey = 'TU_ANON_KEY_AQUÍ';
         
         // Inicializar Supabase
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -488,7 +487,7 @@
         
         // Verificar si el usuario ya está autenticado al cargar la página
         async function checkAuthState() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (user) {
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
