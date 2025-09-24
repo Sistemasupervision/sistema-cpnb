@@ -1,0 +1,26 @@
+<div class="logo-container">
+    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+    <h1 class="title">Selección de Estación Policial o Servicio</h1>
+</div>
+
+<div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8fafc; border-radius: 12px; border-left: 4px solid #3182ce;">
+    <p style="color: #4a5568; font-size: 16px;">
+        Seleccione la estación policial o servicio que desea supervisar
+    </p>
+</div>
+
+<!-- Aquí puedes agregar un desplegable, lista o botones según necesites -->
+<div class="input-group">
+    <label for="estacionSelect">Estaciones Policiales:</label>
+    <select id="estacionSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+        <option value="">-- Seleccione una estación --</option>
+        <option value="1">Comando Regional I</option>
+        <option value="2">Destacamento La Victoria</option>
+        <option value="3">Comisaría El Paraíso</option>
+        <!-- Agrega más opciones según tu base de datos -->
+    </select>
+</div>
+
+<button class="form-btn" style="margin-top: 20px; width: 100%;">Continuar</button>
+
+<button id="backToCcpBtn" class="back-btn" style="margin-top: 20px;">← Volver a CCP</button>
