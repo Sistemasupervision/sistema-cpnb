@@ -530,7 +530,7 @@ function loadInspectionForm(estacionId) {
                 Estación: <strong>${estacionId}</strong>
             </p>
         </div>
-        <form id="inspectionForm">
+        <form id="inspectionForm" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
             <div class="items-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px;">
     `;
     items.forEach(item => {
