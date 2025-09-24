@@ -160,80 +160,66 @@
             verBtn.disabled = !estacionSelect.value;
         });
 
-        verBtn.addEventListener('click', async () => {
-            const estacionNombre = estacionSelect.value; // ← Nombre de la estación
-            if (!estacionNombre) {
-                alert('Seleccione una estación.');
-                return;
-            }
+      verBtn.addEventListener('click', async () => {
+    const estacionId = estacionSelect.value;
+    if (!estacionId) {
+        alert('Seleccione una estación.');
+        return;
+    }
 
-            const fechaInicio = document.getElementById('fechaInicio').value;
-            const fechaFin = document.getElementById('fechaFin').value;
+    historialContainer.innerHTML = '<p>Cargando historial...</p>';
 
-            if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) {
-                alert('Complete ambas fechas o déjelas vacías.');
-                return;
-            }
+    try {
+        const {  inspecciones, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('*')
+            .eq('estacion_id', estacionId)
+            .order('created_at', { ascending: false });
 
-            historialContainer.innerHTML = '<p>Cargando historial...</p>';
+        if (inspError) throw inspError;
 
-            try {
-                let query = supabase
-                    .from('inspecciones')
-                    .select('*')
-                    .eq('estacion_id', estacionNombre); // ← Filtrar por nombre
+        if (!inspecciones || inspecciones.length === 0) {
+            historialContainer.innerHTML = '<p>🔍 No hay inspecciones.</p>';
+            return;
+        }
 
-                if (fechaInicio) {
-                    const start = new Date(fechaInicio);
-                    start.setHours(0, 0, 0, 0);
-                    query = query.gte('created_at', start.toISOString());
-                }
-                if (fechaFin) {
-                    const end = new Date(fechaFin);
-                    end.setHours(23, 59, 59, 999);
-                    query = query.lte('created_at', end.toISOString());
-                }
+        let html = '';
+        for (const insp of inspecciones) {
+            const {  items } = await supabase
+                .from('items_inspeccion')
+                .select('*')
+                .eq('inspeccion_id', insp.id);
 
-                query = query.order('created_at', { ascending: false });
+            const fecha = new Date(insp.created_at).toLocaleString('es-VE');
+            html += `
+                <div class="inspeccion">
+                    <h3>Inspección del ${fecha}</h3>
+                    <p><strong>Inspector:</strong> ${insp.inspector_email}</p>
+                    <p><strong>Observaciones:</strong> ${insp.observaciones_generales || 'Ninguna'}</p>
+                    <div class="items-grid">
+            `;
 
-                // ✅ Sintaxis correcta de Supabase
-                const {  inspecciones, error: inspError } = await query;
+            (items || []).forEach(item => {
+                const estado = item.cumple ? '✅ Sí' : '❌ No';
+                const clase = item.cumple ? 'satisfactorio' : '';
+                html += `
+                    <div class="item-card">
+                        <strong>${item.item_nombre.replace(/_/g, ' ')}</strong><br>
+                        <span class="${clase}">${estado}</span><br>
+                        ${item.observacion ? `<em>Obs: ${item.observacion}</em>` : ''}
+                    </div>
+                `;
+            });
 
-                if (inspError) throw inspError;
+            html += `</div></div>`;
+        }
 
-                if (!inspecciones || inspecciones.length === 0) {
-                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones.</p>';
-                    return;
-                }
-
-                let html = '';
-                for (const insp of inspecciones) {
-                    const {  items } = await supabase
-                        .from('items_inspeccion')
-                        .select('*')
-                        .eq('inspeccion_id', insp.id);
-
-                    const fecha = new Date(insp.created_at).toLocaleString('es-VE');
-                    html += `
-                        <div class="inspeccion">
-                            <h3>Inspección del ${fecha}</h3>
-                            <p><strong>Inspector:</strong> ${insp.inspector_email}</p>
-                            <p><strong>Observaciones:</strong> ${insp.observaciones_generales || 'Ninguna'}</p>
-                            <div class="items-grid">
-                    `;
-
-                    (items || []).forEach(item => {
-                        const estado = item.cumple ? '✅ Sí' : '❌ No';
-                        const clase = item.cumple ? 'satisfactorio' : '';
-                        html += `
-                            <div class="item-card">
-                                <strong>${item.item_nombre.replace(/_/g, ' ')}</strong><br>
-                                <span class="${clase}">${estado}</span><br>
-                                ${item.observacion ? `<em>Obs: ${item.observacion}</em>` : ''}
-                            </div>
-                        `;
-                    });
-
+        historialContainer.innerHTML = html;
+    } catch (error) {
+        console.error('Error:', error);
+        historialContainer.innerHTML = `<p style="color:red;">⚠️ ${error.message}</p>`;
+    }
+});
                     html += `</div></div>`;
                 }
 
