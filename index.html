@@ -530,33 +530,33 @@ function loadInspectionForm(estacionId) {
                 Estación: <strong>${estacionId}</strong>
             </p>
         </div>
-        <form id="inspectionForm" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
-            <div class="items-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px;">
+        <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
+            <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
     `;
     items.forEach(item => {
         formHtml += `
-            <div class="item-card" style="background:#f8fafc; padding:20px; border-radius:14px; border:1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
-                <label style="font-weight: bold; color: #0c2440; font-size:15px;">${nombres[item]}</label>
-                <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:10px; margin-top:10px; font-size:15px;">
+            <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
+                <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
                     <option value="null">-- Seleccione --</option>
                     <option value="true">Sí</option>
                     <option value="false">No</option>
                 </select>
                 <textarea class="observacion-text" data-item="${item}" 
-                    placeholder="Observaciones (solo si es 'Sí')" 
-                    style="width:100%; padding:12px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:14px; background:#fff;"
+                    placeholder="Observaciones (si es 'Sí')" 
+                    style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
                     rows="3"></textarea>
             </div>
         `;
     });
     formHtml += `
             </div>
-            <div class="input-group" style="margin-top:20px;">
+            <div class="input-group" style="margin-top:20px; grid-column: span 3;">
                 <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
                 <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
                     style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
             </div>
-            <div style="text-align:center; margin-top:30px;">
+            <div style="text-align:center; margin-top:30px; grid-column: span 3;">
                 <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
                 <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
             </div>
@@ -565,7 +565,7 @@ function loadInspectionForm(estacionId) {
     const dynamicView = document.getElementById('dynamicView');
     dynamicView.innerHTML = formHtml;
     dynamicView.style.display = 'block';
-    dynamicView.style.maxWidth = '900px';
+    dynamicView.style.maxWidth = '950px';
     dynamicView.style.padding = '40px';
 
     // Mostrar/ocultar textarea según selección
@@ -590,7 +590,7 @@ function loadInspectionForm(estacionId) {
     // Guardar inspección
     document.getElementById('inspectionForm').onsubmit = async (e) => {
         e.preventDefault();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {  { user } } = await supabase.auth.getUser();
         if (!user) {
             alert('Debe estar autenticado para guardar.');
             return;
