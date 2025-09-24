@@ -290,7 +290,6 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -309,14 +308,11 @@
             <button type="submit" class="login-btn">Iniciar Sesión</button>
             <div id="errorMessage" class="error-message"></div>
         </form>
-               <div class="security-info">
+        <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
-    </div> <!-- ✅ Cierre del loginContainer -->
-    
-    <!-- Panel Principal (REDI) -->
-
+    </div>
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -339,7 +335,6 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -361,19 +356,16 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-
     <script>
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -389,7 +381,6 @@
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
-
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -402,85 +393,68 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-
         function showRediOccidental() {
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('rediOccidentalContainer').style.display = 'block';
         }
-
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
-        
-async function handleOccidentalForm(e) {
-    e.preventDefault();
-    const ccpValue = document.getElementById('ccpSelect').value;
-    
-    if (ccpValue === 'metropolitano') {
-        try {
-            // Cargar estaciones desde Supabase
-            const { data: estaciones, error } = await supabase
-                .from('estaciones_policiales')
-                .select('id, nombre')
-                .eq('ccp_id', 'metropolitano')
-                .order('nombre', { ascending: true });
-                
-            if (error) throw error;
-            
-            // Generar HTML con desplegable de estaciones
-            let estacionesHtml = `
-                <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Selección de Estación Policial</h1>
-                </div>
-                <div class="input-group">
-                    <label for="estacionSelect">Seleccione Estación Policial:</label>
-                    <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
-                        <option value="">-- Elija una estación --</option>
-            `;
-            
-            estaciones.forEach(est => {
-                estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
-            });
-            
-            estacionesHtml += `
-                    </select>
-                </div>
-                <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
-                <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
-            `;
-            
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = estacionesHtml;
-            dynamicView.style.display = 'block';
-            
-            // Evento para cargar formulario de inspección
-            document.getElementById('loadInspectionBtn').onclick = () => {
-                const estacionId = document.getElementById('estacionSelect').value;
-                if (!estacionId) {
-                    alert('Por favor seleccione una estación');
-                    return;
+        async function handleOccidentalForm(e) {
+            e.preventDefault();
+            const ccpValue = document.getElementById('ccpSelect').value;
+            if (ccpValue === 'metropolitano') {
+                try {
+                    const { data: estaciones, error } = await supabase
+                        .from('estaciones_policiales')
+                        .select('id, nombre')
+                        .eq('ccp_id', 'metropolitano')
+                        .order('nombre', { ascending: true });
+                    if (error) throw error;
+                    let estacionesHtml = `
+                        <div class="logo-container">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                            <h1 class="title">Selección de Estación Policial</h1>
+                        </div>
+                        <div class="input-group">
+                            <label for="estacionSelect">Seleccione Estación Policial:</label>
+                            <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                                <option value="">-- Elija una estación --</option>
+                    `;
+                    estaciones.forEach(est => {
+                        estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
+                    });
+                    estacionesHtml += `
+                            </select>
+                        </div>
+                        <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
+                        <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
+                    `;
+                    document.getElementById('rediOccidentalContainer').style.display = 'none';
+                    const dynamicView = document.getElementById('dynamicView');
+                    dynamicView.innerHTML = estacionesHtml;
+                    dynamicView.style.display = 'block';
+                    document.getElementById('loadInspectionBtn').onclick = () => {
+                        const estacionId = document.getElementById('estacionSelect').value;
+                        if (!estacionId) {
+                            alert('Por favor seleccione una estación');
+                            return;
+                        }
+                        loadInspectionForm(estacionId);
+                    };
+                    document.getElementById('backToCcpBtn').onclick = () => {
+                        dynamicView.style.display = 'none';
+                        document.getElementById('rediOccidentalContainer').style.display = 'block';
+                    };
+                } catch (error) {
+                    console.error('Error al cargar estaciones:', error);
+                    alert('Error al cargar las estaciones policiales');
                 }
-                loadInspectionForm(estacionId);
-            };
-            
-            // Evento para volver a CCP
-            document.getElementById('backToCcpBtn').onclick = () => {
-                dynamicView.style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-            };
-            
-        } catch (error) {
-            console.error('Error al cargar estaciones:', error);
-            alert('Error al cargar las estaciones policiales');
+            } else {
+                alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+            }
         }
-    } else {
-        alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
-    }
-}
-
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -489,176 +463,161 @@ async function handleOccidentalForm(e) {
                 document.getElementById('userNameDisplay').textContent = user.email;
             }
         }
-
-        // Event listeners
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-        
-function loadInspectionForm(estacionId) {
-    const items = [
-        "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
-        "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
-        "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
-        "condiciones_generales", "vehiculos", "motos"
-    ];
 
-    const nombres = {
-        baño_dama: "Baño Dama",
-        baño_caballero: "Baño Caballero",
-        dormitorio_femenino: "Dormitorio Femenino",
-        dormitorio_masculino: "Dormitorio Masculino",
-        cocina: "Cocina",
-        comedor: "Comedor",
-        lavanderia: "Lavandería",
-        oficina_del_jefe: "Oficina del Jefe",
-        oficina_de_rrhh: "Oficina de RRHH",
-        condiciones_electricas: "Condiciones Eléctricas",
-        fachada: "Fachada",
-        condiciones_de_pintura: "Condiciones de Pintura",
-        jardines: "Jardines",
-        condiciones_generales: "Condiciones Generales",
-        vehiculos: "Vehículos",
-        motos: "Motos"
-    };
+        function loadInspectionForm(estacionId) {
+            const items = [
+                "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
+                "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
+                "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
+                "condiciones_generales", "vehiculos", "motos"
+            ];
+            const nombres = {
+                baño_dama: "Baño Dama",
+                baño_caballero: "Baño Caballero",
+                dormitorio_femenino: "Dormitorio Femenino",
+                dormitorio_masculino: "Dormitorio Masculino",
+                cocina: "Cocina",
+                comedor: "Comedor",
+                lavanderia: "Lavandería",
+                oficina_del_jefe: "Oficina del Jefe",
+                oficina_de_rrhh: "Oficina de RRHH",
+                condiciones_electricas: "Condiciones Eléctricas",
+                fachada: "Fachada",
+                condiciones_de_pintura: "Condiciones de Pintura",
+                jardines: "Jardines",
+                condiciones_generales: "Condiciones Generales",
+                vehiculos: "Vehículos",
+                motos: "Motos"
+            };
+            let formHtml = `
+                <div class="logo-container">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Formulario de Inspección</h1>
+                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                        Estación: <strong>${estacionId}</strong>
+                    </p>
+                </div>
+                <form id="inspectionForm">
+                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px;">
+            `;
+            items.forEach(item => {
+                formHtml += `
+                    <div class="item-card" style="background:#f8fafc; padding:20px; border-radius:14px; border:1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+                        <label style="font-weight: bold; color: #0c2440; font-size:15px;">${nombres[item]}</label>
+                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:10px; margin-top:10px; font-size:15px;">
+                            <option value="null">-- Seleccione --</option>
+                            <option value="true">Sí</option>
+                            <option value="false">No</option>
+                        </select>
+                        <textarea class="observacion-text" data-item="${item}" 
+                            placeholder="Observaciones (solo si es 'Sí')" 
+                            style="width:100%; padding:12px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:14px; background:#fff;"
+                            rows="3"></textarea>
+                    </div>
+                `;
+            });
+            formHtml += `
+                    </div>
+                    <div class="input-group" style="margin-top:20px;">
+                        <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
+                        <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
+                            style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
+                    </div>
+                    <div style="text-align:center; margin-top:30px;">
+                        <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
+                        <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
+                    </div>
+                </form>
+            `;
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = formHtml;
+            dynamicView.style.display = 'block';
+            dynamicView.style.maxWidth = '900px';
+            dynamicView.style.padding = '40px';
 
-    let formHtml = `
-        <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Formulario de Inspección</h1>
-            <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                Estación: <strong>${estacionId}</strong>
-            </p>
-        </div>
-
-        <form id="inspectionForm">
-            <div class="items-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px;">
-    `;
-
-    items.forEach(item => {
-        formHtml += `
-            <div class="item-card" style="background:#f8fafc; padding:20px; border-radius:14px; border:1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
-                <label style="font-weight: bold; color: #0c2440; font-size:15px;">${nombres[item]}</label>
-                <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:10px; margin-top:10px; font-size:15px;">
-                    <option value="null">-- Seleccione --</option>
-                    <option value="true">Sí</option>
-                    <option value="false">No</option>
-                </select>
-                <textarea class="observacion-text" data-item="${item}" 
-                    placeholder="Observaciones (solo si es 'Sí')" 
-                    style="width:100%; padding:12px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:14px; background:#fff;"
-                    rows="3"></textarea>
-            </div>
-        `;
-    });
-
-    formHtml += `
-            </div>
-
-            <div class="input-group" style="margin-top:20px;">
-                <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
-                <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
-                    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
-            </div>
-
-            <div style="text-align:center; margin-top:30px;">
-                <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
-                <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
-            </div>
-        </form>
-    `;
-
-    const dynamicView = document.getElementById('dynamicView');
-    dynamicView.innerHTML = formHtml;
-    dynamicView.style.display = 'block';
-    dynamicView.style.maxWidth = '900px'; // Más ancho
-    dynamicView.style.padding = '40px';
-
-    // Mostrar/ocultar textarea según selección
-    document.querySelectorAll('.cumple-select').forEach(select => {
-        select.addEventListener('change', function () {
-            const item = this.dataset.item;
-            const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-            if (this.value === 'true') {
-                textarea.style.display = 'block';
-            } else {
-                textarea.style.display = 'none';
-                textarea.value = '';
-            }
-        });
-    });
-
-    // Volver a estaciones
-    document.getElementById('backToEstacionesBtn').onclick = () => {
-        handleOccidentalForm({ preventDefault: () => {} });
-    };
-
-    // Guardar inspección
-    document.getElementById('inspectionForm').onsubmit = async (e) => {
-        e.preventDefault();
-
-        const {  { user } } = await supabase.auth.getUser();
-        if (!user) {
-            alert('Debe estar autenticado para guardar.');
-            return;
-        }
-
-        const {  inspeccion, error: inspError } = await supabase
-            .from('inspecciones')
-            .insert({
-                estacion_id: estacionId,
-                inspector_email: user.email,
-                observaciones_generales: document.getElementById('observacionesGenerales').value || null
-            })
-            .select()
-            .single();
-
-        if (inspError) {
-            console.error('Error al crear inspección:', inspError);
-            alert('Error al guardar la inspección.');
-            return;
-        }
-
-        const itemsData = [];
-        items.forEach(item => {
-            const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-            const cumple = select.value === 'true' ? true : (select.value === 'false' ? false : null);
-            if (cumple !== null) {
-                const observacion = cumple 
-                    ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
-                    : null;
-                itemsData.push({
-                    inspeccion_id: inspeccion.id,
-                    item_nombre: item,
-                    cumple: cumple,
-                    observacion: observacion
+            document.querySelectorAll('.cumple-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const item = this.dataset.item;
+                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+                    if (this.value === 'true') {
+                        textarea.style.display = 'block';
+                    } else {
+                        textarea.style.display = 'none';
+                        textarea.value = '';
+                    }
                 });
-            }
-        });
+            });
 
-        if (itemsData.length === 0) {
-            alert('Debe responder al menos un ítem.');
-            return;
+            document.getElementById('backToEstacionesBtn').onclick = () => {
+                handleOccidentalForm({ preventDefault: () => {} });
+            };
+
+            document.getElementById('inspectionForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert('Debe estar autenticado para guardar.');
+                    return;
+                }
+
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .insert({
+                        estacion_id: estacionId,
+                        inspector_email: user.email,
+                        observaciones_generales: document.getElementById('observacionesGenerales').value || null
+                    })
+                    .select()
+                    .single();
+
+                if (inspError) {
+                    console.error('Error al crear inspección:', inspError);
+                    alert('Error al guardar la inspección.');
+                    return;
+                }
+
+                const itemsData = [];
+                items.forEach(item => {
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const cumple = select.value === 'true' ? true : (select.value === 'false' ? false : null);
+                    if (cumple !== null) {
+                        const observacion = cumple 
+                            ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
+                            : null;
+                        itemsData.push({
+                            inspeccion_id: inspeccion.id,
+                            item_nombre: item,
+                            cumple: cumple,
+                            observacion: observacion
+                        });
+                    }
+                });
+
+                if (itemsData.length === 0) {
+                    alert('Debe responder al menos un ítem.');
+                    return;
+                }
+
+                const { error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .insert(itemsData);
+
+                if (itemsError) {
+                    console.error('Error al guardar ítems:', itemsError);
+                    alert('Error al guardar los ítems de inspección.');
+                } else {
+                    alert('✅ Inspección guardada exitosamente.');
+                    handleOccidentalForm({ preventDefault: () => {} });
+                }
+            };
         }
-
-        const { error: itemsError } = await supabase
-            .from('items_inspeccion')
-            .insert(itemsData);
-
-        if (itemsError) {
-            console.error('Error al guardar ítems:', itemsError);
-            alert('Error al guardar los ítems de inspección.');
-        } else {
-            alert('✅ Inspección guardada exitosamente.');
-            handleOccidentalForm({ preventDefault: () => {} });
-        }
-    };
-}
         checkAuthState();
     </script>
-    <!-- Contenedor dinámico para vistas externas -->
     <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
 </body>
 </html>
