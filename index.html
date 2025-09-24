@@ -426,10 +426,10 @@
                 try {
                     // ✅ Corrección: sintaxis válida de JavaScript
                     const { , error } = await supabase
-                        .from('estaciones_policiales')
-                        .select('id, nombre')
-                        .eq('ccp_id', 'metropolitano')
-                        .order('nombre', { ascending: true });
+    .from('estaciones_policiales')
+    .select('id, nombre')
+    .eq('ccp_id', 'metropolitano')
+    .order('nombre', { ascending: true });
                         
                     if (error) throw error;
                     
