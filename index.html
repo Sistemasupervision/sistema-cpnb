@@ -411,34 +411,30 @@
             document.getElementById('dashboardContainer').style.display = 'block';
         }
 
-       async function handleOccidentalForm(e) {
+      async function handleOccidentalForm(e) {
     e.preventDefault();
-    const select = document.getElementById('ccpSelect');
-    const selectedValue = select.value;
+    const ccpValue = document.getElementById('ccpSelect').value;
     
-    if (selectedValue === 'metropolitano') {
-        // Cargar vista externa SOLO para CCP METROPOLITANO
+    if (ccpValue === 'metropolitano') {
         try {
             const response = await fetch('seleccion-estacion.html');
             const html = await response.text();
             
             document.getElementById('rediOccidentalContainer').style.display = 'none';
-            const dynamicContainer = document.getElementById('dynamicViewContainer');
-            dynamicContainer.innerHTML = html;
-            dynamicContainer.style.display = 'block';
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = html;
+            dynamicView.style.display = 'block';
             
-            // Reasignar botón de regreso
-            document.getElementById('backToCcpBtn').onclick = () => {
-                dynamicContainer.style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-            };
+            // Inicializar la vista externa con acceso a Supabase
+            if (typeof initSeleccionEstacion === 'function') {
+                initSeleccionEstacion(supabase);
+            }
         } catch (error) {
             console.error('Error al cargar seleccion-estacion.html:', error);
             alert('No se pudo cargar la vista de selección');
         }
     } else {
-        // Para otros CCP, muestra alerta (puedes expandir después)
-        alert('Vista en desarrollo para: ' + select.options[select.selectedIndex].text);
+        alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
     }
 }
 
@@ -462,5 +458,6 @@
     </script>
     <!-- Contenedor dinámico para vistas externas -->
 <div id="dynamicViewContainer" class="container" style="display:none; max-width: 600px; padding: 50px;"></div>
+    <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
 </body>
 </html>
