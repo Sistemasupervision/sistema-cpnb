@@ -439,6 +439,9 @@ async function handleOccidentalForm(e) {
                     <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
                         <option value="">-- Elija una estación --</option>
             `;
+            <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
+<a href="historial.html?estacion_id=${est.id}" target="_blank" class="form-btn" style="margin-top:10px; text-decoration: none; display: block; text-align: center; background: #3182ce;">Ver Historial de Inspecciones</a>
+<button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
             
             estaciones.forEach(est => {
                 estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
