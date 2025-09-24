@@ -309,11 +309,13 @@
             <button type="submit" class="login-btn">Iniciar Sesión</button>
             <div id="errorMessage" class="error-message"></div>
         </form>
-        <div class="security-info">
+               <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
-    </div>
+    </div> <!-- ✅ Cierre del loginContainer -->
+    
+    <!-- Panel Principal (REDI) -->
 
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
@@ -457,7 +459,6 @@ async function handleOccidentalForm(e) {
         checkAuthState();
     </script>
     <!-- Contenedor dinámico para vistas externas -->
-<div id="dynamicViewContainer" class="container" style="display:none; max-width: 600px; padding: 50px;"></div>
     <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
 </body>
 </html>
