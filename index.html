@@ -411,14 +411,36 @@
             document.getElementById('dashboardContainer').style.display = 'block';
         }
 
-        function handleOccidentalForm(e) {
-            e.preventDefault();
-            const selected = document.getElementById('ccpSelect').value;
-            if (selected) {
-                alert('Seleccionado: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
-                // Aquí puedes redirigir, guardar en localStorage, o hacer una llamada a Supabase
-            }
+       async function handleOccidentalForm(e) {
+    e.preventDefault();
+    const select = document.getElementById('ccpSelect');
+    const selectedValue = select.value;
+    
+    if (selectedValue === 'metropolitano') {
+        // Cargar vista externa SOLO para CCP METROPOLITANO
+        try {
+            const response = await fetch('seleccion-estacion.html');
+            const html = await response.text();
+            
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            const dynamicContainer = document.getElementById('dynamicViewContainer');
+            dynamicContainer.innerHTML = html;
+            dynamicContainer.style.display = 'block';
+            
+            // Reasignar botón de regreso
+            document.getElementById('backToCcpBtn').onclick = () => {
+                dynamicContainer.style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+            };
+        } catch (error) {
+            console.error('Error al cargar seleccion-estacion.html:', error);
+            alert('No se pudo cargar la vista de selección');
         }
+    } else {
+        // Para otros CCP, muestra alerta (puedes expandir después)
+        alert('Vista en desarrollo para: ' + select.options[select.selectedIndex].text);
+    }
+}
 
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -438,5 +460,7 @@
 
         checkAuthState();
     </script>
+    <!-- Contenedor dinámico para vistas externas -->
+<div id="dynamicViewContainer" class="container" style="display:none; max-width: 600px; padding: 50px;"></div>
 </body>
 </html>
