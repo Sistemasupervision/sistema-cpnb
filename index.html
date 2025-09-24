@@ -496,6 +496,7 @@ async function handleOccidentalForm(e) {
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+// Cargar formulario de inspección para una estación específica
 function loadInspectionForm(estacionId) {
     const items = [
         "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
@@ -567,6 +568,7 @@ function loadInspectionForm(estacionId) {
     dynamicView.style.maxWidth = '950px';
     dynamicView.style.padding = '40px';
 
+    // Mostrar/ocultar textarea según selección
     document.querySelectorAll('.cumple-select').forEach(select => {
         select.addEventListener('change', function () {
             const item = this.dataset.item;
@@ -580,20 +582,20 @@ function loadInspectionForm(estacionId) {
         });
     });
 
+    // Volver a estaciones
     document.getElementById('backToEstacionesBtn').onclick = () => {
         handleOccidentalForm({ preventDefault: () => {} });
     };
 
+    // Guardar inspección
     document.getElementById('inspectionForm').onsubmit = async (e) => {
         e.preventDefault();
-        // ✅ CORRECCIÓN: Sintaxis válida para obtener el usuario
-        const { data: { user } } = await supabase.auth.getUser();
+        const {  { user } } = await supabase.auth.getUser();
         if (!user) {
             alert('Debe estar autenticado para guardar.');
             return;
         }
-        // ✅ CORRECCIÓN: Sintaxis válida para insertar la inspección
-        const { data: inspeccionData, error: inspError } = await supabase
+        const {  inspeccionData, error: inspError } = await supabase
             .from('inspecciones')
             .insert({
                 estacion_id: estacionId,
@@ -645,6 +647,8 @@ function loadInspectionForm(estacionId) {
     };
 }
         checkAuthState();
+        <!-- Contenedor dinámico para vistas externas -->
+<div id="dynamicView" class="container" style="display:none; max-width:900px; padding:40px;"></div>
     </script>
 </body>
 </html>
