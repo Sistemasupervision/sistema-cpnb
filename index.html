@@ -419,21 +419,62 @@ async function handleOccidentalForm(e) {
     
     if (ccpValue === 'metropolitano') {
         try {
-            const response = await fetch('seleccion-estacion.html');
-            const html = await response.text();
+            // Cargar estaciones desde Supabase
+            const { data: estaciones, error } = await supabase
+                .from('estaciones_policiales')
+                .select('id, nombre')
+                .eq('ccp_id', 'metropolitano')
+                .order('nombre', { ascending: true });
+                
+            if (error) throw error;
+            
+            // Generar HTML con desplegable de estaciones
+            let estacionesHtml = `
+                <div class="logo-container">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Selección de Estación Policial</h1>
+                </div>
+                <div class="input-group">
+                    <label for="estacionSelect">Seleccione Estación Policial:</label>
+                    <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                        <option value="">-- Elija una estación --</option>
+            `;
+            
+            estaciones.forEach(est => {
+                estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
+            });
+            
+            estacionesHtml += `
+                    </select>
+                </div>
+                <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
+                <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
+            `;
             
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = html;
+            dynamicView.innerHTML = estacionesHtml;
             dynamicView.style.display = 'block';
             
-            // Inicializar la vista externa con acceso a Supabase
-            if (typeof initSeleccionEstacion === 'function') {
-                initSeleccionEstacion(supabase);
-            }
+            // Evento para cargar formulario de inspección
+            document.getElementById('loadInspectionBtn').onclick = () => {
+                const estacionId = document.getElementById('estacionSelect').value;
+                if (!estacionId) {
+                    alert('Por favor seleccione una estación');
+                    return;
+                }
+                loadInspectionForm(estacionId);
+            };
+            
+            // Evento para volver a CCP
+            document.getElementById('backToCcpBtn').onclick = () => {
+                dynamicView.style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+            };
+            
         } catch (error) {
-            console.error('Error al cargar seleccion-estacion.html:', error);
-            alert('No se pudo cargar la vista de selección');
+            console.error('Error al cargar estaciones:', error);
+            alert('Error al cargar las estaciones policiales');
         }
     } else {
         alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
@@ -455,7 +496,33 @@ async function handleOccidentalForm(e) {
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-
+// Cargar formulario de inspección para una estación específica
+function loadInspectionForm(estacionId) {
+    // Aquí irá tu formulario de inspección (lo personalizas después)
+    const inspectionHtml = `
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Formulario de Inspección</h1>
+        </div>
+        <div style="background:#f8fafc; padding:20px; border-radius:12px; margin:20px 0;">
+            <p style="text-align:center; color:#4a5568;">
+                Formulario para la estación con ID: <strong>${estacionId}</strong>
+            </p>
+            <p style="text-align:center; margin-top:10px; font-weight:bold; color:#0c2440;">
+                ¡Listo para personalizar con tus ítems de inspección!
+            </p>
+        </div>
+        <button id="backToEstacionesBtn" class="back-btn">← Volver a Estaciones</button>
+    `;
+    
+    const dynamicView = document.getElementById('dynamicView');
+    dynamicView.innerHTML = inspectionHtml;
+    
+    // Evento para volver a la selección de estaciones
+    document.getElementById('backToEstacionesBtn').onclick = () => {
+        handleOccidentalForm({ preventDefault: () => {} }); // Recargar selección
+    };
+}
         checkAuthState();
     </script>
     <!-- Contenedor dinámico para vistas externas -->
