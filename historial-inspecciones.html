@@ -3,48 +3,206 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Historial de Inspecciones</title>
+    <title>Historial de Inspecciones - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f4f8; }
-        .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        select, button { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; }
-        .inspeccion { border-left: 4px solid #3182ce; padding: 10px; margin: 15px 0; background: #f8fafc; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .vector-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        .vector-circle {
+            position: absolute;
+            border: 2px solid rgba(255, 204, 0, 0.3);
+            border-radius: 50%;
+        }
+        .vector-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            left: -100px;
+        }
+        .vector-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            right: -50px;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+        .vector-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 30%;
+            right: 10%;
+            border-color: rgba(255, 204, 0, 0.4);
+        }
+        .vector-circle:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            bottom: 20%;
+            left: 5%;
+            border-color: rgba(44, 82, 130, 0.4);
+        }
+        .vector-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
+        }
+        .vector-line:nth-child(5) {
+            width: 200px;
+            top: 15%;
+            left: 20%;
+            transform: rotate(30deg);
+        }
+        .vector-line:nth-child(6) {
+            width: 150px;
+            bottom: 25%;
+            right: 25%;
+            transform: rotate(-45deg);
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            color: #0c2440;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        h1 { text-align: center; margin-bottom: 20px; font-size: 24px; font-weight: bold; color: #0c2440; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #2d3748; }
+        select, input, button {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            background-color: white;
+        }
+        button {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
+        }
+        button:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
+        }
+        button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .inspeccion {
+            border-left: 4px solid #3182ce;
+            padding: 15px;
+            margin: 20px 0;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .item-card {
+            background: #edf2f7;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .item-card strong { color: #0c2440; }
+        .item-card span { color: #e53e3e; }
+        .item-card span.satisfactorio { color: #38a169; }
     </style>
 </head>
 <body>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+
     <div class="container">
-        <h2>Historial de Inspecciones</h2>
+        <h1>Historial de Inspecciones</h1>
 
-        <select id="ccpSelect">
-            <option value="">-- Elija CCP --</option>
-            <option value="metropolitano">CCP METROPOLITANO</option>
-            <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-            <option value="guajira">CCP GUAJIRA</option>
-            <option value="col">CCPE COL</option>
-        </select>
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect">
+                <option value="">-- Elija CCP --</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="col">CCPE COL</option>
+            </select>
+        </div>
 
-        <select id="estacionSelect" disabled>
-            <option value="">-- Elija CCP primero --</option>
-        </select>
+        <div class="input-group">
+            <label for="estacionSelect">Seleccione Estación:</label>
+            <select id="estacionSelect" disabled>
+                <option value="">-- Primero elija CCP --</option>
+            </select>
+        </div>
 
-        <button id="verBtn" disabled>Ver Historial</button>
+        <button id="verHistorialBtn" disabled>Ver Historial</button>
 
-        <div id="resultado"></div>
+        <div id="historialContainer" style="margin-top: 30px;"></div>
     </div>
 
     <script>
-        const supabase = window.supabase.createClient(
-            'https://slkbmddaqsvjofhtuusb.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q'
-        );
+        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         const ccpSelect = document.getElementById('ccpSelect');
         const estacionSelect = document.getElementById('estacionSelect');
-        const verBtn = document.getElementById('verBtn');
-        const resultado = document.getElementById('resultado');
+        const verBtn = document.getElementById('verHistorialBtn');
+        const historialContainer = document.getElementById('historialContainer');
 
-        // Cargar estaciones al cambiar CCP
         ccpSelect.addEventListener('change', async () => {
             const ccp = ccpSelect.value;
             if (!ccp) {
@@ -54,63 +212,107 @@
                 return;
             }
 
-            const {  estaciones, error } = await supabase
-                .from('estaciones_policiales')
-                .select('id, nombre')
-                .eq('ccp_id', ccp)
-                .order('nombre', { ascending: true });
+            // Limpiar y deshabilitar temporalmente
+            estacionSelect.disabled = true;
+            estacionSelect.innerHTML = '<option value="">Cargando...</option>';
+            verBtn.disabled = true;
 
-            if (error) {
-                console.error('Error:', error);
-                resultado.innerHTML = '<p style="color:red;">Error al cargar estaciones.</p>';
-                return;
+            try {
+                const { data, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccp)
+                    .order('nombre', { ascending: true });
+
+                if (error) throw error;
+
+                let options = '<option value="">-- Seleccione estación --</option>';
+                data.forEach(est => {
+                    options += `<option value="${est.id}">${est.nombre}</option>`;
+                });
+                estacionSelect.innerHTML = options;
+                estacionSelect.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar estaciones:', err);
+                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
+                estacionSelect.disabled = true;
             }
-
-            let html = '<option value="">-- Seleccione estación --</option>';
-            estaciones.forEach(e => {
-                html += `<option value="${e.id}">${e.nombre}</option>`;
-            });
-            estacionSelect.innerHTML = html;
-            estacionSelect.disabled = false;
         });
 
         estacionSelect.addEventListener('change', () => {
             verBtn.disabled = !estacionSelect.value;
         });
 
-        // Ver historial
         verBtn.addEventListener('click', async () => {
-            const estacionId = estacionSelect.value; // string: "1", "2", etc.
-            resultado.innerHTML = '<p>Cargando...</p>';
-
-            const {  inspecciones, error } = await supabase
-                .from('inspecciones')
-                .select('*')
-                .eq('estacion_id', estacionId)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error:', error);
-                resultado.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+            const estacionId = estacionSelect.value;
+            if (!estacionId) {
+                alert('Seleccione una estación.');
                 return;
             }
 
-            if (!inspecciones || inspecciones.length === 0) {
-                resultado.innerHTML = '<p>🔍 No hay inspecciones para esta estación.</p>';
-                return;
+            historialContainer.innerHTML = '<p>Cargando historial...</p>';
+
+            try {
+                const {  inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('*')
+                    .eq('estacion_id', estacionId)
+                    .order('created_at', { ascending: false });
+
+                if (inspError) throw inspError;
+
+                if (!inspecciones || inspecciones.length === 0) {
+                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones en esta estación.</p>';
+                    return;
+                }
+
+                let html = '';
+                for (const insp of inspecciones) {
+                    const {  items } = await supabase
+                        .from('items_inspeccion')
+                        .select('*')
+                        .eq('inspeccion_id', insp.id);
+
+                    const fecha = new Date(insp.created_at).toLocaleString('es-VE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    html += `
+                        <div class="inspeccion">
+                            <h3>Inspección del ${fecha}</h3>
+                            <p><strong>Inspector:</strong> ${insp.inspector_email}</p>
+                            <p><strong>Observaciones generales:</strong> ${insp.observaciones_generales || 'Ninguna'}</p>
+                            <div class="items-grid">
+                    `;
+
+                    if (items && items.length > 0) {
+                        items.forEach(item => {
+                            const estado = item.cumple ? '✅ Sí' : '❌ No';
+                            const clase = item.cumple ? 'satisfactorio' : '';
+                            html += `
+                                <div class="item-card">
+                                    <strong>${(item.item_nombre || '').replace(/_/g, ' ')}</strong><br>
+                                    <span class="${clase}">${estado}</span><br>
+                                    ${item.observacion ? `<em>Obs: ${item.observacion}</em>` : ''}
+                                </div>
+                            `;
+                        });
+                    } else {
+                        html += `<div class="item-card">Sin ítems registrados</div>`;
+                    }
+
+                    html += `</div></div>`;
+                }
+
+                historialContainer.innerHTML = html;
+            } catch (error) {
+                console.error('Error al cargar historial:', error);
+                historialContainer.innerHTML = `<p style="color:red;">⚠️ Error al cargar historial.<br><small>${error.message || 'Error desconocido'}</small></p>`;
             }
-
-            let html = '<h3>Inspecciones encontradas:</h3>';
-            inspecciones.forEach(i => {
-                const fecha = new Date(i.created_at).toLocaleString('es-VE');
-                html += `<div class="inspeccion">
-                    <p><strong>Fecha:</strong> ${fecha}</p>
-                    <p><strong>Inspector:</strong> ${i.inspector_email}</p>
-                    <p><strong>Observaciones:</strong> ${i.observaciones_generales || 'Ninguna'}</p>
-                </div>`;
-            });
-
-            resultado.innerHTML = html;
         });
     </script>
 </body>
