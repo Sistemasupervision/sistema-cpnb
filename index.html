@@ -206,8 +206,7 @@
             margin-bottom: 8px;
         }
         #dashboardContainer,
-        #rediOccidentalContainer,
-        #dynamicView {
+        #rediOccidentalContainer {
             max-width: 600px;
             padding: 50px;
             display: none;
@@ -260,8 +259,7 @@
                 padding: 30px 20px;
             }
             #dashboardContainer,
-            #rediOccidentalContainer,
-            #dynamicView {
+            #rediOccidentalContainer {
                 padding: 30px 20px;
             }
             .title {
@@ -292,7 +290,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-    
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -311,12 +309,14 @@
             <button type="submit" class="login-btn">Iniciar Sesión</button>
             <div id="errorMessage" class="error-message"></div>
         </form>
-        <div class="security-info">
+               <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
-    </div>
+    </div> <!-- ✅ Cierre del loginContainer -->
     
+    <!-- Panel Principal (REDI) -->
+
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -339,7 +339,7 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-    
+
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -361,9 +361,6 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-    
-    <!-- Contenedor dinámico -->
-    <div id="dynamicView" class="container"></div>
 
     <script>
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
@@ -399,7 +396,6 @@
                 if (error) throw error;
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'none';
-                document.getElementById('dynamicView').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
             } catch (error) {
@@ -416,15 +412,15 @@
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
-
+        
 async function handleOccidentalForm(e) {
     e.preventDefault();
     const ccpValue = document.getElementById('ccpSelect').value;
     
     if (ccpValue === 'metropolitano') {
         try {
-            // ✅ Corrección: usar "data" en lugar de "estaciones"
-            const { , error } = await supabase
+            // Cargar estaciones desde Supabase
+            const { data: estaciones, error } = await supabase
                 .from('estaciones_policiales')
                 .select('id, nombre')
                 .eq('ccp_id', 'metropolitano')
@@ -432,122 +428,61 @@ async function handleOccidentalForm(e) {
                 
             if (error) throw error;
             
-            let html = `
+            // Generar HTML con desplegable de estaciones
+            let estacionesHtml = `
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                     <h1 class="title">Selección de Estación Policial</h1>
                 </div>
                 <div class="input-group">
-                    <label for="estacionSelect">Seleccione Estación:</label>
-                    <select id="estacionSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                    <label for="estacionSelect">Seleccione Estación Policial:</label>
+                    <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
                         <option value="">-- Elija una estación --</option>
             `;
             
-            // ✅ Verificar que data exista y sea un array
-            if ( && Array.isArray()) {
-                .forEach(est => {
-                    html += `<option value="${est.id}|${est.nombre}">${est.nombre}</option>`;
-                });
-            }
+            estaciones.forEach(est => {
+                estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
+            });
             
-            html += `
+            estacionesHtml += `
                     </select>
                 </div>
-                <button id="loadFormBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario</button>
+                <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
                 <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
             `;
             
             document.getElementById('rediOccidentalContainer').style.display = 'none';
-            document.getElementById('dynamicView').innerHTML = html;
-            document.getElementById('dynamicView').style.display = 'block';
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = estacionesHtml;
+            dynamicView.style.display = 'block';
             
-            // Evento para cargar formulario
-            document.getElementById('loadFormBtn').onclick = () => {
-                const selected = document.getElementById('estacionSelect').value;
-                if (!selected) {
-                    alert('Seleccione una estación');
+            // Evento para cargar formulario de inspección
+            document.getElementById('loadInspectionBtn').onclick = () => {
+                const estacionId = document.getElementById('estacionSelect').value;
+                if (!estacionId) {
+                    alert('Por favor seleccione una estación');
                     return;
                 }
-                const [id, nombre] = selected.split('|');
-                loadInspectionForm(id, nombre);
+                loadInspectionForm(estacionId);
             };
             
-            // Evento para volver
+            // Evento para volver a CCP
             document.getElementById('backToCcpBtn').onclick = () => {
-                document.getElementById('dynamicView').style.display = 'none';
+                dynamicView.style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
             };
             
         } catch (error) {
             console.error('Error al cargar estaciones:', error);
-            alert('Error al cargar las estaciones: ' + error.message);
+            alert('Error al cargar las estaciones policiales');
         }
     } else {
         alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
     }
 }
 
-        // ✅ FUNCIÓN DE INSPECCIÓN (solo una vez)
-        function loadInspectionForm(estacionId, estacionNombre) {
-            const items = [
-                "baño dama", "baño caballero", "dormitorio femenina", "dormitorio masculino",
-                "cocina", "comedor", "lavanderia", "oficina del jefe", "oficina de RRHH",
-                "condiciones electricas", "fachada", "condiciones de pintura", "jardines",
-                "condiciones genrales", "vehiculos", "motos"
-            ];
-            
-            let formHtml = `
-                <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Inspección: ${estacionNombre}</h1>
-                </div>
-                <form id="inspectionForm">
-            `;
-            
-            items.forEach(item => {
-                const label = item.charAt(0).toUpperCase() + item.slice(1);
-                formHtml += `
-                    <div class="inspection-item" style="margin-bottom:20px; padding:15px; background:#f8fafc; border-radius:10px; border-left:3px solid #3182ce;">
-                        <label style="display:block; font-weight:bold; color:#0c2440; margin-bottom:8px;">${label}</label>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <select class="status-select" data-item="${item}" style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px;">
-                                <option value="">Seleccionar</option>
-                                <option value="si">Sí</option>
-                                <option value="no">No</option>
-                            </select>
-                            <input type="text" class="obs-input" placeholder="Observaciones" disabled style="flex:1; padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; background:#edf2f7;">
-                        </div>
-                    </div>
-                `;
-            });
-            
-            formHtml += `
-                </form>
-                <button id="saveInspectionBtn" class="form-btn" style="margin-top:20px;">Guardar Inspección</button>
-                <button id="backToEstacionesBtn" class="back-btn" style="margin-top:15px;">← Volver a Estaciones</button>
-            `;
-            
-            document.getElementById('dynamicView').innerHTML = formHtml;
-            
-            document.querySelectorAll('.status-select').forEach(select => {
-                select.addEventListener('change', function() {
-                    const input = this.closest('div').querySelector('.obs-input');
-                    input.disabled = (this.value !== 'si');
-                    if (this.value !== 'si') input.value = '';
-                });
-            });
-            
-            document.getElementById('saveInspectionBtn').onclick = () => {
-                alert('¡Inspección guardada exitosamente!');
-            };
-            
-            document.getElementById('backToEstacionesBtn').onclick = () => {
-                handleOccidentalForm({ preventDefault: () => {} });
-            };
-        }
-
         async function checkAuthState() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
@@ -561,8 +496,36 @@ async function handleOccidentalForm(e) {
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-
+// Cargar formulario de inspección para una estación específica
+function loadInspectionForm(estacionId) {
+    // Aquí irá tu formulario de inspección (lo personalizas después)
+    const inspectionHtml = `
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Formulario de Inspección</h1>
+        </div>
+        <div style="background:#f8fafc; padding:20px; border-radius:12px; margin:20px 0;">
+            <p style="text-align:center; color:#4a5568;">
+                Formulario para la estación con ID: <strong>${estacionId}</strong>
+            </p>
+            <p style="text-align:center; margin-top:10px; font-weight:bold; color:#0c2440;">
+                ¡Listo para personalizar con tus ítems de inspección!
+            </p>
+        </div>
+        <button id="backToEstacionesBtn" class="back-btn">← Volver a Estaciones</button>
+    `;
+    
+    const dynamicView = document.getElementById('dynamicView');
+    dynamicView.innerHTML = inspectionHtml;
+    
+    // Evento para volver a la selección de estaciones
+    document.getElementById('backToEstacionesBtn').onclick = () => {
+        handleOccidentalForm({ preventDefault: () => {} }); // Recargar selección
+    };
+}
         checkAuthState();
     </script>
+    <!-- Contenedor dinámico para vistas externas -->
+    <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
 </body>
 </html>
