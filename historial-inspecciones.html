@@ -1,3 +1,4 @@
+<!-- Guarda como: historial-inspecciones.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -20,15 +21,6 @@
             border-radius: 20px;
             padding: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 100%);
         }
         h1 { text-align: center; margin-bottom: 20px; }
         .input-group { margin-bottom: 20px; }
@@ -65,7 +57,6 @@
 <body>
     <div class="container">
         <h1>Historial de Inspecciones</h1>
-
         <div class="input-group">
             <label for="ccpSelect">Seleccione CCP:</label>
             <select id="ccpSelect">
@@ -76,16 +67,13 @@
                 <option value="col">CCPE COL</option>
             </select>
         </div>
-
         <div class="input-group">
             <label for="estacionSelect">Seleccione Estación:</label>
             <select id="estacionSelect" disabled>
                 <option value="">-- Primero elija CCP --</option>
             </select>
         </div>
-
         <button id="verHistorialBtn" disabled>Ver Historial</button>
-
         <div id="historialContainer" style="margin-top: 30px;"></div>
     </div>
 
