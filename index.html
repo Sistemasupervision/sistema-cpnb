@@ -496,31 +496,155 @@ async function handleOccidentalForm(e) {
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-// Cargar formulario de inspección para una estación específica
-function loadInspectionForm(estacionId) {
-    // Aquí irá tu formulario de inspección (lo personalizas después)
-    const inspectionHtml = `
+async function loadInspectionForm(estacionId) {
+    // Lista de ítems de inspección
+    const items = [
+        "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
+        "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
+        "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
+        "condiciones_generales", "vehiculos", "motos"
+    ];
+
+    const nombres = {
+        baño_dama: "Baño Dama",
+        baño_caballero: "Baño Caballero",
+        dormitorio_femenino: "Dormitorio Femenino",
+        dormitorio_masculino: "Dormitorio Masculino",
+        cocina: "Cocina",
+        comedor: "Comedor",
+        lavanderia: "Lavandería",
+        oficina_del_jefe: "Oficina del Jefe",
+        oficina_de_rrhh: "Oficina de RRHH",
+        condiciones_electricas: "Condiciones Eléctricas",
+        fachada: "Fachada",
+        condiciones_de_pintura: "Condiciones de Pintura",
+        jardines: "Jardines",
+        condiciones_generales: "Condiciones Generales",
+        vehiculos: "Vehículos",
+        motos: "Motos"
+    };
+
+    let formHtml = `
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Formulario de Inspección</h1>
+            <h1 class="title">Formulario de Inspección - Estación ID: ${estacionId}</h1>
         </div>
-        <div style="background:#f8fafc; padding:20px; border-radius:12px; margin:20px 0;">
-            <p style="text-align:center; color:#4a5568;">
-                Formulario para la estación con ID: <strong>${estacionId}</strong>
-            </p>
-            <p style="text-align:center; margin-top:10px; font-weight:bold; color:#0c2440;">
-                ¡Listo para personalizar con tus ítems de inspección!
-            </p>
-        </div>
-        <button id="backToEstacionesBtn" class="back-btn">← Volver a Estaciones</button>
+        <form id="inspectionForm">
     `;
-    
+
+    items.forEach(item => {
+        formHtml += `
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label>${nombres[item]}</label><br>
+                <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; margin-top:6px;">
+                    <option value="null">-- Seleccione --</option>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                </select>
+                <textarea class="observacion-text" data-item="${item}" 
+                    placeholder="Escriba observaciones (solo si seleccionó 'Sí')" 
+                    style="width:100%; padding:10px; margin-top:8px; border-radius:8px; display:none; border:1px solid #cbd5e0;"
+                    rows="2"></textarea>
+            </div>
+        `;
+    });
+
+    formHtml += `
+        <div class="input-group" style="margin-top:25px;">
+            <label>Observaciones Generales</label>
+            <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
+                style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; margin-top:6px;" rows="3"></textarea>
+        </div>
+        <button type="submit" class="form-btn" style="margin-top:20px;">Guardar Inspección</button>
+        <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px;">← Volver a Estaciones</button>
+        </form>
+    `;
+
     const dynamicView = document.getElementById('dynamicView');
-    dynamicView.innerHTML = inspectionHtml;
-    
-    // Evento para volver a la selección de estaciones
+    dynamicView.innerHTML = formHtml;
+    dynamicView.style.display = 'block';
+
+    // Mostrar/ocultar textarea según selección
+    document.querySelectorAll('.cumple-select').forEach(select => {
+        select.addEventListener('change', function () {
+            const item = this.dataset.item;
+            const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+            if (this.value === 'true') {
+                textarea.style.display = 'block';
+            } else {
+                textarea.style.display = 'none';
+                textarea.value = ''; // Limpiar si se cambia a "No"
+            }
+        });
+    });
+
+    // Volver a estaciones
     document.getElementById('backToEstacionesBtn').onclick = () => {
-        handleOccidentalForm({ preventDefault: () => {} }); // Recargar selección
+        handleOccidentalForm({ preventDefault: () => {} });
+    };
+
+    // Guardar inspección
+    document.getElementById('inspectionForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert('Debe estar autenticado para guardar.');
+            return;
+        }
+
+        // Crear registro de inspección
+        const { data: inspeccion, error: inspError } = await supabase
+            .from('inspecciones')
+            .insert({
+                estacion_id: estacionId,
+                inspector_email: user.email,
+                observaciones_generales: document.getElementById('observacionesGenerales').value || null
+            })
+            .select()
+            .single();
+
+        if (inspError) {
+            console.error('Error al crear inspección:', inspError);
+            alert('Error al guardar la inspección.');
+            return;
+        }
+
+        // Guardar cada ítem
+        const itemsData = [];
+        items.forEach(item => {
+            const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+            const cumple = select.value === 'true' ? true : (select.value === 'false' ? false : null);
+            if (cumple !== null) {
+                const observacion = cumple 
+                    ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
+                    : null;
+                itemsData.push({
+                    inspeccion_id: inspeccion.id,
+                    item_nombre: item,
+                    cumple: cumple,
+                    observacion: observacion
+                });
+            }
+        });
+
+        if (itemsData.length === 0) {
+            alert('Debe responder al menos un ítem.');
+            return;
+        }
+
+        const { error: itemsError } = await supabase
+            .from('items_inspeccion')
+            .insert(itemsData);
+
+        if (itemsError) {
+            console.error('Error al guardar ítems:', itemsError);
+            alert('Error al guardar los ítems de inspección.');
+        } else {
+            alert('✅ Inspección guardada exitosamente.');
+            // Volver a la selección de estaciones
+            handleOccidentalForm({ preventDefault: () => {} });
+        }
     };
 }
         checkAuthState();
