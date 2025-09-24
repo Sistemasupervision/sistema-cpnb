@@ -290,7 +290,6 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -314,7 +313,6 @@
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
     </div>
-
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -337,7 +335,6 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -359,10 +356,6 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-
-    <!-- Contenedor dinámico -->
-    <div id="dynamicView" class="container" style="display:none; max-width:900px; padding:40px;"></div>
-
     <script>
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
@@ -397,7 +390,6 @@
                 if (error) throw error;
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'none';
-                document.getElementById('dynamicView').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
             } catch (error) {
@@ -551,6 +543,8 @@
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = formHtml;
             dynamicView.style.display = 'block';
+            dynamicView.style.maxWidth = '900px';
+            dynamicView.style.padding = '40px';
 
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
@@ -569,72 +563,51 @@
                 handleOccidentalForm({ preventDefault: () => {} });
             };
 
-           // Guardar inspección
-document.getElementById('inspectionForm').onsubmit = async (e) => {
-    e.preventDefault();
-    
-    // Obtener usuario autenticado
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('Debe estar autenticado para guardar.');
-        return;
-    }
+            document.getElementById('inspectionForm').onsubmit = async (e) => {
+                e.preventDefault();
+                
+                // ✅ Corrección 1: desestructuración correcta del usuario
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert('Debe estar autenticado para guardar.');
+                    return;
+                }
 
-    // Insertar cabecera de inspección
-    const { data: inspeccionData, error: inspError } = await supabase
-        .from('inspecciones')
-        .insert({
-            estacion_id: estacionId,
-            inspector_email: user.email,
-            observaciones_generales: document.getElementById('observacionesGenerales').value || null
-        })
-        .select()
-        .single();
+                // ✅ Corrección 2: desestructuración correcta de la inspección
+                const { data: inspeccionData, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .insert({
+                        estacion_id: estacionId,
+                        inspector_email: user.email,
+                        observaciones_generales: document.getElementById('observacionesGenerales').value || null
+                    })
+                    .select()
+                    .single();
 
-    if (inspError) {
-        console.error('Error al crear inspección:', inspError);
-        alert('Error al guardar la inspección: ' + (inspError.message || 'Desconocido'));
-        return;
-    }
+                if (inspError) {
+                    console.error('Error al crear inspección:', inspError);
+                    alert('Error al guardar la inspección: ' + (inspError.message || ''));
+                    return;
+                }
 
-    // Preparar ítems
-    const itemsData = [];
-    items.forEach(item => {
-        const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-        const cumpleValue = select.value;
-        if (cumpleValue === 'null') return; // Opcional: saltar no respondidos
+                const itemsData = [];
+                items.forEach(item => {
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const cumpleValue = select.value;
+                    if (cumpleValue === 'null') return;
 
-        const cumple = cumpleValue === 'true';
-        const observacion = cumple 
-            ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
-            : null;
+                    const cumple = cumpleValue === 'true';
+                    const observacion = cumple 
+                        ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
+                        : null;
 
-        itemsData.push({
-            inspeccion_id: inspeccionData.id, // ✅ Aquí usamos inspeccionData.id
-            item_nombre: item,
-            cumple: cumple,
-            observacion: observacion
-        });
-    });
-
-    if (itemsData.length === 0) {
-        alert('Debe responder al menos un ítem.');
-        return;
-    }
-
-    // Guardar ítems
-    const { error: itemsError } = await supabase
-        .from('items_inspeccion')
-        .insert(itemsData);
-
-    if (itemsError) {
-        console.error('Error al guardar ítems:', itemsError);
-        alert('Error al guardar los ítems: ' + (itemsError.message || 'Desconocido'));
-    } else {
-        alert('✅ Inspección guardada exitosamente.');
-        handleOccidentalForm({ preventDefault: () => {} });
-    }
-};
+                    itemsData.push({
+                        inspeccion_id: inspeccionData.id, // ✅ Usamos inspeccionData.id
+                        item_nombre: item,
+                        cumple: cumple,
+                        observacion: observacion
+                    });
+                });
 
                 if (itemsData.length === 0) {
                     alert('Debe responder al menos un ítem.');
@@ -647,7 +620,7 @@ document.getElementById('inspectionForm').onsubmit = async (e) => {
 
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
-                    alert('Error al guardar los ítems de inspección.');
+                    alert('Error al guardar los ítems: ' + (itemsError.message || ''));
                 } else {
                     alert('✅ Inspección guardada exitosamente.');
                     handleOccidentalForm({ preventDefault: () => {} });
@@ -663,5 +636,6 @@ document.getElementById('inspectionForm').onsubmit = async (e) => {
 
         checkAuthState();
     </script>
+    <div id="dynamicView" class="container" style="display:none; max-width:900px; padding:40px;"></div>
 </body>
 </html>
