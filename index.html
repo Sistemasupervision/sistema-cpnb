@@ -206,7 +206,8 @@
             margin-bottom: 8px;
         }
         #dashboardContainer,
-        #rediOccidentalContainer {
+        #rediOccidentalContainer,
+        #dynamicView {
             max-width: 600px;
             padding: 50px;
             display: none;
@@ -259,7 +260,8 @@
                 padding: 30px 20px;
             }
             #dashboardContainer,
-            #rediOccidentalContainer {
+            #rediOccidentalContainer,
+            #dynamicView {
                 padding: 30px 20px;
             }
             .title {
@@ -290,7 +292,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
+    
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -309,14 +311,12 @@
             <button type="submit" class="login-btn">Iniciar Sesión</button>
             <div id="errorMessage" class="error-message"></div>
         </form>
-               <div class="security-info">
+        <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
-    </div> <!-- ✅ Cierre del loginContainer -->
+    </div>
     
-    <!-- Panel Principal (REDI) -->
-
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -339,7 +339,7 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-
+    
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -361,209 +361,209 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
+    
+    <!-- Contenedor dinámico -->
+    <div id="dynamicView" class="container"></div>
 
     <script>
-        
-    const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-    function showError(message) {
-        const errorDiv = document.getElementById('errorMessage');
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-    }
-
-    async function handleLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = email;
-        } catch (error) {
-            console.error('Error en login:', error);
-            showError('Credenciales incorrectas o usuario no existe');
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-    }
 
-    async function handleLogout() {
-        try {
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            document.getElementById('dynamicView').style.display = 'none';
-            document.getElementById('loginContainer').style.display = 'block';
-            document.getElementById('loginForm').reset();
-        } catch (error) {
-            console.error('Error al cerrar sesión:', error);
-        }
-    }
-
-    function showRediOccidental() {
-        document.getElementById('dashboardContainer').style.display = 'none';
-        document.getElementById('rediOccidentalContainer').style.display = 'block';
-    }
-
-    function backToDashboard() {
-        document.getElementById('rediOccidentalContainer').style.display = 'none';
-        document.getElementById('dashboardContainer').style.display = 'block';
-    }
-
-    // ✅ FUNCIÓN CORREGIDA - SIN ERRORES DE SINTAXIS
-    async function handleOccidentalForm(e) {
-        e.preventDefault();
-        const ccpValue = document.getElementById('ccpSelect').value;
-        
-        if (ccpValue === 'metropolitano') {
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
             try {
-                // ✅ Corrección: sintaxis válida
-                const { , error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre')
-                    .eq('ccp_id', 'metropolitano')
-                    .order('nombre', { ascending: true });
-                    
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                
-                let html = `
-                    <div class="logo-container">
-                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                        <h1 class="title">Selección de Estación Policial</h1>
-                    </div>
-                    <div class="input-group">
-                        <label for="estacionSelect">Seleccione Estación:</label>
-                        <select id="estacionSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
-                            <option value="">-- Elija una estación --</option>
-                `;
-                
-                // ✅ Verificar que data exista y sea un array
-                if ( && Array.isArray()) {
-                    .forEach(est => {
-                        html += `<option value="${est.id}|${est.nombre}">${est.nombre}</option>`;
-                    });
-                }
-                
-                html += `
-                        </select>
-                    </div>
-                    <button id="loadFormBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario</button>
-                    <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
-                `;
-                
-                document.getElementById('rediOccidentalContainer').style.display = 'none';
-                document.getElementById('dynamicView').innerHTML = html;
-                document.getElementById('dynamicView').style.display = 'block';
-                
-                // Evento para cargar formulario
-                document.getElementById('loadFormBtn').onclick = () => {
-                    const selected = document.getElementById('estacionSelect').value;
-                    if (!selected) {
-                        alert('Seleccione una estación');
-                        return;
-                    }
-                    const [id, nombre] = selected.split('|');
-                    loadInspectionForm(id, nombre);
-                };
-                
-                // Evento para volver
-                document.getElementById('backToCcpBtn').onclick = () => {
-                    document.getElementById('dynamicView').style.display = 'none';
-                    document.getElementById('rediOccidentalContainer').style.display = 'block';
-                };
-                
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = email;
             } catch (error) {
-                console.error('Error:', error);
-                alert('Error: ' + (error.message || 'No se pudieron cargar las estaciones'));
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
             }
-        } else {
-            alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
         }
-    }
 
-    // ✅ FUNCIÓN DE INSPECCIÓN (solo una vez)
-    function loadInspectionForm(estacionId, estacionNombre) {
-        const items = [
-            "baño dama", "baño caballero", "dormitorio femenina", "dormitorio masculino",
-            "cocina", "comedor", "lavanderia", "oficina del jefe", "oficina de RRHH",
-            "condiciones electricas", "fachada", "condiciones de pintura", "jardines",
-            "condiciones genrales", "vehiculos", "motos"
-        ];
-        
-        let formHtml = `
-            <div class="logo-container">
-                <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                <h1 class="title">Inspección: ${estacionNombre}</h1>
-            </div>
-            <form id="inspectionForm">
-        `;
-        
-        items.forEach(item => {
-            const label = item.charAt(0).toUpperCase() + item.slice(1);
-            formHtml += `
-                <div class="inspection-item" style="margin-bottom:20px; padding:15px; background:#f8fafc; border-radius:10px; border-left:3px solid #3182ce;">
-                    <label style="display:block; font-weight:bold; color:#0c2440; margin-bottom:8px;">${label}</label>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <select class="status-select" data-item="${item}" style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px;">
-                            <option value="">Seleccionar</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                        </select>
-                        <input type="text" class="obs-input" placeholder="Observaciones" disabled style="flex:1; padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; background:#edf2f7;">
-                    </div>
-                </div>
-            `;
-        });
-        
-        formHtml += `
-            </form>
-            <button id="saveInspectionBtn" class="form-btn" style="margin-top:20px;">Guardar Inspección</button>
-            <button id="backToEstacionesBtn" class="back-btn" style="margin-top:15px;">← Volver a Estaciones</button>
-        `;
-        
-        document.getElementById('dynamicView').innerHTML = formHtml;
-        
-        document.querySelectorAll('.status-select').forEach(select => {
-            select.addEventListener('change', function() {
-                const input = this.closest('div').querySelector('.obs-input');
-                input.disabled = (this.value !== 'si');
-                if (this.value !== 'si') input.value = '';
-            });
-        });
-        
-        document.getElementById('saveInspectionBtn').onclick = () => {
-            alert('¡Inspección guardada exitosamente!');
-        };
-        
-        document.getElementById('backToEstacionesBtn').onclick = () => {
-            handleOccidentalForm({ preventDefault: () => {} });
-        };
-    }
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'none';
+                document.getElementById('dynamicView').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        }
 
-    async function checkAuthState() {
-        const {  { user } } = await supabase.auth.getUser();
-        if (user) {
-            document.getElementById('loginContainer').style.display = 'none';
+        function showRediOccidental() {
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
+        }
+
+        function backToDashboard() {
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = user.email;
         }
-    }
 
-    // Event listeners
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-    document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-    document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-    document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+        // ✅ FUNCIÓN CORREGIDA - SINTAXIS VÁLIDA
+        async function handleOccidentalForm(e) {
+            e.preventDefault();
+            const ccpValue = document.getElementById('ccpSelect').value;
+            
+            if (ccpValue === 'metropolitano') {
+                try {
+                    // ✅ Corrección: sintaxis válida de JavaScript
+                    const { , error } = await supabase
+                        .from('estaciones_policiales')
+                        .select('id, nombre')
+                        .eq('ccp_id', 'metropolitano')
+                        .order('nombre', { ascending: true });
+                        
+                    if (error) throw error;
+                    
+                    let html = `
+                        <div class="logo-container">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                            <h1 class="title">Selección de Estación Policial</h1>
+                        </div>
+                        <div class="input-group">
+                            <label for="estacionSelect">Seleccione Estación:</label>
+                            <select id="estacionSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                                <option value="">-- Elija una estación --</option>
+                    `;
+                    
+                    // ✅ Verificar que data exista
+                    if ( && Array.isArray()) {
+                        .forEach(est => {
+                            html += `<option value="${est.id}|${est.nombre}">${est.nombre}</option>`;
+                        });
+                    }
+                    
+                    html += `
+                            </select>
+                        </div>
+                        <button id="loadFormBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario</button>
+                        <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
+                    `;
+                    
+                    document.getElementById('rediOccidentalContainer').style.display = 'none';
+                    document.getElementById('dynamicView').innerHTML = html;
+                    document.getElementById('dynamicView').style.display = 'block';
+                    
+                    // Evento para cargar formulario
+                    document.getElementById('loadFormBtn').onclick = () => {
+                        const selected = document.getElementById('estacionSelect').value;
+                        if (!selected) {
+                            alert('Seleccione una estación');
+                            return;
+                        }
+                        const [id, nombre] = selected.split('|');
+                        loadInspectionForm(id, nombre);
+                    };
+                    
+                    // Evento para volver
+                    document.getElementById('backToCcpBtn').onclick = () => {
+                        document.getElementById('dynamicView').style.display = 'none';
+                        document.getElementById('rediOccidentalContainer').style.display = 'block';
+                    };
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error: ' + (error.message || 'No se pudieron cargar las estaciones'));
+                }
+            } else {
+                alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+            }
+        }
 
-    checkAuthState();
-</script>
-    <!-- Contenedor dinámico para vistas externas -->
-    <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
+        // ✅ FUNCIÓN DE INSPECCIÓN (solo una vez)
+        function loadInspectionForm(estacionId, estacionNombre) {
+            const items = [
+                "baño dama", "baño caballero", "dormitorio femenina", "dormitorio masculino",
+                "cocina", "comedor", "lavanderia", "oficina del jefe", "oficina de RRHH",
+                "condiciones electricas", "fachada", "condiciones de pintura", "jardines",
+                "condiciones genrales", "vehiculos", "motos"
+            ];
+            
+            let formHtml = `
+                <div class="logo-container">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Inspección: ${estacionNombre}</h1>
+                </div>
+                <form id="inspectionForm">
+            `;
+            
+            items.forEach(item => {
+                const label = item.charAt(0).toUpperCase() + item.slice(1);
+                formHtml += `
+                    <div class="inspection-item" style="margin-bottom:20px; padding:15px; background:#f8fafc; border-radius:10px; border-left:3px solid #3182ce;">
+                        <label style="display:block; font-weight:bold; color:#0c2440; margin-bottom:8px;">${label}</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <select class="status-select" data-item="${item}" style="padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                                <option value="">Seleccionar</option>
+                                <option value="si">Sí</option>
+                                <option value="no">No</option>
+                            </select>
+                            <input type="text" class="obs-input" placeholder="Observaciones" disabled style="flex:1; padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; background:#edf2f7;">
+                        </div>
+                    </div>
+                `;
+            });
+            
+            formHtml += `
+                </form>
+                <button id="saveInspectionBtn" class="form-btn" style="margin-top:20px;">Guardar Inspección</button>
+                <button id="backToEstacionesBtn" class="back-btn" style="margin-top:15px;">← Volver a Estaciones</button>
+            `;
+            
+            document.getElementById('dynamicView').innerHTML = formHtml;
+            
+            document.querySelectorAll('.status-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const input = this.closest('div').querySelector('.obs-input');
+                    input.disabled = (this.value !== 'si');
+                    if (this.value !== 'si') input.value = '';
+                });
+            });
+            
+            document.getElementById('saveInspectionBtn').onclick = () => {
+                alert('¡Inspección guardada exitosamente!');
+            };
+            
+            document.getElementById('backToEstacionesBtn').onclick = () => {
+                handleOccidentalForm({ preventDefault: () => {} });
+            };
+        }
+
+        async function checkAuthState() {
+            const {  { user } } = await supabase.auth.getUser();
+            if (user) {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = user.email;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+
+        checkAuthState();
+    </script>
 </body>
 </html>
