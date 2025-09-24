@@ -401,80 +401,79 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE SUPABASE - DEBES REEMPLAZAR ESTOS VALORES
-        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
+        <script>
+    // CONFIGURACIÓN DE SUPABASE - DEBES REEMPLAZAR ESTOS VALORES
+    const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
+    
+    // Inicializar Supabase
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Función para mostrar mensajes de error
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
+    
+    // Función para manejar el inicio de sesión
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
         
-        // Inicializar Supabase
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        
-        // Función para mostrar mensajes de error
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
-        }
-        
-        // Función para manejar el inicio de sesión
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
             
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password,
-                });
-                
-                if (error) {
-                    throw error;
-                }
-                
-                // Login exitoso
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = email;
-                
-            } catch (error) {
-                console.error('Error en login:', error);
-                showError('Credenciales incorrectas o usuario no existe');
+            if (error) {
+                throw error;
             }
+            
+            // Login exitoso
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            document.getElementById('userNameDisplay').textContent = email;
+            
+        } catch (error) {
+            console.error('Error en login:', error);
+            showError('Credenciales incorrectas o usuario no existe');
         }
-        
-        // Función para manejar el cierre de sesión
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginForm').reset();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-            }
+    }
+    
+    // Función para manejar el cierre de sesión
+    async function handleLogout() {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('loginForm').reset();
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
         }
-        
-        // Verificar si el usuario ya está autenticado al cargar la página
-        async function checkAuthState() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
-            }
+    }
+    
+    // Verificar si el usuario ya está autenticado al cargar la página
+    async function checkAuthState() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            document.getElementById('userNameDisplay').textContent = user.email;
         }
-        
-        // Event listeners
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        
-        // Verificar estado de autenticación al cargar
-        checkAuthState();
-    </script>
-</body>
-</html>
+    }
+    
+    // Event listeners
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    
+    // Verificar estado de autenticación al cargar
+    checkAuthState();
+</script>
