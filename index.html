@@ -121,18 +121,18 @@
             text-align: center;
             margin-bottom: 30px;
         }
-        
-        /* NUEVOS ESTILOS PARA IMÁGENES DE GITHUB */
-        .logo-img {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 4px solid #ffcc00;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            object-fit: cover;
-            margin: 0 auto 20px;
-            display: block;
-        }
+ .logo-img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin: 0 auto 20px;
+    display: block;
+    background: transparent !important;
+    /* Aseguramos que no haya bordes ni sombras */
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
         
         .title {
             text-align: center;
@@ -360,7 +360,7 @@
     <div id="loginContainer" class="container">
         <div class="logo-container">
             <!-- LOGO PRINCIPAL DE GITHUB - CAMBIA ESTA URL -->
-            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo-principal.png" alt="Logo CPNB" class="logo-img">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control de CPNB</h1>
         </div>
         
@@ -388,7 +388,7 @@
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <!-- LOGO PRINCIPAL EN EL PANEL - MISMA URL -->
-            <img src="https://raw.githubusercontent.com/tu-usuario/tu-repositorio/main/imagenes/logo-principal.png" alt="Logo CPNB" class="logo-img">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         
