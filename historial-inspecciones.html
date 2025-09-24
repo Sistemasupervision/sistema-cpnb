@@ -38,10 +38,6 @@
             font-weight: bold;
             margin-top: 10px;
         }
-        button:disabled {
-            background: #a0aec0;
-            cursor: not-allowed;
-        }
         .inspeccion {
             border-left: 4px solid #3182ce;
             padding: 15px;
@@ -130,7 +126,6 @@
             } catch (err) {
                 console.error('Error al cargar estaciones:', err);
                 estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
-                estacionSelect.disabled = true;
             }
         });
 
@@ -152,29 +147,18 @@
                 if (inspError) throw inspError;
 
                 if (inspecciones.length === 0) {
-                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones registradas para esta estación.</p>';
+                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones registradas.</p>';
                     return;
                 }
 
                 let html = '';
                 for (const insp of inspecciones) {
-                    const { data: items, error: itemsError } = await supabase
+                    const {  items } = await supabase
                         .from('items_inspeccion')
                         .select('*')
                         .eq('inspeccion_id', insp.id);
 
-                    if (itemsError) {
-                        console.error('Error al cargar ítems:', itemsError);
-                        continue;
-                    }
-
-                    const fecha = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
+                    const fecha = new Date(insp.created_at).toLocaleString('es-ES');
 
                     html += `
                         <div class="inspeccion">
@@ -201,8 +185,8 @@
 
                 historialContainer.innerHTML = html;
             } catch (error) {
-                console.error('Error al cargar historial:', error);
-                historialContainer.innerHTML = `<p style="color:red;">⚠️ Error al cargar historial.<br><small>${error.message || 'Error desconocido'}</small></p>`;
+                console.error('Error:', error);
+                historialContainer.innerHTML = '<p style="color:red;">⚠️ Error al cargar historial.</p>';
             }
         });
     </script>
