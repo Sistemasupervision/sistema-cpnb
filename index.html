@@ -315,7 +315,7 @@
         </div>
     </div>
     
-    <!-- Panel Principal (REDI) -->
+<!-- Dashboard Panel (actualizado con botones de REDI) -->
 <div id="dashboardContainer" class="container">
     <div class="logo-container">
         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -325,16 +325,13 @@
         <h3>Usuario Conectado</h3>
         <p id="userNameDisplay">Nombre del Usuario</p>
     </div>
-    <div class="redi-buttons">
-        <button class="redi-btn" onclick="loadRediView('andes')">REDI LOS ANDES</button>
-        <button class="redi-btn" onclick="loadRediView('capital')">REDI CAPITAL</button>
-        <button class="redi-btn" onclick="loadRediView('central')">REDI CENTRAL</button>
-        <button class="redi-btn" onclick="loadRediView('occidental')">REDI OCCIDENTAL</button>
-        <button class="redi-btn" onclick="loadRediView('oriental')">REDI ORIENTAL</button>
-        <button class="redi-btn" onclick="loadRediView('llanos')">REDI LOS LLANOS</button>
-        <button class="redi-btn" onclick="loadRediView('guayana')">REDI GUAYANA</button>
-        <button class="redi-btn" onclick="loadRediView('maritima')">REDI MARÍTIMA E INSULAR</button>
+    
+    <!-- Botones de REDI -->
+    <div class="redi-buttons" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 25px 0;">
+        <button class="redi-btn" onclick="showRediView('occidental')" style="padding:12px; background:linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">REDI OCCIDENTAL</button>
+        <!-- Puedes agregar los otros botones después -->
     </div>
+    
     <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
 </div>
 
@@ -469,11 +466,56 @@ async function loadRediView(rediName) {
         alert('Vista para ' + rediName.toUpperCase() + ' en desarrollo');
     }
 }
+        // Mostrar vista de REDI OCCIDENTAL
+function showRediView(redi) {
+    if (redi === 'occidental') {
+        document.getElementById('dashboardContainer').style.display = 'none';
+        document.getElementById('rediOccidentalContainer').style.display = 'block';
+    }
+}
+
+// Volver al panel principal
+function backToDashboard() {
+    document.getElementById('rediOccidentalContainer').style.display = 'none';
+    document.getElementById('dashboardContainer').style.display = 'block';
+}
+
+// ✅ AHORA SÍ: Manejar el formulario de REDI OCCIDENTAL
+function handleOccidentalForm(e) {
+    e.preventDefault();
+    const ccpSelect = document.getElementById('ccpSelect');
+    const selectedValue = ccpSelect.value;
+    if (selectedValue) {
+        alert('Has seleccionado: ' + ccpSelect.options[ccpSelect.selectedIndex].text);
+        // Aquí luego cargarás el formulario de inspección
+    } else {
+        alert('Por favor seleccione un CCP');
+    }
+}
         checkAuthState();
     </script>
     <!-- Contenedor dinámico para REDI OCCIDENTAL -->
 <div id="dynamicContainer" class="container" style="display:none; max-width: 600px; padding: 50px;"></div>
-    <!-- Contenedores dinámicos -->
-<div id="dynamicContainer" class="container" style="display:none; max-width: 600px; padding: 40px;"></div>
+<!-- Vista REDI OCCIDENTAL -->
+<div id="rediOccidentalContainer" class="container" style="display:none; max-width: 600px; padding: 50px;">
+    <div class="logo-container">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <h1 class="title">REDI OCCIDENTAL</h1>
+    </div>
+    <form id="occidentalForm">
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                <option value="">-- Elija una opción --</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="col">CCPE COL</option>
+            </select>
+        </div>
+        <button type="submit" class="login-btn" style="margin-top:20px;">Continuar</button>
+    </form>
+    <button onclick="backToDashboard()" class="action-btn" style="margin-top:20px; background:linear-gradient(135deg, #2c5282 0%, #1a365d 100%);">← Volver al Panel</button>
+</div>
 </body>
 </html>
