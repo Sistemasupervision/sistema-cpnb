@@ -120,16 +120,13 @@
         // Establecer fecha actual en "Hasta"
         document.getElementById('fechaFin').valueAsDate = new Date();
 
-        // ✅ Funciones para manejar zona horaria de Venezuela (UTC-4)
+        // ✅ Funciones para zona horaria de Venezuela (UTC-4)
         function toUTCStartOfDay(dateStr) {
             const [year, month, day] = dateStr.split('-').map(Number);
-            // 00:00 Venezuela = 04:00 UTC
             return new Date(Date.UTC(year, month - 1, day, 4, 0, 0)).toISOString();
         }
-
         function toUTCEndOfDay(dateStr) {
             const [year, month, day] = dateStr.split('-').map(Number);
-            // 23:59:59.999 Venezuela = 03:59:59.999 UTC del día siguiente
             return new Date(Date.UTC(year, month - 1, day + 1, 3, 59, 59, 999)).toISOString();
         }
 
@@ -174,13 +171,14 @@
         });
 
         verBtn.addEventListener('click', async () => {
-           const estacionIdRaw = estacionSelect.value;
-// Asumimos que estacion_id en inspecciones es NUMÉRICO (bigint/integer)
-const estacionId = parseInt(estacionIdRaw);
-if (isNaN(estacionId)) {
-    alert('ID de estación inválido');
-    return;
-}
+            const estacionId = estacionSelect.value; // ← STRING, como en tu BD
+            if (!estacionId) {
+                alert('Seleccione una estación.');
+                return;
+            }
+
+            const fechaInicio = document.getElementById('fechaInicio').value;
+            const fechaFin = document.getElementById('fechaFin').value;
 
             if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) {
                 alert('Por favor complete ambas fechas o déjelas vacías.');
@@ -193,7 +191,7 @@ if (isNaN(estacionId)) {
                 let query = supabase
                     .from('inspecciones')
                     .select('*')
-                    .eq('estacion_id', estacionId);
+                    .eq('estacion_id', estacionId); // ← Comparación como texto
 
                 if (fechaInicio) {
                     query = query.gte('created_at', toUTCStartOfDay(fechaInicio));
