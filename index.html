@@ -417,76 +417,75 @@
             document.getElementById('dashboardContainer').style.display = 'block';
         }
 
-        // ✅ FUNCIÓN CORREGIDA - SINTAXIS VÁLIDA
-        async function handleOccidentalForm(e) {
-            e.preventDefault();
-            const ccpValue = document.getElementById('ccpSelect').value;
+async function handleOccidentalForm(e) {
+    e.preventDefault();
+    const ccpValue = document.getElementById('ccpSelect').value;
+    
+    if (ccpValue === 'metropolitano') {
+        try {
+            // ✅ Corrección: usar "data" en lugar de "estaciones"
+            const { , error } = await supabase
+                .from('estaciones_policiales')
+                .select('id, nombre')
+                .eq('ccp_id', 'metropolitano')
+                .order('nombre', { ascending: true });
+                
+            if (error) throw error;
             
-            if (ccpValue === 'metropolitano') {
-                try {
-                    // ✅ Corrección: sintaxis válida de JavaScript
-                    const { , error } = await supabase
-    .from('estaciones_policiales')
-    .select('id, nombre')
-    .eq('ccp_id', 'metropolitano')
-    .order('nombre', { ascending: true });
-                        
-                    if (error) throw error;
-                    
-                    let html = `
-                        <div class="logo-container">
-                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                            <h1 class="title">Selección de Estación Policial</h1>
-                        </div>
-                        <div class="input-group">
-                            <label for="estacionSelect">Seleccione Estación:</label>
-                            <select id="estacionSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
-                                <option value="">-- Elija una estación --</option>
-                    `;
-                    
-                    // ✅ Verificar que data exista
-                    if ( && Array.isArray()) {
-                        .forEach(est => {
-                            html += `<option value="${est.id}|${est.nombre}">${est.nombre}</option>`;
-                        });
-                    }
-                    
-                    html += `
-                            </select>
-                        </div>
-                        <button id="loadFormBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario</button>
-                        <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
-                    `;
-                    
-                    document.getElementById('rediOccidentalContainer').style.display = 'none';
-                    document.getElementById('dynamicView').innerHTML = html;
-                    document.getElementById('dynamicView').style.display = 'block';
-                    
-                    // Evento para cargar formulario
-                    document.getElementById('loadFormBtn').onclick = () => {
-                        const selected = document.getElementById('estacionSelect').value;
-                        if (!selected) {
-                            alert('Seleccione una estación');
-                            return;
-                        }
-                        const [id, nombre] = selected.split('|');
-                        loadInspectionForm(id, nombre);
-                    };
-                    
-                    // Evento para volver
-                    document.getElementById('backToCcpBtn').onclick = () => {
-                        document.getElementById('dynamicView').style.display = 'none';
-                        document.getElementById('rediOccidentalContainer').style.display = 'block';
-                    };
-                    
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error: ' + (error.message || 'No se pudieron cargar las estaciones'));
-                }
-            } else {
-                alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+            let html = `
+                <div class="logo-container">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Selección de Estación Policial</h1>
+                </div>
+                <div class="input-group">
+                    <label for="estacionSelect">Seleccione Estación:</label>
+                    <select id="estacionSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                        <option value="">-- Elija una estación --</option>
+            `;
+            
+            // ✅ Verificar que data exista y sea un array
+            if ( && Array.isArray()) {
+                .forEach(est => {
+                    html += `<option value="${est.id}|${est.nombre}">${est.nombre}</option>`;
+                });
             }
+            
+            html += `
+                    </select>
+                </div>
+                <button id="loadFormBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario</button>
+                <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
+            `;
+            
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            document.getElementById('dynamicView').innerHTML = html;
+            document.getElementById('dynamicView').style.display = 'block';
+            
+            // Evento para cargar formulario
+            document.getElementById('loadFormBtn').onclick = () => {
+                const selected = document.getElementById('estacionSelect').value;
+                if (!selected) {
+                    alert('Seleccione una estación');
+                    return;
+                }
+                const [id, nombre] = selected.split('|');
+                loadInspectionForm(id, nombre);
+            };
+            
+            // Evento para volver
+            document.getElementById('backToCcpBtn').onclick = () => {
+                document.getElementById('dynamicView').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+            };
+            
+        } catch (error) {
+            console.error('Error al cargar estaciones:', error);
+            alert('Error al cargar las estaciones: ' + error.message);
         }
+    } else {
+        alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+    }
+}
 
         // ✅ FUNCIÓN DE INSPECCIÓN (solo una vez)
         function loadInspectionForm(estacionId, estacionNombre) {
