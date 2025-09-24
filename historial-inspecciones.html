@@ -144,7 +144,8 @@
 
                 let options = '<option value="">-- Seleccione estación --</option>';
                 data.forEach(est => {
-                    options += `<option value="${est.id}">${est.nombre}</option>`;
+                    // ✅ Usamos el NOMBRE como valor, porque en inspecciones se guarda el nombre
+                    options += `<option value="${est.nombre}">${est.nombre}</option>`;
                 });
                 estacionSelect.innerHTML = options;
                 estacionSelect.disabled = false;
@@ -160,8 +161,8 @@
         });
 
         verBtn.addEventListener('click', async () => {
-            const estacionId = estacionSelect.value; // ← STRING, como en tu BD
-            if (!estacionId) {
+            const estacionNombre = estacionSelect.value; // ← Nombre de la estación
+            if (!estacionNombre) {
                 alert('Seleccione una estación.');
                 return;
             }
@@ -180,7 +181,7 @@
                 let query = supabase
                     .from('inspecciones')
                     .select('*')
-                    .eq('estacion_id', estacionId); // ← texto
+                    .eq('estacion_id', estacionNombre); // ← Filtrar por nombre
 
                 if (fechaInicio) {
                     const start = new Date(fechaInicio);
@@ -195,7 +196,7 @@
 
                 query = query.order('created_at', { ascending: false });
 
-                // ✅ CORRECCIÓN CLAVE: usar 'data', no 'inspecciones'
+                // ✅ Sintaxis correcta de Supabase
                 const {  inspecciones, error: inspError } = await query;
 
                 if (inspError) throw inspError;
