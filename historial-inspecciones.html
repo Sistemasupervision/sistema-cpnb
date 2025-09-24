@@ -117,18 +117,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Establecer fecha actual en "Hasta"
         document.getElementById('fechaFin').valueAsDate = new Date();
-
-        // ✅ Funciones para zona horaria de Venezuela (UTC-4)
-        function toUTCStartOfDay(dateStr) {
-            const [year, month, day] = dateStr.split('-').map(Number);
-            return new Date(Date.UTC(year, month - 1, day, 4, 0, 0)).toISOString();
-        }
-        function toUTCEndOfDay(dateStr) {
-            const [year, month, day] = dateStr.split('-').map(Number);
-            return new Date(Date.UTC(year, month - 1, day + 1, 3, 59, 59, 999)).toISOString();
-        }
 
         const ccpSelect = document.getElementById('ccpSelect');
         const estacionSelect = document.getElementById('estacionSelect');
@@ -181,7 +170,7 @@
             const fechaFin = document.getElementById('fechaFin').value;
 
             if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) {
-                alert('Por favor complete ambas fechas o déjelas vacías.');
+                alert('Complete ambas fechas o déjelas vacías.');
                 return;
             }
 
@@ -191,77 +180,66 @@
                 let query = supabase
                     .from('inspecciones')
                     .select('*')
-                    .eq('estacion_id', estacionId); // ← Comparación como texto
+                    .eq('estacion_id', estacionId); // ← texto
 
                 if (fechaInicio) {
-                    query = query.gte('created_at', toUTCStartOfDay(fechaInicio));
+                    const start = new Date(fechaInicio);
+                    start.setHours(0, 0, 0, 0);
+                    query = query.gte('created_at', start.toISOString());
                 }
                 if (fechaFin) {
-                    query = query.lte('created_at', toUTCEndOfDay(fechaFin));
+                    const end = new Date(fechaFin);
+                    end.setHours(23, 59, 59, 999);
+                    query = query.lte('created_at', end.toISOString());
                 }
 
                 query = query.order('created_at', { ascending: false });
 
+                // ✅ CORRECCIÓN CLAVE: usar 'data', no 'inspecciones'
                 const {  inspecciones, error: inspError } = await query;
 
                 if (inspError) throw inspError;
 
                 if (!inspecciones || inspecciones.length === 0) {
-                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones en ese rango de fechas.</p>';
+                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones.</p>';
                     return;
                 }
 
                 let html = '';
                 for (const insp of inspecciones) {
-                    const {  items, error: itemsError } = await supabase
+                    const {  items } = await supabase
                         .from('items_inspeccion')
                         .select('*')
                         .eq('inspeccion_id', insp.id);
 
-                    if (itemsError) {
-                        console.error('Error al cargar ítems:', itemsError);
-                        continue;
-                    }
-
-                    const fecha = new Date(insp.created_at).toLocaleString('es-VE', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-
+                    const fecha = new Date(insp.created_at).toLocaleString('es-VE');
                     html += `
                         <div class="inspeccion">
                             <h3>Inspección del ${fecha}</h3>
                             <p><strong>Inspector:</strong> ${insp.inspector_email}</p>
-                            <p><strong>Observaciones generales:</strong> ${insp.observaciones_generales || 'Ninguna'}</p>
+                            <p><strong>Observaciones:</strong> ${insp.observaciones_generales || 'Ninguna'}</p>
                             <div class="items-grid">
                     `;
 
-                    if (items && items.length > 0) {
-                        items.forEach(item => {
-                            const estado = item.cumple ? '✅ Sí' : '❌ No';
-                            const clase = item.cumple ? 'satisfactorio' : '';
-                            html += `
-                                <div class="item-card">
-                                    <strong>${(item.item_nombre || '').replace(/_/g, ' ')}</strong><br>
-                                    <span class="${clase}">${estado}</span><br>
-                                    ${item.observacion ? `<em>Obs: ${item.observacion}</em>` : ''}
-                                </div>
-                            `;
-                        });
-                    } else {
-                        html += `<div class="item-card">Sin ítems registrados</div>`;
-                    }
+                    (items || []).forEach(item => {
+                        const estado = item.cumple ? '✅ Sí' : '❌ No';
+                        const clase = item.cumple ? 'satisfactorio' : '';
+                        html += `
+                            <div class="item-card">
+                                <strong>${item.item_nombre.replace(/_/g, ' ')}</strong><br>
+                                <span class="${clase}">${estado}</span><br>
+                                ${item.observacion ? `<em>Obs: ${item.observacion}</em>` : ''}
+                            </div>
+                        `;
+                    });
 
                     html += `</div></div>`;
                 }
 
                 historialContainer.innerHTML = html;
             } catch (error) {
-                console.error('Error al cargar historial:', error);
-                historialContainer.innerHTML = `<p style="color:red;">⚠️ Error al cargar historial.<br><small>${error.message || 'Error desconocido'}</small></p>`;
+                console.error('Error:', error);
+                historialContainer.innerHTML = `<p style="color:red;">⚠️ ${error.message}</p>`;
             }
         });
     </script>
