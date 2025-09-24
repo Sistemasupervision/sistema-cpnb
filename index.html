@@ -496,8 +496,7 @@ async function handleOccidentalForm(e) {
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-async function loadInspectionForm(estacionId) {
-    // Lista de ítems de inspección
+function loadInspectionForm(estacionId) {
     const items = [
         "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
         "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
@@ -527,42 +526,51 @@ async function loadInspectionForm(estacionId) {
     let formHtml = `
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Formulario de Inspección - Estación ID: ${estacionId}</h1>
+            <h1 class="title">Formulario de Inspección</h1>
+            <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                Estación: <strong>${estacionId}</strong>
+            </p>
         </div>
-        <form id="inspectionForm">
+        <form id="inspectionForm" style="max-height: 60vh; overflow-y: auto; padding-right: 8px;">
     `;
 
     items.forEach(item => {
         formHtml += `
-            <div class="input-group" style="margin-bottom: 20px;">
-                <label>${nombres[item]}</label><br>
-                <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; margin-top:6px;">
+            <div class="input-group" style="margin-bottom: 22px; padding: 12px 0; border-bottom: 1px solid #edf2f7;">
+                <label style="font-weight: bold; color: #0c2440;">${nombres[item]}</label><br>
+                <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; margin-top:8px; font-size:16px;">
                     <option value="null">-- Seleccione --</option>
                     <option value="true">Sí</option>
                     <option value="false">No</option>
                 </select>
                 <textarea class="observacion-text" data-item="${item}" 
                     placeholder="Escriba observaciones (solo si seleccionó 'Sí')" 
-                    style="width:100%; padding:10px; margin-top:8px; border-radius:8px; display:none; border:1px solid #cbd5e0;"
-                    rows="2"></textarea>
+                    style="width:100%; padding:12px; margin-top:10px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:15px;"
+                    rows="3"></textarea>
             </div>
         `;
     });
 
     formHtml += `
-        <div class="input-group" style="margin-top:25px;">
-            <label>Observaciones Generales</label>
+        <div class="input-group" style="margin-top:25px; padding-top:15px; border-top: 2px solid #e2e8f0;">
+            <label style="font-weight: bold; color: #0c2440;">Observaciones Generales</label>
             <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
-                style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; margin-top:6px;" rows="3"></textarea>
+                style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; margin-top:8px; font-size:16px;" rows="4"></textarea>
         </div>
-        <button type="submit" class="form-btn" style="margin-top:20px;">Guardar Inspección</button>
-        <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px;">← Volver a Estaciones</button>
+        <div style="text-align:center; margin-top:25px;">
+            <button type="submit" class="form-btn" style="width:auto; padding:14px 30px; font-size:17px;">Guardar Inspección</button>
+            <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; width:auto; padding:10px 25px;">← Volver a Estaciones</button>
+        </div>
         </form>
     `;
 
     const dynamicView = document.getElementById('dynamicView');
     dynamicView.innerHTML = formHtml;
     dynamicView.style.display = 'block';
+    // Ajustar altura para permitir scroll
+    dynamicView.style.maxHeight = '85vh';
+    dynamicView.style.overflowY = 'auto';
+    dynamicView.style.padding = '30px';
 
     // Mostrar/ocultar textarea según selección
     document.querySelectorAll('.cumple-select').forEach(select => {
@@ -573,7 +581,7 @@ async function loadInspectionForm(estacionId) {
                 textarea.style.display = 'block';
             } else {
                 textarea.style.display = 'none';
-                textarea.value = ''; // Limpiar si se cambia a "No"
+                textarea.value = '';
             }
         });
     });
@@ -593,7 +601,6 @@ async function loadInspectionForm(estacionId) {
             return;
         }
 
-        // Crear registro de inspección
         const { data: inspeccion, error: inspError } = await supabase
             .from('inspecciones')
             .insert({
@@ -610,7 +617,6 @@ async function loadInspectionForm(estacionId) {
             return;
         }
 
-        // Guardar cada ítem
         const itemsData = [];
         items.forEach(item => {
             const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
@@ -642,7 +648,6 @@ async function loadInspectionForm(estacionId) {
             alert('Error al guardar los ítems de inspección.');
         } else {
             alert('✅ Inspección guardada exitosamente.');
-            // Volver a la selección de estaciones
             handleOccidentalForm({ preventDefault: () => {} });
         }
     };
