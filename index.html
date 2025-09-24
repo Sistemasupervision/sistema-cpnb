@@ -363,6 +363,7 @@
     </div>
 
     <script>
+        
     const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -414,14 +415,14 @@
         document.getElementById('dashboardContainer').style.display = 'block';
     }
 
-    // ✅ FUNCIÓN CORREGIDA
+    // ✅ FUNCIÓN CORREGIDA - SIN ERRORES DE SINTAXIS
     async function handleOccidentalForm(e) {
         e.preventDefault();
         const ccpValue = document.getElementById('ccpSelect').value;
         
         if (ccpValue === 'metropolitano') {
             try {
-                // ✅ Corrección: usar "data" correctamente
+                // ✅ Corrección: sintaxis válida
                 const { , error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
@@ -429,10 +430,6 @@
                     .order('nombre', { ascending: true });
                     
                 if (error) throw error;
-                
-                if (! || !Array.isArray()) {
-                    throw new Error('No hay estaciones registradas');
-                }
                 
                 let html = `
                     <div class="logo-container">
@@ -445,9 +442,12 @@
                             <option value="">-- Elija una estación --</option>
                 `;
                 
-                .forEach(est => {
-                    html += `<option value="${est.id}|${est.nombre}">${est.nombre}</option>`;
-                });
+                // ✅ Verificar que data exista y sea un array
+                if ( && Array.isArray()) {
+                    .forEach(est => {
+                        html += `<option value="${est.id}|${est.nombre}">${est.nombre}</option>`;
+                    });
+                }
                 
                 html += `
                         </select>
@@ -460,6 +460,7 @@
                 document.getElementById('dynamicView').innerHTML = html;
                 document.getElementById('dynamicView').style.display = 'block';
                 
+                // Evento para cargar formulario
                 document.getElementById('loadFormBtn').onclick = () => {
                     const selected = document.getElementById('estacionSelect').value;
                     if (!selected) {
@@ -470,6 +471,7 @@
                     loadInspectionForm(id, nombre);
                 };
                 
+                // Evento para volver
                 document.getElementById('backToCcpBtn').onclick = () => {
                     document.getElementById('dynamicView').style.display = 'none';
                     document.getElementById('rediOccidentalContainer').style.display = 'block';
@@ -477,7 +479,7 @@
                 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error: ' + error.message);
+                alert('Error: ' + (error.message || 'No se pudieron cargar las estaciones'));
             }
         } else {
             alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
@@ -560,7 +562,7 @@
     document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
 
     checkAuthState();
-    </script>
+</script>
     <!-- Contenedor dinámico para vistas externas -->
     <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
 </body>
