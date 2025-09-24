@@ -471,7 +471,7 @@
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                const { data: inspecciones, error } = await supabase
+                const {  inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('id, estacion_id, fecha, observaciones_generales')
                     .eq('inspector_email', user.email)
@@ -504,6 +504,7 @@
                             </div>
                         `;
                     }
+                }
 
                 html += `
                     </div>
@@ -527,13 +528,13 @@
 
         async function verDetalleInspeccion(inspeccionId) {
             try {
-                const { data: inspeccion, error: inspError } = await supabase
+                const {  inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('estacion_id, fecha, observaciones_generales')
                     .eq('id', inspeccionId)
                     .single();
 
-                const { data: items, error: itemsError } = await supabase
+                const {  items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('*')
                     .eq('inspeccion_id', inspeccionId);
@@ -600,13 +601,13 @@
 
         async function editarInspeccion(inspeccionId) {
             try {
-                const { data: inspeccion, error: inspError } = await supabase
+                const {  inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('*')
                     .eq('id', inspeccionId)
                     .single();
 
-                const { data: items, error: itemsError } = await supabase
+                const {  items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('*')
                     .eq('inspeccion_id', inspeccionId);
@@ -705,31 +706,22 @@
                     });
                 });
 
-               document.getElementById('inspectionForm').onsubmit = async (e) => {
-    e.preventDefault();
-    // ✅ CORRECCIÓN: Sintaxis válida
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('Debe estar autenticado para guardar.');
-        return;
-    }
-    // ✅ CORRECCIÓN: Sintaxis válida
-    const { data: inspeccion, error: inspError } = await supabase
-        .from('inspecciones')
-        .insert({
-            estacion_id: estacionId,
-            inspector_email: user.email,
-            observaciones_generales: document.getElementById('observacionesGenerales').value || null
-        })
-        .select()
-        .single();
+                document.getElementById('editInspectionForm').onsubmit = async (e) => {
+                    e.preventDefault();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
 
-    if (inspError) {
-        console.error('Error al crear inspección:', inspError);
-        alert('Error al guardar la inspección: ' + (inspError.message || ''));
-        return;
-    }
-};
+                    const { error: updateError } = await supabase
+                        .from('inspecciones')
+                        .update({
+                            observaciones_generales: document.getElementById('observacionesGenerales').value || null
+                        })
+                        .eq('id', inspeccionId);
+
+                    if (updateError) {
+                        alert('Error al actualizar la inspección.');
+                        return;
+                    }
 
                     await supabase
                         .from('items_inspeccion')
@@ -869,7 +861,7 @@
                     alert('Debe estar autenticado para guardar.');
                     return;
                 }
-                const { data: inspeccionData, error: inspError } = await supabase
+                const {  inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
                     .insert({
                         estacion_id: estacionId,
