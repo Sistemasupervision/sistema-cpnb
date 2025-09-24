@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
+    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
@@ -22,6 +23,7 @@
             position: relative;
             overflow: hidden;
         }
+        /* Fondo con vectores decorativos */
         .vector-bg {
             position: absolute;
             top: 0;
@@ -80,6 +82,7 @@
             right: 25%;
             transform: rotate(-45deg);
         }
+        /* Estilos comunes para contenedores */
         .container {
             background: white;
             border-radius: 20px;
@@ -137,6 +140,7 @@
             background: linear-gradient(90deg, #ffcc00, #ff6b00);
             border-radius: 2px;
         }
+        /* Estilos específicos del login */
         .input-group {
             margin-bottom: 20px;
         }
@@ -179,7 +183,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
+            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
         }
         .login-btn:hover,
         .redi-btn:hover,
@@ -187,7 +191,7 @@
         .form-btn:hover {
             background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
+            box-shadow: 0 8px 25px rgba(12, 36, 64, 0.5);
         }
         .security-info {
             text-align: center;
@@ -205,11 +209,15 @@
             display: block;
             margin-bottom: 8px;
         }
-        #dashboardContainer,
-        #rediOccidentalContainer {
+        /* Panel Principal - REDI */
+        #dashboardContainer {
             max-width: 600px;
             padding: 50px;
             display: none;
+        }
+        .dashboard-title {
+            font-size: 28px;
+            margin-bottom: 20px;
         }
         .user-info {
             background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
@@ -230,16 +238,73 @@
         }
         .redi-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 12px;
             margin: 25px 0;
         }
         .redi-btn {
             width: auto;
             padding: 12px;
-            font-size: 14px;
+            font-size: 13px;
             text-align: center;
         }
+        /* Contenedores adicionales */
+        #rediOccidentalContainer,
+        #inspectionContainer {
+            max-width: 600px;
+            padding: 50px;
+            display: none;
+        }
+        /* Formulario de inspección */
+        .inspection-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border-left: 3px solid #3182ce;
+        }
+        .inspection-item label {
+            display: block;
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 8px;
+        }
+        .inspection-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .inspection-controls select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .inspection-controls input[type="text"] {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #edf2f7;
+        }
+        .inspection-controls input[type="text"]:disabled {
+            background-color: #f8fafc;
+            color: #a0aec0;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            width: auto;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        /* Mensaje de error */
         .error-message {
             color: #e53e3e;
             font-size: 14px;
@@ -247,22 +312,16 @@
             text-align: center;
             display: none;
         }
-        .back-btn {
-            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-            width: auto;
-            display: inline-block;
-            padding: 10px 20px;
-            margin-top: 20px;
-        }
         @media (max-width: 480px) {
             .container {
                 padding: 30px 20px;
             }
             #dashboardContainer,
-            #rediOccidentalContainer {
+            #rediOccidentalContainer,
+            #inspectionContainer {
                 padding: 30px 20px;
             }
-            .title {
+            .title, .dashboard-title {
                 font-size: 20px;
             }
             .logo-img {
@@ -277,6 +336,9 @@
             }
             .vector-circle {
                 transform: scale(0.7);
+            }
+            .redi-buttons {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -314,28 +376,31 @@
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
     </div>
-    
-<!-- Dashboard Panel (actualizado con botones de REDI) -->
-<div id="dashboardContainer" class="container">
-    <div class="logo-container">
-        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-        <h1 class="title dashboard-title">Panel Principal</h1>
-    </div>
-    <div class="user-info">
-        <h3>Usuario Conectado</h3>
-        <p id="userNameDisplay">Nombre del Usuario</p>
-    </div>
-    
-    <!-- Botones de REDI -->
-    <div class="redi-buttons" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 25px 0;">
-        <button class="redi-btn" onclick="showRediView('occidental')" style="padding:12px; background:linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">REDI OCCIDENTAL</button>
-        <!-- Puedes agregar los otros botones después -->
-    </div>
-    
-    <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
-</div>
 
-    <!-- Vista específica: REDI OCCIDENTAL -->
+    <!-- Panel Principal (REDI) -->
+    <div id="dashboardContainer" class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title dashboard-title">Panel Principal</h1>
+        </div>
+        <div class="user-info">
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Nombre del Usuario</p>
+        </div>
+        <div class="redi-buttons">
+            <button class="redi-btn" onclick="showRediView('andes')">REDI LOS ANDES</button>
+            <button class="redi-btn" onclick="showRediView('capital')">REDI CAPITAL</button>
+            <button class="redi-btn" onclick="showRediView('central')">REDI CENTRAL</button>
+            <button class="redi-btn" onclick="showRediView('occidental')">REDI OCCIDENTAL</button>
+            <button class="redi-btn" onclick="showRediView('oriental')">REDI ORIENTAL</button>
+            <button class="redi-btn" onclick="showRediView('llanos')">REDI LOS LLANOS</button>
+            <button class="redi-btn" onclick="showRediView('guayana')">REDI GUAYANA</button>
+            <button class="redi-btn" onclick="showRediView('maritima')">REDI MARÍTIMA E INSULAR</button>
+        </div>
+        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+    </div>
+
+    <!-- Vista REDI OCCIDENTAL (Selector de CCP) -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -354,14 +419,39 @@
             </div>
             <button type="submit" class="form-btn">Continuar</button>
         </form>
-        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
+        <button class="back-btn" onclick="backToDashboard()">← Volver al Panel Principal</button>
+    </div>
+
+    <!-- Formulario de Inspección -->
+    <div id="inspectionContainer" class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Inspección - <span id="selectedCcpDisplay">CCP</span></h1>
+        </div>
+        <form id="inspectionForm">
+            <!-- Los ítems se generarán dinámicamente -->
+        </form>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="back-btn" onclick="backToCcpSelection()">← Volver</button>
+            <button type="submit" class="form-btn" style="flex:1;">Guardar Inspección</button>
+        </div>
     </div>
 
     <script>
+        // CONFIGURACIÓN DE SUPABASE
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // Ítems de inspección
+        const inspectionItems = [
+            "baño dama", "baño caballero", "dormitorio femenina", "dormitorio masculino",
+            "cocina", "comedor", "lavanderia", "oficina del jefe", "oficina de RRHH",
+            "condiciones electricas", "fachada", "condiciones de pintura", "jardines",
+            "condiciones genrales", "vehiculos", "motos"
+        ];
+
+        // Función para mostrar mensajes de error
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
@@ -369,6 +459,7 @@
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
 
+        // Manejar login
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -385,12 +476,14 @@
             }
         }
 
+        // Manejar logout
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
                 if (error) throw error;
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'none';
+                document.getElementById('inspectionContainer').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
             } catch (error) {
@@ -398,25 +491,94 @@
             }
         }
 
-        function showRediOccidental() {
+        // Mostrar vista de REDI
+        function showRediView(redi) {
             document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('rediOccidentalContainer').style.display = 'block';
-        }
-
-        function backToDashboard() {
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-        }
-
-        function handleOccidentalForm(e) {
-            e.preventDefault();
-            const selected = document.getElementById('ccpSelect').value;
-            if (selected) {
-                alert('Seleccionado: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
-                // Aquí puedes redirigir, guardar en localStorage, o hacer una llamada a Supabase
+            if (redi === 'occidental') {
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+            } else {
+                alert('Vista para ' + redi.toUpperCase() + ' en desarrollo');
+                document.getElementById('dashboardContainer').style.display = 'block';
             }
         }
 
+        // Volver al panel principal
+        function backToDashboard() {
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            document.getElementById('inspectionContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+        }
+
+        // Volver a selección de CCP
+        function backToCcpSelection() {
+            document.getElementById('inspectionContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
+        }
+
+        // Generar formulario de inspección
+        function generateInspectionForm() {
+            const form = document.getElementById('inspectionForm');
+            form.innerHTML = '';
+
+            inspectionItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'inspection-item';
+                const label = item.charAt(0).toUpperCase() + item.slice(1);
+                itemDiv.innerHTML = `
+                    <label>${label}</label>
+                    <div class="inspection-controls">
+                        <select class="status-select" data-item="${item}">
+                            <option value="">Seleccionar</option>
+                            <option value="si">Sí</option>
+                            <option value="no">No</option>
+                        </select>
+                        <input type="text" class="observation-input" placeholder="Observaciones (opcional)" disabled>
+                    </div>
+                `;
+                form.appendChild(itemDiv);
+            });
+
+            // Añadir eventos a los selects
+            document.querySelectorAll('.status-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const input = this.closest('.inspection-controls').querySelector('.observation-input');
+                    if (this.value === 'si') {
+                        input.disabled = false;
+                        input.focus();
+                    } else {
+                        input.disabled = true;
+                        input.value = '';
+                    }
+                });
+            });
+        }
+
+        // Manejar formulario de REDI OCCIDENTAL
+        function handleOccidentalForm(e) {
+            e.preventDefault();
+            const select = document.getElementById('ccpSelect');
+            const selectedValue = select.value;
+            const selectedText = select.options[select.selectedIndex].text;
+
+            if (selectedValue) {
+                // Mostrar formulario de inspección
+                document.getElementById('rediOccidentalContainer').style.display = 'none';
+                document.getElementById('inspectionContainer').style.display = 'block';
+                document.getElementById('selectedCcpDisplay').textContent = selectedText;
+                generateInspectionForm();
+            } else {
+                alert('Por favor seleccione un CCP');
+            }
+        }
+
+        // Manejar envío del formulario de inspección
+        function handleInspectionForm(e) {
+            e.preventDefault();
+            alert('¡Formulario de inspección guardado exitosamente!');
+            // Aquí puedes agregar lógica para guardar en Supabase
+        }
+
+        // Verificar autenticación al cargar
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -429,93 +591,11 @@
         // Event listeners
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-// Cargar vistas dinámicas
-async function loadRediView(rediName) {
-    if (rediName === 'occidental') {
-        try {
-            const response = await fetch('redi-occidental.html');
-            const html = await response.text();
-            
-            document.getElementById('dashboardContainer').style.display = 'none';
-            const dynamicContainer = document.getElementById('dynamicContainer');
-            dynamicContainer.innerHTML = html;
-            dynamicContainer.style.display = 'block';
-            
-            // Reasignar eventos después de cargar el HTML
-            document.getElementById('backToDashboardBtn').onclick = () => {
-                dynamicContainer.style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-            };
-            
-            document.getElementById('occidentalForm').onsubmit = (e) => {
-                e.preventDefault();
-                const selected = document.getElementById('ccpSelect').value;
-                if (selected) {
-                    alert('Seleccionado: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
-                    // Aquí puedes agregar lógica adicional (guardar, redirigir, etc.)
-                }
-            };
-        } catch (error) {
-            console.error('Error al cargar la vista:', error);
-        }
-    } else {
-        // Para otras REDI, puedes mostrar un mensaje o dejarlo para implementar después
-        alert('Vista para ' + rediName.toUpperCase() + ' en desarrollo');
-    }
-}
-        // Mostrar vista de REDI OCCIDENTAL
-function showRediView(redi) {
-    if (redi === 'occidental') {
-        document.getElementById('dashboardContainer').style.display = 'none';
-        document.getElementById('rediOccidentalContainer').style.display = 'block';
-    }
-}
+        document.getElementById('inspectionForm').addEventListener('submit', handleInspectionForm);
 
-// Volver al panel principal
-function backToDashboard() {
-    document.getElementById('rediOccidentalContainer').style.display = 'none';
-    document.getElementById('dashboardContainer').style.display = 'block';
-}
-
-// ✅ AHORA SÍ: Manejar el formulario de REDI OCCIDENTAL
-function handleOccidentalForm(e) {
-    e.preventDefault();
-    const ccpSelect = document.getElementById('ccpSelect');
-    const selectedValue = ccpSelect.value;
-    if (selectedValue) {
-        alert('Has seleccionado: ' + ccpSelect.options[ccpSelect.selectedIndex].text);
-        // Aquí luego cargarás el formulario de inspección
-    } else {
-        alert('Por favor seleccione un CCP');
-    }
-}
+        // Inicializar
         checkAuthState();
     </script>
-    <!-- Contenedor dinámico para REDI OCCIDENTAL -->
-<div id="dynamicContainer" class="container" style="display:none; max-width: 600px; padding: 50px;"></div>
-<!-- Vista REDI OCCIDENTAL -->
-<div id="rediOccidentalContainer" class="container" style="display:none; max-width: 600px; padding: 50px;">
-    <div class="logo-container">
-        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-        <h1 class="title">REDI OCCIDENTAL</h1>
-    </div>
-    <form id="occidentalForm">
-        <div class="input-group">
-            <label for="ccpSelect">Seleccione CCP:</label>
-            <select id="ccpSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
-                <option value="">-- Elija una opción --</option>
-                <option value="metropolitano">CCP METROPOLITANO</option>
-                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                <option value="guajira">CCP GUAJIRA</option>
-                <option value="col">CCPE COL</option>
-            </select>
-        </div>
-        <button type="submit" class="login-btn" style="margin-top:20px;">Continuar</button>
-    </form>
-    <button onclick="backToDashboard()" class="action-btn" style="margin-top:20px; background:linear-gradient(135deg, #2c5282 0%, #1a365d 100%);">← Volver al Panel</button>
-</div>
 </body>
 </html>
