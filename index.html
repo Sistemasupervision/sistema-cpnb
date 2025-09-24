@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
-    <!-- Supabase JS SDK -->
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -23,7 +22,6 @@
             position: relative;
             overflow: hidden;
         }
-        /* Fondo con vectores decorativos */
         .vector-bg {
             position: absolute;
             top: 0;
@@ -82,7 +80,6 @@
             right: 25%;
             transform: rotate(-45deg);
         }
-        /* Estilos comunes para contenedores */
         .container {
             background: white;
             border-radius: 20px;
@@ -108,18 +105,17 @@
             text-align: center;
             margin-bottom: 30px;
         }
- .logo-img {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    margin: 0 auto 20px;
-    display: block;
-    background: transparent !important;
-    /* Aseguramos que no haya bordes ni sombras */
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-}
+        .logo-img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin: 0 auto 20px;
+            display: block;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+        }
         .title {
             text-align: center;
             color: #0c2440;
@@ -141,7 +137,6 @@
             background: linear-gradient(90deg, #ffcc00, #ff6b00);
             border-radius: 2px;
         }
-        /* Estilos específicos del login */
         .input-group {
             margin-bottom: 20px;
         }
@@ -152,6 +147,7 @@
             font-weight: 600;
             font-size: 14px;
         }
+        .input-group select,
         .input-group input {
             width: 100%;
             padding: 14px;
@@ -161,45 +157,37 @@
             transition: all 0.3s ease;
             background-color: #f8fafc;
         }
+        .input-group select:focus,
         .input-group input:focus {
             outline: none;
             border-color: #3182ce;
             box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
             background-color: white;
         }
-        .login-btn {
+        .login-btn,
+        .redi-btn,
+        .action-btn,
+        .form-btn {
             width: 100%;
             padding: 16px;
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             color: white;
             border: none;
             border-radius: 12px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 10px;
-            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
         }
-        .login-btn:hover {
+        .login-btn:hover,
+        .redi-btn:hover,
+        .action-btn:hover,
+        .form-btn:hover {
             background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(12, 36, 64, 0.5);
-        }
-        .login-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.3), transparent);
-            transition: left 0.5s;
-        }
-        .login-btn:hover::before {
-            left: 100%;
+            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
         }
         .security-info {
             text-align: center;
@@ -216,16 +204,12 @@
             color: #0c2440;
             display: block;
             margin-bottom: 8px;
-        }      
-        /* Estilos específicos del dashboard */
-        #dashboardContainer {
+        }
+        #dashboardContainer,
+        #rediOccidentalContainer {
             max-width: 600px;
             padding: 50px;
             display: none;
-        }
-        .dashboard-title {
-            font-size: 28px;
-            margin-bottom: 20px;
         }
         .user-info {
             background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
@@ -244,26 +228,18 @@
             font-size: 16px;
             font-weight: bold;
         }
-        .action-btn {
-            margin-top: 25px;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
+        .redi-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 25px 0;
         }
-        .action-btn:hover {
-            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(26, 54, 93, 0.4);
+        .redi-btn {
+            width: auto;
+            padding: 12px;
+            font-size: 14px;
+            text-align: center;
         }
-        /* Mensaje de error */
         .error-message {
             color: #e53e3e;
             font-size: 14px;
@@ -271,14 +247,22 @@
             text-align: center;
             display: none;
         }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            width: auto;
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+        }
         @media (max-width: 480px) {
             .container {
                 padding: 30px 20px;
             }
-            #dashboardContainer {
+            #dashboardContainer,
+            #rediOccidentalContainer {
                 padding: 30px 20px;
             }
-            .title, .dashboard-title {
+            .title {
                 font-size: 20px;
             }
             .logo-img {
@@ -288,13 +272,6 @@
             .security-info {
                 font-size: 12px;
             }
-            .additional-logos {
-                gap: 12px;
-            }
-            .small-logo-img {
-                width: 35px;
-                height: 35px;
-            }
             .user-info {
                 padding: 20px;
             }
@@ -302,37 +279,6 @@
                 transform: scale(0.7);
             }
         }
-        /* Estilos para los botones de REDI */
-.redi-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    margin: 25px 0;
-}
-
-.redi-btn {
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-}
-
-.redi-btn:hover {
-    background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
-}
-
-.redi-btn:active {
-    transform: translateY(0);
-}
     </style>
 </head>
 <body>
@@ -344,10 +290,10 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
-            <!-- LOGO PRINCIPAL DE GITHUB - CAMBIA ESTA URL -->
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
         </div>
@@ -367,98 +313,130 @@
             <strong>Seguridad de extremo a extremo</strong>
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
-    </div> <!-- 🔴 ESTA LÍNEA FALTABA: Cierre del loginContainer -->
-    
-   <!-- Dashboard Panel -->
-<div id="dashboardContainer" class="container">
-    <div class="logo-container">
-        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-        <h1 class="title dashboard-title">Selecicion de REDIP</h1>
     </div>
 
-    <div class="user-info">
-        <h3>Usuario Conectado</h3>
-        <p id="userNameDisplay">Nombre del Usuario</p>
+    <!-- Panel Principal (REDI) -->
+    <div id="dashboardContainer" class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title dashboard-title">Panel Principal</h1>
+        </div>
+        <div class="user-info">
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Nombre del Usuario</p>
+        </div>
+        <div class="redi-buttons">
+            <button class="redi-btn" data-redi="andes">REDI LOS ANDES</button>
+            <button class="redi-btn" data-redi="capital">REDI CAPITAL</button>
+            <button class="redi-btn" data-redi="central">REDI CENTRAL</button>
+            <button class="redi-btn" id="rediOccidentalBtn">REDI OCCIDENTAL</button>
+            <button class="redi-btn" data-redi="oriental">REDI ORIENTAL</button>
+            <button class="redi-btn" data-redi="llanos">REDI LOS LLANOS</button>
+            <button class="redi-btn" data-redi="guayana">REDI GUAYANA</button>
+            <button class="redi-btn" data-redi="maritima">REDI MARÍTIMA E INSULAR</button>
+        </div>
+        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
 
-    <!-- Botones de REDI -->
-    <div class="redi-buttons">
-        <button class="redi-btn">REDI LOS ANDES</button>
-        <button class="redi-btn">REDI CAPITAL</button>
-        <button class="redi-btn">REDI CENTRAL</button>
-        <button class="redi-btn">REDI OCCIDENTAL</button>
-        <button class="redi-btn">REDI ORIENTAL</button>
-        <button class="redi-btn">REDI LOS LLANOS</button>
-        <button class="redi-btn">REDI GUAYANA</button>
-        <button class="redi-btn">REDI MARÍTIMA E INSULAR</button>
+    <!-- Vista específica: REDI OCCIDENTAL -->
+    <div id="rediOccidentalContainer" class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">REDI OCCIDENTAL</h1>
+        </div>
+        <form id="occidentalForm">
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                </select>
+            </div>
+            <button type="submit" class="form-btn">Continuar</button>
+        </form>
+        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-
-    <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
-</div>
 
     <script>
-    // CONFIGURACIÓN DE SUPABASE - DEBES REEMPLAZAR ESTOS VALORES
-    const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
-    // Inicializar Supabase
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-    // Función para mostrar mensajes de error
-    function showError(message) {
-        const errorDiv = document.getElementById('errorMessage');
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-        }, 5000);
-    }
-    // Función para manejar el inicio de sesión
-    async function handleLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
-            if (error) {
-                throw error;
+        const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = email;
+            } catch (error) {
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
             }
-            // Login exitoso
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = email;
-        } catch (error) {
-            console.error('Error en login:', error);
-            showError('Credenciales incorrectas o usuario no existe');
         }
-    }
-    // Función para manejar el cierre de sesión
-    async function handleLogout() {
-        try {
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
+
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        }
+
+        function showRediOccidental() {
             document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('loginContainer').style.display = 'block';
-            document.getElementById('loginForm').reset();
-        } catch (error) {
-            console.error('Error al cerrar sesión:', error);
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
         }
-    }
-    // Verificar si el usuario ya está autenticado al cargar la página
-    async function checkAuthState() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            document.getElementById('loginContainer').style.display = 'none';
+
+        function backToDashboard() {
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = user.email;
         }
-    }
-    // Event listeners
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-    // Verificar estado de autenticación al cargar
-    checkAuthState();
+
+        function handleOccidentalForm(e) {
+            e.preventDefault();
+            const selected = document.getElementById('ccpSelect').value;
+            if (selected) {
+                alert('Seleccionado: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+                // Aquí puedes redirigir, guardar en localStorage, o hacer una llamada a Supabase
+            }
+        }
+
+        async function checkAuthState() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = user.email;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+
+        checkAuthState();
     </script>
-</body> <!-- 🔴 ESTA LÍNEA TAMBIÉN FALTABA -->
+</body>
 </html>
