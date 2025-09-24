@@ -302,6 +302,37 @@
                 transform: scale(0.7);
             }
         }
+        /* Estilos para los botones de REDI */
+.redi-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 25px 0;
+}
+
+.redi-btn {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.redi-btn:hover {
+    background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+}
+
+.redi-btn:active {
+    transform: translateY(0);
+}
     </style>
 </head>
 <body>
@@ -338,19 +369,32 @@
         </div>
     </div> <!-- 🔴 ESTA LÍNEA FALTABA: Cierre del loginContainer -->
     
-    <!-- Dashboard Panel -->
-    <div id="dashboardContainer" class="container">
-        <div class="logo-container">
-            <!-- LOGO PRINCIPAL EN EL PANEL - MISMA URL -->
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title dashboard-title">Panel Principal</h1>
-        </div>
-        <div class="user-info">
-            <h3>Usuario Conectado</h3>
-            <p id="userNameDisplay">Nombre del Usuario</p>
-        </div>
-        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+   <!-- Dashboard Panel -->
+<div id="dashboardContainer" class="container">
+    <div class="logo-container">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <h1 class="title dashboard-title">Panel Principal</h1>
     </div>
+
+    <div class="user-info">
+        <h3>Usuario Conectado</h3>
+        <p id="userNameDisplay">Nombre del Usuario</p>
+    </div>
+
+    <!-- Botones de REDI -->
+    <div class="redi-buttons">
+        <button class="redi-btn">REDI LOS ANDES</button>
+        <button class="redi-btn">REDI CAPITAL</button>
+        <button class="redi-btn">REDI CENTRAL</button>
+        <button class="redi-btn">REDI OCCIDENTAL</button>
+        <button class="redi-btn">REDI ORIENTAL</button>
+        <button class="redi-btn">REDI LOS LLANOS</button>
+        <button class="redi-btn">REDI GUAYANA</button>
+        <button class="redi-btn">REDI MARÍTIMA E INSULAR</button>
+    </div>
+
+    <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+</div>
 
     <script>
     // CONFIGURACIÓN DE SUPABASE - DEBES REEMPLAZAR ESTOS VALORES
