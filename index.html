@@ -586,15 +586,14 @@ function loadInspectionForm(estacionId) {
 
     document.getElementById('inspectionForm').onsubmit = async (e) => {
         e.preventDefault();
-        // ✅ CORRECCIÓN: Sintaxis válida
-        const {  { user } } = await supabase.auth.getUser();
+        // ✅ CORRECCIÓN: Sintaxis válida para obtener el usuario
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             alert('Debe estar autenticado para guardar.');
             return;
         }
-
-        // ✅ CORRECCIÓN: Sintaxis válida
-        const {  inspeccionData, error: inspError } = await supabase
+        // ✅ CORRECCIÓN: Sintaxis válida para insertar la inspección
+        const { data: inspeccionData, error: inspError } = await supabase
             .from('inspecciones')
             .insert({
                 estacion_id: estacionId,
@@ -647,7 +646,5 @@ function loadInspectionForm(estacionId) {
 }
         checkAuthState();
     </script>
-    <!-- Contenedor dinámico para vistas externas -->
-    <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
 </body>
 </html>
