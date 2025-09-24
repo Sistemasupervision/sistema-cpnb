@@ -471,7 +471,7 @@
             }
         }
 
-      function loadInspectionForm(estacionId) {
+     function loadInspectionForm(estacionId) {
     const items = [
         "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
         "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
@@ -559,70 +559,64 @@
         handleOccidentalForm({ preventDefault: () => {} });
     };
 
-document.getElementById('inspectionForm').onsubmit = async (e) => {
-    e.preventDefault();
-    
-    // ✅ CORRECCIÓN 1: Sintaxis válida para obtener el usuario
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('Debe estar autenticado para guardar.');
-        return;
-    }
+    document.getElementById('inspectionForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const {  { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert('Debe estar autenticado para guardar.');
+            return;
+        }
+        const {  inspeccionData, error: inspError } = await supabase
+            .from('inspecciones')
+            .insert({
+                estacion_id: estacionId,
+                inspector_email: user.email,
+                observaciones_generales: document.getElementById('observacionesGenerales').value || null
+            })
+            .select()
+            .single();
 
-    // ✅ CORRECCIÓN 2: Sintaxis válida para insertar la inspección
-    const { data: inspeccionData, error: inspError } = await supabase
-        .from('inspecciones')
-        .insert({
-            estacion_id: estacionId,
-            inspector_email: user.email,
-            observaciones_generales: document.getElementById('observacionesGenerales').value || null
-        })
-        .select()
-        .single();
+        if (inspError) {
+            console.error('Error al crear inspección:', inspError);
+            alert('Error al guardar la inspección: ' + (inspError.message || ''));
+            return;
+        }
 
-    if (inspError) {
-        console.error('Error al crear inspección:', inspError);
-        alert('Error al guardar la inspección: ' + (inspError.message || ''));
-        return;
-    }
-
-    const itemsData = [];
-    items.forEach(item => {
-        const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-        const cumpleValue = select.value;
-        if (cumpleValue === 'null') return;
-
-        const cumple = cumpleValue === 'true';
-        const observacion = cumple 
-            ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
-            : null;
-
-        itemsData.push({
-            inspeccion_id: inspeccionData.id,
-            item_nombre: item,
-            cumple: cumple,
-            observacion: observacion
+        const itemsData = [];
+        items.forEach(item => {
+            const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+            const cumpleValue = select.value;
+            if (cumpleValue === 'null') return;
+            const cumple = cumpleValue === 'true';
+            const observacion = cumple 
+                ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
+                : null;
+            itemsData.push({
+                inspeccion_id: inspeccionData.id,
+                item_nombre: item,
+                cumple: cumple,
+                observacion: observacion
+            });
         });
-    });
 
-    if (itemsData.length === 0) {
-        alert('Debe responder al menos un ítem.');
-        return;
-    }
+        if (itemsData.length === 0) {
+            alert('Debe responder al menos un ítem.');
+            return;
+        }
 
-    const { error: itemsError } = await supabase
-        .from('items_inspeccion')
-        .insert(itemsData);
+        const { error: itemsError } = await supabase
+            .from('items_inspeccion')
+            .insert(itemsData);
 
-    if (itemsError) {
-        console.error('Error al guardar ítems:', itemsError);
-        alert('Error al guardar los ítems: ' + (itemsError.message || ''));
-    } else {
-        alert('✅ Inspección guardada exitosamente.');
-        handleOccidentalForm({ preventDefault: () => {} });
-    }
-};
-      } 
+        if (itemsError) {
+            console.error('Error al guardar ítems:', itemsError);
+            alert('Error al guardar los ítems: ' + (itemsError.message || ''));
+        } else {
+            alert('✅ Inspección guardada exitosamente.');
+            handleOccidentalForm({ preventDefault: () => {} });
+        }
+    };
+} // <-- ¡Esta llave faltaba en tu código!
         checkAuthState();
     </script>
     <div id="dynamicView" class="container" style="display:none; max-width:900px; padding:40px;"></div>
