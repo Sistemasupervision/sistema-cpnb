@@ -290,6 +290,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -313,6 +314,7 @@
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
     </div>
+
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -335,6 +337,7 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
+
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -356,16 +359,22 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
+
+    <!-- Contenedor dinámico -->
+    <div id="dynamicView" class="container" style="display:none; max-width:900px; padding:40px;"></div>
+
     <script>
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -381,26 +390,31 @@
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
+
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
                 if (error) throw error;
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'none';
+                document.getElementById('dynamicView').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
             }
         }
+
         function showRediOccidental() {
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('rediOccidentalContainer').style.display = 'block';
         }
+
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
+
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -455,6 +469,7 @@
                 alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
             }
         }
+
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -463,11 +478,6 @@
                 document.getElementById('userNameDisplay').textContent = user.email;
             }
         }
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
 
         function loadInspectionForm(estacionId) {
             const items = [
@@ -494,6 +504,7 @@
                 vehiculos: "Vehículos",
                 motos: "Motos"
             };
+
             let formHtml = `
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -502,25 +513,27 @@
                         Estación: <strong>${estacionId}</strong>
                     </p>
                 </div>
-                <form id="inspectionForm">
-                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px;">
+                <form id="inspectionForm" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
+                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
             `;
+
             items.forEach(item => {
                 formHtml += `
-                    <div class="item-card" style="background:#f8fafc; padding:20px; border-radius:14px; border:1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
-                        <label style="font-weight: bold; color: #0c2440; font-size:15px;">${nombres[item]}</label>
-                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:10px; margin-top:10px; font-size:15px;">
+                    <div class="item-card" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+                        <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
+                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:8px; font-size:14px;">
                             <option value="null">-- Seleccione --</option>
                             <option value="true">Sí</option>
                             <option value="false">No</option>
                         </select>
                         <textarea class="observacion-text" data-item="${item}" 
-                            placeholder="Observaciones (solo si es 'Sí')" 
-                            style="width:100%; padding:12px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:14px; background:#fff;"
+                            placeholder="Observaciones (si es 'Sí')" 
+                            style="width:100%; padding:10px; margin-top:10px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
                             rows="3"></textarea>
                     </div>
                 `;
             });
+
             formHtml += `
                     </div>
                     <div class="input-group" style="margin-top:20px;">
@@ -534,11 +547,10 @@
                     </div>
                 </form>
             `;
+
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = formHtml;
             dynamicView.style.display = 'block';
-            dynamicView.style.maxWidth = '900px';
-            dynamicView.style.padding = '40px';
 
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
@@ -616,8 +628,14 @@
                 }
             };
         }
+
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+
         checkAuthState();
     </script>
-    <div id="dynamicView" class="container" style="display:none; max-width:600px; padding:50px;"></div>
 </body>
 </html>
