@@ -174,14 +174,13 @@
         });
 
         verBtn.addEventListener('click', async () => {
-            const estacionId = estacionSelect.value;
-            const fechaInicio = document.getElementById('fechaInicio').value;
-            const fechaFin = document.getElementById('fechaFin').value;
-
-            if (!estacionId) {
-                alert('Seleccione una estación.');
-                return;
-            }
+           const estacionIdRaw = estacionSelect.value;
+// Asumimos que estacion_id en inspecciones es NUMÉRICO (bigint/integer)
+const estacionId = parseInt(estacionIdRaw);
+if (isNaN(estacionId)) {
+    alert('ID de estación inválido');
+    return;
+}
 
             if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) {
                 alert('Por favor complete ambas fechas o déjelas vacías.');
