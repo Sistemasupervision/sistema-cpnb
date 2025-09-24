@@ -279,6 +279,25 @@
                 transform: scale(0.7);
             }
         }
+        .inspection-item {
+    margin-bottom: 25px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 15px;
+}
+.inspection-item:last-child {
+    border-bottom: none;
+}
+.inspection-item label {
+    display: block;
+    color: #2d3748;
+    margin-bottom: 10px;
+    font-weight: 600;
+    font-size: 16px;
+}
+.input-row {
+    display: flex;
+    flex-direction: column;
+}
     </style>
 </head>
 <body>
@@ -497,31 +516,114 @@ async function handleOccidentalForm(e) {
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
 // Cargar formulario de inspección para una estación específica
-function loadInspectionForm(estacionId) {
-    // Aquí irá tu formulario de inspección (lo personalizas después)
-    const inspectionHtml = `
-        <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Formulario de Inspección</h1>
-        </div>
-        <div style="background:#f8fafc; padding:20px; border-radius:12px; margin:20px 0;">
-            <p style="text-align:center; color:#4a5568;">
-                Formulario para la estación con ID: <strong>${estacionId}</strong>
-            </p>
-            <p style="text-align:center; margin-top:10px; font-weight:bold; color:#0c2440;">
-                ¡Listo para personalizar con tus ítems de inspección!
-            </p>
-        </div>
-        <button id="backToEstacionesBtn" class="back-btn">← Volver a Estaciones</button>
-    `;
+async function loadInspectionForm(estacionId) {
+    try {
+        // 1. Obtener los ítems de inspección desde la base de datos
+        const { data: items, error } = await supabase
+            .from('items_inspeccion')
+            .select('id, nombre_item')
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        // 2. Construir el HTML del formulario dinámicamente
+        let formItemsHtml = '';
+        items.forEach(item => {
+            formItemsHtml += `
+                <div class="inspection-item" data-item-id="${item.id}">
+                    <label>${item.nombre_item}</label>
+                    <div class="input-row">
+                        <select class="respuesta-select" style="margin-bottom: 10px;">
+                            <option value="No">No</option>
+                            <option value="Sí">Sí</option>
+                        </select>
+                        <textarea class="observacion-text" placeholder="Añada una observación..." style="display:none; width:100%; min-height:60px; padding:8px; border:2px solid #e2e8f0; border-radius:12px;"></textarea>
+                    </div>
+                </div>
+            `;
+        });
+
+        const inspectionHtml = `
+            <div class="logo-container">
+                <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                <h1 class="title">Formulario de Inspección</h1>
+                <p style="text-align:center; color:#4a5568; margin-top:-20px; margin-bottom: 20px;">
+                    Estación ID: <strong>${estacionId}</strong>
+                </p>
+            </div>
+            <form id="inspectionForm" data-estacion-id="${estacionId}">
+                ${formItemsHtml}
+                <button type="submit" class="form-btn" style="margin-top:20px;">Guardar Inspección</button>
+            </form>
+            <button id="backToEstacionesBtn" class="back-btn">← Volver a Estaciones</button>
+        `;
+
+        // 3. Mostrar el formulario en la vista dinámica
+        const dynamicView = document.getElementById('dynamicView');
+        dynamicView.innerHTML = inspectionHtml;
+
+        // 4. Añadir eventos para mostrar/ocultar campos de observación
+        dynamicView.querySelectorAll('.respuesta-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const parent = e.target.closest('.input-row');
+                const textarea = parent.querySelector('.observacion-text');
+                if (e.target.value === 'Sí') {
+                    textarea.style.display = 'block';
+                } else {
+                    textarea.style.display = 'none';
+                }
+            });
+        });
+
+        // 5. Asignar eventos a los botones
+        document.getElementById('inspectionForm').addEventListener('submit', handleInspectionSubmit);
+        document.getElementById('backToEstacionesBtn').onclick = () => {
+             // Simula un clic en el botón de volver para recargar la vista de selección de estación
+            document.getElementById('backToCcpBtn').click();
+        };
+
+    } catch (error) {
+        console.error('Error al cargar el formulario de inspección:', error);
+        alert('No se pudo cargar el formulario. Error: ' + error.message);
+    }
+}
+
+
+// Nueva función para manejar el envío del formulario de inspección
+async function handleInspectionSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const estacionId = form.dataset.estacionId;
+    const inspectionItems = form.querySelectorAll('.inspection-item');
     
-    const dynamicView = document.getElementById('dynamicView');
-    dynamicView.innerHTML = inspectionHtml;
-    
-    // Evento para volver a la selección de estaciones
-    document.getElementById('backToEstacionesBtn').onclick = () => {
-        handleOccidentalForm({ preventDefault: () => {} }); // Recargar selección
-    };
+    const registrosParaGuardar = [];
+
+    inspectionItems.forEach(item => {
+        const itemId = item.dataset.itemId;
+        const respuestaSelect = item.querySelector('.respuesta-select').value;
+        const observacionText = item.querySelector('.observacion-text').value;
+
+        registrosParaGuardar.push({
+            estacion_id: estacionId,
+            item_id: itemId,
+            respuesta: (respuestaSelect === 'Sí'), // Convierte a booleano
+            observacion: (respuestaSelect === 'Sí') ? observacionText : null
+        });
+    });
+
+    try {
+        // Guardar todos los registros en la base de datos de una sola vez
+        const { error } = await supabase.from('inspecciones').insert(registrosParaGuardar);
+        if (error) throw error;
+        
+        alert('¡Inspección guardada con éxito!');
+        // Vuelve a la pantalla de selección de estación
+        document.getElementById('backToEstacionesBtn').click();
+
+    } catch (error) {
+        console.error('Error al guardar la inspección:', error);
+        alert('Hubo un error al guardar los datos: ' + error.message);
+    }
 }
         checkAuthState();
     </script>
