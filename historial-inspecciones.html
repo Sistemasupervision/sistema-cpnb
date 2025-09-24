@@ -102,7 +102,7 @@
                 </div>
                 <div>
                     <label for="fechaFin" style="font-size:12px;">Hasta:</label>
-                    <input type="date" id="fechaFin" value="">
+                    <input type="date" id="fechaFin">
                 </div>
             </div>
         </div>
@@ -170,13 +170,8 @@
                 return;
             }
 
-            // Validar fechas
-            if (fechaInicio && !fechaFin) {
-                alert('Por favor ingrese una fecha "Hasta".');
-                return;
-            }
-            if (fechaFin && !fechaInicio) {
-                alert('Por favor ingrese una fecha "Desde".');
+            if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) {
+                alert('Por favor complete ambas fechas o déjelas vacías.');
                 return;
             }
 
@@ -188,15 +183,13 @@
                     .select('*')
                     .eq('estacion_id', estacionId);
 
-                // Aplicar filtros de fecha si existen
                 if (fechaInicio) {
-                    // Supabase espera fechas en formato ISO con zona horaria
                     const start = new Date(fechaInicio).toISOString();
                     query = query.gte('created_at', start);
                 }
                 if (fechaFin) {
                     const end = new Date(fechaFin);
-                    end.setHours(23, 59, 59, 999); // Incluir todo el día
+                    end.setHours(23, 59, 59, 999);
                     query = query.lte('created_at', end.toISOString());
                 }
 
@@ -206,14 +199,14 @@
 
                 if (inspError) throw inspError;
 
-                if (inspecciones.length === 0) {
+                if (!inspecciones || inspecciones.length === 0) {
                     historialContainer.innerHTML = '<p>🔍 No hay inspecciones en ese rango de fechas.</p>';
                     return;
                 }
 
                 let html = '';
                 for (const insp of inspecciones) {
-                    const { data: items, error: itemsError } = await supabase
+                    const {  items, error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .select('*')
                         .eq('inspeccion_id', insp.id);
@@ -239,17 +232,21 @@
                             <div class="items-grid">
                     `;
 
-                    items.forEach(item => {
-                        const estado = item.cumple ? '✅ Sí' : '❌ No';
-                        const clase = item.cumple ? 'satisfactorio' : '';
-                        html += `
-                            <div class="item-card">
-                                <strong>${(item.item_nombre || '').replace(/_/g, ' ')}</strong><br>
-                                <span class="${clase}">${estado}</span><br>
-                                ${item.observacion ? `<em>Obs: ${item.observacion}</em>` : ''}
-                            </div>
-                        `;
-                    });
+                    if (items && items.length > 0) {
+                        items.forEach(item => {
+                            const estado = item.cumple ? '✅ Sí' : '❌ No';
+                            const clase = item.cumple ? 'satisfactorio' : '';
+                            html += `
+                                <div class="item-card">
+                                    <strong>${(item.item_nombre || '').replace(/_/g, ' ')}</strong><br>
+                                    <span class="${clase}">${estado}</span><br>
+                                    ${item.observacion ? `<em>Obs: ${item.observacion}</em>` : ''}
+                                </div>
+                            `;
+                        });
+                    } else {
+                        html += `<div class="item-card">Sin ítems registrados</div>`;
+                    }
 
                     html += `</div></div>`;
                 }
