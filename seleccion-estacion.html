@@ -4,7 +4,6 @@
 </div>
 
 <div id="estacionesList" style="margin: 20px 0;">
-    <!-- Las estaciones se cargarán aquí dinámicamente -->
     <p style="text-align: center; color: #718096;">Cargando estaciones...</p>
 </div>
 
@@ -20,12 +19,10 @@
 <button id="backToCcpBtn" class="back-btn">← Volver a CCP</button>
 
 <script>
-// Esta función se llamará desde el archivo principal
 function initSeleccionEstacion(supabaseClient) {
     const supabase = supabaseClient;
-    const CCP_ID = 'metropolitano'; // Identificador del CCP actual
+    const CCP_ID = 'metropolitano';
     
-    // Cargar estaciones desde Supabase
     async function loadEstaciones() {
         try {
             const { data, error } = await supabase
@@ -52,7 +49,6 @@ function initSeleccionEstacion(supabaseClient) {
         }
     }
     
-    // Guardar nueva estación
     document.getElementById('saveEstacionBtn').addEventListener('click', async () => {
         const nombre = document.getElementById('newEstacionName').value.trim();
         if (!nombre) {
@@ -69,20 +65,18 @@ function initSeleccionEstacion(supabaseClient) {
             
             alert('Estación agregada exitosamente');
             document.getElementById('newEstacionName').value = '';
-            loadEstaciones(); // Recargar la lista
+            loadEstaciones();
         } catch (error) {
             console.error('Error al guardar estación:', error);
             alert('Error al guardar la estación');
         }
     });
     
-    // Volver a CCP
     document.getElementById('backToCcpBtn').onclick = () => {
         document.getElementById('dynamicView').style.display = 'none';
         document.getElementById('rediOccidentalContainer').style.display = 'block';
     };
     
-    // Cargar estaciones al iniciar
     loadEstaciones();
 }
 </script>
