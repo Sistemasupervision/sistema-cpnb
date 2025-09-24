@@ -22,14 +22,19 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         h1 { text-align: center; margin-bottom: 20px; }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; }
-        select, button {
+        .input-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; }
+        select, input, button {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
             border: 1px solid #cbd5e0;
             font-size: 16px;
+        }
+        .date-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
         button {
             background: #1a365d;
@@ -88,6 +93,20 @@
             </select>
         </div>
 
+        <div class="input-group">
+            <label>Rango de Fechas:</label>
+            <div class="date-range">
+                <div>
+                    <label for="fechaInicio" style="font-size:12px;">Desde:</label>
+                    <input type="date" id="fechaInicio">
+                </div>
+                <div>
+                    <label for="fechaFin" style="font-size:12px;">Hasta:</label>
+                    <input type="date" id="fechaFin" value="">
+                </div>
+            </div>
+        </div>
+
         <button id="verHistorialBtn" disabled>Ver Historial</button>
 
         <div id="historialContainer" style="margin-top: 30px;"></div>
@@ -97,6 +116,9 @@
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // Establecer fecha actual en "Hasta"
+        document.getElementById('fechaFin').valueAsDate = new Date();
 
         const ccpSelect = document.getElementById('ccpSelect');
         const estacionSelect = document.getElementById('estacionSelect');
@@ -140,19 +162,52 @@
 
         verBtn.addEventListener('click', async () => {
             const estacionId = estacionSelect.value;
+            const fechaInicio = document.getElementById('fechaInicio').value;
+            const fechaFin = document.getElementById('fechaFin').value;
+
+            if (!estacionId) {
+                alert('Seleccione una estación.');
+                return;
+            }
+
+            // Validar fechas
+            if (fechaInicio && !fechaFin) {
+                alert('Por favor ingrese una fecha "Hasta".');
+                return;
+            }
+            if (fechaFin && !fechaInicio) {
+                alert('Por favor ingrese una fecha "Desde".');
+                return;
+            }
+
             historialContainer.innerHTML = '<p>Cargando historial...</p>';
 
             try {
-                const { data: inspecciones, error: inspError } = await supabase
+                let query = supabase
                     .from('inspecciones')
                     .select('*')
-                    .eq('estacion_id', estacionId)
-                    .order('created_at', { ascending: false });
+                    .eq('estacion_id', estacionId);
+
+                // Aplicar filtros de fecha si existen
+                if (fechaInicio) {
+                    // Supabase espera fechas en formato ISO con zona horaria
+                    const start = new Date(fechaInicio).toISOString();
+                    query = query.gte('created_at', start);
+                }
+                if (fechaFin) {
+                    const end = new Date(fechaFin);
+                    end.setHours(23, 59, 59, 999); // Incluir todo el día
+                    query = query.lte('created_at', end.toISOString());
+                }
+
+                query = query.order('created_at', { ascending: false });
+
+                const {  inspecciones, error: inspError } = await query;
 
                 if (inspError) throw inspError;
 
                 if (inspecciones.length === 0) {
-                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones registradas para esta estación.</p>';
+                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones en ese rango de fechas.</p>';
                     return;
                 }
 
