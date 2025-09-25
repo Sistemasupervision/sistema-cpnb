@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Inspecciones - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Librerías para PDF -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
@@ -64,35 +63,28 @@
             font-weight: bold;
             margin-bottom: 25px;
         }
-        .back-btn {
-            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-            color: white;
+        .back-btn,
+        .btn-pdf {
+            padding: 10px 20px;
             border: none;
             border-radius: 10px;
-            padding: 10px 20px;
             font-size: 15px;
             cursor: pointer;
             margin-bottom: 20px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-weight: bold;
         }
-        .back-btn:hover {
-            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
         }
         .btn-pdf {
             background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
             color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 10px 18px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
         }
+        .back-btn:hover,
         .btn-pdf:hover {
             opacity: 0.9;
         }
@@ -112,8 +104,10 @@
         .inspeccion-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .inspeccion-fecha {
             font-size: 14px;
@@ -124,6 +118,14 @@
             font-size: 18px;
             font-weight: bold;
             color: #0c2440;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .alerta-pendiente {
+            color: #e53e3e;
+            font-weight: bold;
+            font-size: 16px;
         }
         .inspeccion-inspector {
             font-size: 14px;
@@ -224,7 +226,6 @@
             .inspeccion-header {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 8px;
             }
         }
     </style>
@@ -239,7 +240,6 @@
             ← Volver al Inicio
         </button>
 
-        <!-- ✅ Botón para exportar TODO el historial visible -->
         <button class="btn-pdf" onclick="exportarHistorialAPDF()" style="margin-bottom: 15px;">
             📄 Exportar Historial a PDF
         </button>
@@ -361,7 +361,7 @@
 
                 let query = supabase
                     .from('inspecciones')
-                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id')
+                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
 
                 if (fechaDesde && fechaHasta) {
@@ -405,22 +405,38 @@
 
                 contenedor.innerHTML = '';
                 inspeccionesCache.forEach(insp => {
-                    const fecha = new Date(insp.created_at).toLocaleString('es-ES', {
+                    const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
                     });
+
+                    // ✅ Verificar si hay reinspección pendiente
+                    let alertaHTML = '';
+                    if (insp.proxima_inspeccion) {
+                        const fechaProxima = new Date(insp.proxima_inspeccion);
+                        const hoy = new Date();
+                        hoy.setHours(0, 0, 0, 0); // Comparar solo fecha
+                        fechaProxima.setHours(0, 0, 0, 0);
+                        if (fechaProxima <= hoy) {
+                            alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
+                        }
+                    }
+
                     const card = document.createElement('div');
                     card.className = 'inspeccion-card';
                     card.innerHTML = `
                         <div class="inspeccion-header">
-                            <div>
-                                <div class="inspeccion-estacion">${insp.estacion_nombre}</div>
+                            <div class="inspeccion-estacion">
+                                ${insp.estacion_nombre}
+                                ${alertaHTML}
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="inspeccion-fecha">${fechaInspeccion}</div>
                                 <div class="inspeccion-inspector">Inspector: ${insp.inspector_email}</div>
                             </div>
-                            <div class="inspeccion-fecha">${fecha}</div>
                         </div>
                         <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
                     `;
@@ -459,7 +475,7 @@
 
                 const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
-                    .select('created_at, observaciones_generales, estacion_id')
+                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
                     .single();
 
@@ -510,7 +526,13 @@
                 }
 
                 let html = `<h3>Estación: ${nombreEstacion}</h3>`;
-                html += `<p><strong>Fecha:</strong> ${fechaFormateada}</p>`;
+                html += `<p><strong>Fecha de inspección:</strong> ${fechaFormateada}</p>`;
+
+                // ✅ Mostrar fecha programada
+                if (inspeccion.proxima_inspeccion) {
+                    const proxima = new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES');
+                    html += `<p><strong>Próxima inspección programada:</strong> ${proxima}</p>`;
+                }
 
                 if (items && items.length > 0) {
                     items.forEach(item => {
@@ -616,6 +638,7 @@
                                     <th style="padding: 10px; border: 1px solid #ddd;">Fecha</th>
                                     <th style="padding: 10px; border: 1px solid #ddd;">Estación</th>
                                     <th style="padding: 10px; border: 1px solid #ddd;">Inspector</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Próxima</th>
                                     <th style="padding: 10px; border: 1px solid #ddd;">CCP</th>
                                 </tr>
                             </thead>
@@ -630,12 +653,19 @@
                         hour: '2-digit',
                         minute: '2-digit'
                     });
+                    const proxima = insp.proxima_inspeccion 
+                        ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
+                        : 'No programada';
                     const ccpNombre = ccpNombres[insp.ccp_id] || insp.ccp_id;
+                    const estadoProxima = insp.proxima_inspeccion ? 
+                        (new Date(insp.proxima_inspeccion) <= new Date() ? '⚠️ VENCIDA' : 'Programada') 
+                        : '';
                     htmlContent += `
                         <tr>
                             <td style="padding: 8px; border: 1px solid #eee;">${fecha}</td>
                             <td style="padding: 8px; border: 1px solid #eee;">${insp.estacion_nombre}</td>
                             <td style="padding: 8px; border: 1px solid #eee;">${insp.inspector_email}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${proxima} ${estadoProxima}</td>
                             <td style="padding: 8px; border: 1px solid #eee;">${ccpNombre}</td>
                         </tr>
                     `;
