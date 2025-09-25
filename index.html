@@ -490,7 +490,7 @@
             }
         }
 
-       function loadInspectionForm(estacionId, estacionNombre) {
+  function loadInspectionForm(estacionId, estacionNombre) {
     const items = [
         "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
         "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
@@ -540,12 +540,34 @@
                     placeholder="Observaciones" 
                     style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
                     rows="3"></textarea>
-                <input type="range" class="porcentaje-slider" data-item="${item}" 
-                    min="0" max="100" value="0"
-                    style="width:100%; margin-top:10px; display:none;"
-                    oninput="this.nextElementSibling.value = this.value + '%'"
-                >
-                <output class="porcentaje-output" style="display:none; text-align:center; font-size:13px; color:#2d3748; margin-top:4px;">0%</output>
+                <!-- Contenedor del porcentaje -->
+                <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
+                        Porcentaje de estatus
+                    </label>
+                    <div style="position:relative; padding:10px 0;">
+                        <input type="range" class="porcentaje-slider" data-item="${item}" 
+                            min="0" max="100" value="0"
+                            style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
+                            oninput="this.nextElementSibling.value = this.value + '%'"
+                        >
+                        <output class="porcentaje-output" style="position:absolute; top:-24px; left:0; width:100%; text-align:center; font-size:13px; color:#2d3748; font-weight:bold;">0%</output>
+                        <!-- Marcas del 0 al 100 -->
+                        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:#718096;">
+                            <span>0</span>
+                            <span>10</span>
+                            <span>20</span>
+                            <span>30</span>
+                            <span>40</span>
+                            <span>50</span>
+                            <span>60</span>
+                            <span>70</span>
+                            <span>80</span>
+                            <span>90</span>
+                            <span>100</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     });
@@ -579,25 +601,17 @@
         select.addEventListener('change', function () {
             const item = this.dataset.item;
             const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-            const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-            const output = document.querySelector(`.porcentaje-output[data-item="${item}"]`);
+            const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
             if (this.value === 'null') {
                 textarea.style.display = 'none';
-                slider.style.display = 'none';
-                output.style.display = 'none';
+                porcentajeContainer.style.display = 'none';
                 textarea.value = '';
-                slider.value = 0;
             } else {
                 textarea.style.display = 'block';
                 if (this.value === 'true') {
-                    // Mostrar slider solo si es "Sí"
-                    slider.style.display = 'block';
-                    output.style.display = 'block';
+                    porcentajeContainer.style.display = 'block';
                 } else {
-                    // Si es "No", ocultar slider y forzar 0%
-                    slider.style.display = 'none';
-                    output.style.display = 'none';
-                    slider.value = 0;
+                    porcentajeContainer.style.display = 'none';
                 }
             }
         });
@@ -643,9 +657,9 @@
             const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
             let porcentaje = 0;
             if (cumple) {
-                porcentaje = parseInt(document.querySelector(`.porcentaje-slider[data-item="${item}"]`).value) || 0;
+                const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                porcentaje = parseInt(slider.value) || 0;
             }
-            // Si es "No", porcentaje sigue siendo 0
 
             itemsData.push({
                 inspeccion_id: inspeccionData.id,
