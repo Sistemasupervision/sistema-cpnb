@@ -550,96 +550,99 @@
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
         // === Detalle de inspección ===
-        async function mostrarDetalle(inspeccionId) {
-            try {
-                const { data: items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('item_nombre, cumple, observacion')
-                    .eq('inspeccion_id', inspeccionId)
-                    .order('item_nombre', { ascending: true });
-                const { data: inspeccion, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
-                    .eq('id', inspeccionId)
-                    .single();
-                if (itemsError || inspError) throw itemsError || inspError;
-                let nombreEstacion = 'Estación no disponible';
-                const { data: estacionData, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('nombre')
-                    .eq('id', inspeccion.estacion_id)
-                    .single();
-                if (!estError && estacionData) {
-                    nombreEstacion = estacionData.nombre;
-                }
-                const nombres = {
-                    baño_dama: "Baño Dama",
-                    baño_caballero: "Baño Caballero",
-                    dormitorio_femenino: "Dormitorio Femenino",
-                    dormitorio_masculino: "Dormitorio Masculino",
-                    cocina: "Cocina",
-                    comedor: "Comedor",
-                    lavanderia: "Lavandería",
-                    oficina_del_jefe: "Oficina del Jefe",
-                    oficina_de_rrhh: "Oficina de RRHH",
-                    condiciones_electricas: "Condiciones Eléctricas",
-                    fachada: "Fachada",
-                    condiciones_de_pintura: "Condiciones de Pintura",
-                    jardines: "Jardines",
-                    condiciones_generales: "Condiciones Generales",
-                    vehiculos: "Vehículos",
-                    motos: "Motos"
-                };
-                let fechaFormateada = 'Fecha no disponible';
-                if (inspeccion.created_at) {
-                    const fechaObj = new Date(inspeccion.created_at);
-                    if (!isNaN(fechaObj.getTime())) {
-                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    }
-                }
-                let html = `<h3>Estación: ${nombreEstacion}</h3>`;
-                html += `<p><strong>Fecha de inspección:</strong> ${fechaFormateada}</p>`;
-                if (inspeccion.proxima_inspeccion) {
-                    const proxima = new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES');
-                    html += `<p><strong>Próxima inspección programada:</strong> ${proxima}</p>`;
-                }
-                if (items && items.length > 0) {
-                    items.forEach(item => {
-                        const nombre = nombres[item.item_nombre] || item.item_nombre;
-                        const clase = item.cumple ? 'si' : 'no';
-                        const texto = item.cumple ? 'Sí' : 'No';
-                        html += `
-                            <div class="detalle-item">
-                                <span class="item-nombre">${nombre}:</span>
-                                <span class="item-respuesta ${clase}">${texto}</span>
-                                ${item.observacion ? `<div class="item-observacion">Observación: ${item.observacion}</div>` : ''}
-                            </div>
-                        `;
-                    });
-                } else {
-                    html += '<p>No hay ítems registrados.</p>';
-                }
-                if (inspeccion.observaciones_generales) {
-                    html += `
-                        <div class="observaciones-generales">
-                            <strong>Observaciones Generales:</strong><br>
-                            ${inspeccion.observaciones_generales}
-                        </div>
-                    `;
-                }
-                document.getElementById('detalleContenido').innerHTML = html;
-                document.getElementById('detalleModal').style.display = 'flex';
-            } catch (error) {
-                console.error('Error detallado al cargar inspección:', error);
-                alert('Error al cargar los detalles. Verifica la consola del navegador.');
+       async function mostrarDetalle(inspeccionId) {
+    try {
+        // ✅ Incluir 'porcentaje_cumplimiento' en la consulta
+        const { data: items, error: itemsError } = await supabase
+            .from('items_inspeccion')
+            .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+            .eq('inspeccion_id', inspeccionId)
+            .order('item_nombre', { ascending: true });
+        const { data: inspeccion, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
+            .eq('id', inspeccionId)
+            .single();
+        if (itemsError || inspError) throw itemsError || inspError;
+        let nombreEstacion = 'Estación no disponible';
+        const { data: estacionData, error: estError } = await supabase
+            .from('estaciones_policiales')
+            .select('nombre')
+            .eq('id', inspeccion.estacion_id)
+            .single();
+        if (!estError && estacionData) {
+            nombreEstacion = estacionData.nombre;
+        }
+        const nombres = {
+            baño_dama: "Baño Dama",
+            baño_caballero: "Baño Caballero",
+            dormitorio_femenino: "Dormitorio Femenino",
+            dormitorio_masculino: "Dormitorio Masculino",
+            cocina: "Cocina",
+            comedor: "Comedor",
+            lavanderia: "Lavandería",
+            oficina_del_jefe: "Oficina del Jefe",
+            oficina_de_rrhh: "Oficina de RRHH",
+            condiciones_electricas: "Condiciones Eléctricas",
+            fachada: "Fachada",
+            condiciones_de_pintura: "Condiciones de Pintura",
+            jardines: "Jardines",
+            condiciones_generales: "Condiciones Generales",
+            vehiculos: "Vehículos",
+            motos: "Motos"
+        };
+        let fechaFormateada = 'Fecha no disponible';
+        if (inspeccion.created_at) {
+            const fechaObj = new Date(inspeccion.created_at);
+            if (!isNaN(fechaObj.getTime())) {
+                fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             }
         }
+        let html = `<h3>Estación: ${nombreEstacion}</h3>`;
+        html += `<p><strong>Fecha de inspección:</strong> ${fechaFormateada}</p>`;
+        if (inspeccion.proxima_inspeccion) {
+            const proxima = new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES');
+            html += `<p><strong>Próxima inspección programada:</strong> ${proxima}</p>`;
+        }
+        if (items && items.length > 0) {
+            items.forEach(item => {
+                const nombre = nombres[item.item_nombre] || item.item_nombre;
+                const clase = item.cumple ? 'si' : 'no';
+                const texto = item.cumple ? 'Sí' : 'No';
+                // ✅ Mostrar porcentaje solo si es "Sí"
+                const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+                html += `
+                    <div class="detalle-item">
+                        <span class="item-nombre">${nombre}:</span>
+                        <span class="item-respuesta ${clase}">${texto}${porcentajeTexto}</span>
+                        ${item.observacion ? `<div class="item-observacion">Observación: ${item.observacion}</div>` : ''}
+                    </div>
+                `;
+            });
+        } else {
+            html += '<p>No hay ítems registrados.</p>';
+        }
+        if (inspeccion.observaciones_generales) {
+            html += `
+                <div class="observaciones-generales">
+                    <strong>Observaciones Generales:</strong><br>
+                    ${inspeccion.observaciones_generales}
+                </div>
+            `;
+        }
+        document.getElementById('detalleContenido').innerHTML = html;
+        document.getElementById('detalleModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Error detallado al cargar inspección:', error);
+        alert('Error al cargar los detalles. Verifica la consola del navegador.');
+    }
+}
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
