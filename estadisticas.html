@@ -17,27 +17,65 @@
       background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
       color: white;
       padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     .container {
-      max-width: 1200px;
-      margin: 0 auto;
       background: white;
       border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      padding: 30px;
-      color: #0c2440;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      width: 100%;
+      max-width: 950px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+      z-index: 10;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 8px;
+      background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+    }
+    .logo-container {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .logo-img {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      margin: 0 auto 15px;
     }
     h1 {
       text-align: center;
+      color: #0c2440;
+      font-size: 24px;
       margin-bottom: 25px;
-      font-size: 28px;
     }
-    #chartContainer {
-      margin-top: 30px;
+    .filters {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    .filters select {
+      padding: 12px;
+      border-radius: 10px;
+      border: 2px solid #e2e8f0;
+      font-size: 15px;
+      background: #f8fafc;
+      min-width: 200px;
     }
     .summary-cards {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 15px;
       margin-bottom: 30px;
     }
@@ -54,8 +92,11 @@
       color: #0c2440;
     }
     .card .label {
-      font-size: 14px;
+      font-size: 13px;
       color: #4a5568;
+    }
+    #chartContainer {
+      margin-top: 20px;
     }
     .back-btn {
       background: linear-gradient(135deg, #2c5282, #1a365d);
@@ -67,28 +108,54 @@
       margin-top: 20px;
       display: inline-block;
       text-decoration: none;
+      font-weight: bold;
     }
     .back-btn:hover {
       opacity: 0.9;
     }
     .loading {
       text-align: center;
-      padding: 40px;
-      font-size: 18px;
+      padding: 30px;
       color: #4a5568;
+      font-size: 16px;
+    }
+    @media (max-width: 600px) {
+      .filters {
+        flex-direction: column;
+      }
+      .filters select {
+        min-width: auto;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📊 Estadísticas de Cumplimiento</h1>
+    <div class="logo-container">
+      <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+      <h1>📊 Estadísticas de Cumplimiento</h1>
+    </div>
 
     <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
+
+    <div class="filters">
+      <select id="ccpFilter">
+        <option value="">Todos los CCP</option>
+        <option value="metropolitano">CCP METROPOLITANO</option>
+        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+        <option value="guajira">CCP GUAJIRA</option>
+        <option value="col">CCPE COL</option>
+      </select>
+      <select id="estacionFilter" disabled>
+        <option value="">Todas las Estaciones</option>
+        <!-- Se llena dinámicamente -->
+      </select>
+    </div>
 
     <div class="summary-cards" id="summaryCards"></div>
 
     <div id="chartContainer">
-      <canvas id="complianceChart" height="120"></canvas>
+      <canvas id="complianceChart" height="100"></canvas>
     </div>
 
     <div id="loading" class="loading">Cargando estadísticas...</div>
@@ -119,72 +186,107 @@
     };
 
     let chartInstance = null;
+    let estacionesCache = {};
 
-    async function loadStatistics() {
+    // Cargar estaciones por CCP
+    async function loadEstacionesByCCP(ccpId) {
+      const select = document.getElementById('estacionFilter');
+      select.innerHTML = '<option value="">Todas las Estaciones</option>';
+      if (!ccpId) {
+        select.disabled = true;
+        return;
+      }
       try {
-        // Obtener todos los ítems de inspección con sus estaciones
         const { data, error } = await supabase
-          .from('items_inspeccion')
-          .select('item_nombre, cumple');
+          .from('estaciones_policiales')
+          .select('id, nombre')
+          .eq('ccp_id', ccpId)
+          .order('nombre', { ascending: true });
+        if (error) throw error;
+        estacionesCache[ccpId] = data;
+        data.forEach(est => {
+          const opt = document.createElement('option');
+          opt.value = est.id;
+          opt.textContent = est.nombre;
+          select.appendChild(opt);
+        });
+        select.disabled = false;
+      } catch (err) {
+        console.error('Error al cargar estaciones:', err);
+        select.disabled = true;
+      }
+    }
 
+    // Cargar estadísticas con filtros
+    async function loadStatistics(ccpId = null, estacionId = null) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('summaryCards').innerHTML = '';
+      const ctx = document.getElementById('complianceChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      try {
+        let query = supabase
+          .from('items_inspeccion')
+          .select('item_nombre, cumple, inspecciones(estacion_id)')
+          .in('item_nombre', Object.keys(itemLabels));
+
+        if (estacionId) {
+          query = query.eq('inspecciones.estacion_id', estacionId);
+        } else if (ccpId) {
+          // Necesitamos join con estaciones_policiales
+          const { data: estaciones, error: estError } = await supabase
+            .from('estaciones_policiales')
+            .select('id')
+            .eq('ccp_id', ccpId);
+          if (estError) throw estError;
+          const estacionIds = estaciones.map(e => e.id);
+          query = query.in('inspecciones.estacion_id', estacionIds);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
 
         if (!data || data.length === 0) {
-          document.getElementById('loading').textContent = 'No hay datos de inspecciones aún.';
+          document.getElementById('loading').textContent = 'No hay datos para mostrar.';
           return;
         }
 
-        // Contar cumplimiento por ítem
         const stats = {};
-        const allItems = Object.keys(itemLabels);
-
-        allItems.forEach(item => {
+        Object.keys(itemLabels).forEach(item => {
           stats[item] = { total: 0, cumple: 0 };
         });
 
         data.forEach(row => {
-          if (allItems.includes(row.item_nombre)) {
-            stats[row.item_nombre].total += 1;
-            if (row.cumple === true) {
-              stats[row.item_nombre].cumple += 1;
-            }
+          const item = row.item_nombre;
+          if (stats[item] !== undefined) {
+            stats[item].total += 1;
+            if (row.cumple === true) stats[item].cumple += 1;
           }
         });
 
-        // Calcular porcentajes y preparar datos para gráfico
         const labels = [];
         const percentages = [];
         const summaryCards = document.getElementById('summaryCards');
-        summaryCards.innerHTML = '';
 
-        allItems.forEach(item => {
+        Object.keys(itemLabels).forEach(item => {
           const total = stats[item].total;
           if (total === 0) return;
-
           const pct = Math.round((stats[item].cumple / total) * 100);
           labels.push(itemLabels[item]);
           percentages.push(pct);
 
-          // Tarjeta resumen
           const card = document.createElement('div');
           card.className = 'card';
-          card.innerHTML = `
-            <div class="value">${pct}%</div>
-            <div class="label">${itemLabels[item]}</div>
-          `;
+          card.innerHTML = `<div class="value">${pct}%</div><div class="label">${itemLabels[item]}</div>`;
           summaryCards.appendChild(card);
         });
-
-        // Mostrar gráfico
-        const ctx = document.getElementById('complianceChart').getContext('2d');
-        if (chartInstance) chartInstance.destroy();
 
         chartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
             labels: labels,
             datasets: [{
-              label: '% de Cumplimiento',
+              label: '% Cumplimiento',
               data: percentages,
               backgroundColor: 'rgba(49, 130, 206, 0.7)',
               borderColor: 'rgba(49, 130, 206, 1)',
@@ -193,33 +295,39 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             scales: {
               y: {
                 beginAtZero: true,
                 max: 100,
-                ticks: {
-                  callback: function(value) {
-                    return value + '%';
-                  }
-                }
+                ticks: { callback: v => v + '%' }
               }
             },
-            plugins: {
-              legend: {
-                display: false
-              }
-            }
+            plugins: { legend: { display: false } }
           }
         });
 
         document.getElementById('loading').style.display = 'none';
       } catch (err) {
-        console.error('Error al cargar estadísticas:', err);
+        console.error('Error:', err);
         document.getElementById('loading').textContent = 'Error al cargar los datos.';
       }
     }
 
-    // Cargar al iniciar
+    // Eventos
+    document.getElementById('ccpFilter').addEventListener('change', async (e) => {
+      const ccpId = e.target.value;
+      await loadEstacionesByCCP(ccpId);
+      await loadStatistics(ccpId, null);
+    });
+
+    document.getElementById('estacionFilter').addEventListener('change', async (e) => {
+      const estacionId = e.target.value || null;
+      const ccpId = document.getElementById('ccpFilter').value || null;
+      await loadStatistics(ccpId, estacionId);
+    });
+
+    // Inicializar
     loadStatistics();
   </script>
 </body>
