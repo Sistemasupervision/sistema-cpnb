@@ -120,42 +120,29 @@
             verBtn.disabled = !estacionSelect.value;
         });
 
-       verBtn.addEventListener('click', async () => {
-    const estacionIdRaw = estacionSelect.value;
-    const estacionId = parseInt(estacionIdRaw);
-    const container = document.getElementById('historialContainer');
-    
+     verBtn.addEventListener('click', async () => {
+    const estacionId = parseInt(estacionSelect.value);
     if (isNaN(estacionId)) {
-        container.innerHTML = `<p style="color:red;">⚠️ ID inválido: "${estacionIdRaw}"</p>`;
+        document.getElementById('historialContainer').innerHTML = '<p>⚠️ ID de estación inválido</p>';
         return;
     }
 
-    container.innerHTML = `<p>Buscando inspecciones con estacion_id = ${estacionId}...</p>`;
-
     try {
-        // ✅ CORRECCIÓN: usar 'data', no 'inspecciones'
+        // ✅ CORRECCIÓN CLAVE: usar 'data', no 'inspecciones'
         const {  inspecciones, error } = await supabase
             .from('inspecciones')
             .select('*')
             .eq('estacion_id', estacionId)
             .order('created_at', { ascending: false });
 
+        const container = document.getElementById('historialContainer');
         if (error) {
-            container.innerHTML = `<p style="color:red;">❌ Error Supabase: ${error.message}</p>`;
+            container.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
             return;
         }
 
-        // ✅ Depuración: muestra cuántos registros se encontraron
-        container.innerHTML = `<p>✅ Encontradas ${inspecciones.length} inspecciones.</p>`;
-
-        if (inspecciones.length === 0) {
-            // ✅ Verifica manualmente en la BD
-            container.innerHTML += `
-                <p>🔍 No hay inspecciones para estacion_id = ${estacionId}.</p>
-                <p style="font-size:14px; color:#666;">
-                    Verifica en Supabase que exista una inspección con este valor.
-                </p>
-            `;
+        if (!inspecciones || inspecciones.length === 0) {
+            container.innerHTML = '<p>🔍 No hay inspecciones.</p>';
             return;
         }
 
@@ -166,10 +153,16 @@
                 <div class="inspeccion">
                     <h3>Inspección del ${fecha}</h3>
                     <p><strong>Inspector:</strong> ${i.inspector_email}</p>
-                    <p><strong>Estación ID:</strong> ${i.estacion_id}</p>
+                    <p><strong>Observaciones:</strong> ${i.observaciones_generales || 'Ninguna'}</p>
                 </div>
             `;
         });
+        container.innerHTML = html;
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p style="color:red;">⚠️ Error: ${err.message}</p>`;
+    }
+});
         container.innerHTML = html;
     } catch (err) {
         console.error(err);
