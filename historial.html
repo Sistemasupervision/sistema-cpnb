@@ -61,17 +61,24 @@
             font-weight: bold;
             margin-bottom: 25px;
         }
-        .filtro-fechas {
-            display: flex;
-            gap: 12px;
+        .filtros-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             margin-bottom: 25px;
-            flex-wrap: wrap;
-            align-items: end;
         }
-        .filtro-fechas .input-group {
+        .input-group {
             margin-bottom: 0;
         }
-        .filtro-fechas input[type="date"] {
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            color: #2d3748;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .input-group input[type="date"],
+        .input-group select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e2e8f0;
@@ -79,20 +86,20 @@
             font-size: 15px;
             background-color: #f8fafc;
         }
-        .filtro-fechas button {
-            padding: 12px 20px;
+        .btn-filtrar {
+            grid-column: span 4;
+            padding: 12px;
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 15px;
-            cursor: pointer;
+            font-size: 16px;
             font-weight: bold;
-            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-top: 10px;
         }
-        .filtro-fechas button:hover {
+        .btn-filtrar:hover {
             background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
-            transform: translateY(-1px);
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
@@ -231,8 +238,8 @@
             padding: 30px;
         }
         @media (max-width: 600px) {
-            .filtro-fechas {
-                flex-direction: column;
+            .filtros-container {
+                grid-template-columns: 1fr;
             }
             .container {
                 padding: 25px;
@@ -255,17 +262,33 @@
             ← Volver al Inicio
         </button>
 
-        <!-- ✅ Filtro por rango de fechas -->
-        <div class="filtro-fechas">
+        <!-- ✅ Filtros combinados -->
+        <div class="filtros-container">
             <div class="input-group">
-                <label for="fechaDesde" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Desde:</label>
+                <label for="fechaDesde">Desde:</label>
                 <input type="date" id="fechaDesde">
             </div>
             <div class="input-group">
-                <label for="fechaHasta" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Hasta:</label>
+                <label for="fechaHasta">Hasta:</label>
                 <input type="date" id="fechaHasta">
             </div>
-            <button onclick="aplicarFiltro()">Filtrar</button>
+            <div class="input-group">
+                <label for="ccpFilter">Filtrar por CCP:</label>
+                <select id="ccpFilter">
+                    <option value="">Todos los CCP</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="estacionFilter">Filtrar por Estación:</label>
+                <select id="estacionFilter">
+                    <option value="">Todas las estaciones</option>
+                </select>
+            </div>
+            <button class="btn-filtrar" onclick="aplicarFiltro()">Aplicar Filtros</button>
         </div>
 
         <div id="inspeccionesList">
@@ -286,14 +309,40 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Establecer fecha actual como valor por defecto en "Hasta"
-        document.getElementById('fechaHasta').valueAsDate = new Date();
-        // Fecha de hace 30 días como valor por defecto en "Desde"
+        // Establecer fechas por defecto
+        const hoy = new Date();
         const hace30Dias = new Date();
-        hace30Dias.setDate(hace30Dias.getDate() - 30);
+        hace30Dias.setDate(hoy.getDate() - 30);
+        document.getElementById('fechaHasta').valueAsDate = hoy;
         document.getElementById('fechaDesde').valueAsDate = hace30Dias;
 
-        async function cargarHistorial(fechaDesde = null, fechaHasta = null) {
+        // Cargar estaciones al cambiar CCP
+        document.getElementById('ccpFilter').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpFilter').value;
+            const estacionSelect = document.getElementById('estacionFilter');
+            estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
+            if (!ccpId) return;
+
+            try {
+                const { data: estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+
+                if (error) throw error;
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.id;
+                    opt.textContent = est.nombre;
+                    estacionSelect.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar estaciones:', error);
+            }
+        });
+
+        async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
                 let query = supabase
                     .from('inspecciones')
@@ -302,12 +351,13 @@
                         created_at,
                         observaciones_generales,
                         inspector_email,
-                        estaciones_policiales ( nombre )
+                        estacion_id,
+                        estaciones_policiales ( nombre, ccp_id )
                     `)
                     .order('created_at', { ascending: false });
 
+                // Filtro por fechas
                 if (fechaDesde && fechaHasta) {
-                    // Ajustar fechas para incluir todo el día
                     const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
                     const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
                     query = query
@@ -315,13 +365,30 @@
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
 
-                const { data: inspecciones, error } = await query;
+                // Filtro por estación (implícitamente filtra por CCP también)
+                if (estacionId) {
+                    query = query.eq('estacion_id', estacionId);
+                } else if (ccpId) {
+                    // Filtrar por CCP: necesitamos todas las estaciones de ese CCP
+                    const { data: estaciones, error: estError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('id')
+                        .eq('ccp_id', ccpId);
+                    if (estError) throw estError;
+                    const ids = estaciones.map(e => e.id);
+                    if (ids.length > 0) {
+                        query = query.in('estacion_id', ids);
+                    } else {
+                        query = query.eq('estacion_id', -1); // ningún resultado
+                    }
+                }
 
+                const { data: inspecciones, error } = await query;
                 if (error) throw error;
 
                 const contenedor = document.getElementById('inspeccionesList');
                 if (!inspecciones || inspecciones.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones en este rango de fechas.</div>';
+                    contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
                     return;
                 }
 
@@ -334,7 +401,6 @@
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-
                     const card = document.createElement('div');
                     card.className = 'inspeccion-card';
                     card.innerHTML = `
@@ -359,20 +425,18 @@
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
+            const ccpId = document.getElementById('ccpFilter').value;
+            const estacionId = document.getElementById('estacionFilter').value;
 
-            if (!desde || !hasta) {
-                alert('Por favor seleccione ambas fechas.');
-                return;
-            }
-
-            if (new Date(desde) > new Date(hasta)) {
+            if (desde && hasta && new Date(desde) > new Date(hasta)) {
                 alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".');
                 return;
             }
 
-            cargarHistorial(desde, hasta);
+            cargarHistorial(desde, hasta, ccpId, estacionId);
         }
 
+        // === Funciones de detalle (sin cambios) ===
         async function mostrarDetalle(inspeccionId) {
             try {
                 const { data: items, error } = await supabase
@@ -453,8 +517,8 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        // Cargar historial inicial (últimos 30 días por defecto)
-        cargarHistorial(hace30Dias.toISOString().split('T')[0], new Date().toISOString().split('T')[0]);
+        // Cargar historial inicial
+        cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
     </script>
 </body>
 </html>
