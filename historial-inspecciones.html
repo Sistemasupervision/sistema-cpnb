@@ -126,35 +126,41 @@
         return;
     }
 
-    const {  inspecciones, error } = await supabase
-        .from('inspecciones')
-        .select('*')
-        .eq('estacion_id', estacionId)
-        .order('created_at', { ascending: false });
+    try {
+        // ✅ CORRECCIÓN CLAVE: usar 'data', no 'inspecciones'
+        const {  inspecciones, error } = await supabase
+            .from('inspecciones')
+            .select('*')
+            .eq('estacion_id', estacionId)
+            .order('created_at', { ascending: false });
 
-    const container = document.getElementById('historialContainer');
-    if (error) {
-        container.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
-        return;
+        const container = document.getElementById('historialContainer');
+        if (error) {
+            container.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
+            return;
+        }
+
+        if (!inspecciones || inspecciones.length === 0) {
+            container.innerHTML = '<p>🔍 No hay inspecciones.</p>';
+            return;
+        }
+
+        let html = '';
+        inspecciones.forEach(i => {
+            const fecha = new Date(i.created_at).toLocaleString('es-VE');
+            html += `
+                <div class="inspeccion">
+                    <h3>Inspección del ${fecha}</h3>
+                    <p><strong>Inspector:</strong> ${i.inspector_email}</p>
+                    <p><strong>Observaciones:</strong> ${i.observaciones_generales || 'Ninguna'}</p>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p style="color:red;">⚠️ Error: ${err.message}</p>`;
     }
-
-    if (!inspecciones || inspecciones.length === 0) {
-        container.innerHTML = '<p>🔍 No hay inspecciones.</p>';
-        return;
-    }
-
-    let html = '';
-    inspecciones.forEach(i => {
-        const fecha = new Date(i.created_at).toLocaleString('es-VE');
-        html += `
-            <div class="inspeccion">
-                <h3>Inspección del ${fecha}</h3>
-                <p><strong>Inspector:</strong> ${i.inspector_email}</p>
-                <p><strong>Estación ID:</strong> ${i.estacion_id}</p>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
 });
     </script>
 </body>
