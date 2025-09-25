@@ -262,13 +262,13 @@
         </div>
     </div>
 
-    <div id="detalleModal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="cerrarModal()">&times;</span>
-            <h2 style="color: #0c2440; margin-bottom: 20px;">Detalles de la Inspección</h2>
-            <div id="detalleContenido"></div>
-        </div>
+  <div id="detalleModal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer;">&times;</span>
+        <h2 style="color: #0c2440; margin-bottom: 20px;">Detalles de la Inspección</h2>
+        <div id="detalleContenido"></div>
     </div>
+</div>
 
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -524,6 +524,20 @@ async function mostrarDetalle(inspeccionId) {
         alert('Error al cargar los detalles. Verifica la consola del navegador.');
     }
 }
+        // ✅ FUNCIÓN DE CIERRE CORREGIDA
+    function cerrarModal() {
+        const modal = document.getElementById('detalleModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Opcional: cerrar al presionar la tecla Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModal();
+        }
+    });
         // Cargar historial inicial
         cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
     </script>
