@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Estadísticas de Inspecciones</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Arial', sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+      color: white;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      padding: 30px;
+      color: #0c2440;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 28px;
+    }
+    #chartContainer {
+      margin-top: 30px;
+    }
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: #f0f7ff;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: center;
+      border-left: 4px solid #3182ce;
+    }
+    .card .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #0c2440;
+    }
+    .card .label {
+      font-size: 14px;
+      color: #4a5568;
+    }
+    .back-btn {
+      background: linear-gradient(135deg, #2c5282, #1a365d);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      opacity: 0.9;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      font-size: 18px;
+      color: #4a5568;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Estadísticas de Cumplimiento</h1>
+
+    <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
+
+    <div class="summary-cards" id="summaryCards"></div>
+
+    <div id="chartContainer">
+      <canvas id="complianceChart" height="120"></canvas>
+    </div>
+
+    <div id="loading" class="loading">Cargando estadísticas...</div>
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+    const itemLabels = {
+      baño_dama: "Baño Dama",
+      baño_caballero: "Baño Caballero",
+      dormitorio_femenino: "Dormitorio Femenino",
+      dormitorio_masculino: "Dormitorio Masculino",
+      cocina: "Cocina",
+      comedor: "Comedor",
+      lavanderia: "Lavandería",
+      oficina_del_jefe: "Oficina del Jefe",
+      oficina_de_rrhh: "Oficina de RRHH",
+      condiciones_electricas: "Condiciones Eléctricas",
+      fachada: "Fachada",
+      condiciones_de_pintura: "Pintura",
+      jardines: "Jardines",
+      condiciones_generales: "Condiciones Generales",
+      vehiculos: "Vehículos",
+      motos: "Motos"
+    };
+
+    let chartInstance = null;
+
+    async function loadStatistics() {
+      try {
+        // Obtener todos los ítems de inspección con sus estaciones
+        const { data, error } = await supabase
+          .from('items_inspeccion')
+          .select('item_nombre, cumple');
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          document.getElementById('loading').textContent = 'No hay datos de inspecciones aún.';
+          return;
+        }
+
+        // Contar cumplimiento por ítem
+        const stats = {};
+        const allItems = Object.keys(itemLabels);
+
+        allItems.forEach(item => {
+          stats[item] = { total: 0, cumple: 0 };
+        });
+
+        data.forEach(row => {
+          if (allItems.includes(row.item_nombre)) {
+            stats[row.item_nombre].total += 1;
+            if (row.cumple === true) {
+              stats[row.item_nombre].cumple += 1;
+            }
+          }
+        });
+
+        // Calcular porcentajes y preparar datos para gráfico
+        const labels = [];
+        const percentages = [];
+        const summaryCards = document.getElementById('summaryCards');
+        summaryCards.innerHTML = '';
+
+        allItems.forEach(item => {
+          const total = stats[item].total;
+          if (total === 0) return;
+
+          const pct = Math.round((stats[item].cumple / total) * 100);
+          labels.push(itemLabels[item]);
+          percentages.push(pct);
+
+          // Tarjeta resumen
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="value">${pct}%</div>
+            <div class="label">${itemLabels[item]}</div>
+          `;
+          summaryCards.appendChild(card);
+        });
+
+        // Mostrar gráfico
+        const ctx = document.getElementById('complianceChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: '% de Cumplimiento',
+              data: percentages,
+              backgroundColor: 'rgba(49, 130, 206, 0.7)',
+              borderColor: 'rgba(49, 130, 206, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                  callback: function(value) {
+                    return value + '%';
+                  }
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        });
+
+        document.getElementById('loading').style.display = 'none';
+      } catch (err) {
+        console.error('Error al cargar estadísticas:', err);
+        document.getElementById('loading').textContent = 'Error al cargar los datos.';
+      }
+    }
+
+    // Cargar al iniciar
+    loadStatistics();
+  </script>
+</body>
+</html>
