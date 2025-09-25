@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Inspecciones - CPNB</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 950px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .back-btn:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+        }
+        #inspeccionesList {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .inspeccion-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+        .inspeccion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .inspeccion-fecha {
+            font-size: 14px;
+            color: #4a5568;
+            font-weight: bold;
+        }
+        .inspeccion-estacion {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0c2440;
+        }
+        .inspeccion-inspector {
+            font-size: 14px;
+            color: #2d3748;
+            margin: 6px 0;
+        }
+        .ver-btn {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .ver-btn:hover {
+            opacity: 0.9;
+        }
+        #detalleModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        .detalle-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detalle-item:last-child {
+            border-bottom: none;
+        }
+        .item-nombre {
+            font-weight: bold;
+            color: #0c2440;
+        }
+        .item-respuesta {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .item-respuesta.si {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .item-respuesta.no {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .item-observacion {
+            margin-top: 6px;
+            font-size: 14px;
+            color: #4a5568;
+            font-style: italic;
+        }
+        .observaciones-generales {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+        .loading {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            padding: 30px;
+        }
+        @media (max-width: 600px) {
+            .inspeccion-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .container {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Historial de Inspecciones</h1>
+        </div>
+        <button class="back-btn" onclick="window.location.href='index.html'">
+            ← Volver al Inicio
+        </button>
+        <div id="inspeccionesList">
+            <div class="loading">Cargando historial...</div>
+        </div>
+    </div>
+
+    <div id="detalleModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="cerrarModal()">&times;</span>
+            <h2 style="color: #0c2440; margin-bottom: 20px;">Detalles de la Inspección</h2>
+            <div id="detalleContenido"></div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function cargarHistorial() {
+            try {
+                const { data: inspecciones, error } = await supabase
+                    .from('inspecciones')
+                    .select(`
+                        id,
+                        created_at,
+                        observaciones_generales,
+                        inspector_email,
+                        estaciones_policiales ( nombre )
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const contenedor = document.getElementById('inspeccionesList');
+                if (!inspecciones || inspecciones.length === 0) {
+                    contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones registradas.</div>';
+                    return;
+                }
+
+                contenedor.innerHTML = '';
+                inspecciones.forEach(insp => {
+                    const fecha = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    const card = document.createElement('div');
+                    card.className = 'inspeccion-card';
+                    card.innerHTML = `
+                        <div class="inspeccion-header">
+                            <div>
+                                <div class="inspeccion-estacion">${insp.estaciones_policiales?.nombre || 'Estación no disponible'}</div>
+                                <div class="inspeccion-inspector">Inspector: ${insp.inspector_email}</div>
+                            </div>
+                            <div class="inspeccion-fecha">${fecha}</div>
+                        </div>
+                        <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
+                    `;
+                    contenedor.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error al cargar historial:', error);
+                document.getElementById('inspeccionesList').innerHTML = 
+                    '<div style="text-align:center; color:red; padding:30px;">Error al cargar el historial.</div>';
+            }
+        }
+
+        async function mostrarDetalle(inspeccionId) {
+            try {
+                const { data: items, error } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, observacion')
+                    .eq('inspeccion_id', inspeccionId)
+                    .order('item_nombre', { ascending: true });
+
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('observaciones_generales, estaciones_policiales(nombre), created_at')
+                    .eq('id', inspeccionId)
+                    .single();
+
+                if (error || inspError) throw error || inspError;
+
+                const nombres = {
+                    baño_dama: "Baño Dama",
+                    baño_caballero: "Baño Caballero",
+                    dormitorio_femenino: "Dormitorio Femenino",
+                    dormitorio_masculino: "Dormitorio Masculino",
+                    cocina: "Cocina",
+                    comedor: "Comedor",
+                    lavanderia: "Lavandería",
+                    oficina_del_jefe: "Oficina del Jefe",
+                    oficina_de_rrhh: "Oficina de RRHH",
+                    condiciones_electricas: "Condiciones Eléctricas",
+                    fachada: "Fachada",
+                    condiciones_de_pintura: "Condiciones de Pintura",
+                    jardines: "Jardines",
+                    condiciones_generales: "Condiciones Generales",
+                    vehiculos: "Vehículos",
+                    motos: "Motos"
+                };
+
+                let html = `<h3>Estación: ${inspeccion.estaciones_policiales?.nombre || 'N/A'}</h3>`;
+                html += `<p><strong>Fecha:</strong> ${new Date(inspeccion.created_at).toLocaleString('es-ES')}</p>`;
+
+                if (items && items.length > 0) {
+                    items.forEach(item => {
+                        const nombre = nombres[item.item_nombre] || item.item_nombre;
+                        const clase = item.cumple ? 'si' : 'no';
+                        const texto = item.cumple ? 'Sí' : 'No';
+                        html += `
+                            <div class="detalle-item">
+                                <span class="item-nombre">${nombre}:</span>
+                                <span class="item-respuesta ${clase}">${texto}</span>
+                                ${item.observacion ? `<div class="item-observacion">Observación: ${item.observacion}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>No hay ítems registrados.</p>';
+                }
+
+                if (inspeccion.observaciones_generales) {
+                    html += `
+                        <div class="observaciones-generales">
+                            <strong>Observaciones Generales:</strong><br>
+                            ${inspeccion.observaciones_generales}
+                        </div>
+                    `;
+                }
+
+                document.getElementById('detalleContenido').innerHTML = html;
+                document.getElementById('detalleModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Error al cargar detalles:', error);
+                alert('No se pudieron cargar los detalles de la inspección.');
+            }
+        }
+
+        function cerrarModal() {
+            document.getElementById('detalleModal').style.display = 'none';
+        }
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('detalleModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detalleModal') cerrarModal();
+        });
+
+        // Cargar al iniciar
+        cargarHistorial();
+    </script>
+</body>
+</html>
