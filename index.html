@@ -337,30 +337,31 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-    <!-- Vista específica: REDI OCCIDENTAL -->
-    <div id="rediOccidentalContainer" class="container">
-        <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">REDIP OCCIDENTAL</h1>
-        </div>
-        <form id="occidentalForm">
-            <div class="input-group">
-                <label for="ccpSelect">Seleccione CCP:</label>
-                <select id="ccpSelect" required>
-                    <option value="">-- Elija una opción --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                </select>
-            </div>
-            <button type="submit" class="form-btn">Continuar</button>
-        </form>
-        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-            Ver Historial de Inspecciones
-        </button>
-        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
+<div id="rediOccidentalContainer" class="container">
+    <div class="logo-container">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <h1 class="title">REDIP OCCIDENTAL</h1>
     </div>
+    <form id="occidentalForm">
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect" required>
+                <option value="">-- Elija una opción --</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="col">CCPE COL</option>
+            </select>
+        </div>
+        <button type="submit" class="form-btn">Continuar</button>
+    </form>
+    <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+        Ver Historial de Inspecciones
+    </button>
+    <button onclick="window.location.href='estadisticas-occidental.html'" class="action-btn" style="margin-top: 8px; padding: 12px; font-size: 15px; background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);">
+    </button>
+    <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
+</div>
     <!-- CONTENEDOR DINÁMICO -->
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
     <script>
