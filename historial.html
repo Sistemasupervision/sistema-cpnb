@@ -219,6 +219,29 @@
             font-size: 18px;
             padding: 30px;
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .pagination button {
+            padding: 8px 14px;
+            border: 1px solid #cbd5e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .pagination button.active {
+            background: #0c2440;
+            color: white;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         @media (max-width: 600px) {
             .container {
                 padding: 25px;
@@ -226,6 +249,9 @@
             .inspeccion-header {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+            .pagination {
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -239,11 +265,9 @@
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver al Inicio
         </button>
-
         <button class="btn-pdf" onclick="exportarHistorialAPDF()" style="margin-bottom: 15px;">
             📄 Exportar Historial a PDF
         </button>
-
         <!-- Filtros -->
         <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -278,12 +302,11 @@
                 Aplicar Filtros
             </button>
         </div>
-
         <div id="inspeccionesList">
             <div class="loading">Cargando historial...</div>
         </div>
+        <div class="pagination" id="pagination"></div>
     </div>
-
     <!-- Modal de Detalle -->
     <div id="detalleModal">
         <div class="modal-content">
@@ -297,38 +320,37 @@
             <div id="detalleContenido" style="padding: 10px;"></div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
             "guajira": "CCP GUAJIRA",
             "col": "CCPE COL"
         };
-
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
         document.getElementById('fechaHasta').valueAsDate = hoy;
         document.getElementById('fechaDesde').valueAsDate = hace30Dias;
 
+        let inspeccionesCache = [];
+        let paginaActual = 1;
+        const registrosPorPagina = 10;
+
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
             estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
             if (!ccpId) return;
-
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-
                 if (error) throw error;
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
@@ -341,8 +363,6 @@
                 alert('Error al cargar las estaciones');
             }
         });
-
-        let inspeccionesCache = [];
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
@@ -383,6 +403,7 @@
                     if (idsPermitidos.length === 0) {
                         document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay estaciones para ese CCP.</div>';
                         inspeccionesCache = [];
+                        renderizarPaginacion();
                         return;
                     }
                     query = query.in('estacion_id', idsPermitidos);
@@ -397,57 +418,121 @@
                     ccp_id: estacionMap[insp.estacion_id]?.ccp_id || 'desconocido'
                 }));
 
-                const contenedor = document.getElementById('inspeccionesList');
-                if (!inspeccionesCache || inspeccionesCache.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
-                    return;
-                }
-
-                contenedor.innerHTML = '';
-                inspeccionesCache.forEach(insp => {
-                    const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-
-                    // ✅ Verificar si hay reinspección pendiente
-                    let alertaHTML = '';
-                    if (insp.proxima_inspeccion) {
-                        const fechaProxima = new Date(insp.proxima_inspeccion);
-                        const hoy = new Date();
-                        hoy.setHours(0, 0, 0, 0); // Comparar solo fecha
-                        fechaProxima.setHours(0, 0, 0, 0);
-                        if (fechaProxima <= hoy) {
-                            alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
-                        }
-                    }
-
-                    const card = document.createElement('div');
-                    card.className = 'inspeccion-card';
-                    card.innerHTML = `
-                        <div class="inspeccion-header">
-                            <div class="inspeccion-estacion">
-                                ${insp.estacion_nombre}
-                                ${alertaHTML}
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="inspeccion-fecha">${fechaInspeccion}</div>
-                                <div class="inspeccion-inspector">Inspector: ${insp.inspector_email}</div>
-                            </div>
-                        </div>
-                        <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
-                    `;
-                    contenedor.appendChild(card);
-                });
+                paginaActual = 1;
+                renderizarLista();
+                renderizarPaginacion();
             } catch (error) {
                 console.error('Error al cargar historial:', error);
                 document.getElementById('inspeccionesList').innerHTML = 
                     `<div style="text-align:center; color:red; padding:30px;">Error: ${error.message || 'No se pudo cargar el historial.'}</div>`;
                 inspeccionesCache = [];
+                renderizarPaginacion();
             }
+        }
+
+        function renderizarLista() {
+            const inicio = (paginaActual - 1) * registrosPorPagina;
+            const fin = inicio + registrosPorPagina;
+            const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
+
+            const contenedor = document.getElementById('inspeccionesList');
+            if (!inspeccionesCache || inspeccionesCache.length === 0) {
+                contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
+                return;
+            }
+
+            contenedor.innerHTML = '';
+            inspeccionesPagina.forEach(insp => {
+                const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let alertaHTML = '';
+                if (insp.proxima_inspeccion) {
+                    const fechaProxima = new Date(insp.proxima_inspeccion);
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    fechaProxima.setHours(0, 0, 0, 0);
+                    if (fechaProxima <= hoy) {
+                        alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'inspeccion-card';
+                card.innerHTML = `
+                    <div class="inspeccion-header">
+                        <div class="inspeccion-estacion">
+                            ${insp.estacion_nombre}
+                            ${alertaHTML}
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="inspeccion-fecha">${fechaInspeccion}</div>
+                            <div class="inspeccion-inspector">Inspector: ${insp.inspector_email}</div>
+                        </div>
+                    </div>
+                    <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
+                `;
+                contenedor.appendChild(card);
+            });
+        }
+
+        function renderizarPaginacion() {
+            const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
+            const paginacionDiv = document.getElementById('pagination');
+            paginacionDiv.innerHTML = '';
+
+            if (totalPaginas <= 1) return;
+
+            const maxVisible = 5;
+            let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPaginas, start + maxVisible - 1);
+            if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+
+            // Botón Anterior
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '«';
+            prevBtn.disabled = paginaActual === 1;
+            prevBtn.onclick = () => {
+                if (paginaActual > 1) {
+                    paginaActual--;
+                    renderizarLista();
+                    renderizarPaginacion();
+                }
+            };
+            paginacionDiv.appendChild(prevBtn);
+
+            // Botones de página
+            for (let i = start; i <= end; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = i === paginaActual ? 'active' : '';
+                btn.onclick = () => {
+                    paginaActual = i;
+                    renderizarLista();
+                    renderizarPaginacion();
+                };
+                paginacionDiv.appendChild(btn);
+            }
+
+            // Botón Siguiente
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '»';
+            nextBtn.disabled = paginaActual === totalPaginas;
+            nextBtn.onclick = () => {
+                if (paginaActual < totalPaginas) {
+                    paginaActual++;
+                    renderizarLista();
+                    renderizarPaginacion();
+                }
+            };
+            paginacionDiv.appendChild(nextBtn);
         }
 
         function aplicarFiltro() {
@@ -455,12 +540,10 @@
             const hasta = document.getElementById('fechaHasta').value;
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionId = document.getElementById('estacionFilter').value;
-
             if (desde && hasta && new Date(desde) > new Date(hasta)) {
                 alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".');
                 return;
             }
-
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
 
@@ -472,13 +555,11 @@
                     .select('item_nombre, cumple, observacion')
                     .eq('inspeccion_id', inspeccionId)
                     .order('item_nombre', { ascending: true });
-
                 const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
                     .single();
-
                 if (itemsError || inspError) throw itemsError || inspError;
 
                 let nombreEstacion = 'Estación no disponible';
@@ -487,7 +568,6 @@
                     .select('nombre')
                     .eq('id', inspeccion.estacion_id)
                     .single();
-
                 if (!estError && estacionData) {
                     nombreEstacion = estacionData.nombre;
                 }
@@ -528,7 +608,6 @@
                 let html = `<h3>Estación: ${nombreEstacion}</h3>`;
                 html += `<p><strong>Fecha de inspección:</strong> ${fechaFormateada}</p>`;
 
-                // ✅ Mostrar fecha programada
                 if (inspeccion.proxima_inspeccion) {
                     const proxima = new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES');
                     html += `<p><strong>Próxima inspección programada:</strong> ${proxima}</p>`;
@@ -576,81 +655,71 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-     async function exportarInspeccionAPDF() {
-    const content = document.getElementById('detalleContenido');
-    if (!content || !content.innerHTML.trim()) {
-        alert('No hay contenido para exportar.');
-        return;
-    }
+        async function exportarInspeccionAPDF() {
+            const content = document.getElementById('detalleContenido');
+            if (!content || !content.innerHTML.trim()) {
+                alert('No hay contenido para exportar.');
+                return;
+            }
+            try {
+                const printContent = document.createElement('div');
+                printContent.innerHTML = `
+                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                        </div>
+                        ${content.innerHTML}
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(printContent);
+                printContent.style.position = 'fixed';
+                printContent.style.left = '-9999px';
 
-    try {
-        // Crear contenedor con estilos para PDF
-        const printContent = document.createElement('div');
-        printContent.innerHTML = `
-            <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                    <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                </div>
-                ${content.innerHTML}
-                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
-                </div>
-            </div>
-        `;
-        document.body.appendChild(printContent);
-        printContent.style.position = 'fixed';
-        printContent.style.left = '-9999px';
+                const canvas = await html2canvas(printContent, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
 
-        // Generar canvas
-        const canvas = await html2canvas(printContent, {
-            scale: 2,
-            useCORS: true,
-            logging: false
-        });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
 
-        // Configurar PDF
-        const { jsPDF } = window.jspdf;
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210; // ancho A4 en mm
-        const pageHeight = 297; // alto A4 en mm
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
 
-        // Agregar primera página
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
 
-        // Agregar páginas adicionales si es necesario
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+                const fecha = new Date().toISOString().slice(0, 10);
+                pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
+                document.body.removeChild(printContent);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF. Intente nuevamente.');
+            }
         }
 
-        // Guardar
-        const fecha = new Date().toISOString().slice(0, 10);
-        pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
-
-        // Limpiar
-        document.body.removeChild(printContent);
-    } catch (error) {
-        console.error('Error al generar PDF:', error);
-        alert('Error al generar el PDF. Intente nuevamente.');
-    }
-}
-        // ✅ EXPORTAR TODO EL HISTORIAL VISIBLE
         async function exportarHistorialAPDF() {
             if (inspeccionesCache.length === 0) {
                 alert('No hay inspecciones para exportar.');
                 return;
             }
-
             try {
                 let htmlContent = `
                     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px;">
@@ -672,7 +741,6 @@
                             </thead>
                             <tbody>
                 `;
-
                 inspeccionesCache.forEach(insp => {
                     const fecha = new Date(insp.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
@@ -698,7 +766,6 @@
                         </tr>
                     `;
                 });
-
                 htmlContent += `
                             </tbody>
                         </table>
@@ -708,13 +775,11 @@
                         </div>
                     </div>
                 `;
-
                 const printDiv = document.createElement('div');
                 printDiv.innerHTML = htmlContent;
                 document.body.appendChild(printDiv);
                 printDiv.style.position = 'fixed';
                 printDiv.style.left = '-9999px';
-
                 const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
@@ -724,17 +789,14 @@
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
-
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
-
                 while (heightLeft >= 0) {
                     position = heightLeft - imgHeight;
                     pdf.addPage();
                     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
-
                 pdf.save(`historial_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
                 document.body.removeChild(printDiv);
             } catch (error) {
