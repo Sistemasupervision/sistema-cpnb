@@ -99,7 +99,7 @@
             left: 0;
             right: 0;
             height: 8px;
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 100%);
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         .logo-container {
             text-align: center;
@@ -360,10 +360,11 @@
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
 
-    <!-- Contenedor dinámico para vistas externas -->
+    <!-- ✅ CONTENEDOR DINÁMICO: MOVIDO AQUÍ (dentro del body, antes del script) -->
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
 
     <script>
+        // 🔑 Reemplaza estas credenciales por las tuyas propias
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -490,14 +491,7 @@
             }
         }
 
-        // Event listeners
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-
-        // ✅ ACEPTA el nombre de la estación como segundo parámetro
+        // ✅ Nueva versión de loadInspectionForm que recibe el nombre
         function loadInspectionForm(estacionId, estacionNombre) {
             const items = [
                 "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
@@ -649,6 +643,13 @@
                 }
             };
         }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
 
         checkAuthState();
     </script>
