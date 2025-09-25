@@ -104,9 +104,8 @@
                     .order('nombre', { ascending: true });
                 if (error) throw error;
                 let html = '<option value="">-- Seleccione estación --</option>';
-                // ✅ Usa el NOMBRE como valor, porque en la BD se guarda el nombre
                 data.forEach(e => {
-                    html += `<option value="${e.nombre}">${e.nombre}</option>`;
+                    html += `<option value="${e.id}">${e.nombre}</option>`;
                 });
                 estacionSelect.innerHTML = html;
                 estacionSelect.disabled = false;
@@ -120,18 +119,23 @@
             verBtn.disabled = !estacionSelect.value;
         });
 
-     verBtn.addEventListener('click', async () => {
-    const estacionId = parseInt(estacionSelect.value); // ← número
-    if (isNaN(estacionId)) {
-        container.innerHTML = '<p>⚠️ ID inválido</p>';
-        return;
-    }
+        verBtn.addEventListener('click', async () => {
+            const estacionId = parseInt(estacionSelect.value);
+            const container = document.getElementById('historialContainer');
+            if (isNaN(estacionId)) {
+                container.innerHTML = '<p>⚠️ ID de estación inválido</p>';
+                return;
+            }
 
-    const {  inspecciones, error } = await supabase
-        .from('inspecciones')
-        .select('*')
-        .eq('estacion_id', estacionId) // ← compara número con número
-        .order('created_at', { ascending: false });
+            container.innerHTML = '<p>Cargando historial...</p>';
+
+            try {
+                // ✅ CORRECCIÓN CLAVE: usar 'data', no 'inspecciones'
+                const {  inspecciones, error } = await supabase
+                    .from('inspecciones')
+                    .select('*')
+                    .eq('estacion_id', estacionId)
+                    .order('created_at', { ascending: false });
 
                 if (error) {
                     container.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
@@ -139,7 +143,7 @@
                 }
 
                 if (!inspecciones || inspecciones.length === 0) {
-                    container.innerHTML = `<p>🔍 No hay inspecciones para la estación: <strong>${estacionNombre}</strong>.</p>`;
+                    container.innerHTML = '<p>🔍 No hay inspecciones para esta estación.</p>';
                     return;
                 }
 
