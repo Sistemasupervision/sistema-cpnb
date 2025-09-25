@@ -261,48 +261,45 @@
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver al Inicio
         </button>
-
-        <!-- ✅ Filtros combinados -->
-        <div class="filtros-container">
-            <div class="input-group">
-                <label for="fechaDesde">Desde:</label>
-                <input type="date" id="fechaDesde">
-            </div>
-            <div class="input-group">
-                <label for="fechaHasta">Hasta:</label>
-                <input type="date" id="fechaHasta">
-            </div>
-            <div class="input-group">
-                <label for="ccpFilter">Filtrar por CCP:</label>
-                <select id="ccpFilter">
-                    <option value="">Todos los CCP</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="estacionFilter">Filtrar por Estación:</label>
-                <select id="estacionFilter">
-                    <option value="">Todas las estaciones</option>
-                </select>
-            </div>
-            <button class="btn-filtrar" onclick="aplicarFiltro()">Aplicar Filtros</button>
+        
+<div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
+    <!-- Filtro por fechas -->
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <div class="input-group" style="flex: 1; min-width: 180px;">
+            <label for="fechaDesde">Desde:</label>
+            <input type="date" id="fechaDesde">
         </div>
-
-        <div id="inspeccionesList">
-            <div class="loading">Cargando historial...</div>
+        <div class="input-group" style="flex: 1; min-width: 180px;">
+            <label for="fechaHasta">Hasta:</label>
+            <input type="date" id="fechaHasta">
         </div>
     </div>
 
-    <div id="detalleModal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="cerrarModal()">&times;</span>
-            <h2 style="color: #0c2440; margin-bottom: 20px;">Detalles de la Inspección</h2>
-            <div id="detalleContenido"></div>
+    <!-- Filtros de CCP y Estación (más anchos) -->
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <div class="input-group" style="flex: 1; min-width: 300px;">
+            <label for="ccpFilter">Filtrar por CCP:</label>
+            <select id="ccpFilter" style="width: 100%; padding: 12px; font-size: 15px;">
+                <option value="">Todos los CCP</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="col">CCPE COL</option>
+            </select>
+        </div>
+        <div class="input-group" style="flex: 1; min-width: 300px;">
+            <label for="estacionFilter">Filtrar por Estación:</label>
+            <select id="estacionFilter" style="width: 100%; padding: 12px; font-size: 15px;">
+                <option value="">Todas las estaciones</option>
+            </select>
         </div>
     </div>
+
+    <!-- Botón de aplicar -->
+    <button class="btn-filtrar" onclick="aplicarFiltro()" style="align-self: flex-start; padding: 12px 24px; font-size: 16px;">
+        Aplicar Filtros
+    </button>
+</div>
 
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
