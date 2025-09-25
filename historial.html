@@ -150,7 +150,6 @@
         .estado-rojo { background-color: #e53e3e; }
         .estado-amarillo { background-color: #d69e2e; }
         .estado-verde { background-color: #38a169; }
-
         .ver-btn {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             color: white;
@@ -281,10 +280,10 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Historial de Inspecciones</h1>
         </div>
-<button class="back-btn" onclick="history.back()">
-    ← Volver a REDIP OCCIDENTAL
-</button>
-</button>
+        <!-- ✅ CAMBIO PRINCIPAL AQUÍ: history.back() -->
+        <button class="back-btn" onclick="history.back()">
+            ← Volver a REDIP OCCIDENTAL
+        </button>
         <button class="btn-pdf" onclick="exportarHistorialAPDF()" style="margin-bottom: 15px;">
             📄 Exportar Historial a PDF
         </button>
@@ -355,11 +354,9 @@
         hace30Dias.setDate(hoy.getDate() - 30);
         document.getElementById('fechaHasta').valueAsDate = hoy;
         document.getElementById('fechaDesde').valueAsDate = hace30Dias;
-
         let inspeccionesCache = [];
         let paginaActual = 1;
         const registrosPorPagina = 10;
-
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -383,7 +380,6 @@
                 alert('Error al cargar las estaciones');
             }
         });
-
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
                 const { data: todasEstaciones, error: estError } = await supabase
@@ -441,18 +437,15 @@
                 renderizarPaginacion();
             }
         }
-
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
             const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
-
             const contenedor = document.getElementById('inspeccionesList');
             if (!inspeccionesCache || inspeccionesCache.length === 0) {
                 contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
                 return;
             }
-
             contenedor.innerHTML = '';
             inspeccionesPagina.forEach(insp => {
                 const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
@@ -462,18 +455,15 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-
                 // ✅ Lógica del indicador de estado y alerta
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 const hoy = new Date();
                 hoy.setHours(0, 0, 0, 0);
-
                 if (insp.proxima_inspeccion) {
                     const fechaProxima = new Date(insp.proxima_inspeccion);
                     fechaProxima.setHours(0, 0, 0, 0);
                     const diffDias = Math.ceil((fechaProxima - hoy) / (1000 * 60 * 60 * 24));
-
                     if (fechaProxima <= hoy) {
                         estadoClase = 'estado-rojo';
                         alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
@@ -481,7 +471,6 @@
                         estadoClase = 'estado-amarillo';
                     }
                 }
-
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
                 card.innerHTML = `
@@ -501,21 +490,17 @@
                 contenedor.appendChild(card);
             });
         }
-
         function renderizarPaginacion() {
             const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
             const paginacionDiv = document.getElementById('pagination');
             paginacionDiv.innerHTML = '';
-
             if (totalPaginas <= 1) return;
-
             const maxVisible = 5;
             let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
             let end = Math.min(totalPaginas, start + maxVisible - 1);
             if (end - start + 1 < maxVisible) {
                 start = Math.max(1, end - maxVisible + 1);
             }
-
             // Botón Anterior
             const prevBtn = document.createElement('button');
             prevBtn.textContent = '«';
@@ -528,7 +513,6 @@
                 }
             };
             paginacionDiv.appendChild(prevBtn);
-
             // Botones de página
             for (let i = start; i <= end; i++) {
                 const btn = document.createElement('button');
@@ -541,7 +525,6 @@
                 };
                 paginacionDiv.appendChild(btn);
             }
-
             // Botón Siguiente
             const nextBtn = document.createElement('button');
             nextBtn.textContent = '»';
@@ -555,7 +538,6 @@
             };
             paginacionDiv.appendChild(nextBtn);
         }
-
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -567,7 +549,6 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
-
         // === Detalle de inspección ===
         async function mostrarDetalle(inspeccionId) {
             try {
@@ -659,14 +640,12 @@
                 alert('Error al cargar los detalles. Verifica la consola del navegador.');
             }
         }
-
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-
         async function exportarInspeccionAPDF() {
             const content = document.getElementById('detalleContenido');
             if (!content || !content.innerHTML.trim()) {
@@ -721,7 +700,6 @@
                 alert('Error al generar el PDF. Intente nuevamente.');
             }
         }
-
         async function exportarHistorialAPDF() {
             if (inspeccionesCache.length === 0) {
                 alert('No hay inspecciones para exportar.');
@@ -761,7 +739,6 @@
                         ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
                         : 'No programada';
                     const ccpNombre = ccpNombres[insp.ccp_id] || insp.ccp_id;
-
                     // ✅ Calcular estado para el PDF
                     let estadoTexto = 'En orden';
                     let estadoColor = '#38a169';
@@ -778,7 +755,6 @@
                             estadoColor = '#d69e2e';
                         }
                     }
-
                     htmlContent += `
                         <tr>
                             <td style="padding: 8px; border: 1px solid #eee;">${fecha}</td>
@@ -828,7 +804,6 @@
                 alert('Error al generar el PDF del historial.');
             }
         }
-
         cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
     </script>
 </body>
