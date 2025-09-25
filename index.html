@@ -148,7 +148,8 @@
             font-size: 14px;
         }
         .input-group select,
-        .input-group input {
+        .input-group input,
+        .input-group textarea {
             width: 100%;
             padding: 14px;
             border: 2px solid #e2e8f0;
@@ -158,7 +159,8 @@
             background-color: #f8fafc;
         }
         .input-group select:focus,
-        .input-group input:focus {
+        .input-group input:focus,
+        .input-group textarea:focus {
             outline: none;
             border-color: #3182ce;
             box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
@@ -290,7 +292,6 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -314,7 +315,6 @@
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
     </div>
-
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -337,7 +337,6 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -359,12 +358,8 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-
-    <!-- ✅ CONTENEDOR DINÁMICO: MOVIDO AQUÍ (dentro del body, antes del script) -->
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
-
     <script>
-        // 🔑 Reemplaza estas credenciales por las tuyas propias
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -460,18 +455,15 @@
                 const dynamicView = document.getElementById('dynamicView');
                 dynamicView.innerHTML = estacionesHtml;
                 dynamicView.style.display = 'block';
-
                 document.getElementById('loadInspectionBtn').onclick = () => {
                     const estacionId = document.getElementById('estacionSelect').value;
                     if (!estacionId) {
                         alert('Por favor seleccione una estación');
                         return;
                     }
-                    // ✅ Obtener el NOMBRE de la estación seleccionada
                     const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
                     loadInspectionForm(estacionId, estacionNombre);
                 };
-
                 document.getElementById('backToCcpBtn').onclick = () => {
                     dynamicView.style.display = 'none';
                     document.getElementById('rediOccidentalContainer').style.display = 'block';
@@ -491,7 +483,6 @@
             }
         }
 
-        // ✅ Nueva versión de loadInspectionForm que recibe el nombre
         function loadInspectionForm(estacionId, estacionNombre) {
             const items = [
                 "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
@@ -517,7 +508,6 @@
                 vehiculos: "Vehículos",
                 motos: "Motos"
             };
-
             let formHtml = `
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -529,7 +519,6 @@
                 <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
                     <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
             `;
-
             items.forEach(item => {
                 formHtml += `
                     <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
@@ -540,13 +529,12 @@
                             <option value="false">No</option>
                         </select>
                         <textarea class="observacion-text" data-item="${item}" 
-                            placeholder="Observaciones (si es 'Sí')" 
+                            placeholder="Observaciones" 
                             style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
                             rows="3"></textarea>
                     </div>
                 `;
             });
-
             formHtml += `
                     </div>
                     <div class="input-group" style="margin-top:20px; grid-column: span 3;">
@@ -560,18 +548,18 @@
                     </div>
                 </form>
             `;
-
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = formHtml;
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
 
+            // ✅ NUEVO: Mostrar textarea si se selecciona "Sí" o "No"
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
                     const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-                    if (this.value === 'true') {
+                    if (this.value !== 'null') {
                         textarea.style.display = 'block';
                     } else {
                         textarea.style.display = 'none';
@@ -613,10 +601,10 @@
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                     const cumpleValue = select.value;
                     if (cumpleValue === 'null') return;
+
                     const cumple = cumpleValue === 'true';
-                    const observacion = cumple 
-                        ? document.querySelector(`.observacion-text[data-item="${item}"]`).value || null
-                        : null;
+                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+
                     itemsData.push({
                         inspeccion_id: inspeccionData.id,
                         item_nombre: item,
@@ -644,13 +632,11 @@
             };
         }
 
-        // Event listeners
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-
         checkAuthState();
     </script>
 </body>
