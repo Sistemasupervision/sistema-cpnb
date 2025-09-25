@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas - REDIP OCCIDENTAL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/recharts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 950px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #chart-container {
+            width: 100%;
+            height: 400px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            color: #4a5568;
+            padding: 40px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Estadísticas - REDIP OCCIDENTAL</h1>
+        </div>
+        <button class="back-btn" onclick="window.location.href='index.html'">
+            ← Volver al Panel Principal
+        </button>
+
+        <div id="chart-container">
+            <div class="loading">Cargando estadísticas...</div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function cargarEstadisticas() {
+            try {
+                // Paso 1: Obtener todas las estaciones de los CCP de OCCIDENTAL
+                const ccpIds = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                const { data: estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id')
+                    .in('ccp_id', ccpIds);
+                if (estError) throw estError;
+
+                if (!estaciones || estaciones.length === 0) {
+                    document.getElementById('chart-container').innerHTML = '<p style="text-align:center; color:#e53e3e; padding:40px;">No hay estaciones registradas en REDIP OCCIDENTAL.</p>';
+                    return;
+                }
+
+                const estacionIds = estaciones.map(e => e.id);
+
+                // Paso 2: Obtener todos los ítems de inspección de esas estaciones
+                const { data: items, error } = await supabase
+                    .from('items_inspeccion')
+                    .select('cumple')
+                    .in('inspeccion_id', 
+                        supabase.from('inspecciones').select('id').in('estacion_id', estacionIds)
+                    );
+
+                if (error || !items || items.length === 0) {
+                    document.getElementById('chart-container').innerHTML = '<p style="text-align:center; color:#666; padding:40px;">No hay inspecciones registradas para generar estadísticas.</p>';
+                    return;
+                }
+
+                // Calcular cumplimiento
+                const total = items.length;
+                const cumplidos = items.filter(i => i.cumple).length;
+                const noCumplidos = total - cumplidos;
+                const porcentaje = ((cumplidos / total) * 100).toFixed(1);
+
+                // Renderizar gráfico
+                const data = [
+                    { name: 'Cumple', value: cumplidos },
+                    { name: 'No Cumple', value: noCumplidos }
+                ];
+
+                const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } = window.Recharts;
+                const COLORS = ['#48bb78', '#f56565'];
+
+                ReactDOM.render(
+                    React.createElement(ResponsiveContainer, { width: '100%', height: '100%' },
+                        React.createElement(PieChart,
+                            React.createElement(Pie, {
+                                 data,
+                                cx: '50%',
+                                cy: '50%',
+                                labelLine: false,
+                                outerRadius: 120,
+                                fill: '#8884d8',
+                                dataKey: 'value',
+                                label: ({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`
+                            },
+                                data.map((entry, index) => 
+                                    React.createElement(Cell, { key: `cell-${index}`, fill: COLORS[index % COLORS.length] })
+                                )
+                            ),
+                            React.createElement(Tooltip),
+                            React.createElement(Legend)
+                        )
+                    ),
+                    document.getElementById('chart-container')
+                );
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+                document.getElementById('chart-container').innerHTML = '<p style="text-align:center; color:red; padding:40px;">Error al cargar las estadísticas.</p>';
+            }
+        }
+
+        // Cargar al iniciar
+        cargarEstadisticas();
+    </script>
+</body>
+</html>
