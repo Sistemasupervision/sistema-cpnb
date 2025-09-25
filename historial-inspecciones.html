@@ -1,4 +1,4 @@
-<!-- Guarda como: historial-inspecciones.html -->
+<!-- historial-inspecciones.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -52,14 +52,6 @@
             background: #f8fafc;
             border-radius: 8px;
         }
-        .debug-info {
-            background: #ebf8ff;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-size: 14px;
-            color: #2c5282;
-        }
     </style>
 </head>
 <body>
@@ -89,6 +81,7 @@
             'https://slkbmddaqsvjofhtuusb.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q'
         );
+
         const ccpSelect = document.getElementById('ccpSelect');
         const estacionSelect = document.getElementById('estacionSelect');
         const verBtn = document.getElementById('verHistorialBtn');
@@ -128,29 +121,17 @@
         });
 
         verBtn.addEventListener('click', async () => {
-            const estacionIdRaw = estacionSelect.value;
-            const estacionId = parseInt(estacionIdRaw);
+            const estacionId = parseInt(estacionSelect.value);
             const container = document.getElementById('historialContainer');
-
-            // Depuración: mostrar valor recibido
             if (isNaN(estacionId)) {
-                container.innerHTML = `
-                    <div class="debug-info">
-                        ⚠️ ID de estación inválido.<br>
-                        Valor recibido: "${estacionIdRaw}" (tipo: ${typeof estacionIdRaw})
-                    </div>
-                `;
+                container.innerHTML = '<p style="color:red;">⚠️ ID de estación inválido</p>';
                 return;
             }
 
-            container.innerHTML = `
-                <div class="debug-info">
-                    🔍 Buscando inspecciones con estacion_id = ${estacionId} (tipo: ${typeof estacionId})
-                </div>
-                <p>Cargando...</p>
-            `;
+            container.innerHTML = '<p>Cargando...</p>';
 
             try {
+                // ✅ CORRECCIÓN: usar 'data', no 'inspecciones'
                 const {  inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('*')
@@ -158,24 +139,12 @@
                     .order('created_at', { ascending: false });
 
                 if (error) {
-                    container.innerHTML = `
-                        <div class="debug-info">
-                            ❌ Error de Supabase:<br>
-                            <code>${error.message}</code>
-                        </div>
-                    `;
-                    console.error('Error Supabase:', error);
+                    container.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
                     return;
                 }
 
-                container.innerHTML = `
-                    <div class="debug-info">
-                        ✅ Consulta exitosa. Registros encontrados: ${inspecciones.length}
-                    </div>
-                `;
-
                 if (!inspecciones || inspecciones.length === 0) {
-                    container.innerHTML += '<p>🔍 No hay inspecciones para esta estación.</p>';
+                    container.innerHTML = '<p>🔍 No hay inspecciones.</p>';
                     return;
                 }
 
@@ -186,20 +155,14 @@
                         <div class="inspeccion">
                             <h3>Inspección del ${fecha}</h3>
                             <p><strong>Inspector:</strong> ${i.inspector_email}</p>
-                            <p><strong>Estación ID:</strong> ${i.estacion_id}</p>
                             <p><strong>Observaciones:</strong> ${i.observaciones_generales || 'Ninguna'}</p>
                         </div>
                     `;
                 }
-                container.innerHTML += html;
+                container.innerHTML = html;
             } catch (err) {
-                console.error('Error inesperado:', err);
-                container.innerHTML = `
-                    <div class="debug-info">
-                        ⚠️ Error inesperado:<br>
-                        <code>${err.message}</code>
-                    </div>
-                `;
+                console.error(err);
+                container.innerHTML = `<p style="color:red;">⚠️ Error: ${err.message}</p>`;
             }
         });
     </script>
