@@ -420,7 +420,7 @@
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
 
-   async function mostrarDetalle(inspeccionId) {
+  async function mostrarDetalle(inspeccionId) {
     try {
         const {  items, error } = await supabase
             .from('items_inspeccion')
@@ -513,14 +513,6 @@
         alert('No se pudieron cargar los detalles de la inspección.');
     }
 }
-        function cerrarModal() {
-            document.getElementById('detalleModal').style.display = 'none';
-        }
-
-        document.getElementById('detalleModal').addEventListener('click', (e) => {
-            if (e.target.id === 'detalleModal') cerrarModal();
-        });
-
         // Cargar historial inicial
         cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
     </script>
