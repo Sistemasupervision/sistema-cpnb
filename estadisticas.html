@@ -113,11 +113,15 @@
     .back-btn:hover {
       opacity: 0.9;
     }
-    .loading {
+    .loading, .no-data {
       text-align: center;
       padding: 30px;
       color: #4a5568;
       font-size: 16px;
+    }
+    .no-data {
+      color: #e53e3e;
+      font-weight: bold;
     }
     @media (max-width: 600px) {
       .filters {
@@ -136,7 +140,7 @@
       <h1>📊 Estadísticas de Cumplimiento</h1>
     </div>
 
-<a href="index.html" class="back-btn" style="margin-bottom: 25px; display: inline-block;">← Volver al Panel Principal</a>
+    <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
 
     <div class="filters">
       <select id="ccpFilter">
@@ -159,6 +163,7 @@
     </div>
 
     <div id="loading" class="loading">Cargando estadísticas...</div>
+    <div id="noData" class="no-data" style="display:none;">No hay inspecciones registradas para los filtros seleccionados.</div>
   </div>
 
   <script>
@@ -217,23 +222,28 @@
       }
     }
 
-    // Cargar estadísticas con filtros
+    // Cargar estadísticas con promedio de porcentaje_cumplimiento
     async function loadStatistics(ccpId = null, estacionId = null) {
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('summaryCards').innerHTML = '';
+      const loadingDiv = document.getElementById('loading');
+      const noDataDiv = document.getElementById('noData');
+      const summaryCards = document.getElementById('summaryCards');
       const ctx = document.getElementById('complianceChart').getContext('2d');
+      
+      // Reset
       if (chartInstance) chartInstance.destroy();
+      summaryCards.innerHTML = '';
+      loadingDiv.style.display = 'block';
+      noDataDiv.style.display = 'none';
 
       try {
         let query = supabase
           .from('items_inspeccion')
-          .select('item_nombre, cumple, inspecciones(estacion_id)')
+          .select('item_nombre, porcentaje_cumplimiento, inspecciones(estacion_id)')
           .in('item_nombre', Object.keys(itemLabels));
 
         if (estacionId) {
           query = query.eq('inspecciones.estacion_id', estacionId);
         } else if (ccpId) {
-          // Necesitamos join con estaciones_policiales
           const { data: estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
             .select('id')
@@ -247,46 +257,54 @@
         if (error) throw error;
 
         if (!data || data.length === 0) {
-          document.getElementById('loading').textContent = 'No hay datos para mostrar.';
+          loadingDiv.style.display = 'none';
+          noDataDiv.style.display = 'block';
           return;
         }
 
+        // Calcular promedio por ítem
         const stats = {};
         Object.keys(itemLabels).forEach(item => {
-          stats[item] = { total: 0, cumple: 0 };
+          stats[item] = { total: 0, suma: 0 };
         });
 
         data.forEach(row => {
           const item = row.item_nombre;
           if (stats[item] !== undefined) {
             stats[item].total += 1;
-            if (row.cumple === true) stats[item].cumple += 1;
+            stats[item].suma += (row.porcentaje_cumplimiento || 0);
           }
         });
 
         const labels = [];
         const percentages = [];
-        const summaryCards = document.getElementById('summaryCards');
 
         Object.keys(itemLabels).forEach(item => {
           const total = stats[item].total;
           if (total === 0) return;
-          const pct = Math.round((stats[item].cumple / total) * 100);
+          const promedio = Math.round(stats[item].suma / total);
           labels.push(itemLabels[item]);
-          percentages.push(pct);
+          percentages.push(promedio);
 
           const card = document.createElement('div');
           card.className = 'card';
-          card.innerHTML = `<div class="value">${pct}%</div><div class="label">${itemLabels[item]}</div>`;
+          card.innerHTML = `<div class="value">${promedio}%</div><div class="label">${itemLabels[item]}</div>`;
           summaryCards.appendChild(card);
         });
+
+        // Si no hay ítems con datos
+        if (labels.length === 0) {
+          loadingDiv.style.display = 'none';
+          noDataDiv.style.display = 'block';
+          return;
+        }
 
         chartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
             labels: labels,
             datasets: [{
-              label: '% Cumplimiento',
+              label: '% Cumplimiento Promedio',
               data: percentages,
               backgroundColor: 'rgba(49, 130, 206, 0.7)',
               borderColor: 'rgba(49, 130, 206, 1)',
@@ -307,10 +325,12 @@
           }
         });
 
-        document.getElementById('loading').style.display = 'none';
+        loadingDiv.style.display = 'none';
       } catch (err) {
         console.error('Error:', err);
-        document.getElementById('loading').textContent = 'Error al cargar los datos.';
+        loadingDiv.style.display = 'none';
+        noDataDiv.textContent = 'Error al cargar los datos.';
+        noDataDiv.style.display = 'block';
       }
     }
 
