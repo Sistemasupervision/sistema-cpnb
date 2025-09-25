@@ -538,10 +538,6 @@ async function mostrarDetalle(inspeccionId) {
             modal.style.display = 'none';
         }
     }
-<script>
-    // ... todo tu código anterior ...
-
-    // ✅ FUNCIÓN PARA EXPORTAR A PDF
     async function exportarAPDF() {
         const content = document.getElementById('detalleContenido');
         if (!content || !content.innerHTML.trim()) {
@@ -610,9 +606,6 @@ async function mostrarDetalle(inspeccionId) {
             alert('Error al generar el PDF. Intente nuevamente.');
         }
     }
-
-    // ... resto de tus funciones (cerrarModal, mostrarDetalle, etc.) ...
-</script>
     // Opcional: cerrar al presionar la tecla Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
