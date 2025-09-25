@@ -81,13 +81,18 @@
             border-radius: 12px;
             margin-top: 20px;
         }
-        .message {
+        .loading {
             text-align: center;
+            color: #4a5568;
+            padding: 40px;
+            font-size: 18px;
+        }
+        .error {
+            text-align: center;
+            color: #e53e3e;
             padding: 40px;
             font-size: 16px;
         }
-        .error { color: #e53e3e; }
-        .info { color: #4a5568; }
     </style>
 </head>
 <body>
@@ -100,7 +105,7 @@
             ← Volver al Panel Principal
         </button>
         <div id="chart-container">
-            <div class="message info">Cargando estadísticas...</div>
+            <div class="loading">Cargando estadísticas...</div>
         </div>
     </div>
 
@@ -137,7 +142,7 @@
                 console.log('IDs de estaciones encontradas:', estacionIds);
 
                 // Paso 2: Obtener IDs de inspecciones
-                const { data: inspecciones, error: inspError } = await supabase
+                const {  inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .in('estacion_id', estacionIds);
@@ -157,7 +162,7 @@
                 console.log('IDs de inspecciones encontradas:', inspeccionIds);
 
                 // Paso 3: Obtener ítems
-                const { data: items, error: itemError } = await supabase
+                const {  items, error: itemError } = await supabase
                     .from('items_inspeccion')
                     .select('cumple')
                     .in('inspeccion_id', inspeccionIds);
