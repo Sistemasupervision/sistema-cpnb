@@ -81,18 +81,13 @@
             border-radius: 12px;
             margin-top: 20px;
         }
-        .loading {
+        .message {
             text-align: center;
-            color: #4a5568;
-            padding: 40px;
-            font-size: 18px;
-        }
-        .error {
-            text-align: center;
-            color: #e53e3e;
             padding: 40px;
             font-size: 16px;
         }
+        .error { color: #e53e3e; }
+        .info { color: #4a5568; }
     </style>
 </head>
 <body>
@@ -105,7 +100,7 @@
             ← Volver al Panel Principal
         </button>
         <div id="chart-container">
-            <div class="loading">Cargando estadísticas...</div>
+            <div class="message info">Cargando estadísticas...</div>
         </div>
     </div>
 
@@ -115,47 +110,80 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         async function cargarEstadisticas() {
+            const container = document.getElementById('chart-container');
+            
             try {
+                // Paso 1: Obtener IDs de estaciones de OCCIDENTAL
                 const ccpIds = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                console.log('Buscando estaciones con ccp_id en:', ccpIds);
+                
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpIds);
 
-                if (estError || !estaciones || estaciones.length === 0) {
-                    document.getElementById('chart-container').innerHTML = '<div class="error">No hay estaciones en REDIP OCCIDENTAL.</div>';
+                if (estError) {
+                    console.error('Error en estaciones:', estError);
+                    container.innerHTML = `<div class="message error">Error al cargar estaciones: ${estError.message}</div>`;
+                    return;
+                }
+
+                if (!estaciones || estaciones.length === 0) {
+                    container.innerHTML = '<div class="message info">No hay estaciones en REDIP OCCIDENTAL.</div>';
                     return;
                 }
 
                 const estacionIds = estaciones.map(e => e.id);
+                console.log('IDs de estaciones encontradas:', estacionIds);
+
+                // Paso 2: Obtener IDs de inspecciones
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .in('estacion_id', estacionIds);
 
-                if (inspError || !inspecciones || inspecciones.length === 0) {
-                    document.getElementById('chart-container').innerHTML = '<div class="error">No hay inspecciones para generar estadísticas.</div>';
+                if (inspError) {
+                    console.error('Error en inspecciones:', inspError);
+                    container.innerHTML = `<div class="message error">Error al cargar inspecciones: ${inspError.message}</div>`;
+                    return;
+                }
+
+                if (!inspecciones || inspecciones.length === 0) {
+                    container.innerHTML = '<div class="message info">No hay inspecciones registradas.</div>';
                     return;
                 }
 
                 const inspeccionIds = inspecciones.map(i => i.id);
+                console.log('IDs de inspecciones encontradas:', inspeccionIds);
+
+                // Paso 3: Obtener ítems
                 const { data: items, error: itemError } = await supabase
                     .from('items_inspeccion')
                     .select('cumple')
                     .in('inspeccion_id', inspeccionIds);
 
-                if (itemError || !items || items.length === 0) {
-                    document.getElementById('chart-container').innerHTML = '<div class="error">No hay datos de ítems para analizar.</div>';
+                if (itemError) {
+                    console.error('Error en ítems:', itemError);
+                    container.innerHTML = `<div class="message error">Error al cargar ítems: ${itemError.message}</div>`;
                     return;
                 }
 
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<div class="message info">No hay ítems evaluados.</div>';
+                    return;
+                }
+
+                // Calcular estadísticas
                 const total = items.length;
-                const cumplidos = items.filter(i => i.cumple).length;
+                const cumplidos = items.filter(i => i.cumple === true).length;
+                const noCumplidos = total - cumplidos;
+
                 const data = [
                     { name: 'Cumple', value: cumplidos },
-                    { name: 'No Cumple', value: total - cumplidos }
+                    { name: 'No Cumple', value: noCumplidos }
                 ];
 
+                // Renderizar gráfico
                 const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } = window.Recharts;
                 const COLORS = ['#48bb78', '#f56565'];
 
@@ -163,7 +191,7 @@
                     React.createElement(ResponsiveContainer, { width: '100%', height: '100%' },
                         React.createElement(PieChart,
                             React.createElement(Pie, {
-                                 data,
+                                data,
                                 cx: '50%',
                                 cy: '50%',
                                 labelLine: false,
@@ -182,12 +210,14 @@
                     ),
                     document.getElementById('chart-container')
                 );
+
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('chart-container').innerHTML = '<div class="error">Error al cargar estadísticas.</div>';
+                console.error('Error inesperado:', error);
+                container.innerHTML = '<div class="message error">Error inesperado. Verifique la consola.</div>';
             }
         }
 
+        // Cargar al iniciar
         cargarEstadisticas();
     </script>
 </body>
