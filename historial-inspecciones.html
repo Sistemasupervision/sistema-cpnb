@@ -52,6 +52,14 @@
             background: #f8fafc;
             border-radius: 8px;
         }
+        .debug-info {
+            background: #ebf8ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #2c5282;
+        }
     </style>
 </head>
 <body>
@@ -76,13 +84,11 @@
         <button id="verHistorialBtn" disabled>Ver Historial</button>
         <div id="historialContainer" style="margin-top: 30px;"></div>
     </div>
-
     <script>
         const supabase = window.supabase.createClient(
             'https://slkbmddaqsvjofhtuusb.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q'
         );
-
         const ccpSelect = document.getElementById('ccpSelect');
         const estacionSelect = document.getElementById('estacionSelect');
         const verBtn = document.getElementById('verHistorialBtn');
@@ -95,20 +101,16 @@
                 verBtn.disabled = true;
                 return;
             }
-
             estacionSelect.disabled = true;
             estacionSelect.innerHTML = '<option value="">Cargando...</option>';
             verBtn.disabled = true;
-
             try {
                 const { data, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
                     .order('nombre', { ascending: true });
-
                 if (error) throw error;
-
                 let html = '<option value="">-- Seleccione estación --</option>';
                 data.forEach(e => {
                     html += `<option value="${e.id}">${e.nombre}</option>`;
@@ -126,9 +128,27 @@
         });
 
         verBtn.addEventListener('click', async () => {
-            const estacionId = parseInt(estacionSelect.value);
+            const estacionIdRaw = estacionSelect.value;
+            const estacionId = parseInt(estacionIdRaw);
             const container = document.getElementById('historialContainer');
-            container.innerHTML = '<p>Cargando...</p>';
+
+            // Depuración: mostrar valor recibido
+            if (isNaN(estacionId)) {
+                container.innerHTML = `
+                    <div class="debug-info">
+                        ⚠️ ID de estación inválido.<br>
+                        Valor recibido: "${estacionIdRaw}" (tipo: ${typeof estacionIdRaw})
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="debug-info">
+                    🔍 Buscando inspecciones con estacion_id = ${estacionId} (tipo: ${typeof estacionId})
+                </div>
+                <p>Cargando...</p>
+            `;
 
             try {
                 const {  inspecciones, error } = await supabase
@@ -137,9 +157,25 @@
                     .eq('estacion_id', estacionId)
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    container.innerHTML = `
+                        <div class="debug-info">
+                            ❌ Error de Supabase:<br>
+                            <code>${error.message}</code>
+                        </div>
+                    `;
+                    console.error('Error Supabase:', error);
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="debug-info">
+                        ✅ Consulta exitosa. Registros encontrados: ${inspecciones.length}
+                    </div>
+                `;
+
                 if (!inspecciones || inspecciones.length === 0) {
-                    container.innerHTML = '<p>🔍 No hay inspecciones.</p>';
+                    container.innerHTML += '<p>🔍 No hay inspecciones para esta estación.</p>';
                     return;
                 }
 
@@ -150,14 +186,20 @@
                         <div class="inspeccion">
                             <h3>Inspección del ${fecha}</h3>
                             <p><strong>Inspector:</strong> ${i.inspector_email}</p>
+                            <p><strong>Estación ID:</strong> ${i.estacion_id}</p>
                             <p><strong>Observaciones:</strong> ${i.observaciones_generales || 'Ninguna'}</p>
                         </div>
                     `;
                 }
-                container.innerHTML = html;
+                container.innerHTML += html;
             } catch (err) {
-                console.error(err);
-                container.innerHTML = `<p style="color:red;">⚠️ Error: ${err.message}</p>`;
+                console.error('Error inesperado:', err);
+                container.innerHTML = `
+                    <div class="debug-info">
+                        ⚠️ Error inesperado:<br>
+                        <code>${err.message}</code>
+                    </div>
+                `;
             }
         });
     </script>
