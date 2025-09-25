@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estadísticas - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/recharts/umd/recharts.min.js"></script>
     <style>
         * {
@@ -85,6 +87,12 @@
             padding: 40px;
             font-size: 18px;
         }
+        .error {
+            text-align: center;
+            color: #e53e3e;
+            padding: 40px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -96,7 +104,6 @@
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver al Panel Principal
         </button>
-
         <div id="chart-container">
             <div class="loading">Cargando estadísticas...</div>
         </div>
@@ -109,44 +116,44 @@
 
         async function cargarEstadisticas() {
             try {
-                // Paso 1: Obtener todas las estaciones de los CCP de OCCIDENTAL
                 const ccpIds = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpIds);
-                if (estError) throw estError;
 
-                if (!estaciones || estaciones.length === 0) {
-                    document.getElementById('chart-container').innerHTML = '<p style="text-align:center; color:#e53e3e; padding:40px;">No hay estaciones registradas en REDIP OCCIDENTAL.</p>';
+                if (estError || !estaciones || estaciones.length === 0) {
+                    document.getElementById('chart-container').innerHTML = '<div class="error">No hay estaciones en REDIP OCCIDENTAL.</div>';
                     return;
                 }
 
                 const estacionIds = estaciones.map(e => e.id);
+                const { data: inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id')
+                    .in('estacion_id', estacionIds);
 
-                // Paso 2: Obtener todos los ítems de inspección de esas estaciones
-                const { data: items, error } = await supabase
-                    .from('items_inspeccion')
-                    .select('cumple')
-                    .in('inspeccion_id', 
-                        supabase.from('inspecciones').select('id').in('estacion_id', estacionIds)
-                    );
-
-                if (error || !items || items.length === 0) {
-                    document.getElementById('chart-container').innerHTML = '<p style="text-align:center; color:#666; padding:40px;">No hay inspecciones registradas para generar estadísticas.</p>';
+                if (inspError || !inspecciones || inspecciones.length === 0) {
+                    document.getElementById('chart-container').innerHTML = '<div class="error">No hay inspecciones para generar estadísticas.</div>';
                     return;
                 }
 
-                // Calcular cumplimiento
+                const inspeccionIds = inspecciones.map(i => i.id);
+                const { data: items, error: itemError } = await supabase
+                    .from('items_inspeccion')
+                    .select('cumple')
+                    .in('inspeccion_id', inspeccionIds);
+
+                if (itemError || !items || items.length === 0) {
+                    document.getElementById('chart-container').innerHTML = '<div class="error">No hay datos de ítems para analizar.</div>';
+                    return;
+                }
+
                 const total = items.length;
                 const cumplidos = items.filter(i => i.cumple).length;
-                const noCumplidos = total - cumplidos;
-                const porcentaje = ((cumplidos / total) * 100).toFixed(1);
-
-                // Renderizar gráfico
                 const data = [
                     { name: 'Cumple', value: cumplidos },
-                    { name: 'No Cumple', value: noCumplidos }
+                    { name: 'No Cumple', value: total - cumplidos }
                 ];
 
                 const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } = window.Recharts;
@@ -160,7 +167,7 @@
                                 cx: '50%',
                                 cy: '50%',
                                 labelLine: false,
-                                outerRadius: 120,
+                                outerRadius: 100,
                                 fill: '#8884d8',
                                 dataKey: 'value',
                                 label: ({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`
@@ -176,12 +183,11 @@
                     document.getElementById('chart-container')
                 );
             } catch (error) {
-                console.error('Error al cargar estadísticas:', error);
-                document.getElementById('chart-container').innerHTML = '<p style="text-align:center; color:red; padding:40px;">Error al cargar las estadísticas.</p>';
+                console.error('Error:', error);
+                document.getElementById('chart-container').innerHTML = '<div class="error">Error al cargar estadísticas.</div>';
             }
         }
 
-        // Cargar al iniciar
         cargarEstadisticas();
     </script>
 </body>
