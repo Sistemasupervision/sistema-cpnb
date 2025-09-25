@@ -420,29 +420,39 @@
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
 
-  async function mostrarDetalle(inspeccionId) {
+async function mostrarDetalle(inspeccionId) {
     try {
-        const {  items, error } = await supabase
+        // Cargar ítems de la inspección
+        const { data: items, error: itemsError } = await supabase
             .from('items_inspeccion')
             .select('item_nombre, cumple, observacion')
             .eq('inspeccion_id', inspeccionId)
             .order('item_nombre', { ascending: true });
 
-        const {  inspeccion, error: inspError } = await supabase
+        if (itemsError) throw itemsError;
+
+        // Cargar datos básicos de la inspección
+        const { data: inspeccion, error: inspError } = await supabase
             .from('inspecciones')
-            .select('observaciones_generales, estacion_id')
+            .select('created_at, observaciones_generales, estacion_id')
             .eq('id', inspeccionId)
             .single();
 
-        if (error || inspError) throw error || inspError;
+        if (inspError) throw inspError;
 
-        // Obtener nombre de la estación
-        const {  estacionData } = await supabase
+        // Cargar nombre de la estación (con manejo seguro)
+        let nombreEstacion = 'Estación no disponible';
+        const { data: estacionData, error: estError } = await supabase
             .from('estaciones_policiales')
             .select('nombre')
             .eq('id', inspeccion.estacion_id)
             .single();
 
+        if (!estError && estacionData) {
+            nombreEstacion = estacionData.nombre;
+        }
+
+        // Mapeo de ítems
         const nombres = {
             baño_dama: "Baño Dama",
             baño_caballero: "Baño Caballero",
@@ -462,9 +472,7 @@
             motos: "Motos"
         };
 
-        let html = `<h3>Estación: ${estacionData?.nombre || 'N/A'}</h3>`;
-
-        // ✅ Corrección: Formatear fecha de forma segura
+        // Formatear fecha
         let fechaFormateada = 'Fecha no disponible';
         if (inspeccion.created_at) {
             const fechaObj = new Date(inspeccion.created_at);
@@ -478,6 +486,9 @@
                 });
             }
         }
+
+        // Construir HTML
+        let html = `<h3>Estación: ${nombreEstacion}</h3>`;
         html += `<p><strong>Fecha:</strong> ${fechaFormateada}</p>`;
 
         if (items && items.length > 0) {
@@ -509,8 +520,8 @@
         document.getElementById('detalleContenido').innerHTML = html;
         document.getElementById('detalleModal').style.display = 'flex';
     } catch (error) {
-        console.error('Error al cargar detalles:', error);
-        alert('No se pudieron cargar los detalles de la inspección.');
+        console.error('Error detallado al cargar inspección:', error);
+        alert('Error al cargar los detalles. Verifica la consola del navegador.');
     }
 }
         // Cargar historial inicial
