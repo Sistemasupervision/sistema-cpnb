@@ -312,7 +312,9 @@
             <strong>Seguridad de extremo a extremo</strong>
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
-    </div> <
+    </div> <!-- ✅ Cierre del loginContainer -->
+    <!-- Panel Principal (REDI) -->
+    <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -355,7 +357,10 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-        <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
+
+    <!-- ✅ dynamicView MOVIDO AQUÍ (antes del <script>) -->
+    <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
+
     <script>
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
