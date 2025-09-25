@@ -118,56 +118,83 @@
             const container = document.getElementById('chart-container');
             
             try {
-                // ✅ Verificar si el usuario está autenticado
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) {
-                    container.innerHTML = '<div class="error">Debe iniciar sesión para ver estadísticas.</div>';
-                    return;
-                }
-
-                const ccpIds = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const {  estaciones, error: estError } = await supabase
+                // Paso 1: Obtener todas las estaciones (sin filtro)
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('id')
-                    .in('ccp_id', ccpIds);
+                    .select('id, nombre, ccp_id');
 
-                if (estError) throw estError;
-                if (!estaciones || estaciones.length === 0) {
-                    container.innerHTML = '<div class="error">No hay estaciones en REDIP OCCIDENTAL.</div>';
+                if (estError) {
+                    console.error('Error en estaciones:', estError);
+                    container.innerHTML = `<div class="message error">Error al cargar estaciones: ${estError.message}</div>`;
                     return;
                 }
 
-                const estacionIds = estaciones.map(e => e.id);
-                const {  inspecciones, error: inspError } = await supabase
+                if (!estaciones || estaciones.length === 0) {
+                    container.innerHTML = '<div class="message info">No hay estaciones registradas.</div>';
+                    return;
+                }
+
+                // Filtrar manualmente las estaciones de OCCIDENTAL
+                const ccpIds = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                const estacionesOccidental = estaciones.filter(e => ccpIds.includes(e.ccp_id));
+                console.log('Estaciones de OCCIDENTAL encontradas:', estacionesOccidental);
+
+                if (estacionesOccidental.length === 0) {
+                    container.innerHTML = '<div class="message info">No hay estaciones en REDIP OCCIDENTAL.</div>';
+                    return;
+                }
+
+                const estacionIds = estacionesOccidental.map(e => e.id);
+                console.log('IDs de estaciones de OCCIDENTAL:', estacionIds);
+
+                // Paso 2: Obtener inspecciones
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .in('estacion_id', estacionIds);
 
-                if (inspError) throw inspError;
+                if (inspError) {
+                    console.error('Error en inspecciones:', inspError);
+                    container.innerHTML = `<div class="message error">Error al cargar inspecciones: ${inspError.message}</div>`;
+                    return;
+                }
+
                 if (!inspecciones || inspecciones.length === 0) {
-                    container.innerHTML = '<div class="error">No hay inspecciones registradas.</div>';
+                    container.innerHTML = '<div class="message info">No hay inspecciones registradas.</div>';
                     return;
                 }
 
                 const inspeccionIds = inspecciones.map(i => i.id);
-                const {  items, error: itemError } = await supabase
+                console.log('IDs de inspecciones encontradas:', inspeccionIds);
+
+                // Paso 3: Obtener ítems
+                const { data: items, error: itemError } = await supabase
                     .from('items_inspeccion')
                     .select('cumple')
                     .in('inspeccion_id', inspeccionIds);
 
-                if (itemError) throw itemError;
-                if (!items || items.length === 0) {
-                    container.innerHTML = '<div class="error">No hay ítems evaluados.</div>';
+                if (itemError) {
+                    console.error('Error en ítems:', itemError);
+                    container.innerHTML = `<div class="message error">Error al cargar ítems: ${itemError.message}</div>`;
                     return;
                 }
 
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<div class="message info">No hay ítems evaluados.</div>';
+                    return;
+                }
+
+                // Calcular estadísticas
                 const total = items.length;
                 const cumplidos = items.filter(i => i.cumple === true).length;
+                const noCumplidos = total - cumplidos;
+
                 const data = [
                     { name: 'Cumple', value: cumplidos },
-                    { name: 'No Cumple', value: total - cumplidos }
+                    { name: 'No Cumple', value: noCumplidos }
                 ];
 
+                // Renderizar gráfico
                 const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } = window.Recharts;
                 const COLORS = ['#48bb78', '#f56565'];
 
@@ -196,11 +223,12 @@
                 );
 
             } catch (error) {
-                console.error('Error:', error);
-                container.innerHTML = `<div class="error">Error: ${error.message || 'No se pudieron cargar los datos.'}</div>`;
+                console.error('Error inesperado:', error);
+                container.innerHTML = '<div class="message error">Error inesperado. Verifique la consola.</div>';
             }
         }
 
+        // Cargar al iniciar
         cargarEstadisticas();
     </script>
 </body>
