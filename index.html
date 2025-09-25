@@ -416,68 +416,72 @@
 async function handleOccidentalForm(e) {
     e.preventDefault();
     const ccpValue = document.getElementById('ccpSelect').value;
-    
-    if (ccpValue === 'metropolitano') {
-        try {
-            // Cargar estaciones desde Supabase
-            const { data: estaciones, error } = await supabase
-                .from('estaciones_policiales')
-                .select('id, nombre')
-                .eq('ccp_id', 'metropolitano')
-                .order('nombre', { ascending: true });
-                
-            if (error) throw error;
-            
-            // Generar HTML con desplegable de estaciones
-            let estacionesHtml = `
-                <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Selección de Estación Policial</h1>
-                </div>
-                <div class="input-group">
-                    <label for="estacionSelect">Seleccione Estación Policial:</label>
-                    <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
-                        <option value="">-- Elija una estación --</option>
-            `;
-            
-            estaciones.forEach(est => {
-                estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
-            });
-            
-            estacionesHtml += `
-                    </select>
-                </div>
-                <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
-                <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
-            `;
-            
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = estacionesHtml;
-            dynamicView.style.display = 'block';
-            
-            // Evento para cargar formulario de inspección
-            document.getElementById('loadInspectionBtn').onclick = () => {
-                const estacionId = document.getElementById('estacionSelect').value;
-                if (!estacionId) {
-                    alert('Por favor seleccione una estación');
-                    return;
-                }
-                loadInspectionForm(estacionId);
-            };
-            
-            // Evento para volver a CCP
-            document.getElementById('backToCcpBtn').onclick = () => {
-                dynamicView.style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-            };
-            
-        } catch (error) {
-            console.error('Error al cargar estaciones:', error);
-            alert('Error al cargar las estaciones policiales');
+    if (!ccpValue) {
+        alert('Por favor seleccione un CCP.');
+        return;
+    }
+
+    try {
+        const { data: estaciones, error } = await supabase
+            .from('estaciones_policiales')
+            .select('id, nombre')
+            .eq('ccp_id', ccpValue)
+            .order('nombre', { ascending: true });
+
+        if (error) throw error;
+
+        if (!estaciones || estaciones.length === 0) {
+            alert(`No hay estaciones registradas para ${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}.`);
+            return;
         }
-    } else {
-        alert('Vista en desarrollo para: ' + document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+
+        let estacionesHtml = `
+            <div class="logo-container">
+                <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                <h1 class="title">Selección de Estación Policial</h1>
+                <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                    CCP: <strong>${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}</strong>
+                </p>
+            </div>
+            <div class="input-group">
+                <label for="estacionSelect">Seleccione Estación Policial:</label>
+                <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                    <option value="">-- Elija una estación --</option>
+        `;
+
+        estaciones.forEach(est => {
+            estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
+        });
+
+        estacionesHtml += `
+                </select>
+            </div>
+            <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
+            <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
+        `;
+
+        document.getElementById('rediOccidentalContainer').style.display = 'none';
+        const dynamicView = document.getElementById('dynamicView');
+        dynamicView.innerHTML = estacionesHtml;
+        dynamicView.style.display = 'block';
+
+        document.getElementById('loadInspectionBtn').onclick = () => {
+            const estacionId = document.getElementById('estacionSelect').value;
+            if (!estacionId) {
+                alert('Por favor seleccione una estación');
+                return;
+            }
+            loadInspectionForm(estacionId);
+        };
+
+        document.getElementById('backToCcpBtn').onclick = () => {
+            dynamicView.style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
+        };
+
+    } catch (error) {
+        console.error('Error al cargar estaciones:', error);
+        alert('Error al cargar las estaciones policiales');
     }
 }
 
