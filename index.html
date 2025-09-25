@@ -352,15 +352,16 @@
                     <option value="sur-del-lago">CCP SUR DEL LAGO</option>
                     <option value="guajira">CCP GUAJIRA</option>
                     <option value="col">CCPE COL</option>
-                    <option value="col">CCPE LARA</option>
-                    <option value="col">CCPE FALCON</option>
                 </select>
             </div>
             <button type="submit" class="form-btn">Continuar</button>
-            <button onclick="window.location.href='historial.html'" class="action-btn">Ver Historial</button>
         </form>
+        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Ver Historial de Inspecciones
+        </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
+    <!-- CONTENEDOR DINÁMICO -->
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -511,6 +512,10 @@
                 vehiculos: "Vehículos",
                 motos: "Motos"
             };
+
+            // ✅ Fecha mínima: hoy
+            const hoy = new Date().toISOString().split('T')[0];
+
             let formHtml = `
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -545,6 +550,12 @@
                         <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
                             style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
                     </div>
+                    <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                        <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
+                        <input type="date" id="proximaInspeccion" 
+                            min="${hoy}"
+                            style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
+                    </div>
                     <div style="text-align:center; margin-top:30px; grid-column: span 3;">
                         <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
                         <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
@@ -557,7 +568,6 @@
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
 
-            // ✅ NUEVO: Mostrar textarea si se selecciona "Sí" o "No"
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -583,12 +593,15 @@
                     return;
                 }
 
+                const proximaFecha = document.getElementById('proximaInspeccion').value || null;
+
                 const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
                     .insert({
                         estacion_id: estacionId,
                         inspector_email: user.email,
-                        observaciones_generales: document.getElementById('observacionesGenerales').value || null
+                        observaciones_generales: document.getElementById('observacionesGenerales').value || null,
+                        proxima_inspeccion: proximaFecha // ✅ GUARDAR FECHA
                     })
                     .select()
                     .single();
