@@ -120,23 +120,18 @@
             verBtn.disabled = !estacionSelect.value;
         });
 
-        verBtn.addEventListener('click', async () => {
-            const estacionNombre = estacionSelect.value; // ← Nombre de la estación
-            const container = document.getElementById('historialContainer');
-            if (!estacionNombre) {
-                container.innerHTML = '<p>⚠️ Seleccione una estación.</p>';
-                return;
-            }
+     verBtn.addEventListener('click', async () => {
+    const estacionId = parseInt(estacionSelect.value); // ← número
+    if (isNaN(estacionId)) {
+        container.innerHTML = '<p>⚠️ ID inválido</p>';
+        return;
+    }
 
-            container.innerHTML = '<p>Cargando historial...</p>';
-
-            try {
-                // ✅ CORRECCIÓN: filtrar por nombre, no por ID
-                const {  inspecciones, error } = await supabase
-                    .from('inspecciones')
-                    .select('*')
-                    .eq('estacion_id', estacionNombre)
-                    .order('created_at', { ascending: false });
+    const {  inspecciones, error } = await supabase
+        .from('inspecciones')
+        .select('*')
+        .eq('estacion_id', estacionId) // ← compara número con número
+        .order('created_at', { ascending: false });
 
                 if (error) {
                     container.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
