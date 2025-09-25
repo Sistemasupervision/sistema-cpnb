@@ -629,6 +629,36 @@ function loadInspectionForm(estacionId, estacionNombre) {
             return;
         }
 
+        // ✅ Primero recopilar ítems respondidos
+        const itemsData = [];
+        items.forEach(item => {
+            const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+            const cumpleValue = select.value;
+            if (cumpleValue === 'null') return;
+
+            const cumple = cumpleValue === 'true';
+            const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+            let porcentaje = 0;
+            if (cumple) {
+                const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                porcentaje = parseInt(slider?.value) || 0;
+            }
+
+            itemsData.push({
+                item_nombre: item,
+                cumple: cumple,
+                observacion: observacion,
+                porcentaje_cumplimiento: porcentaje
+            });
+        });
+
+        // ✅ Validar ANTES de crear la inspección
+        if (itemsData.length === 0) {
+            alert('Debe responder al menos un ítem.');
+            return;
+        }
+
+        // ✅ Solo ahora crear la inspección
         const proximaFecha = document.getElementById('proximaInspeccion').value || null;
         const { data: inspeccionData, error: inspError } = await supabase
             .from('inspecciones')
@@ -647,37 +677,15 @@ function loadInspectionForm(estacionId, estacionNombre) {
             return;
         }
 
-        const itemsData = [];
-        items.forEach(item => {
-            const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-            const cumpleValue = select.value;
-            if (cumpleValue === 'null') return;
-
-            const cumple = cumpleValue === 'true';
-            const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-            let porcentaje = 0;
-            if (cumple) {
-                const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-                porcentaje = parseInt(slider.value) || 0;
-            }
-
-            itemsData.push({
-                inspeccion_id: inspeccionData.id,
-                item_nombre: item,
-                cumple: cumple,
-                observacion: observacion,
-                porcentaje_cumplimiento: porcentaje
-            });
-        });
-
-        if (itemsData.length === 0) {
-            alert('Debe responder al menos un ítem.');
-            return;
-        }
+        // ✅ Insertar ítems con inspeccion_id
+        const itemsToInsert = itemsData.map(item => ({
+            inspeccion_id: inspeccionData.id,
+            ...item
+        }));
 
         const { error: itemsError } = await supabase
             .from('items_inspeccion')
-            .insert(itemsData);
+            .insert(itemsToInsert);
 
         if (itemsError) {
             console.error('Error al guardar ítems:', itemsError);
