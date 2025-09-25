@@ -130,7 +130,7 @@
             container.innerHTML = '<p>Cargando historial...</p>';
 
             try {
-                // ✅ CORRECCIÓN CLAVE: usar 'data', no 'inspecciones'
+        
                 const {  inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('*')
