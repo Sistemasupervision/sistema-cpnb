@@ -312,7 +312,8 @@
             <strong>Seguridad de extremo a extremo</strong>
             <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
-    </div>
+    </div> <!-- ✅ Cierre del loginContainer -->
+    <!-- Panel Principal (REDI) -->
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -356,7 +357,6 @@
         </form>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-
     <!-- Contenedor dinámico para vistas externas -->
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
 
@@ -364,14 +364,12 @@
         const supabaseUrl = 'https://slkbmddaqsvjofhtuusb.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsa2JtZGRhcXN2am9maHR1dXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg2NTcyNTIsImV4cCI6MjA3NDIzMzI1Mn0.0v7dcDUVXdbLh5bGTwDmLoFjz2ydNFBjiIVAxG6YM6Q';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -387,7 +385,6 @@
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
-
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -401,17 +398,14 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-
         function showRediOccidental() {
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('rediOccidentalContainer').style.display = 'block';
         }
-
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
-
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -451,7 +445,9 @@
                     </div>
                     <div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">
                         <button id="loadInspectionBtn" class="form-btn" style="flex:1; min-width:200px;">Cargar Formulario de Inspección</button>
-                        <button id="verHistorialBtn" class="form-btn" style="flex:1; min-width:200px; background:linear-gradient(135deg, #2c5282, #1a365d);">📊 Ver Historial de Estación</button>
+                        <button id="verHistorialBtn" class="form-btn" style="flex:1; min-width:200px; background:linear-gradient(135deg, #2c5282, #1a365d);">
+                            📊 Ver Historial
+                        </button>
                     </div>
                     <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
                 `;
@@ -466,18 +462,17 @@
                         alert('Por favor seleccione una estación');
                         return;
                     }
-                    const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-                    loadInspectionForm(estacionId, estacionNombre);
+                    loadInspectionForm(estacionId);
                 };
 
                 document.getElementById('verHistorialBtn').onclick = () => {
                     const estacionId = document.getElementById('estacionSelect').value;
-                    if (!estacionId) {
-                        alert('Por favor seleccione una estación primero.');
+                    const ccpId = document.getElementById('ccpSelect').value;
+                    if (!estacionId || !ccpId) {
+                        alert('Seleccione una estación primero.');
                         return;
                     }
-                    const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-                    showHistorialEstacion(estacionId, estacionNombre);
+                    window.open(`historial.html?ccp=${ccpId}&estacion=${estacionId}`, '_blank');
                 };
 
                 document.getElementById('backToCcpBtn').onclick = () => {
@@ -489,7 +484,6 @@
                 alert('Error al cargar las estaciones policiales');
             }
         }
-
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -498,9 +492,13 @@
                 document.getElementById('userNameDisplay').textContent = user.email;
             }
         }
-
-        // ✅ Corregido: ahora recibe el nombre de la estación
-        function loadInspectionForm(estacionId, estacionNombre) {
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+        function loadInspectionForm(estacionId) {
             const items = [
                 "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
                 "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
@@ -525,19 +523,17 @@
                 vehiculos: "Vehículos",
                 motos: "Motos"
             };
-
             let formHtml = `
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                     <h1 class="title">Formulario de Inspección</h1>
                     <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                        Estación: <strong>${estacionNombre}</strong>
+                        Estación: <strong>${estacionId}</strong>
                     </p>
                 </div>
                 <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
                     <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
             `;
-
             items.forEach(item => {
                 formHtml += `
                     <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
@@ -554,7 +550,6 @@
                     </div>
                 `;
             });
-
             formHtml += `
                     </div>
                     <div class="input-group" style="margin-top:20px; grid-column: span 3;">
@@ -568,13 +563,11 @@
                     </div>
                 </form>
             `;
-
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = formHtml;
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
-
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -587,19 +580,18 @@
                     }
                 });
             });
-
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
-
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
+                // ✅ CORRECCIÓN: Sintaxis válida para obtener el usuario
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
                     alert('Debe estar autenticado para guardar.');
                     return;
                 }
-
+                // ✅ CORRECCIÓN: Sintaxis válida para insertar la inspección
                 const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
                     .insert({
@@ -609,13 +601,11 @@
                     })
                     .select()
                     .single();
-
                 if (inspError) {
                     console.error('Error al crear inspección:', inspError);
                     alert('Error al guardar la inspección: ' + (inspError.message || ''));
                     return;
                 }
-
                 const itemsData = [];
                 items.forEach(item => {
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
@@ -632,16 +622,13 @@
                         observacion: observacion
                     });
                 });
-
                 if (itemsData.length === 0) {
                     alert('Debe responder al menos un ítem.');
                     return;
                 }
-
                 const { error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .insert(itemsData);
-
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
                     alert('Error al guardar los ítems: ' + (itemsError.message || ''));
@@ -651,146 +638,6 @@
                 }
             };
         }
-
-        // ✅ NUEVA FUNCIÓN: Historial por estación
-        async function showHistorialEstacion(estacionId, estacionNombre) {
-            const dynamicView = document.getElementById('dynamicView');
-            
-            let historialHtml = `
-                <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Historial: ${estacionNombre}</h1>
-                </div>
-
-                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <div class="input-group" style="flex: 1; min-width: 200px;">
-                        <label for="fechaDesdeHist">Desde:</label>
-                        <input type="date" id="fechaDesdeHist" class="form-control">
-                    </div>
-                    <div class="input-group" style="flex: 1; min-width: 200px;">
-                        <label for="fechaHastaHist">Hasta:</label>
-                        <input type="date" id="fechaHastaHist" class="form-control">
-                    </div>
-                    <div style="align-self: flex-end;">
-                        <button id="buscarHistorialEstacionBtn" class="form-btn" style="padding:10px 16px;">Buscar</button>
-                    </div>
-                </div>
-
-                <div id="resultadosHistorialEstacion" style="margin-top: 20px; min-height: 100px;">
-                    <p style="text-align:center; color:#4a5568;">Seleccione un rango de fechas y haga clic en "Buscar".</p>
-                </div>
-
-                <button id="volverASeleccionEstacionBtn" class="back-btn" style="margin-top:20px;">← Volver a Selección de Estación</button>
-            `;
-
-            dynamicView.innerHTML = historialHtml;
-            dynamicView.style.display = 'block';
-            dynamicView.style.maxWidth = '900px';
-            dynamicView.style.padding = '40px';
-
-            // Fechas por defecto: últimos 30 días
-            const hoy = new Date().toISOString().split('T')[0];
-            const hace30 = new Date();
-            hace30.setDate(hace30.getDate() - 30);
-            const fecha30 = hace30.toISOString().split('T')[0];
-            document.getElementById('fechaDesdeHist').value = fecha30;
-            document.getElementById('fechaHastaHist').value = hoy;
-
-            document.getElementById('buscarHistorialEstacionBtn').onclick = async () => {
-                const desde = document.getElementById('fechaDesdeHist').value;
-                const hasta = document.getElementById('fechaHastaHist').value;
-                if (!desde || !hasta) {
-                    alert('Seleccione ambas fechas.');
-                    return;
-                }
-                if (new Date(desde) > new Date(hasta)) {
-                    alert('La fecha "Desde" no puede ser mayor que "Hasta".');
-                    return;
-                }
-
-                const resultadosDiv = document.getElementById('resultadosHistorialEstacion');
-                resultadosDiv.innerHTML = '<p style="text-align:center;">Cargando...</p>';
-
-                try {
-                    const { data, error } = await supabase
-                        .from('inspecciones')
-                        .select(`
-                            id,
-                            created_at,
-                            observaciones_generales,
-                            inspector_email,
-                            items_inspeccion (
-                                item_nombre,
-                                cumple,
-                                observacion
-                            )
-                        `)
-                        .eq('estacion_id', estacionId)
-                        .gte('created_at', desde)
-                        .lte('created_at', hasta + 'T23:59:59')
-                        .order('created_at', { ascending: false });
-
-                    if (error) throw error;
-
-                    if (!data || data.length === 0) {
-                        resultadosDiv.innerHTML = '<p style="text-align:center; color:#e53e3e;">No hay inspecciones para esta estación en el rango seleccionado.</p>';
-                        return;
-                    }
-
-                    let html = `<div style="overflow-x:auto;">
-                        <table style="width:100%; border-collapse: collapse; margin-top:15px;">
-                            <thead>
-                                <tr style="background:#edf2f7;">
-                                    <th style="padding:10px; text-align:left; border:1px solid #e2e8f0;">Fecha</th>
-                                    <th style="padding:10px; text-align:left; border:1px solid #e2e8f0;">Inspector</th>
-                                    <th style="padding:10px; text-align:left; border:1px solid #e2e8f0;">Observaciones Generales</th>
-                                    <th style="padding:10px; text-align:left; border:1px solid #e2e8f0;">Detalles</th>
-                                </tr>
-                            </thead>
-                            <tbody>`;
-
-                    data.forEach(insp => {
-                        const fecha = new Date(insp.created_at).toLocaleString('es-VE');
-                        const obsGen = insp.observaciones_generales || '—';
-                        const detalles = insp.items_inspeccion && insp.items_inspeccion.length > 0
-                            ? `<details><summary style="color:#3182ce; cursor:pointer;">Ver ítems (${insp.items_inspeccion.length})</summary>
-                                <ul style="margin-top:8px; padding-left:20px;">
-                                ${insp.items_inspeccion.map(i => 
-                                    `<li><strong>${i.item_nombre}:</strong> ${i.cumple ? 'Sí' : 'No'} ${i.observacion ? `(${i.observacion})` : ''}</li>`
-                                ).join('')}
-                                </ul></details>`
-                            : '—';
-
-                        html += `
-                            <tr style="border-bottom:1px solid #e2e8f0;">
-                                <td style="padding:10px; font-size:13px;">${fecha}</td>
-                                <td style="padding:10px; font-size:13px;">${insp.inspector_email}</td>
-                                <td style="padding:10px; font-size:13px;">${obsGen}</td>
-                                <td style="padding:10px; font-size:13px;">${detalles}</td>
-                            </tr>`;
-                    });
-
-                    html += `</tbody></table></div>`;
-                    resultadosDiv.innerHTML = html;
-
-                } catch (err) {
-                    console.error('Error al cargar historial:', err);
-                    resultadosDiv.innerHTML = '<p style="text-align:center; color:#e53e3e;">Error al cargar los datos.</p>';
-                }
-            };
-
-            document.getElementById('volverASeleccionEstacionBtn').onclick = () => {
-                handleOccidentalForm({ preventDefault: () => {} });
-            };
-        }
-
-        // Event listeners
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-
         checkAuthState();
     </script>
 </body>
