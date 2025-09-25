@@ -490,166 +490,190 @@
             }
         }
 
-        function loadInspectionForm(estacionId, estacionNombre) {
-            const items = [
-                "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
-                "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
-                "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
-                "condiciones_generales", "vehiculos", "motos"
-            ];
-            const nombres = {
-                baño_dama: "Baño Dama",
-                baño_caballero: "Baño Caballero",
-                dormitorio_femenino: "Dormitorio Femenino",
-                dormitorio_masculino: "Dormitorio Masculino",
-                cocina: "Cocina",
-                comedor: "Comedor",
-                lavanderia: "Lavandería",
-                oficina_del_jefe: "Oficina del Jefe",
-                oficina_de_rrhh: "Oficina de RRHH",
-                condiciones_electricas: "Condiciones Eléctricas",
-                fachada: "Fachada",
-                condiciones_de_pintura: "Condiciones de Pintura",
-                jardines: "Jardines",
-                condiciones_generales: "Condiciones Generales",
-                vehiculos: "Vehículos",
-                motos: "Motos"
-            };
+       function loadInspectionForm(estacionId, estacionNombre) {
+    const items = [
+        "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
+        "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
+        "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
+        "condiciones_generales", "vehiculos", "motos"
+    ];
+    const nombres = {
+        baño_dama: "Baño Dama",
+        baño_caballero: "Baño Caballero",
+        dormitorio_femenino: "Dormitorio Femenino",
+        dormitorio_masculino: "Dormitorio Masculino",
+        cocina: "Cocina",
+        comedor: "Comedor",
+        lavanderia: "Lavandería",
+        oficina_del_jefe: "Oficina del Jefe",
+        oficina_de_rrhh: "Oficina de RRHH",
+        condiciones_electricas: "Condiciones Eléctricas",
+        fachada: "Fachada",
+        condiciones_de_pintura: "Condiciones de Pintura",
+        jardines: "Jardines",
+        condiciones_generales: "Condiciones Generales",
+        vehiculos: "Vehículos",
+        motos: "Motos"
+    };
+    const hoy = new Date().toISOString().split('T')[0];
+    let formHtml = `
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Formulario de Inspección</h1>
+            <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                Estación: <strong>${estacionNombre}</strong>
+            </p>
+        </div>
+        <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
+            <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
+    `;
+    items.forEach(item => {
+        formHtml += `
+            <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
+                <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
+                    <option value="null">-- Seleccione --</option>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                </select>
+                <textarea class="observacion-text" data-item="${item}" 
+                    placeholder="Observaciones" 
+                    style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
+                    rows="3"></textarea>
+                <input type="range" class="porcentaje-slider" data-item="${item}" 
+                    min="0" max="100" value="0"
+                    style="width:100%; margin-top:10px; display:none;"
+                    oninput="this.nextElementSibling.value = this.value + '%'"
+                >
+                <output class="porcentaje-output" style="display:none; text-align:center; font-size:13px; color:#2d3748; margin-top:4px;">0%</output>
+            </div>
+        `;
+    });
+    formHtml += `
+            </div>
+            <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
+                <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
+                    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
+            </div>
+            <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
+                <input type="date" id="proximaInspeccion" 
+                    min="${hoy}"
+                    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
+            </div>
+            <div style="text-align:center; margin-top:30px; grid-column: span 3;">
+                <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
+                <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
+            </div>
+        </form>
+    `;
+    const dynamicView = document.getElementById('dynamicView');
+    dynamicView.innerHTML = formHtml;
+    dynamicView.style.display = 'block';
+    dynamicView.style.maxWidth = '950px';
+    dynamicView.style.padding = '40px';
 
-            // ✅ Fecha mínima: hoy
-            const hoy = new Date().toISOString().split('T')[0];
-
-            let formHtml = `
-                <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Formulario de Inspección</h1>
-                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                        Estación: <strong>${estacionNombre}</strong>
-                    </p>
-                </div>
-                <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
-                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
-            `;
-            items.forEach(item => {
-                formHtml += `
-                    <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                        <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
-                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
-                            <option value="null">-- Seleccione --</option>
-                            <option value="true">Sí</option>
-                            <option value="false">No</option>
-                        </select>
-                        <textarea class="observacion-text" data-item="${item}" 
-                            placeholder="Observaciones" 
-                            style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
-                            rows="3"></textarea>
-                    </div>
-                `;
-            });
-            formHtml += `
-                    </div>
-                    <div class="input-group" style="margin-top:20px; grid-column: span 3;">
-                        <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
-                        <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
-                            style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
-                    </div>
-                    <div class="input-group" style="margin-top:20px; grid-column: span 3;">
-                        <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-                        <input type="date" id="proximaInspeccion" 
-                            min="${hoy}"
-                            style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
-                    </div>
-                    <div style="text-align:center; margin-top:30px; grid-column: span 3;">
-                        <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
-                        <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
-                    </div>
-                </form>
-            `;
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = formHtml;
-            dynamicView.style.display = 'block';
-            dynamicView.style.maxWidth = '950px';
-            dynamicView.style.padding = '40px';
-
-            document.querySelectorAll('.cumple-select').forEach(select => {
-                select.addEventListener('change', function () {
-                    const item = this.dataset.item;
-                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-                    if (this.value !== 'null') {
-                        textarea.style.display = 'block';
-                    } else {
-                        textarea.style.display = 'none';
-                        textarea.value = '';
-                    }
-                });
-            });
-
-            document.getElementById('backToEstacionesBtn').onclick = () => {
-                handleOccidentalForm({ preventDefault: () => {} });
-            };
-
-            document.getElementById('inspectionForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    alert('Debe estar autenticado para guardar.');
-                    return;
-                }
-
-                const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-
-                const { data: inspeccionData, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .insert({
-                        estacion_id: estacionId,
-                        inspector_email: user.email,
-                        observaciones_generales: document.getElementById('observacionesGenerales').value || null,
-                        proxima_inspeccion: proximaFecha // ✅ GUARDAR FECHA
-                    })
-                    .select()
-                    .single();
-
-                if (inspError) {
-                    console.error('Error al crear inspección:', inspError);
-                    alert('Error al guardar la inspección: ' + (inspError.message || ''));
-                    return;
-                }
-
-                const itemsData = [];
-                items.forEach(item => {
-                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                    const cumpleValue = select.value;
-                    if (cumpleValue === 'null') return;
-
-                    const cumple = cumpleValue === 'true';
-                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-
-                    itemsData.push({
-                        inspeccion_id: inspeccionData.id,
-                        item_nombre: item,
-                        cumple: cumple,
-                        observacion: observacion
-                    });
-                });
-
-                if (itemsData.length === 0) {
-                    alert('Debe responder al menos un ítem.');
-                    return;
-                }
-
-                const { error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .insert(itemsData);
-
-                if (itemsError) {
-                    console.error('Error al guardar ítems:', itemsError);
-                    alert('Error al guardar los ítems: ' + (itemsError.message || ''));
+    // Manejar visibilidad de observaciones y porcentaje
+    document.querySelectorAll('.cumple-select').forEach(select => {
+        select.addEventListener('change', function () {
+            const item = this.dataset.item;
+            const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+            const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+            const output = document.querySelector(`.porcentaje-output[data-item="${item}"]`);
+            if (this.value === 'null') {
+                textarea.style.display = 'none';
+                slider.style.display = 'none';
+                output.style.display = 'none';
+                textarea.value = '';
+                slider.value = 0;
+            } else {
+                textarea.style.display = 'block';
+                if (this.value === 'true') {
+                    // Mostrar slider solo si es "Sí"
+                    slider.style.display = 'block';
+                    output.style.display = 'block';
                 } else {
-                    alert('✅ Inspección guardada exitosamente.');
-                    handleOccidentalForm({ preventDefault: () => {} });
+                    // Si es "No", ocultar slider y forzar 0%
+                    slider.style.display = 'none';
+                    output.style.display = 'none';
+                    slider.value = 0;
                 }
-            };
+            }
+        });
+    });
+
+    document.getElementById('backToEstacionesBtn').onclick = () => {
+        handleOccidentalForm({ preventDefault: () => {} });
+    };
+
+    document.getElementById('inspectionForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert('Debe estar autenticado para guardar.');
+            return;
         }
+
+        const proximaFecha = document.getElementById('proximaInspeccion').value || null;
+        const { data: inspeccionData, error: inspError } = await supabase
+            .from('inspecciones')
+            .insert({
+                estacion_id: estacionId,
+                inspector_email: user.email,
+                observaciones_generales: document.getElementById('observacionesGenerales').value || null,
+                proxima_inspeccion: proximaFecha
+            })
+            .select()
+            .single();
+
+        if (inspError) {
+            console.error('Error al crear inspección:', inspError);
+            alert('Error al guardar la inspección: ' + (inspError.message || ''));
+            return;
+        }
+
+        const itemsData = [];
+        items.forEach(item => {
+            const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+            const cumpleValue = select.value;
+            if (cumpleValue === 'null') return;
+
+            const cumple = cumpleValue === 'true';
+            const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+            let porcentaje = 0;
+            if (cumple) {
+                porcentaje = parseInt(document.querySelector(`.porcentaje-slider[data-item="${item}"]`).value) || 0;
+            }
+            // Si es "No", porcentaje sigue siendo 0
+
+            itemsData.push({
+                inspeccion_id: inspeccionData.id,
+                item_nombre: item,
+                cumple: cumple,
+                observacion: observacion,
+                porcentaje_cumplimiento: porcentaje
+            });
+        });
+
+        if (itemsData.length === 0) {
+            alert('Debe responder al menos un ítem.');
+            return;
+        }
+
+        const { error: itemsError } = await supabase
+            .from('items_inspeccion')
+            .insert(itemsData);
+
+        if (itemsError) {
+            console.error('Error al guardar ítems:', itemsError);
+            alert('Error al guardar los ítems: ' + (itemsError.message || ''));
+        } else {
+            alert('✅ Inspección guardada exitosamente.');
+            handleOccidentalForm({ preventDefault: () => {} });
+        }
+    };
+}
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
