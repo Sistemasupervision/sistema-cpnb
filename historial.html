@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Inspecciones - CPNB</title>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
@@ -262,11 +264,16 @@
         </div>
     </div>
 
-  <div id="detalleModal">
+ <div id="detalleModal">
     <div class="modal-content">
-        <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer;">&times;</span>
-        <h2 style="color: #0c2440; margin-bottom: 20px;">Detalles de la Inspección</h2>
-        <div id="detalleContenido"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+            <div>
+                <button onclick="exportarAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; margin-right: 10px; cursor: pointer;">📄 Exportar a PDF</button>
+                <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px;">&times;</span>
+            </div>
+        </div>
+        <div id="detalleContenido" style="padding: 10px;"></div>
     </div>
 </div>
 
@@ -531,7 +538,81 @@ async function mostrarDetalle(inspeccionId) {
             modal.style.display = 'none';
         }
     }
+<script>
+    // ... todo tu código anterior ...
 
+    // ✅ FUNCIÓN PARA EXPORTAR A PDF
+    async function exportarAPDF() {
+        const content = document.getElementById('detalleContenido');
+        if (!content || !content.innerHTML.trim()) {
+            alert('No hay contenido para exportar.');
+            return;
+        }
+
+        try {
+            // Crear un contenedor temporal con estilos para el PDF
+            const printContent = document.createElement('div');
+            printContent.innerHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                             alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                        <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                        <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                    </div>
+                    ${content.innerHTML}
+                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                    </div>
+                </div>
+            `;
+
+            // Añadir al body temporalmente
+            document.body.appendChild(printContent);
+            printContent.style.position = 'fixed';
+            printContent.style.left = '-9999px';
+
+            // Generar canvas
+            const canvas = await html2canvas(printContent, {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
+
+            // Generar PDF
+            const { jsPDF } = window.jspdf;
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 210; // ancho A4 en mm
+            const pageHeight = 297; // alto A4 en mm
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            // Descargar
+            const fecha = new Date().toISOString().slice(0, 10);
+            pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
+
+            // Limpiar
+            document.body.removeChild(printContent);
+        } catch (error) {
+            console.error('Error al generar PDF:', error);
+            alert('Error al generar el PDF. Intente nuevamente.');
+        }
+    }
+
+    // ... resto de tus funciones (cerrarModal, mostrarDetalle, etc.) ...
+</script>
     // Opcional: cerrar al presionar la tecla Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
