@@ -59,7 +59,40 @@
             color: #0c2440;
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
+        }
+        .filtro-fechas {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+        .filtro-fechas .input-group {
+            margin-bottom: 0;
+        }
+        .filtro-fechas input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            background-color: #f8fafc;
+        }
+        .filtro-fechas button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .filtro-fechas button:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+            transform: translateY(-1px);
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
@@ -69,7 +102,7 @@
             padding: 10px 20px;
             font-size: 15px;
             cursor: pointer;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -198,13 +231,16 @@
             padding: 30px;
         }
         @media (max-width: 600px) {
+            .filtro-fechas {
+                flex-direction: column;
+            }
+            .container {
+                padding: 25px;
+            }
             .inspeccion-header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 8px;
-            }
-            .container {
-                padding: 25px;
             }
         }
     </style>
@@ -218,6 +254,20 @@
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver al Inicio
         </button>
+
+        <!-- ✅ Filtro por rango de fechas -->
+        <div class="filtro-fechas">
+            <div class="input-group">
+                <label for="fechaDesde" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Desde:</label>
+                <input type="date" id="fechaDesde">
+            </div>
+            <div class="input-group">
+                <label for="fechaHasta" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Hasta:</label>
+                <input type="date" id="fechaHasta">
+            </div>
+            <button onclick="aplicarFiltro()">Filtrar</button>
+        </div>
+
         <div id="inspeccionesList">
             <div class="loading">Cargando historial...</div>
         </div>
@@ -236,9 +286,16 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        async function cargarHistorial() {
+        // Establecer fecha actual como valor por defecto en "Hasta"
+        document.getElementById('fechaHasta').valueAsDate = new Date();
+        // Fecha de hace 30 días como valor por defecto en "Desde"
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hace30Dias.getDate() - 30);
+        document.getElementById('fechaDesde').valueAsDate = hace30Dias;
+
+        async function cargarHistorial(fechaDesde = null, fechaHasta = null) {
             try {
-                const { data: inspecciones, error } = await supabase
+                let query = supabase
                     .from('inspecciones')
                     .select(`
                         id,
@@ -249,11 +306,22 @@
                     `)
                     .order('created_at', { ascending: false });
 
+                if (fechaDesde && fechaHasta) {
+                    // Ajustar fechas para incluir todo el día
+                    const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
+                    const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
+                    query = query
+                        .gte('created_at', desdeISO)
+                        .lte('created_at', hastaISO + 'T23:59:59.999Z');
+                }
+
+                const { data: inspecciones, error } = await query;
+
                 if (error) throw error;
 
                 const contenedor = document.getElementById('inspeccionesList');
                 if (!inspecciones || inspecciones.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones registradas.</div>';
+                    contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones en este rango de fechas.</div>';
                     return;
                 }
 
@@ -286,6 +354,23 @@
                 document.getElementById('inspeccionesList').innerHTML = 
                     '<div style="text-align:center; color:red; padding:30px;">Error al cargar el historial.</div>';
             }
+        }
+
+        function aplicarFiltro() {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+
+            if (!desde || !hasta) {
+                alert('Por favor seleccione ambas fechas.');
+                return;
+            }
+
+            if (new Date(desde) > new Date(hasta)) {
+                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".');
+                return;
+            }
+
+            cargarHistorial(desde, hasta);
         }
 
         async function mostrarDetalle(inspeccionId) {
@@ -364,13 +449,12 @@
             document.getElementById('detalleModal').style.display = 'none';
         }
 
-        // Cerrar modal al hacer clic fuera
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        // Cargar al iniciar
-        cargarHistorial();
+        // Cargar historial inicial (últimos 30 días por defecto)
+        cargarHistorial(hace30Dias.toISOString().split('T')[0], new Date().toISOString().split('T')[0]);
     </script>
 </body>
 </html>
