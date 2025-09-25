@@ -1,3 +1,4 @@
+<!-- Guarda como: historial-inspecciones.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -93,25 +94,30 @@
                 verBtn.disabled = true;
                 return;
             }
+
             estacionSelect.disabled = true;
             estacionSelect.innerHTML = '<option value="">Cargando...</option>';
             verBtn.disabled = true;
+
             try {
                 const { data, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
                     .order('nombre', { ascending: true });
+
                 if (error) throw error;
-                let html = '<option value="">-- Seleccione estación --</option>';
-                data.forEach(e => {
-                    html += `<option value="${e.id}">${e.nombre}</option>`;
+
+                let options = '<option value="">-- Seleccione estación --</option>';
+                data.forEach(est => {
+                    options += `<option value="${est.id}">${est.nombre}</option>`;
                 });
-                estacionSelect.innerHTML = html;
+                estacionSelect.innerHTML = options;
                 estacionSelect.disabled = false;
             } catch (err) {
-                console.error(err);
-                estacionSelect.innerHTML = '<option value="">Error</option>';
+                console.error('Error al cargar estaciones:', err);
+                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
+                estacionSelect.disabled = true;
             }
         });
 
@@ -121,47 +127,44 @@
 
         verBtn.addEventListener('click', async () => {
             const estacionId = parseInt(estacionSelect.value);
-            const container = document.getElementById('historialContainer');
             if (isNaN(estacionId)) {
-                container.innerHTML = '<p>⚠️ ID de estación inválido</p>';
+                alert('Seleccione una estación válida.');
                 return;
             }
 
-            container.innerHTML = '<p>Cargando historial...</p>';
+            historialContainer.innerHTML = '<p>Cargando historial...</p>';
 
             try {
-        
+                // ✅ CORRECCIÓN: usar 'data', no 'inspecciones'
                 const {  inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('*')
                     .eq('estacion_id', estacionId)
                     .order('created_at', { ascending: false });
 
-                if (error) {
-                    container.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
-                    return;
-                }
+                if (error) throw error;
 
                 if (!inspecciones || inspecciones.length === 0) {
-                    container.innerHTML = '<p>🔍 No hay inspecciones para esta estación.</p>';
+                    historialContainer.innerHTML = '<p>🔍 No hay inspecciones para esta estación.</p>';
                     return;
                 }
 
                 let html = '';
-                inspecciones.forEach(i => {
-                    const fecha = new Date(i.created_at).toLocaleString('es-VE');
+                for (const insp of inspecciones) {
+                    const fecha = new Date(insp.created_at).toLocaleString('es-VE');
                     html += `
                         <div class="inspeccion">
                             <h3>Inspección del ${fecha}</h3>
-                            <p><strong>Inspector:</strong> ${i.inspector_email}</p>
-                            <p><strong>Observaciones:</strong> ${i.observaciones_generales || 'Ninguna'}</p>
+                            <p><strong>Inspector:</strong> ${insp.inspector_email}</p>
+                            <p><strong>Observaciones generales:</strong> ${insp.observaciones_generales || 'Ninguna'}</p>
                         </div>
                     `;
-                });
-                container.innerHTML = html;
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = `<p style="color:red;">⚠️ Error: ${err.message}</p>`;
+                }
+
+                historialContainer.innerHTML = html;
+            } catch (error) {
+                console.error('Error al cargar historial:', error);
+                historialContainer.innerHTML = `<p style="color:red;">⚠️ Error al cargar historial.<br><small>${error.message || 'Error desconocido'}</small></p>`;
             }
         });
     </script>
