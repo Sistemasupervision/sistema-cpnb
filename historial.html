@@ -632,99 +632,134 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
+        
+    async function mostrarDetalle(inspeccionId) {
+        try {
+            const { data: items, error: itemsError } = await supabase
+                .from('items_inspeccion')
+                .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+                .eq('inspeccion_id', inspeccionId)
+                .order('item_nombre', { ascending: true });
+            const { data: inspeccion, error: inspError } = await supabase
+                .from('inspecciones')
+                .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
+                .eq('id', inspeccionId)
+                .single();
+            if (itemsError || inspError) throw itemsError || inspError;
+            
+            let nombreEstacion = 'Estación no disponible';
+            const { data: estacionData, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('nombre')
+                .eq('id', inspeccion.estacion_id)
+                .single();
+            if (!estError && estacionData) {
+                nombreEstacion = estacionData.nombre;
+            }
 
-        async function mostrarDetalle(inspeccionId) {
-            try {
-                const { data: items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
-                    .eq('inspeccion_id', inspeccionId)
-                    .order('item_nombre', { ascending: true });
-                const { data: inspeccion, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
-                    .eq('id', inspeccionId)
-                    .single();
-                if (itemsError || inspError) throw itemsError || inspError;
-                let nombreEstacion = 'Estación no disponible';
-                const { data: estacionData, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('nombre')
-                    .eq('id', inspeccion.estacion_id)
-                    .single();
-                if (!estError && estacionData) {
-                    nombreEstacion = estacionData.nombre;
-                }
-                const nombres = {
-                    baño_dama: "Baño Dama",
-                    baño_caballero: "Baño Caballero",
-                    dormitorio_femenino: "Dormitorio Femenino",
-                    dormitorio_masculino: "Dormitorio Masculino",
-                    cocina: "Cocina",
-                    comedor: "Comedor",
-                    lavanderia: "Lavandería",
-                    oficina_del_jefe: "Oficina del Jefe",
-                    oficina_de_rrhh: "Oficina de RRHH",
-                    condiciones_electricas: "Condiciones Eléctricas",
-                    fachada: "Fachada",
-                    condiciones_de_pintura: "Condiciones de Pintura",
-                    jardines: "Jardines",
-                    condiciones_generales: "Condiciones Generales",
-                    vehiculos: "Vehículos",
-                    motos: "Motos"
-                };
-                let fechaFormateada = 'Fecha no disponible';
-                if (inspeccion.created_at) {
-                    const fechaObj = new Date(inspeccion.created_at);
-                    if (!isNaN(fechaObj.getTime())) {
-                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    }
-                }
-                let html = `<h3>Estación: ${nombreEstacion}</h3>`;
-                html += `<p><strong>Fecha de inspección:</strong> ${fechaFormateada}</p>`;
-                if (inspeccion.proxima_inspeccion) {
-                    const proxima = new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES');
-                    html += `<p><strong>Próxima inspección programada:</strong> ${proxima}</p>`;
-                }
-                if (items && items.length > 0) {
-                    items.forEach(item => {
-                        const nombre = nombres[item.item_nombre] || item.item_nombre;
-                        const clase = item.cumple ? 'si' : 'no';
-                        const texto = item.cumple ? 'Sí' : 'No';
-                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
-                        html += `
-                            <div class="detalle-item">
-                                <span class="item-nombre">${nombre}:</span>
-                                <span class="item-respuesta ${clase}">${texto}${porcentajeTexto}</span>
-                                ${item.observacion ? `<div class="item-observacion">Observación: ${item.observacion}</div>` : ''}
-                            </div>
-                        `;
+            const nombres = {
+                baño_dama: "Baño Dama",
+                baño_caballero: "Baño Caballero",
+                dormitorio_femenino: "Dormitorio Femenino",
+                dormitorio_masculino: "Dormitorio Masculino",
+                cocina: "Cocina",
+                comedor: "Comedor",
+                lavanderia: "Lavandería",
+                oficina_del_jefe: "Oficina del Jefe",
+                oficina_de_rrhh: "Oficina de RRHH",
+                condiciones_electricas: "Condiciones Eléctricas",
+                fachada: "Fachada",
+                condiciones_de_pintura: "Condiciones de Pintura",
+                jardines: "Jardines",
+                condiciones_generales: "Condiciones Generales",
+                vehiculos: "Vehículos",
+                motos: "Motos"
+            };
+
+            let fechaFormateada = 'Fecha no disponible';
+            if (inspeccion.created_at) {
+                const fechaObj = new Date(inspeccion.created_at);
+                if (!isNaN(fechaObj.getTime())) {
+                    fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                     });
-                } else {
-                    html += '<p>No hay ítems registrados.</p>';
                 }
-                if (inspeccion.observaciones_generales) {
+            }
+
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
+                        <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
+                    </div>
+                </div>
+                
+                <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
+                            <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
+                            <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
+                            <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (items && items.length > 0) {
+                html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
+                items.forEach(item => {
+                    const nombre = nombres[item.item_nombre] || item.item_nombre;
+                    const clase = item.cumple ? 'si' : 'no';
+                    const texto = item.cumple ? 'Sí' : 'No';
+                    const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+                    
                     html += `
-                        <div class="observaciones-generales">
-                            <strong>Observaciones Generales:</strong><br>
-                            ${inspeccion.observaciones_generales}
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
+                                <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
+                                    ${texto}${porcentajeTexto}
+                                </span>
+                            </div>
+                            ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                                <strong>Observación:</strong> ${item.observacion}
+                            </div>` : ''}
                         </div>
                     `;
-                }
-                document.getElementById('detalleContenido').innerHTML = html;
-                document.getElementById('detalleModal').style.display = 'flex';
-            } catch (error) {
-                console.error('Error detallado al cargar inspección:', error);
-                alert('Error al cargar los detalles. Verifica la consola del navegador.');
+                });
+            } else {
+                html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
             }
-        }
 
+            if (inspeccion.observaciones_generales) {
+                html += `
+                    <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
+                        <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
+                        <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('detalleContenido').innerHTML = html;
+            document.getElementById('detalleModal').style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error detallado al cargar inspección:', error);
+            alert('Error al cargar los detalles. Verifica la consola del navegador.');
+        }
+    }
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
