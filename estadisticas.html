@@ -105,9 +105,6 @@
       padding: 10px 20px;
       border-radius: 10px;
       cursor: pointer;
-      margin-top: 20px;
-      display: inline-block;
-      text-decoration: none;
       font-weight: bold;
     }
     .back-btn:hover {
@@ -140,7 +137,9 @@
       <h1>📊 Estadísticas de Cumplimiento</h1>
     </div>
 
-    <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
+    <div style="text-align: center; margin-bottom: 25px;">
+      <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
+    </div>
 
     <div class="filters">
       <select id="ccpFilter">
@@ -152,7 +151,6 @@
       </select>
       <select id="estacionFilter" disabled>
         <option value="">Todas las Estaciones</option>
-        <!-- Se llena dinámicamente -->
       </select>
     </div>
 
@@ -162,7 +160,7 @@
       <canvas id="complianceChart" height="100"></canvas>
     </div>
 
-    <div id="loading" class="loading">Cargando estadísticas...</div>
+    <div id="loading" class="loading" style="display:none;">Cargando estadísticas...</div>
     <div id="noData" class="no-data" style="display:none;">No hay inspecciones registradas para los filtros seleccionados.</div>
   </div>
 
@@ -292,7 +290,6 @@
           summaryCards.appendChild(card);
         });
 
-        // Si no hay ítems con datos
         if (labels.length === 0) {
           loadingDiv.style.display = 'none';
           noDataDiv.style.display = 'block';
@@ -338,17 +335,42 @@
     document.getElementById('ccpFilter').addEventListener('change', async (e) => {
       const ccpId = e.target.value;
       await loadEstacionesByCCP(ccpId);
-      await loadStatistics(ccpId, null);
+      if (ccpId) {
+        await loadStatistics(ccpId, null);
+      } else {
+        document.getElementById('summaryCards').innerHTML = '';
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('noData').style.display = 'none';
+        const ctx = document.getElementById('complianceChart').getContext('2d');
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+      }
     });
 
     document.getElementById('estacionFilter').addEventListener('change', async (e) => {
       const estacionId = e.target.value || null;
       const ccpId = document.getElementById('ccpFilter').value || null;
-      await loadStatistics(ccpId, estacionId);
+      if (estacionId) {
+        await loadStatistics(null, estacionId);
+      } else if (ccpId) {
+        await loadStatistics(ccpId, null);
+      } else {
+        document.getElementById('summaryCards').innerHTML = '';
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('noData').style.display = 'none';
+        const ctx = document.getElementById('complianceChart').getContext('2d');
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+      }
     });
 
-    // Inicializar
-    loadStatistics();
+    // ✅ NO cargar al inicio → pantalla limpia
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('noData').style.display = 'none';
   </script>
 </body>
 </html>
