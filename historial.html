@@ -91,84 +91,105 @@
         #inspeccionesList {
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 20px;
         }
         .inspeccion-card {
-            background: #f8fafc;
+            background: white;
             border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 20px;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
         }
-        .inspeccion-header {
+        .inspeccion-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
         }
-        .inspeccion-fecha {
-            font-size: 14px;
-            color: #4a5568;
-            font-weight: bold;
-            text-align: right;
-            width: 100%;
-            margin-top: 4px;
-        }
-        .inspeccion-inspector {
-            font-size: 14px;
-            color: #2d3748;
-            margin: 4px 0;
-            text-align: right;
-            width: 100%;
+        .estacion-info {
+            flex: 1;
+            min-width: 200px;
         }
         .inspeccion-estacion {
-            font-size: 18px;
+            font-size: 19px;
             font-weight: bold;
             color: #0c2440;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            width: 100%;
-        }
-        .inspeccion-cumplimiento {
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 6px;
-            text-align: right;
-            width: 100%;
-        }
-        .cumplimiento-alto { color: #38a169; }
-        .cumplimiento-medio { color: #d69e2e; }
-        .cumplimiento-bajo { color: #e53e3e; }
-        .alerta-pendiente {
-            color: #e53e3e;
-            font-weight: bold;
-            font-size: 16px;
-            margin-top: 6px;
-            display: block;
+            gap: 10px;
         }
         .estado-indicador {
             display: inline-block;
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            margin-left: 6px;
         }
         .estado-rojo { background-color: #e53e3e; }
         .estado-amarillo { background-color: #d69e2e; }
         .estado-verde { background-color: #38a169; }
+        .alerta-pendiente {
+            color: #e53e3e;
+            font-weight: bold;
+            font-size: 14px;
+            display: block;
+            margin-top: 4px;
+        }
+        .meta-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .meta-label {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .meta-value {
+            font-size: 15px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+        .cumplimiento-badge {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 15px;
+            display: inline-block;
+            margin-top: 12px;
+        }
+        .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); }
+        .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); }
+        .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); }
         .ver-btn {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 8px 16px;
+            padding: 10px 20px;
             font-size: 14px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 16px;
+            font-weight: bold;
+            width: 100%;
+            max-width: 200px;
         }
         .ver-btn:hover {
             opacity: 0.9;
@@ -274,12 +295,15 @@
             .container {
                 padding: 25px;
             }
-            .inspeccion-header {
+            .card-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            .pagination {
-                flex-wrap: wrap;
+            .meta-info {
+                grid-template-columns: 1fr;
+            }
+            .cumplimiento-badge {
+                margin-top: 16px;
             }
         }
     </style>
@@ -393,7 +417,6 @@
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
-                // Cargar estaciones para mapeo
                 const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
@@ -406,7 +429,6 @@
                     ccpEstaciones[est.ccp_id].push(est.id);
                 });
 
-                // Obtener inspecciones
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
@@ -439,7 +461,7 @@
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
 
-                // ✅ Obtener ítems de todas las inspecciones para calcular cumplimiento
+                // ✅ Obtener ítems para calcular cumplimiento
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -458,7 +480,6 @@
                     }
                 }
 
-                // ✅ Calcular porcentaje por inspección
                 inspeccionesCache = inspecciones.map(insp => {
                     const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
                     const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
@@ -501,12 +522,7 @@
                     minute: '2-digit'
                 });
 
-                // Clasificación por cumplimiento
-                let claseCumplimiento = 'cumplimiento-bajo';
-                if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
-                else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
-
-                // Lógica del indicador de próxima inspección
+                // Estado de próxima inspección
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 const hoy = new Date();
@@ -523,19 +539,34 @@
                     }
                 }
 
+                // Clasificación por cumplimiento
+                let claseCumplimiento = 'cumplimiento-bajo';
+                if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
+                else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
+
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
                 card.innerHTML = `
-                    <div class="inspeccion-header">
-                        <div class="inspeccion-estacion">
-                            ${insp.estacion_nombre}
-                            <span class="estado-indicador ${estadoClase}"></span>
+                    <div class="card-header">
+                        <div class="estacion-info">
+                            <div class="inspeccion-estacion">
+                                ${insp.estacion_nombre}
+                                <span class="estado-indicador ${estadoClase}"></span>
+                            </div>
                             ${alertaHTML}
                         </div>
-                        <div style="text-align: right; width: 100%;">
-                            <div class="inspeccion-fecha">${fechaInspeccion}</div>
-                            <div class="inspeccion-inspector">Inspector: ${insp.inspector_email}</div>
-                            <div class="inspeccion-cumplimiento ${claseCumplimiento}">Cumplimiento: ${insp.porcentaje_cumplimiento}%</div>
+                        <div class="cumplimiento-badge ${claseCumplimiento}">
+                            ${insp.porcentaje_cumplimiento}% cumplimiento
+                        </div>
+                    </div>
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <span class="meta-label">Fecha y Hora</span>
+                            <span class="meta-value">${fechaInspeccion}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Inspector</span>
+                            <span class="meta-value">${insp.inspector_email}</span>
                         </div>
                     </div>
                     <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
