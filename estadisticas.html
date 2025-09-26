@@ -174,48 +174,45 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Estadísticas de Inspecciones</h1>
         </div>
-<button class="back-btn" onclick="window.location.href='index.html'">
-    ← Volver al Panel Principal
-</button>
 
-    <div id="seleccionContainer">
-    <div class="filtro-container">
-        <div class="input-group">
-            <label for="ccpFilter">Seleccione CCP:</label>
-            <select id="ccpFilter">
-                <option value="">-- Elija un CCP --</option>
-                <option value="metropolitano">CCP METROPOLITANO</option>
-                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                <option value="guajira">CCP GUAJIRA</option>
-                <option value="col">CCPE COL</option>
-            </select>
+        <!-- SELECCIÓN: CCP + Estación -->
+        <div id="seleccionContainer">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← Volver al Panel Principal
+            </button>
+            <div class="filtro-container">
+                <div class="input-group">
+                    <label for="ccpFilter">Seleccione CCP:</label>
+                    <select id="ccpFilter">
+                        <option value="">-- Elija un CCP --</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="col">CCPE COL</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="estacionFilter">Seleccione Estación:</label>
+                    <select id="estacionFilter" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <div class="input-group">
-            <label for="estacionFilter">Seleccione Estación:</label>
-            <select id="estacionFilter" disabled>
-                <option value="">-- Primero seleccione un CCP --</option>
-            </select>
+
+        <!-- RESULTADOS: Gráficos y porcentajes -->
+        <div id="resultadosContainer" style="display: none;">
+            <div class="stats-header" id="statsHeader"></div>
+            <button class="back-btn" onclick="volverASeleccion()">
+                ← Seleccionar otra estación
+            </button>
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <canvas id="cumplimientoChart"></canvas>
+                </div>
+            </div>
+            <div class="porcentajes-container" id="porcentajesContainer"></div>
         </div>
-    </div>
-    <!-- Botón para volver al panel principal -->
-    <button class="back-btn" onclick="window.location.href='index.html'">
-        ← Volver al Panel Principal
-    </button>
-</div>
-        <!-- Resultados -->
-     <div id="resultadosContainer" style="display: none;">
-    <div class="stats-header" id="statsHeader"></div>
-    <!-- Botón para seleccionar otra estación -->
-    <button class="back-btn" onclick="volverASeleccion()">
-        ← Seleccionar otra estación
-    </button>
-    <div class="chart-container">
-        <div class="chart-wrapper">
-            <canvas id="cumplimientoChart"></canvas>
-        </div>
-    </div>
-    <div class="porcentajes-container" id="porcentajesContainer"></div>
-</div>
 
         <div id="mensajeCarga" class="loading" style="display: none;">Cargando estadísticas...</div>
         <div id="mensajeSinDatos" class="no-data" style="display: none;">No existen inspecciones para esta estación.</div>
@@ -248,7 +245,6 @@
 
         const todosLosItems = Object.keys(nombresItems);
 
-        // ✅ Cargar estaciones al cambiar CCP — COPIADO DIRECTAMENTE DE historial.txt
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -278,7 +274,6 @@
             }
         });
 
-        // ✅ Al seleccionar una estación, cargar estadísticas
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
             if (!estacionId) return;
@@ -332,7 +327,7 @@
         function calcularEstadisticas(items) {
             const resultado = {};
             todosLosItems.forEach(item => {
-                resultado[item] = 0; // Inicializar en 0%
+                resultado[item] = 0;
             });
 
             const agrupado = {};
@@ -422,49 +417,21 @@
                 container.appendChild(itemDiv);
             });
         }
-     function volverASeleccion() {
-    // Mostrar el contenedor de selección y ocultar resultados
-    document.getElementById('seleccionContainer').style.display = 'block';
-    document.getElementById('resultadosContainer').style.display = 'none';
-    document.getElementById('mensajeCarga').style.display = 'none';
-    document.getElementById('mensajeSinDatos').style.display = 'none';
-    
-    // Limpiar gráfico
-    if (window.chartInstance) {
-        window.chartInstance.destroy();
-        window.chartInstance = null;
-    }
-    
-    // Limpiar porcentajes
-    document.getElementById('porcentajesContainer').innerHTML = '';
-    document.getElementById('statsHeader').textContent = '';
-}
-        async function cargarEstacionesPorCCP(ccpId) {
-    try {
-        const { data: estaciones, error } = await supabase
-            .from('estaciones_policiales')
-            .select('id, nombre, ccp_id')
-            .eq('ccp_id', ccpId)
-            .order('nombre', { ascending: true });
-        if (error) throw error;
-        const estacionSelect = document.getElementById('estacionFilter');
-        estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
-        if (estaciones.length === 0) {
-            estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
-            return;
+
+        function volverASeleccion() {
+            document.getElementById('seleccionContainer').style.display = 'block';
+            document.getElementById('resultadosContainer').style.display = 'none';
+            document.getElementById('mensajeCarga').style.display = 'none';
+            document.getElementById('mensajeSinDatos').style.display = 'none';
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+            
+            document.getElementById('porcentajesContainer').innerHTML = '';
+            document.getElementById('statsHeader').textContent = '';
         }
-        estaciones.forEach(est => {
-            const opt = document.createElement('option');
-            opt.value = est.id;
-            opt.textContent = est.nombre;
-            estacionSelect.appendChild(opt);
-        });
-    } catch (error) {
-        console.error('Error al recargar estaciones:', error);
-        alert('Error al cargar las estaciones');
-    }
-}
-        
     </script>
 </body>
 </html>
