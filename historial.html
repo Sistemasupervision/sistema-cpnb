@@ -22,6 +22,64 @@
             position: relative;
             overflow-x: hidden;
         }
+        .vector-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        .vector-circle {
+            position: absolute;
+            border: 2px solid rgba(255, 204, 0, 0.3);
+            border-radius: 50%;
+        }
+        .vector-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            left: -100px;
+        }
+        .vector-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            right: -50px;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+        .vector-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 30%;
+            right: 10%;
+            border-color: rgba(255, 204, 0, 0.4);
+        }
+        .vector-circle:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            bottom: 20%;
+            left: 5%;
+            border-color: rgba(44, 82, 130, 0.4);
+        }
+        .vector-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
+        }
+        .vector-line:nth-child(5) {
+            width: 200px;
+            top: 15%;
+            left: 20%;
+            transform: rotate(30deg);
+        }
+        .vector-line:nth-child(6) {
+            width: 150px;
+            bottom: 25%;
+            right: 25%;
+            transform: rotate(-45deg);
+        }
         .container {
             background: white;
             border-radius: 20px;
@@ -80,7 +138,7 @@
         }
         .filters {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
             background: #f8fafc;
@@ -159,6 +217,15 @@
     </style>
 </head>
 <body>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+
     <div class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -222,6 +289,15 @@
 
         let todasEstaciones = [];
 
+        // Verificar autenticación
+        async function checkAuth() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión para acceder al historial.');
+                window.location.href = 'index.html';
+            }
+        }
+
         // Cargar estaciones para el filtro
         async function cargarEstaciones() {
             try {
@@ -267,7 +343,6 @@
             document.getElementById('inspeccionesBody').innerHTML = '';
 
             try {
-                // Obtener todas las inspecciones con relaciones
                 const { data: inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select(`
@@ -287,7 +362,7 @@
                     return;
                 }
 
-                // Calcular cumplimiento promedio por inspección
+                // Obtener ítems de todas las inspecciones
                 const ids = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -356,9 +431,8 @@
                 const fechaCelda = celdas[0].textContent;
                 const ccpCelda = celdas[1].textContent;
                 const estacionCelda = celdas[2].textContent;
-                const inspectorCelda = celdas[3].textContent;
 
-                // Convertir fecha de la fila
+                // Parsear fecha
                 const [dia, mes, anio] = fechaCelda.split('/');
                 const fechaFila = new Date(`${anio}-${mes}-${dia}`);
 
@@ -367,13 +441,7 @@
                 if (fechaInicio && fechaFila < new Date(fechaInicio)) mostrar = false;
                 if (fechaFin && fechaFila > new Date(fechaFin)) mostrar = false;
                 if (ccp && !ccpCelda.toLowerCase().includes(ccp.replace('-', ' '))) mostrar = false;
-                if (estacionId && celdas[2].dataset.label) {
-                    // En móviles, el valor real está en data-label, pero aquí usamos texto visible
-                    const idEstacionFila = Array.from(document.querySelectorAll('#inspeccionesBody tr'))
-                        .indexOf(row);
-                    // Alternativa: mejor sería tener data-id, pero por simplicidad filtramos por nombre
-                    // Aquí asumimos que el filtro por nombre ya cubre esto
-                }
+                if (estacionId && estacionId !== celdas[2].textContent) mostrar = false;
                 if (busqueda && !estacionCelda.toLowerCase().includes(busqueda)) mostrar = false;
 
                 row.style.display = mostrar ? '' : 'none';
@@ -387,6 +455,7 @@
         }
 
         // Inicializar
+        checkAuth();
         cargarEstaciones();
         cargarHistorial();
     </script>
