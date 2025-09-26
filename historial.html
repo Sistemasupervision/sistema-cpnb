@@ -689,9 +689,8 @@
                 });
             }
         }
-        
-        document.getElementById('detalleContenido').innerHTML = '';
-        
+
+        // ✅ Generar TODO el contenido del modal aquí
         let html = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
@@ -753,13 +752,14 @@
                 </div>
             `;
         }
-        
+
+        // ✅ Insertar TODO en el contenedor
         document.getElementById('detalleContenido').innerHTML = html;
         document.getElementById('detalleModal').style.display = 'flex';
 
     } catch (error) {
-        console.error('Error detallado al cargar inspección:', error);
-        alert('Error al cargar los detalles. Verifica la consola del navegador.');
+        console.error('Error al cargar detalles:', error);
+        alert('Error al cargar los detalles.');
     }
 }
         function cerrarModal() {
