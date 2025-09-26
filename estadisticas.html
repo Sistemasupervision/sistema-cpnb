@@ -239,10 +239,12 @@
           .select('item_nombre, porcentaje_cumplimiento, inspecciones(estacion_id)')
           .in('item_nombre', Object.keys(itemLabels));
 
+        // ✅ Filtrar por estación específica
         if (estacionId) {
           query = query.eq('inspecciones.estacion_id', estacionId);
         } else if (ccpId) {
-          const { data: estaciones, error: estError } = await supabase
+          // ✅ Filtrar por CCP (si no hay estación seleccionada)
+          const {  estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
             .select('id')
             .eq('ccp_id', ccpId);
@@ -302,7 +304,7 @@
             labels: labels,
             datasets: [{
               label: '% Cumplimiento Promedio',
-              data: percentages,
+               percentages,
               backgroundColor: 'rgba(49, 130, 206, 0.7)',
               borderColor: 'rgba(49, 130, 206, 1)',
               borderWidth: 1
