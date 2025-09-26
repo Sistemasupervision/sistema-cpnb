@@ -174,42 +174,49 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Estadísticas de Inspecciones</h1>
         </div>
-<button class="back-btn" onclick="volverASeleccion()">
-    ← Seleccionar otra estación
+<button class="back-btn" onclick="window.location.href='index.html'">
+    ← Volver al Panel Principal
 </button>
 
         <!-- Selección -->
-        <div id="seleccionContainer">
-            <div class="filtro-container">
-                <div class="input-group">
-                    <label for="ccpFilter">Seleccione CCP:</label>
-                    <select id="ccpFilter">
-                        <option value="">-- Elija un CCP --</option>
-                        <option value="metropolitano">CCP METROPOLITANO</option>
-                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                        <option value="guajira">CCP GUAJIRA</option>
-                        <option value="col">CCPE COL</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="estacionFilter">Seleccione Estación:</label>
-                    <select id="estacionFilter" disabled>
-                        <option value="">-- Primero seleccione un CCP --</option>
-                    </select>
-                </div>
-            </div>
+     <div id="seleccionContainer">
+    <div class="filtro-container">
+        <div class="input-group">
+            <label for="ccpFilter">Seleccione CCP:</label>
+            <select id="ccpFilter">
+                <option value="">-- Elija un CCP --</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="col">CCPE COL</option>
+            </select>
         </div>
-
+        <div class="input-group">
+            <label for="estacionFilter">Seleccione Estación:</label>
+            <select id="estacionFilter" disabled>
+                <option value="">-- Primero seleccione un CCP --</option>
+            </select>
+        </div>
+    </div>
+    <!-- Botón para volver al panel principal -->
+    <button class="back-btn" onclick="window.location.href='index.html'">
+        ← Volver al Panel Principal
+    </button>
+</div>
         <!-- Resultados -->
-        <div id="resultadosContainer" style="display: none;">
-            <div class="stats-header" id="statsHeader"></div>
-            <div class="chart-container">
-                <div class="chart-wrapper">
-                    <canvas id="cumplimientoChart"></canvas>
-                </div>
-            </div>
-            <div class="porcentajes-container" id="porcentajesContainer"></div>
+     <div id="resultadosContainer" style="display: none;">
+    <div class="stats-header" id="statsHeader"></div>
+    <!-- Botón para seleccionar otra estación -->
+    <button class="back-btn" onclick="volverASeleccion()">
+        ← Seleccionar otra estación
+    </button>
+    <div class="chart-container">
+        <div class="chart-wrapper">
+            <canvas id="cumplimientoChart"></canvas>
         </div>
+    </div>
+    <div class="porcentajes-container" id="porcentajesContainer"></div>
+</div>
 
         <div id="mensajeCarga" class="loading" style="display: none;">Cargando estadísticas...</div>
         <div id="mensajeSinDatos" class="no-data" style="display: none;">No existen inspecciones para esta estación.</div>
