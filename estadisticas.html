@@ -243,7 +243,15 @@
             <div class="porcentajes-container" id="porcentajesContainer"></div>
         </div>
         <div id="mensajeCarga" class="loading" style="display: none;">Cargando estadísticas...</div>
-        <div id="mensajeSinDatos" class="no-data" style="display: none;">No existen inspecciones para esta estación.</div>
+        <div id="mensajeSinDatos" class="no-data" style="display: none;">
+            <div style="text-align: center; padding: 20px;">
+                <p>No existen inspecciones para esta estación.</p>
+                <button onclick="volverASeleccion()" 
+                        style="background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; margin-top: 10px; cursor: pointer;">
+                    ← Volver a Selección
+                </button>
+            </div>
+        </div>
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -302,76 +310,46 @@
             if (!estacionId) return;
             await cargarEstadisticas(estacionId);
         });
-       async function cargarEstadisticas(estacionId) {
-    const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
-    document.getElementById('seleccionContainer').style.display = 'none';
-    document.getElementById('resultadosContainer').style.display = 'none';
-    document.getElementById('mensajeCarga').style.display = 'block';
-    document.getElementById('mensajeSinDatos').style.display = 'none';
-    try {
-        const { data: inspecciones, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('id')
-            .eq('estacion_id', estacionId);
-        if (inspError) throw inspError;
-        if (!inspecciones || inspecciones.length === 0) {
-            document.getElementById('mensajeCarga').style.display = 'none';
-            // ✅ Mostrar mensaje con botón de volver
-            const mensajeDiv = document.getElementById('mensajeSinDatos');
-            mensajeDiv.innerHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <p>No existen inspecciones para esta estación.</p>
-                    <button onclick="volverASeleccion()" 
-                            style="background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; margin-top: 10px; cursor: pointer;">
-                        ← Volver a Selección
-                    </button>
-                </div>
-            `;
-            mensajeDiv.style.display = 'block';
-            return;
+        async function cargarEstadisticas(estacionId) {
+            const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
+            document.getElementById('seleccionContainer').style.display = 'none';
+            document.getElementById('resultadosContainer').style.display = 'none';
+            document.getElementById('mensajeCarga').style.display = 'block';
+            document.getElementById('mensajeSinDatos').style.display = 'none';
+            try {
+                const { data: inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id')
+                    .eq('estacion_id', estacionId);
+                if (inspError) throw inspError;
+                if (!inspecciones || inspecciones.length === 0) {
+                    document.getElementById('mensajeCarga').style.display = 'none';
+                    document.getElementById('mensajeSinDatos').style.display = 'block';
+                    return;
+                }
+                const idsInspecciones = inspecciones.map(i => i.id);
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, porcentaje_cumplimiento')
+                    .in('inspeccion_id', idsInspecciones);
+                if (itemsError) throw itemsError;
+                if (!items || items.length === 0) {
+                    document.getElementById('mensajeCarga').style.display = 'none';
+                    document.getElementById('mensajeSinDatos').style.display = 'block';
+                    return;
+                }
+                const estadisticas = calcularEstadisticas(items);
+                renderizarGrafico(estadisticas, estacionNombre);
+                renderizarPorcentajes(estadisticas);
+                document.getElementById('mensajeCarga').style.display = 'none';
+                document.getElementById('resultadosContainer').style.display = 'block';
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+                document.getElementById('mensajeCarga').style.display = 'none';
+                document.getElementById('mensajeSinDatos').textContent = 'Error al cargar los datos.';
+                document.getElementById('mensajeSinDatos').style.display = 'block';
+            }
         }
-        const idsInspecciones = inspecciones.map(i => i.id);
-        const { data: items, error: itemsError } = await supabase
-            .from('items_inspeccion')
-            .select('item_nombre, cumple, porcentaje_cumplimiento')
-            .in('inspeccion_id', idsInspecciones);
-        if (itemsError) throw itemsError;
-        if (!items || items.length === 0) {
-            document.getElementById('mensajeCarga').style.display = 'none';
-            const mensajeDiv = document.getElementById('mensajeSinDatos');
-            mensajeDiv.innerHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <p>No hay ítems registrados para esta estación.</p>
-                    <button onclick="volverASeleccion()" 
-                            style="background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; margin-top: 10px; cursor: pointer;">
-                        ← Volver a Selección
-                    </button>
-                </div>
-            `;
-            mensajeDiv.style.display = 'block';
-            return;
-        }
-        const estadisticas = calcularEstadisticas(items);
-        renderizarGrafico(estadisticas, estacionNombre);
-        renderizarPorcentajes(estadisticas);
-        document.getElementById('mensajeCarga').style.display = 'none';
-        document.getElementById('resultadosContainer').style.display = 'block';
-    } catch (error) {
-        console.error('Error al cargar estadísticas:', error);
-        document.getElementById('mensajeCarga').style.display = 'none';
-        const mensajeDiv = document.getElementById('mensajeSinDatos');
-        mensajeDiv.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <p>Error al cargar los datos.</p>
-                <button onclick="volverASeleccion()" 
-                        style="background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; margin-top: 10px; cursor: pointer;">
-                    ← Volver a Selección
-                </button>
-            </div>
-        `;
-        mensajeDiv.style.display = 'block';
-    }
-}
         function calcularEstadisticas(items) {
             const resultado = {};
             todosLosItems.forEach(item => {
