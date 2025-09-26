@@ -172,6 +172,7 @@
             padding: 12px 10px;
             text-align: left;
             border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
         }
         th {
             background: #edf2f7;
@@ -179,7 +180,7 @@
             font-weight: bold;
         }
         tr:hover {
-            background: #f8fafc;
+            background: #f0f7ff;
         }
         .loading, .no-data {
             text-align: center;
@@ -189,6 +190,70 @@
         }
         .cumple-yes { color: #38a169; font-weight: bold; }
         .cumple-no { color: #e53e3e; font-weight: bold; }
+        /* Modal de detalle */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+        .modal-title {
+            text-align: center;
+            color: #0c2440;
+            margin-bottom: 20px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .detalle-item {
+            background: #f8fafc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid #3182ce;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 8px;
+        }
+        .item-observacion {
+            color: #4a5568;
+            font-style: italic;
+            margin-top: 6px;
+        }
+        .observaciones-generales {
+            background: #f0f9ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid #bee3f8;
+        }
         @media (max-width: 600px) {
             .filters {
                 grid-template-columns: 1fr;
@@ -282,12 +347,41 @@
         </div>
     </div>
 
+    <!-- Modal de detalle -->
+    <div id="detalleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="cerrarModal()">&times;</span>
+            <h2 class="modal-title">Detalles de la Inspección</h2>
+            <div id="detalleContenido"></div>
+        </div>
+    </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        const nombresItems = {
+            baño_dama: "Baño Dama",
+            baño_caballero: "Baño Caballero",
+            dormitorio_femenino: "Dormitorio Femenino",
+            dormitorio_masculino: "Dormitorio Masculino",
+            cocina: "Cocina",
+            comedor: "Comedor",
+            lavanderia: "Lavandería",
+            oficina_del_jefe: "Oficina del Jefe",
+            oficina_de_rrhh: "Oficina de RRHH",
+            condiciones_electricas: "Condiciones Eléctricas",
+            fachada: "Fachada",
+            condiciones_de_pintura: "Condiciones de Pintura",
+            jardines: "Jardines",
+            condiciones_generales: "Condiciones Generales",
+            vehiculos: "Vehículos",
+            motos: "Motos"
+        };
+
         let todasEstaciones = [];
+        let inspeccionesCompletas = [];
 
         // Verificar autenticación
         async function checkAuth() {
@@ -350,6 +444,7 @@
                         created_at,
                         inspector_email,
                         estacion_id,
+                        observaciones_generales,
                         estaciones_policiales!inner(nombre, ccp_id)
                     `)
                     .order('created_at', { ascending: false });
@@ -366,7 +461,7 @@
                 const ids = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
-                    .select('inspeccion_id, cumple')
+                    .select('inspeccion_id, item_nombre, cumple, observacion')
                     .in('inspeccion_id', ids);
 
                 if (itemsError) throw itemsError;
@@ -375,20 +470,28 @@
                 const itemsPorInspeccion = {};
                 items.forEach(item => {
                     if (!itemsPorInspeccion[item.inspeccion_id]) {
-                        itemsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
+                        itemsPorInspeccion[item.inspeccion_id] = [];
                     }
-                    itemsPorInspeccion[item.inspeccion_id].total++;
-                    if (item.cumple) itemsPorInspeccion[item.inspeccion_id].cumplidos++;
+                    itemsPorInspeccion[item.inspeccion_id].push(item);
                 });
+
+                // Guardar datos completos para el modal
+                inspeccionesCompletas = inspecciones.map(insp => ({
+                    ...insp,
+                    items: itemsPorInspeccion[insp.id] || []
+                }));
 
                 // Renderizar tabla
                 const tbody = document.getElementById('inspeccionesBody');
-                inspecciones.forEach(insp => {
+                inspeccionesCompletas.forEach(insp => {
                     const estacion = insp.estaciones_policiales;
-                    const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
-                    const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+                    const items = insp.items;
+                    const totalRespondidos = items.length;
+                    const cumplidos = items.filter(i => i.cumple === true).length;
+                    const porcentaje = totalRespondidos > 0 ? Math.round((cumplidos / totalRespondidos) * 100) : 0;
 
                     const row = document.createElement('tr');
+                    row.dataset.inspeccionId = insp.id;
                     const fecha = new Date(insp.created_at).toLocaleDateString('es-ES');
                     const ccpNombre = {
                         'metropolitano': 'CCP METROPOLITANO',
@@ -404,6 +507,7 @@
                         <td data-label="Inspector">${insp.inspector_email}</td>
                         <td data-label="Cumplimiento"><span class="${porcentaje >= 70 ? 'cumple-yes' : 'cumple-no'}">${porcentaje}%</span></td>
                     `;
+                    row.addEventListener('click', () => mostrarDetalle(insp));
                     tbody.appendChild(row);
                 });
 
@@ -414,6 +518,47 @@
                 document.getElementById('noData').textContent = 'Error al cargar los datos.';
                 document.getElementById('noData').style.display = 'block';
             }
+        }
+
+        function mostrarDetalle(inspeccion) {
+            const estacion = inspeccion.estaciones_policiales;
+            const ccpNombre = {
+                'metropolitano': 'CCP METROPOLITANO',
+                'sur-del-lago': 'CCP SUR DEL LAGO',
+                'guajira': 'CCP GUAJIRA',
+                'col': 'CCPE COL'
+            }[estacion.ccp_id] || estacion.ccp_id;
+
+            let html = `
+                <p><strong>Fecha:</strong> ${new Date(inspeccion.created_at).toLocaleString('es-ES')}</p>
+                <p><strong>CCP:</strong> ${ccpNombre}</p>
+                <p><strong>Estación:</strong> ${estacion.nombre}</p>
+                <p><strong>Inspector:</strong> ${inspeccion.inspector_email}</p>
+                <p><strong>Observaciones Generales:</strong> ${inspeccion.observaciones_generales || 'Ninguna'}</p>
+                <h3 style="margin-top:25px; color:#0c2440;">Ítems Inspeccionados:</h3>
+            `;
+
+            inspeccion.items.forEach(item => {
+                const nombre = nombresItems[item.item_nombre] || item.item_nombre;
+                const estado = item.cumple ? 'Sí' : 'No';
+                const color = item.cumple ? '#38a169' : '#e53e3e';
+                html += `
+                    <div class="detalle-item">
+                        <div class="item-header">
+                            <span>${nombre}</span>
+                            <span style="color:${color}; font-weight:bold;">${estado}</span>
+                        </div>
+                        ${item.observacion ? `<div class="item-observacion">"${item.observacion}"</div>` : ''}
+                    </div>
+                `;
+            });
+
+            document.getElementById('detalleContenido').innerHTML = html;
+            document.getElementById('detalleModal').style.display = 'block';
+        }
+
+        function cerrarModal() {
+            document.getElementById('detalleModal').style.display = 'none';
         }
 
         function aplicarFiltros() {
@@ -432,7 +577,6 @@
                 const ccpCelda = celdas[1].textContent;
                 const estacionCelda = celdas[2].textContent;
 
-                // Parsear fecha
                 const [dia, mes, anio] = fechaCelda.split('/');
                 const fechaFila = new Date(`${anio}-${mes}-${dia}`);
 
@@ -451,6 +595,14 @@
             document.getElementById('noData').style.display = visibleCount === 0 ? 'block' : 'none';
             if (visibleCount === 0) {
                 document.getElementById('noData').textContent = 'No hay inspecciones que coincidan con los filtros.';
+            }
+        }
+
+        // Cerrar modal al hacer clic fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('detalleModal');
+            if (event.target === modal) {
+                cerrarModal();
             }
         }
 
