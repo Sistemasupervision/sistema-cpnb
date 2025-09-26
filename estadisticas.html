@@ -127,12 +127,43 @@
             height: 300px;
             position: relative;
         }
+        .porcentajes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            border: 1px solid #bee3f8;
+        }
+        .porcentaje-item {
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .porcentaje-nombre {
+            font-size: 13px;
+            color: #2d3748;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+        .porcentaje-valor {
+            font-size: 20px;
+            font-weight: bold;
+            color: #3182ce;
+        }
         @media (max-width: 600px) {
             .container {
                 padding: 25px;
             }
             .chart-wrapper {
                 height: 250px;
+            }
+            .porcentajes-container {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -177,6 +208,7 @@
                     <canvas id="cumplimientoChart"></canvas>
                 </div>
             </div>
+            <div class="porcentajes-container" id="porcentajesContainer"></div>
         </div>
 
         <div id="mensajeCarga" class="loading" style="display: none;">Cargando estadísticas...</div>
@@ -273,6 +305,7 @@
 
                 const estadisticas = calcularEstadisticas(items);
                 renderizarGrafico(estadisticas, estacionNombre);
+                renderizarPorcentajes(estadisticas);
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
             } catch (error) {
@@ -317,7 +350,6 @@
 
             const labels = Object.keys(estadisticas).map(k => nombresItems[k] || k);
             const cumplimientoData = Object.values(estadisticas).map(v => v.cumplimiento);
-            const estatusData = Object.values(estadisticas).map(v => v.estatus);
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -325,17 +357,10 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: '% Cumplimiento (Sí/No)',
+                            label: '% de Cumplimiento (Sí/No)',
                             data: cumplimientoData,
                             backgroundColor: 'rgba(49, 130, 206, 0.7)',
                             borderColor: 'rgba(49, 130, 206, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: '% Estatus Promedio (cuando Sí)',
-                            data: estatusData,
-                            backgroundColor: 'rgba(229, 62, 62, 0.7)',
-                            borderColor: 'rgba(229, 62, 62, 1)',
                             borderWidth: 1
                         }
                     ]
@@ -370,6 +395,22 @@
             });
 
             document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
+        }
+
+        function renderizarPorcentajes(estadisticas) {
+            const container = document.getElementById('porcentajesContainer');
+            container.innerHTML = '<h3 style="grid-column:1/-1; text-align:center; color:#0c2440; margin-bottom:15px;">Porcentajes por Ítem</h3>';
+            Object.keys(estadisticas).forEach(key => {
+                const nombre = nombresItems[key] || key;
+                const cumplimiento = estadisticas[key].cumplimiento;
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'porcentaje-item';
+                itemDiv.innerHTML = `
+                    <div class="porcentaje-nombre">${nombre}</div>
+                    <div class="porcentaje-valor">${cumplimiento}%</div>
+                `;
+                container.appendChild(itemDiv);
+            });
         }
     </script>
 </body>
