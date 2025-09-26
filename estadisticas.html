@@ -240,6 +240,9 @@
             motos: "Motos"
         };
 
+        // Lista fija de todos los ítems (para que aparezcan aunque no tengan datos)
+        const todosLosItems = Object.keys(nombresItems);
+
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -317,28 +320,33 @@
         }
 
         function calcularEstadisticas(items) {
-            const acumulador = {};
+            const resultado = {};
+            // Inicializar todos los ítems en 0%
+            todosLosItems.forEach(item => {
+                resultado[item] = 0;
+            });
+
+            // Agrupar los valores de porcentaje_cumplimiento solo cuando cumple = true
+            const agrupado = {};
             items.forEach(item => {
-                if (!acumulador[item.item_nombre]) {
-                    acumulador[item.item_nombre] = { total: 0, cumplidos: 0, sumaPorcentajes: 0 };
-                }
-                acumulador[item.item_nombre].total += 1;
-                if (item.cumple) {
-                    acumulador[item.item_nombre].cumplidos += 1;
-                    acumulador[item.item_nombre].sumaPorcentajes += item.porcentaje_cumplimiento || 0;
+                if (item.cumple === true) {
+                    if (!agrupado[item.item_nombre]) {
+                        agrupado[item.item_nombre] = [];
+                    }
+                    agrupado[item.item_nombre].push(item.porcentaje_cumplimiento || 0);
                 }
             });
 
-            const resultado = {};
-            Object.keys(acumulador).forEach(key => {
-                const data = acumulador[key];
-                const porcentajeCumplimiento = data.total > 0 ? (data.cumplidos / data.total) * 100 : 0;
-                const porcentajeEstatus = data.cumplidos > 0 ? data.sumaPorcentajes / data.cumplidos : 0;
-                resultado[key] = {
-                    cumplimiento: parseFloat(porcentajeCumplimiento.toFixed(1)),
-                    estatus: parseFloat(porcentajeEstatus.toFixed(1))
-                };
+            // Calcular promedio solo para los que tienen datos "Sí"
+            Object.keys(agrupado).forEach(item => {
+                const valores = agrupado[item];
+                if (valores.length > 0) {
+                    const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+                    resultado[item] = parseFloat(promedio.toFixed(1));
+                }
+                // Si no hay "Sí", queda en 0% (ya inicializado)
             });
+
             return resultado;
         }
 
@@ -348,22 +356,20 @@
                 chartInstance.destroy();
             }
 
-            const labels = Object.keys(estadisticas).map(k => nombresItems[k] || k);
-            const cumplimientoData = Object.values(estadisticas).map(v => v.cumplimiento);
+            const labels = todosLosItems.map(k => nombresItems[k]);
+            const data = todosLosItems.map(k => estadisticas[k] || 0);
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: {
+                 {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: '% de Cumplimiento (Sí/No)',
-                            data: cumplimientoData,
-                            backgroundColor: 'rgba(49, 130, 206, 0.7)',
-                            borderColor: 'rgba(49, 130, 206, 1)',
-                            borderWidth: 1
-                        }
-                    ]
+                    datasets: [{
+                        label: '% de Estatus Promedio (solo cuando Sí)',
+                        data: data,
+                        backgroundColor: 'rgba(49, 130, 206, 0.7)',
+                        borderColor: 'rgba(49, 130, 206, 1)',
+                        borderWidth: 1
+                    }]
                 },
                 options: {
                     responsive: true,
@@ -380,9 +386,7 @@
                         }
                     },
                     plugins: {
-                        legend: {
-                            position: 'top',
-                        },
+                        legend: { position: 'top' },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -400,14 +404,14 @@
         function renderizarPorcentajes(estadisticas) {
             const container = document.getElementById('porcentajesContainer');
             container.innerHTML = '<h3 style="grid-column:1/-1; text-align:center; color:#0c2440; margin-bottom:15px;">Porcentajes por Ítem</h3>';
-            Object.keys(estadisticas).forEach(key => {
-                const nombre = nombresItems[key] || key;
-                const cumplimiento = estadisticas[key].cumplimiento;
+            todosLosItems.forEach(key => {
+                const nombre = nombresItems[key];
+                const porcentaje = estadisticas[key] || 0;
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'porcentaje-item';
                 itemDiv.innerHTML = `
                     <div class="porcentaje-nombre">${nombre}</div>
-                    <div class="porcentaje-valor">${cumplimiento}%</div>
+                    <div class="porcentaje-valor">${porcentaje}%</div>
                 `;
                 container.appendChild(itemDiv);
             });
