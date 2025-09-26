@@ -174,9 +174,9 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Estadísticas de Inspecciones</h1>
         </div>
-        <button class="back-btn" onclick="window.location.href='index.html'">
-            ← Volver al Inicio
-        </button>
+   <button class="back-btn" onclick="volverASeleccion()">
+    ← Seleccionar otra estación
+</button>
 
         <!-- Selección -->
         <div id="seleccionContainer">
@@ -416,30 +416,20 @@
                 container.appendChild(itemDiv);
             });
         }
-        function volverASeleccion() {
-    // Mostrar el selector y ocultar resultados
+     function volverASeleccion() {
+    // Mostrar el contenedor de selección y ocultar resultados
     document.getElementById('seleccionContainer').style.display = 'block';
     document.getElementById('resultadosContainer').style.display = 'none';
     document.getElementById('mensajeCarga').style.display = 'none';
     document.getElementById('mensajeSinDatos').style.display = 'none';
     
-    // Limpiar solo la estación (mantener el CCP)
-    const ccpSeleccionado = document.getElementById('ccpFilter').value;
-    document.getElementById('estacionFilter').innerHTML = '<option value="">-- Seleccione una estación --</option>';
-    document.getElementById('estacionFilter').disabled = !ccpSeleccionado;
-    
-    // Si hay un CCP seleccionado, recargar sus estaciones automáticamente
-    if (ccpSeleccionado) {
-        cargarEstacionesPorCCP(ccpSeleccionado);
+    // Limpiar gráfico
+    if (window.chartInstance) {
+        window.chartInstance.destroy();
+        window.chartInstance = null;
     }
     
-    // Limpiar gráfico si existe
-    if (chartInstance) {
-        chartInstance.destroy();
-        chartInstance = null;
-    }
-    
-    // Limpiar contenedor de porcentajes
+    // Limpiar porcentajes
     document.getElementById('porcentajesContainer').innerHTML = '';
     document.getElementById('statsHeader').textContent = '';
 }
