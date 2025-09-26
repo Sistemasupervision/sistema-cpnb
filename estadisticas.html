@@ -242,7 +242,7 @@
 
         const todosLosItems = Object.keys(nombresItems);
 
-        // ✅ Cargar estaciones al cambiar CCP (igual que en historial.html)
+        // ✅ Cargar estaciones al cambiar CCP — COPIADO DIRECTAMENTE DE historial.txt
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -252,7 +252,7 @@
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre')
+                    .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
                 if (error) throw error;
@@ -272,7 +272,7 @@
             }
         });
 
-        // ✅ Al seleccionar una estación, cargar estadísticas INMEDIATAMENTE
+        // ✅ Al seleccionar una estación, cargar estadísticas
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
             if (!estacionId) return;
@@ -287,7 +287,6 @@
             document.getElementById('mensajeSinDatos').style.display = 'none';
 
             try {
-                // Obtener todas las inspecciones de esa estación
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
@@ -299,14 +298,12 @@
                     return;
                 }
 
-                // Obtener todos los ítems de esas inspecciones
                 const idsInspecciones = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, porcentaje_cumplimiento')
                     .in('inspeccion_id', idsInspecciones);
                 if (itemsError) throw itemsError;
-
                 if (!items || items.length === 0) {
                     document.getElementById('mensajeCarga').style.display = 'none';
                     document.getElementById('mensajeSinDatos').style.display = 'block';
