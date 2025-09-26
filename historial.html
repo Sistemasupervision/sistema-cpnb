@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Inspecciones - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -22,71 +24,13 @@
             position: relative;
             overflow-x: hidden;
         }
-        .vector-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0.15;
-            z-index: 0;
-        }
-        .vector-circle {
-            position: absolute;
-            border: 2px solid rgba(255, 204, 0, 0.3);
-            border-radius: 50%;
-        }
-        .vector-circle:nth-child(1) {
-            width: 300px;
-            height: 300px;
-            top: -100px;
-            left: -100px;
-        }
-        .vector-circle:nth-child(2) {
-            width: 200px;
-            height: 200px;
-            bottom: -50px;
-            right: -50px;
-            border-color: rgba(255, 107, 0, 0.3);
-        }
-        .vector-circle:nth-child(3) {
-            width: 150px;
-            height: 150px;
-            top: 30%;
-            right: 10%;
-            border-color: rgba(255, 204, 0, 0.4);
-        }
-        .vector-circle:nth-child(4) {
-            width: 250px;
-            height: 250px;
-            bottom: 20%;
-            left: 5%;
-            border-color: rgba(44, 82, 130, 0.4);
-        }
-        .vector-line {
-            position: absolute;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
-        }
-        .vector-line:nth-child(5) {
-            width: 200px;
-            top: 15%;
-            left: 20%;
-            transform: rotate(30deg);
-        }
-        .vector-line:nth-child(6) {
-            width: 150px;
-            bottom: 25%;
-            right: 25%;
-            transform: rotate(-45deg);
-        }
         .container {
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             width: 100%;
-            max-width: 1000px;
-            padding: 30px;
+            max-width: 950px;
+            padding: 40px;
             position: relative;
             overflow: hidden;
             z-index: 10;
@@ -103,7 +47,7 @@
         }
         .logo-container {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         .logo-img {
             width: 100px;
@@ -117,9 +61,10 @@
             color: #0c2440;
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
-        .back-btn {
+        .back-btn,
+        .btn-pdf {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
@@ -130,486 +75,795 @@
             align-items: center;
             gap: 8px;
             font-weight: bold;
+        }
+        .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
         }
-        .back-btn:hover {
+        .btn-pdf {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+        }
+        .back-btn:hover,
+        .btn-pdf:hover {
             opacity: 0.9;
         }
-        .filters {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 12px;
+        #inspeccionesList {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
         }
-        .filter-group label {
-            font-size: 13px;
+        .inspeccion-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+            position: relative;
+        }
+        .inspeccion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .inspeccion-fecha {
+            font-size: 14px;
+            color: #4a5568;
+            font-weight: bold;
+            text-align: right;
+            width: 100%;
+            margin-top: 4px;
+        }
+        .inspeccion-inspector {
+            font-size: 14px;
             color: #2d3748;
-            margin-bottom: 5px;
+            margin: 4px 0;
+            text-align: right;
+            width: 100%;
+        }
+        .inspeccion-estacion {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0c2440;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .inspeccion-cumplimiento {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 6px;
+            text-align: right;
+            width: 100%;
+        }
+        .cumplimiento-alto { color: #38a169; }
+        .cumplimiento-medio { color: #d69e2e; }
+        .cumplimiento-bajo { color: #e53e3e; }
+        .alerta-pendiente {
+            color: #e53e3e;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 6px;
             display: block;
         }
-        .filter-group input,
-        .filter-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #cbd5e0;
+        .estado-indicador {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-left: 6px;
+        }
+        .estado-rojo { background-color: #e53e3e; }
+        .estado-amarillo { background-color: #d69e2e; }
+        .estado-verde { background-color: #38a169; }
+        .ver-btn {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
             border-radius: 8px;
+            padding: 8px 16px;
             font-size: 14px;
-        }
-        .search-box {
-            grid-column: span 2;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 14px;
-        }
-        th, td {
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
             cursor: pointer;
+            margin-top: 10px;
         }
-        th {
-            background: #edf2f7;
-            color: #0c2440;
-            font-weight: bold;
+        .ver-btn:hover {
+            opacity: 0.9;
         }
-        tr:hover {
-            background: #f0f7ff;
-        }
-        .loading, .no-data {
-            text-align: center;
-            color: #666;
-            font-size: 18px;
-            padding: 30px;
-        }
-        .cumple-yes { color: #38a169; font-weight: bold; }
-        .cumple-no { color: #e53e3e; font-weight: bold; }
-        /* Modal de detalle */
-        .modal {
+        #detalleModal {
             display: none;
             position: fixed;
-            z-index: 1000;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
         }
         .modal-content {
             background: white;
-            margin: 2% auto;
-            padding: 30px;
-            border-radius: 20px;
-            width: 95%;
-            max-width: 900px;
-            max-height: 90vh;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
             overflow-y: auto;
+            padding: 30px;
             position: relative;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
         }
         .close-modal {
             position: absolute;
             top: 15px;
             right: 20px;
-            font-size: 28px;
+            font-size: 24px;
             cursor: pointer;
             color: #666;
         }
-        .modal-title {
-            text-align: center;
-            color: #0c2440;
-            margin-bottom: 20px;
-            font-size: 22px;
-            font-weight: bold;
-        }
         .detalle-item {
-            background: #f8fafc;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 10px;
-            border-left: 4px solid #3182ce;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
         }
-        .item-header {
-            display: flex;
-            justify-content: space-between;
+        .detalle-item:last-child {
+            border-bottom: none;
+        }
+        .item-nombre {
             font-weight: bold;
             color: #0c2440;
-            margin-bottom: 8px;
+        }
+        .item-respuesta {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .item-respuesta.si {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .item-respuesta.no {
+            background: #fed7d7;
+            color: #9b2c2c;
         }
         .item-observacion {
+            margin-top: 6px;
+            font-size: 14px;
             color: #4a5568;
             font-style: italic;
-            margin-top: 6px;
         }
         .observaciones-generales {
-            background: #f0f9ff;
-            padding: 15px;
-            border-radius: 10px;
             margin-top: 20px;
-            border: 1px solid #bee3f8;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+        .loading {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            padding: 30px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .pagination button {
+            padding: 8px 14px;
+            border: 1px solid #cbd5e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .pagination button.active {
+            background: #0c2440;
+            color: white;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         @media (max-width: 600px) {
-            .filters {
-                grid-template-columns: 1fr;
+            .container {
+                padding: 25px;
             }
-            .search-box {
-                grid-column: span 1;
+            .inspeccion-header {
+                flex-direction: column;
+                align-items: flex-start;
             }
-            table, thead, tbody, th, td, tr {
-                display: block;
-            }
-            th { display: none; }
-            td {
-                text-align: right;
-                padding-left: 50%;
-                position: relative;
-            }
-            td::before {
-                content: attr(data-label) ": ";
-                position: absolute;
-                left: 10px;
-                width: 45%;
-                font-weight: bold;
-                color: #0c2440;
+            .pagination {
+                flex-wrap: wrap;
             }
         }
     </style>
 </head>
 <body>
-    <div class="vector-bg">
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-line"></div>
-        <div class="vector-line"></div>
-    </div>
-
     <div class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Historial de Inspecciones</h1>
         </div>
-        <button class="back-btn" onclick="window.location.href='index.html'">← Volver al Panel</button>
-
-        <div class="filters">
-            <div class="filter-group">
-                <label for="fechaInicio">Fecha Inicio</label>
-                <input type="date" id="fechaInicio">
+        <button class="back-btn" onclick="history.back()">
+            ← Volver 
+        </button>
+        <button class="btn-pdf" onclick="exportarHistorialAPDF()" style="margin-bottom: 15px;">
+            📄 Exportar Historial a PDF
+        </button>
+        <!-- Filtros -->
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaDesde" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Desde:</label>
+                    <input type="date" id="fechaDesde" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaHasta" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Hasta:</label>
+                    <input type="date" id="fechaHasta" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                </div>
             </div>
-            <div class="filter-group">
-                <label for="fechaFin">Fecha Fin</label>
-                <input type="date" id="fechaFin">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="ccpFilter" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Filtrar por CCP:</label>
+                    <select id="ccpFilter" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                        <option value="">Todos los CCP</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="col">CCPE COL</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="estacionFilter" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Filtrar por Estación:</label>
+                    <select id="estacionFilter" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                        <option value="">Todas las estaciones</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-group">
-                <label for="ccpFilter">CCP</label>
-                <select id="ccpFilter">
-                    <option value="">Todos</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="estacionFilter">Estación</label>
-                <select id="estacionFilter">
-                    <option value="">Todas</option>
-                </select>
-            </div>
-            <div class="filter-group search-box">
-                <label for="searchEstacion">Buscar estación</label>
-                <input type="text" id="searchEstacion" placeholder="Escriba nombre de estación...">
-            </div>
+            <button class="btn-filtrar" onclick="aplicarFiltro()" style="align-self: flex-start; padding:12px 24px; font-size:16px; background:linear-gradient(135deg, #0c2440 0%, #1a365d 100%); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">
+                Aplicar Filtros
+            </button>
         </div>
-
-        <div id="loading" class="loading" style="display:none;">Cargando historial...</div>
-        <div id="noData" class="no-data" style="display:none;">No se encontraron inspecciones.</div>
-        <div style="overflow-x: auto;">
-            <table id="inspeccionesTable">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>CCP</th>
-                        <th>Estación</th>
-                        <th>Inspector</th>
-                        <th>Cumplimiento</th>
-                    </tr>
-                </thead>
-                <tbody id="inspeccionesBody"></tbody>
-            </table>
+        <div id="inspeccionesList">
+            <div class="loading">Cargando historial...</div>
         </div>
+        <div class="pagination" id="pagination"></div>
     </div>
-
-    <!-- Modal de detalle -->
-    <div id="detalleModal" class="modal">
+    <!-- Modal de Detalle -->
+    <div id="detalleModal">
         <div class="modal-content">
-            <span class="close-modal" onclick="cerrarModal()">&times;</span>
-            <h2 class="modal-title">Detalles de la Inspección</h2>
-            <div id="detalleContenido"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+                <div>
+                    <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; margin-right: 10px; cursor: pointer;">📄 PDF</button>
+                    <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px;">&times;</span>
+                </div>
+            </div>
+            <div id="detalleContenido" style="padding: 10px;"></div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-        const nombresItems = {
-            baño_dama: "Baño Dama",
-            baño_caballero: "Baño Caballero",
-            dormitorio_femenino: "Dormitorio Femenino",
-            dormitorio_masculino: "Dormitorio Masculino",
-            cocina: "Cocina",
-            comedor: "Comedor",
-            lavanderia: "Lavandería",
-            oficina_del_jefe: "Oficina del Jefe",
-            oficina_de_rrhh: "Oficina de RRHH",
-            condiciones_electricas: "Condiciones Eléctricas",
-            fachada: "Fachada",
-            condiciones_de_pintura: "Condiciones de Pintura",
-            jardines: "Jardines",
-            condiciones_generales: "Condiciones Generales",
-            vehiculos: "Vehículos",
-            motos: "Motos"
+        const ccpNombres = {
+            "metropolitano": "CCP METROPOLITANO",
+            "sur-del-lago": "CCP SUR DEL LAGO",
+            "guajira": "CCP GUAJIRA",
+            "col": "CCPE COL"
         };
+        const hoy = new Date();
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hoy.getDate() - 30);
+        document.getElementById('fechaHasta').valueAsDate = hoy;
+        document.getElementById('fechaDesde').valueAsDate = hace30Dias;
+        let inspeccionesCache = [];
+        let paginaActual = 1;
+        const registrosPorPagina = 10;
 
-        let todasEstaciones = [];
-        let inspeccionesCompletas = [];
-
-        // Verificar autenticación
-        async function checkAuth() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('Debe iniciar sesión para acceder al historial.');
-                window.location.href = 'index.html';
-            }
-        }
-
-        // Cargar estaciones para el filtro
-        async function cargarEstaciones() {
+        document.getElementById('ccpFilter').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpFilter').value;
+            const estacionSelect = document.getElementById('estacionFilter');
+            estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
+            if (!ccpId) return;
             try {
-                const { data, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
+                    .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
                 if (error) throw error;
-                todasEstaciones = data;
-                llenarSelectEstaciones();
-            } catch (err) {
-                console.error('Error al cargar estaciones:', err);
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.id;
+                    opt.textContent = est.nombre;
+                    estacionSelect.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar estaciones:', error);
+                alert('Error al cargar las estaciones');
             }
-        }
-
-        function llenarSelectEstaciones(ccpId = null) {
-            const select = document.getElementById('estacionFilter');
-            select.innerHTML = '<option value="">Todas</option>';
-            const filtradas = ccpId 
-                ? todasEstaciones.filter(e => e.ccp_id === ccpId)
-                : todasEstaciones;
-            filtradas.forEach(est => {
-                const opt = document.createElement('option');
-                opt.value = est.id;
-                opt.textContent = est.nombre;
-                select.appendChild(opt);
-            });
-        }
-
-        document.getElementById('ccpFilter').addEventListener('change', (e) => {
-            llenarSelectEstaciones(e.target.value || null);
-            aplicarFiltros();
         });
 
-        // Aplicar filtros al escribir/buscar
-        ['fechaInicio', 'fechaFin', 'searchEstacion', 'estacionFilter'].forEach(id => {
-            document.getElementById(id).addEventListener('input', aplicarFiltros);
-        });
-
-        async function cargarHistorial() {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('noData').style.display = 'none';
-            document.getElementById('inspeccionesBody').innerHTML = '';
-
+        async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
-                const { data: inspecciones, error } = await supabase
+                // Cargar estaciones para mapeo
+                const { data: todasEstaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre, ccp_id');
+                if (estError) throw estError;
+                const estacionMap = {};
+                const ccpEstaciones = {};
+                todasEstaciones.forEach(est => {
+                    estacionMap[est.id] = { nombre: est.nombre, ccp_id: est.ccp_id };
+                    if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
+                    ccpEstaciones[est.ccp_id].push(est.id);
+                });
+
+                // Obtener inspecciones
+                let query = supabase
                     .from('inspecciones')
-                    .select(`
-                        id,
-                        created_at,
-                        inspector_email,
-                        estacion_id,
-                        observaciones_generales,
-                        estaciones_policiales!inner(nombre, ccp_id)
-                    `)
+                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
-
-                if (!inspecciones || inspecciones.length === 0) {
-                    document.getElementById('noData').style.display = 'block';
-                    document.getElementById('loading').style.display = 'none';
-                    return;
+                if (fechaDesde && fechaHasta) {
+                    const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
+                    const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
+                    query = query
+                        .gte('created_at', desdeISO)
+                        .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
 
-                // Obtener ítems de todas las inspecciones
-                const ids = inspecciones.map(i => i.id);
-                const { data: items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('inspeccion_id, item_nombre, cumple, observacion')
-                    .in('inspeccion_id', ids);
-
-                if (itemsError) throw itemsError;
-
-                // Agrupar ítems por inspección
-                const itemsPorInspeccion = {};
-                items.forEach(item => {
-                    if (!itemsPorInspeccion[item.inspeccion_id]) {
-                        itemsPorInspeccion[item.inspeccion_id] = [];
+                let idsPermitidos = null;
+                if (estacionId) {
+                    idsPermitidos = [parseInt(estacionId)];
+                } else if (ccpId) {
+                    idsPermitidos = ccpEstaciones[ccpId] || [];
+                }
+                if (idsPermitidos !== null) {
+                    if (idsPermitidos.length === 0) {
+                        document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay estaciones para ese CCP.</div>';
+                        inspeccionesCache = [];
+                        renderizarPaginacion();
+                        return;
                     }
-                    itemsPorInspeccion[item.inspeccion_id].push(item);
+                    query = query.in('estacion_id', idsPermitidos);
+                }
+
+                const { data: inspecciones, error } = await query;
+                if (error) throw error;
+
+                // ✅ Obtener ítems de todas las inspecciones para calcular cumplimiento
+                const idsInspecciones = inspecciones.map(i => i.id);
+                let itemsPorInspeccion = {};
+                if (idsInspecciones.length > 0) {
+                    const { data: items, error: itemsError } = await supabase
+                        .from('items_inspeccion')
+                        .select('inspeccion_id, cumple')
+                        .in('inspeccion_id', idsInspecciones);
+                    if (!itemsError && items) {
+                        items.forEach(item => {
+                            if (!itemsPorInspeccion[item.inspeccion_id]) {
+                                itemsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
+                            }
+                            itemsPorInspeccion[item.inspeccion_id].total++;
+                            if (item.cumple) itemsPorInspeccion[item.inspeccion_id].cumplidos++;
+                        });
+                    }
+                }
+
+                // ✅ Calcular porcentaje por inspección
+                inspeccionesCache = inspecciones.map(insp => {
+                    const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
+                    const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+                    return {
+                        ...insp,
+                        estacion_nombre: estacionMap[insp.estacion_id]?.nombre || 'Estación no encontrada',
+                        ccp_id: estacionMap[insp.estacion_id]?.ccp_id || 'desconocido',
+                        porcentaje_cumplimiento: porcentaje
+                    };
                 });
 
-                // Guardar datos completos para el modal
-                inspeccionesCompletas = inspecciones.map(insp => ({
-                    ...insp,
-                    items: itemsPorInspeccion[insp.id] || []
-                }));
-
-                // Renderizar tabla
-                const tbody = document.getElementById('inspeccionesBody');
-                inspeccionesCompletas.forEach(insp => {
-                    const estacion = insp.estaciones_policiales;
-                    const items = insp.items;
-                    const totalRespondidos = items.length;
-                    const cumplidos = items.filter(i => i.cumple === true).length;
-                    const porcentaje = totalRespondidos > 0 ? Math.round((cumplidos / totalRespondidos) * 100) : 0;
-
-                    const row = document.createElement('tr');
-                    row.dataset.inspeccionId = insp.id;
-                    const fecha = new Date(insp.created_at).toLocaleDateString('es-ES');
-                    const ccpNombre = {
-                        'metropolitano': 'CCP METROPOLITANO',
-                        'sur-del-lago': 'CCP SUR DEL LAGO',
-                        'guajira': 'CCP GUAJIRA',
-                        'col': 'CCPE COL'
-                    }[estacion.ccp_id] || estacion.ccp_id;
-
-                    row.innerHTML = `
-                        <td data-label="Fecha">${fecha}</td>
-                        <td data-label="CCP">${ccpNombre}</td>
-                        <td data-label="Estación">${estacion.nombre}</td>
-                        <td data-label="Inspector">${insp.inspector_email}</td>
-                        <td data-label="Cumplimiento"><span class="${porcentaje >= 70 ? 'cumple-yes' : 'cumple-no'}">${porcentaje}%</span></td>
-                    `;
-                    row.addEventListener('click', () => mostrarDetalle(insp));
-                    tbody.appendChild(row);
-                });
-
-                document.getElementById('loading').style.display = 'none';
-            } catch (err) {
-                console.error('Error al cargar historial:', err);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('noData').textContent = 'Error al cargar los datos.';
-                document.getElementById('noData').style.display = 'block';
+                paginaActual = 1;
+                renderizarLista();
+                renderizarPaginacion();
+            } catch (error) {
+                console.error('Error al cargar historial:', error);
+                document.getElementById('inspeccionesList').innerHTML = 
+                    `<div style="text-align:center; color:red; padding:30px;">Error: ${error.message || 'No se pudo cargar el historial.'}</div>`;
+                inspeccionesCache = [];
+                renderizarPaginacion();
             }
         }
 
-        function mostrarDetalle(inspeccion) {
-            const estacion = inspeccion.estaciones_policiales;
-            const ccpNombre = {
-                'metropolitano': 'CCP METROPOLITANO',
-                'sur-del-lago': 'CCP SUR DEL LAGO',
-                'guajira': 'CCP GUAJIRA',
-                'col': 'CCPE COL'
-            }[estacion.ccp_id] || estacion.ccp_id;
+        function renderizarLista() {
+            const inicio = (paginaActual - 1) * registrosPorPagina;
+            const fin = inicio + registrosPorPagina;
+            const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
+            const contenedor = document.getElementById('inspeccionesList');
+            if (!inspeccionesCache || inspeccionesCache.length === 0) {
+                contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
+                return;
+            }
+            contenedor.innerHTML = '';
+            inspeccionesPagina.forEach(insp => {
+                const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
 
-            let html = `
-                <p><strong>Fecha:</strong> ${new Date(inspeccion.created_at).toLocaleString('es-ES')}</p>
-                <p><strong>CCP:</strong> ${ccpNombre}</p>
-                <p><strong>Estación:</strong> ${estacion.nombre}</p>
-                <p><strong>Inspector:</strong> ${inspeccion.inspector_email}</p>
-                <p><strong>Observaciones Generales:</strong> ${inspeccion.observaciones_generales || 'Ninguna'}</p>
-                <h3 style="margin-top:25px; color:#0c2440;">Ítems Inspeccionados:</h3>
-            `;
+                // Clasificación por cumplimiento
+                let claseCumplimiento = 'cumplimiento-bajo';
+                if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
+                else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
 
-            inspeccion.items.forEach(item => {
-                const nombre = nombresItems[item.item_nombre] || item.item_nombre;
-                const estado = item.cumple ? 'Sí' : 'No';
-                const color = item.cumple ? '#38a169' : '#e53e3e';
-                html += `
-                    <div class="detalle-item">
-                        <div class="item-header">
-                            <span>${nombre}</span>
-                            <span style="color:${color}; font-weight:bold;">${estado}</span>
+                // Lógica del indicador de próxima inspección
+                let estadoClase = 'estado-verde';
+                let alertaHTML = '';
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                if (insp.proxima_inspeccion) {
+                    const fechaProxima = new Date(insp.proxima_inspeccion);
+                    fechaProxima.setHours(0, 0, 0, 0);
+                    const diffDias = Math.ceil((fechaProxima - hoy) / (1000 * 60 * 60 * 24));
+                    if (fechaProxima <= hoy) {
+                        estadoClase = 'estado-rojo';
+                        alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
+                    } else if (diffDias <= 7) {
+                        estadoClase = 'estado-amarillo';
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'inspeccion-card';
+                card.innerHTML = `
+                    <div class="inspeccion-header">
+                        <div class="inspeccion-estacion">
+                            ${insp.estacion_nombre}
+                            <span class="estado-indicador ${estadoClase}"></span>
+                            ${alertaHTML}
                         </div>
-                        ${item.observacion ? `<div class="item-observacion">"${item.observacion}"</div>` : ''}
+                        <div style="text-align: right; width: 100%;">
+                            <div class="inspeccion-fecha">${fechaInspeccion}</div>
+                            <div class="inspeccion-inspector">Inspector: ${insp.inspector_email}</div>
+                            <div class="inspeccion-cumplimiento ${claseCumplimiento}">Cumplimiento: ${insp.porcentaje_cumplimiento}%</div>
+                        </div>
                     </div>
+                    <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
                 `;
+                contenedor.appendChild(card);
             });
+        }
 
-            document.getElementById('detalleContenido').innerHTML = html;
-            document.getElementById('detalleModal').style.display = 'block';
+        function renderizarPaginacion() {
+            const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
+            const paginacionDiv = document.getElementById('pagination');
+            paginacionDiv.innerHTML = '';
+            if (totalPaginas <= 1) return;
+            const maxVisible = 5;
+            let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPaginas, start + maxVisible - 1);
+            if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '«';
+            prevBtn.disabled = paginaActual === 1;
+            prevBtn.onclick = () => {
+                if (paginaActual > 1) {
+                    paginaActual--;
+                    renderizarLista();
+                    renderizarPaginacion();
+                }
+            };
+            paginacionDiv.appendChild(prevBtn);
+            for (let i = start; i <= end; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = i === paginaActual ? 'active' : '';
+                btn.onclick = () => {
+                    paginaActual = i;
+                    renderizarLista();
+                    renderizarPaginacion();
+                };
+                paginacionDiv.appendChild(btn);
+            }
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '»';
+            nextBtn.disabled = paginaActual === totalPaginas;
+            nextBtn.onclick = () => {
+                if (paginaActual < totalPaginas) {
+                    paginaActual++;
+                    renderizarLista();
+                    renderizarPaginacion();
+                }
+            };
+            paginacionDiv.appendChild(nextBtn);
+        }
+
+        function aplicarFiltro() {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            const ccpId = document.getElementById('ccpFilter').value;
+            const estacionId = document.getElementById('estacionFilter').value;
+            if (desde && hasta && new Date(desde) > new Date(hasta)) {
+                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".');
+                return;
+            }
+            cargarHistorial(desde, hasta, ccpId, estacionId);
+        }
+
+        async function mostrarDetalle(inspeccionId) {
+            try {
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+                    .eq('inspeccion_id', inspeccionId)
+                    .order('item_nombre', { ascending: true });
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
+                    .eq('id', inspeccionId)
+                    .single();
+                if (itemsError || inspError) throw itemsError || inspError;
+                let nombreEstacion = 'Estación no disponible';
+                const { data: estacionData, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('nombre')
+                    .eq('id', inspeccion.estacion_id)
+                    .single();
+                if (!estError && estacionData) {
+                    nombreEstacion = estacionData.nombre;
+                }
+                const nombres = {
+                    baño_dama: "Baño Dama",
+                    baño_caballero: "Baño Caballero",
+                    dormitorio_femenino: "Dormitorio Femenino",
+                    dormitorio_masculino: "Dormitorio Masculino",
+                    cocina: "Cocina",
+                    comedor: "Comedor",
+                    lavanderia: "Lavandería",
+                    oficina_del_jefe: "Oficina del Jefe",
+                    oficina_de_rrhh: "Oficina de RRHH",
+                    condiciones_electricas: "Condiciones Eléctricas",
+                    fachada: "Fachada",
+                    condiciones_de_pintura: "Condiciones de Pintura",
+                    jardines: "Jardines",
+                    condiciones_generales: "Condiciones Generales",
+                    vehiculos: "Vehículos",
+                    motos: "Motos"
+                };
+                let fechaFormateada = 'Fecha no disponible';
+                if (inspeccion.created_at) {
+                    const fechaObj = new Date(inspeccion.created_at);
+                    if (!isNaN(fechaObj.getTime())) {
+                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+                let html = `<h3>Estación: ${nombreEstacion}</h3>`;
+                html += `<p><strong>Fecha de inspección:</strong> ${fechaFormateada}</p>`;
+                if (inspeccion.proxima_inspeccion) {
+                    const proxima = new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES');
+                    html += `<p><strong>Próxima inspección programada:</strong> ${proxima}</p>`;
+                }
+                if (items && items.length > 0) {
+                    items.forEach(item => {
+                        const nombre = nombres[item.item_nombre] || item.item_nombre;
+                        const clase = item.cumple ? 'si' : 'no';
+                        const texto = item.cumple ? 'Sí' : 'No';
+                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+                        html += `
+                            <div class="detalle-item">
+                                <span class="item-nombre">${nombre}:</span>
+                                <span class="item-respuesta ${clase}">${texto}${porcentajeTexto}</span>
+                                ${item.observacion ? `<div class="item-observacion">Observación: ${item.observacion}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>No hay ítems registrados.</p>';
+                }
+                if (inspeccion.observaciones_generales) {
+                    html += `
+                        <div class="observaciones-generales">
+                            <strong>Observaciones Generales:</strong><br>
+                            ${inspeccion.observaciones_generales}
+                        </div>
+                    `;
+                }
+                document.getElementById('detalleContenido').innerHTML = html;
+                document.getElementById('detalleModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Error detallado al cargar inspección:', error);
+                alert('Error al cargar los detalles. Verifica la consola del navegador.');
+            }
         }
 
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
 
-        function aplicarFiltros() {
-            const fechaInicio = document.getElementById('fechaInicio').value;
-            const fechaFin = document.getElementById('fechaFin').value;
-            const ccp = document.getElementById('ccpFilter').value;
-            const estacionId = document.getElementById('estacionFilter').value;
-            const busqueda = document.getElementById('searchEstacion').value.toLowerCase();
+        document.getElementById('detalleModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detalleModal') cerrarModal();
+        });
 
-            const rows = document.querySelectorAll('#inspeccionesBody tr');
-            let visibleCount = 0;
-
-            rows.forEach(row => {
-                const celdas = row.querySelectorAll('td');
-                const fechaCelda = celdas[0].textContent;
-                const ccpCelda = celdas[1].textContent;
-                const estacionCelda = celdas[2].textContent;
-
-                const [dia, mes, anio] = fechaCelda.split('/');
-                const fechaFila = new Date(`${anio}-${mes}-${dia}`);
-
-                let mostrar = true;
-
-                if (fechaInicio && fechaFila < new Date(fechaInicio)) mostrar = false;
-                if (fechaFin && fechaFila > new Date(fechaFin)) mostrar = false;
-                if (ccp && !ccpCelda.toLowerCase().includes(ccp.replace('-', ' '))) mostrar = false;
-                if (estacionId && estacionId !== celdas[2].textContent) mostrar = false;
-                if (busqueda && !estacionCelda.toLowerCase().includes(busqueda)) mostrar = false;
-
-                row.style.display = mostrar ? '' : 'none';
-                if (mostrar) visibleCount++;
-            });
-
-            document.getElementById('noData').style.display = visibleCount === 0 ? 'block' : 'none';
-            if (visibleCount === 0) {
-                document.getElementById('noData').textContent = 'No hay inspecciones que coincidan con los filtros.';
+        async function exportarInspeccionAPDF() {
+            const content = document.getElementById('detalleContenido');
+            if (!content || !content.innerHTML.trim()) {
+                alert('No hay contenido para exportar.');
+                return;
+            }
+            try {
+                const printContent = document.createElement('div');
+                printContent.innerHTML = `
+                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                        </div>
+                        ${content.innerHTML}
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(printContent);
+                printContent.style.position = 'fixed';
+                printContent.style.left = '-9999px';
+                const canvas = await html2canvas(printContent, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                const fecha = new Date().toISOString().slice(0, 10);
+                pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
+                document.body.removeChild(printContent);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF. Intente nuevamente.');
             }
         }
 
-        // Cerrar modal al hacer clic fuera
-        window.onclick = function(event) {
-            const modal = document.getElementById('detalleModal');
-            if (event.target === modal) {
-                cerrarModal();
+        async function exportarHistorialAPDF() {
+            if (inspeccionesCache.length === 0) {
+                alert('No hay inspecciones para exportar.');
+                return;
+            }
+            try {
+                let htmlContent = `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
+                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+                            <thead>
+                                <tr style="background-color: #0c2440; color: white;">
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Fecha</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Estación</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Inspector</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Próxima</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">CCP</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Cumplimiento</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                inspeccionesCache.forEach(insp => {
+                    const fecha = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const proxima = insp.proxima_inspeccion 
+                        ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
+                        : 'No programada';
+                    const ccpNombre = ccpNombres[insp.ccp_id] || insp.ccp_id;
+                    let estadoTexto = 'En orden';
+                    let estadoColor = '#38a169';
+                    const hoy = new Date();
+                    hoy.setHours(0,0,0,0);
+                    if (insp.proxima_inspeccion) {
+                        const fechaProxima = new Date(insp.proxima_inspeccion);
+                        fechaProxima.setHours(0,0,0,0);
+                        if (fechaProxima <= hoy) {
+                            estadoTexto = 'Vencida';
+                            estadoColor = '#e53e3e';
+                        } else if ((fechaProxima - hoy) <= 7 * 24 * 60 * 60 * 1000) {
+                            estadoTexto = 'Próxima';
+                            estadoColor = '#d69e2e';
+                        }
+                    }
+                    htmlContent += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #eee;">${fecha}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${insp.estacion_nombre}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${insp.inspector_email}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${proxima}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${ccpNombre}</td>
+                            <td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">${insp.porcentaje_cumplimiento}%</td>
+                            <td style="padding: 8px; border: 1px solid #eee; color: ${estadoColor}; font-weight: bold;">${estadoTexto}</td>
+                        </tr>
+                    `;
+                });
+                htmlContent += `
+                            </tbody>
+                        </table>
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Total de inspecciones: ${inspeccionesCache.length}<br>
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        </div>
+                    </div>
+                `;
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                pdf.save(`historial_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
+                document.body.removeChild(printDiv);
+            } catch (error) {
+                console.error('Error PDF historial:', error);
+                alert('Error al generar el PDF del historial.');
             }
         }
 
-        // Inicializar
-        checkAuth();
-        cargarEstaciones();
-        cargarHistorial();
+        cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
     </script>
 </body>
 </html>
