@@ -416,6 +416,59 @@
                 container.appendChild(itemDiv);
             });
         }
+        function volverASeleccion() {
+    // Mostrar el selector y ocultar resultados
+    document.getElementById('seleccionContainer').style.display = 'block';
+    document.getElementById('resultadosContainer').style.display = 'none';
+    document.getElementById('mensajeCarga').style.display = 'none';
+    document.getElementById('mensajeSinDatos').style.display = 'none';
+    
+    // Limpiar solo la estación (mantener el CCP)
+    const ccpSeleccionado = document.getElementById('ccpFilter').value;
+    document.getElementById('estacionFilter').innerHTML = '<option value="">-- Seleccione una estación --</option>';
+    document.getElementById('estacionFilter').disabled = !ccpSeleccionado;
+    
+    // Si hay un CCP seleccionado, recargar sus estaciones automáticamente
+    if (ccpSeleccionado) {
+        cargarEstacionesPorCCP(ccpSeleccionado);
+    }
+    
+    // Limpiar gráfico si existe
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
+    
+    // Limpiar contenedor de porcentajes
+    document.getElementById('porcentajesContainer').innerHTML = '';
+    document.getElementById('statsHeader').textContent = '';
+}
+        async function cargarEstacionesPorCCP(ccpId) {
+    try {
+        const { data: estaciones, error } = await supabase
+            .from('estaciones_policiales')
+            .select('id, nombre, ccp_id')
+            .eq('ccp_id', ccpId)
+            .order('nombre', { ascending: true });
+        if (error) throw error;
+        const estacionSelect = document.getElementById('estacionFilter');
+        estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
+        if (estaciones.length === 0) {
+            estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
+            return;
+        }
+        estaciones.forEach(est => {
+            const opt = document.createElement('option');
+            opt.value = est.id;
+            opt.textContent = est.nombre;
+            estacionSelect.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Error al recargar estaciones:', error);
+        alert('Error al cargar las estaciones');
+    }
+}
+        
     </script>
 </body>
 </html>
