@@ -240,9 +240,9 @@
             motos: "Motos"
         };
 
-        // Lista fija de todos los ítems (para que aparezcan aunque no tengan datos)
         const todosLosItems = Object.keys(nombresItems);
 
+        // ✅ Cargar estaciones al cambiar CCP (igual que en historial.html)
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -256,6 +256,10 @@
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
                 if (error) throw error;
+                if (estaciones.length === 0) {
+                    estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
+                    return;
+                }
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.id;
@@ -268,6 +272,7 @@
             }
         });
 
+        // ✅ Al seleccionar una estación, cargar estadísticas INMEDIATAMENTE
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
             if (!estacionId) return;
@@ -282,6 +287,7 @@
             document.getElementById('mensajeSinDatos').style.display = 'none';
 
             try {
+                // Obtener todas las inspecciones de esa estación
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
@@ -293,6 +299,7 @@
                     return;
                 }
 
+                // Obtener todos los ítems de esas inspecciones
                 const idsInspecciones = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -321,12 +328,10 @@
 
         function calcularEstadisticas(items) {
             const resultado = {};
-            // Inicializar todos los ítems en 0%
             todosLosItems.forEach(item => {
-                resultado[item] = 0;
+                resultado[item] = 0; // Inicializar en 0%
             });
 
-            // Agrupar los valores de porcentaje_cumplimiento solo cuando cumple = true
             const agrupado = {};
             items.forEach(item => {
                 if (item.cumple === true) {
@@ -337,14 +342,12 @@
                 }
             });
 
-            // Calcular promedio solo para los que tienen datos "Sí"
             Object.keys(agrupado).forEach(item => {
                 const valores = agrupado[item];
                 if (valores.length > 0) {
                     const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
                     resultado[item] = parseFloat(promedio.toFixed(1));
                 }
-                // Si no hay "Sí", queda en 0% (ya inicializado)
             });
 
             return resultado;
@@ -361,7 +364,7 @@
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                 {
+                data: {
                     labels: labels,
                     datasets: [{
                         label: '% de Estatus Promedio (solo cuando Sí)',
