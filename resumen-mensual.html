@@ -396,18 +396,83 @@
                 }
                 document.getElementById('ccpComparison').innerHTML = ccpHtml;
 
-                // Renderizar gráfico
-                renderizarEvolucionChart(evolucionData);
+            function renderizarEvolucionChart(data) {
+    const ctx = document.getElementById('evolucionChart').getContext('2d');
+    if (evolucionChart) {
+        evolucionChart.destroy();
+    }
 
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('resumenContent').style.display = 'block';
-            } catch (error) {
-                console.error('Error al cargar resumen:', error);
-                document.getElementById('loading').textContent = '⚠️ Error al cargar los datos. Verifique la consola.';
-                document.getElementById('loading').style.display = 'block';
+    const labels = data.map(d => d.mes);
+    const valores = data.map(d => d.cumplimiento);
+
+    evolucionChart = new Chart(ctx, {
+        type: 'line',
+         {
+            labels: labels,
+            datasets: [{
+                label: '% de Cumplimiento',
+                 valores,
+                borderColor: '#2c5282',
+                backgroundColor: 'rgba(44, 82, 130, 0.12)',
+                borderWidth: 4,
+                pointBackgroundColor: '#0c2440',
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                tension: 0.4,
+                fill: true,
+                cubicInterpolationMode: 'monotone'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 13, weight: 'bold' },
+                        color: '#2d3748'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(12, 36, 64, 0.9)',
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        font: { size: 12 }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: 12, weight: 'bold' }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
             }
         }
-
+    });
+}
         async function calcularTopEstaciones(inspecciones) {
             if (inspecciones.length === 0) return [];
             const idsInspecciones = inspecciones.map(i => i.id);
@@ -715,7 +780,82 @@
                 alert('Error al generar el PDF. Intente nuevamente.');
             }
         }
+async function exportarResumenAPDF() {
+    const content = document.getElementById('pdf-content');
+    if (!content) {
+        alert('No se puede exportar: contenido no encontrado.');
+        return;
+    }
 
+    try {
+        const printDiv = document.createElement('div');
+        printDiv.innerHTML = `
+            <div style="font-family: Segoe UI, Arial, sans-serif; padding: 30px; max-width: 800px;">
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                    <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: 800;">
+                        RESUMEN MENSUAL DE INSPECCIONES
+                    </h1>
+                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                </div>
+                ${document.getElementById('kpiGrid').outerHTML}
+                ${document.getElementById('topEstaciones').closest('.top-list').outerHTML}
+                ${document.getElementById('topItemsFallados').closest('.top-list').outerHTML}
+                <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-weight: 700;">
+                        Evolución Mensual de Cumplimiento
+                    </h3>
+                    <div style="height: 200px; background: white; border: 1px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666;">
+                        Gráfico no disponible en PDF
+                    </div>
+                </div>
+                <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-weight: 700;">
+                        Comparativa por CCP
+                    </h3>
+                    ${document.getElementById('ccpComparison').outerHTML}
+                </div>
+                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(printDiv);
+        printDiv.style.position = 'fixed';
+        printDiv.style.left = '-9999px';
+        const canvas = await html2canvas(printDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
+
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        pdf.save(`resumen_mensual_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
+        document.body.removeChild(printDiv);
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('Error al generar el PDF. Intente nuevamente.');
+    }
+}
         // Iniciar carga
         cargarResumenMensual();
     </script>
