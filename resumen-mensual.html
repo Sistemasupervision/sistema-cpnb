@@ -279,19 +279,51 @@
                 `;
                 document.getElementById('topEstaciones').innerHTML = topEstacionesHtml || '<div style="text-align:center; color:#666;">No hay datos</div>';
                 document.getElementById('topItemsFallados').innerHTML = topItemsHtml || '<div style="text-align:center; color:#666;">No hay datos</div>';
+function renderizarEvolucionChart(data) {
+    const ctx = document.getElementById('evolucionChart').getContext('2d');
+    if (evolucionChart) {
+        evolucionChart.destroy();
+    }
 
-                // Renderizar gráfico
-                renderizarEvolucionChart(evolucionData);
+    const labels = data.map(d => d.mes);
+    const valores = data.map(d => d.cumplimiento);
 
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('resumenContent').style.display = 'block';
-            } catch (error) {
-                console.error('Error al cargar resumen:', error);
-                document.getElementById('loading').textContent = 'Error al cargar los datos. Verifique la consola.';
-                document.getElementById('loading').style.display = 'block';
+    evolucionChart = new Chart(ctx, {
+        type: 'line',
+         {
+            labels: labels,
+            datasets: [{
+                label: '% de Cumplimiento',
+                 valores,
+                borderColor: '#3182ce',
+                backgroundColor: 'rgba(49, 130, 206, 0.1)',
+                borderWidth: 3,
+                pointBackgroundColor: '#0c2440',
+                pointRadius: 5,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
             }
         }
-
+    });
+}
         async function calcularTopEstaciones(inspecciones) {
             if (inspecciones.length === 0) return [];
             const idsInspecciones = inspecciones.map(i => i.id);
