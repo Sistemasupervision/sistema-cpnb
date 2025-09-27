@@ -155,14 +155,13 @@
                     container.innerHTML = '<div class="no-data">No hay estaciones en REDIP OCCIDENTAL.</div>';
                     return;
                 }
-
-                // Obtener inspecciones vencidas
-                const {  inspecciones, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
-                    .in('estacion_id', idsEstaciones)
-                    .lte('proxima_inspeccion', hoy)
-                    .order('proxima_inspeccion', { ascending: true });
+               // Obtener inspecciones vencidas
+const { data: inspecciones, error: inspError } = await supabase
+    .from('inspecciones')
+    .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
+    .in('estacion_id', idsEstaciones)
+    .lte('proxima_inspeccion', hoy)
+    .order('proxima_inspeccion', { ascending: true });
                 if (inspError) throw inspError;
 
                 if (!inspecciones || inspecciones.length === 0) {
