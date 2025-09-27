@@ -581,84 +581,83 @@
             return resultados.sort((a, b) => b.porcentaje - a.porcentaje);
         }
 
-        function renderizarEvolucionChart(data) {
-            const ctx = document.getElementById('evolucionChart').getContext('2d');
-            if (evolucionChart) {
-                evolucionChart.destroy();
-            }
+      function renderizarEvolucionChart(data) {
+    const ctx = document.getElementById('evolucionChart').getContext('2d');
+    if (evolucionChart) {
+        evolucionChart.destroy();
+    }
 
-            const labels = data.map(d => d.mes);
-            const valores = data.map(d => d.cumplimiento);
+    const labels = data.map(d => d.mes);
+    const valores = data.map(d => d.cumplimiento);
 
-            evolucionChart = new Chart(ctx, {
-                type: 'line',
-                 {
-                    labels: labels,
-                    datasets: [{
-                        label: '% de Cumplimiento',
-                         valores,
-                        borderColor: '#2c5282',
-                        backgroundColor: 'rgba(44, 82, 130, 0.12)',
-                        borderWidth: 4,
-                        pointBackgroundColor: '#0c2440',
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                        tension: 0.4,
-                        fill: true,
-                        cubicInterpolationMode: 'monotone'
-                    }]
+    evolucionChart = new Chart(ctx, {
+        type: 'line',
+         {  // <-- Aquí estaba el error: faltaba "data:"
+            labels: labels,
+            datasets: [{
+                label: '% de Cumplimiento',
+                 valores,  // <-- Aquí estaba el error: faltaba "data:"
+                borderColor: '#2c5282',
+                backgroundColor: 'rgba(44, 82, 130, 0.12)',
+                borderWidth: 4,
+                pointBackgroundColor: '#0c2440',
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                tension: 0.4,
+                fill: true,
+                cubicInterpolationMode: 'monotone'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 13, weight: 'bold' },
+                        color: '#2d3748'
+                    }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { 
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                font: { size: 13, weight: 'bold' },
-                                color: '#2d3748'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(12, 36, 64, 0.9)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            displayColors: false
-                        }
+                tooltip: {
+                    backgroundColor: 'rgba(12, 36, 64, 0.9)',
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                },
-                                font: { size: 12 }
-                            }
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
                         },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: { size: 12, weight: 'bold' }
-                            }
-                        }
+                        font: { size: 12 }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
                     },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
+                    ticks: {
+                        font: { size: 12, weight: 'bold' }
                     }
                 }
-            });
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
         }
-
+    });
+}
         async function exportarResumenAPDF() {
             const content = document.getElementById('pdf-content');
             if (!content) {
