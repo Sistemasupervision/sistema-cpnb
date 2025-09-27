@@ -188,6 +188,7 @@
         </div>
     </div>
     <script>
+        // ✅ URLs CORREGIDAS (sin espacios)
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -221,7 +222,7 @@
                 const mesActual = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
                 // 1. Total de inspecciones este mes
-                const {  inspeccionesMes, error: inspError } = await supabase
+                const { data: inspeccionesMes, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, estacion_id')
                     .gte('created_at', primerDiaMes.toISOString())
@@ -284,7 +285,8 @@
                 document.getElementById('resumenContent').style.display = 'block';
             } catch (error) {
                 console.error('Error al cargar resumen:', error);
-                document.getElementById('loading').textContent = 'Error al cargar los datos.';
+                document.getElementById('loading').textContent = 'Error al cargar los datos. Verifique la consola.';
+                document.getElementById('loading').style.display = 'block';
             }
         }
 
@@ -372,7 +374,7 @@
                 const primerDia = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
                 const ultimoDia = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
                 
-                const {  inspecciones, error } = await supabase
+                const { data: inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .gte('created_at', primerDia.toISOString())
@@ -410,11 +412,11 @@
             const valores = data.map(d => d.cumplimiento);
             evolucionChart = new Chart(ctx, {
                 type: 'line',
-                data: {
+                 {
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento',
-                        data: valores,
+                         valores,
                         borderColor: '#3182ce',
                         backgroundColor: 'rgba(49, 130, 206, 0.1)',
                         borderWidth: 3,
@@ -445,6 +447,7 @@
             });
         }
 
+        // Iniciar carga
         cargarResumenMensual();
     </script>
 </body>
