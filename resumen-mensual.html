@@ -235,7 +235,7 @@
                     const idsInspecciones = inspeccionesMes.map(i => i.id);
                     const { data: items, error: itemsError } = await supabase
                         .from('items_inspeccion')
-                        .select('cumple') // ✅ Solo necesitamos 'cumple'
+                        .select('cumple')
                         .in('inspeccion_id', idsInspecciones);
                     if (!itemsError && items.length > 0) {
                         const cumplidos = items.filter(i => i.cumple === true).length;
@@ -273,7 +273,6 @@
                         <div class="kpi-value porcentaje">${cumplimientoGeneral}%</div>
                     </div>
                 `;
-
                 document.getElementById('topEstaciones').innerHTML = topEstacionesHtml || '<div style="text-align:center; color:#666;">No hay datos</div>';
                 document.getElementById('topItemsFallados').innerHTML = topItemsHtml || '<div style="text-align:center; color:#666;">No hay datos</div>';
 
@@ -298,7 +297,6 @@
                 .in('inspeccion_id', idsInspecciones);
             if (error || !items) return [];
 
-            // Agrupar por inspección
             const itemsPorInspeccion = {};
             items.forEach(item => {
                 if (!itemsPorInspeccion[item.inspeccion_id]) {
@@ -308,7 +306,6 @@
                 if (item.cumple) itemsPorInspeccion[item.inspeccion_id].cumplidos++;
             });
 
-            // Calcular porcentaje por estación
             const estacionesMap = {};
             inspecciones.forEach(insp => {
                 const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
@@ -320,7 +317,6 @@
                 estacionesMap[insp.estacion_id].count++;
             });
 
-            // Obtener nombres de estaciones
             const idsEstaciones = Object.keys(estacionesMap).map(id => parseInt(id));
             const { data: estacionesData, error: estError } = await supabase
                 .from('estaciones_policiales')
@@ -372,25 +368,24 @@
                 const mes = fecha.toLocaleDateString('es-ES', { month: 'short' });
                 const primerDia = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
                 const ultimoDia = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
-                
+
                 const { data: inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .gte('created_at', primerDia.toISOString())
                     .lte('created_at', ultimoDia.toISOString() + 'T23:59:59.999Z');
-                if (error) {
+
+                if (error || inspecciones.length === 0) {
                     datos.push({ mes, cumplimiento: 0 });
                     continue;
                 }
-                if (inspecciones.length === 0) {
-                    datos.push({ mes, cumplimiento: 0 });
-                    continue;
-                }
+
                 const ids = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('cumple')
                     .in('inspeccion_id', ids);
+
                 if (itemsError || items.length === 0) {
                     datos.push({ mes, cumplimiento: 0 });
                 } else {
@@ -407,15 +402,17 @@
             if (evolucionChart) {
                 evolucionChart.destroy();
             }
+
             const labels = data.map(d => d.mes);
             const valores = data.map(d => d.cumplimiento);
+
             evolucionChart = new Chart(ctx, {
                 type: 'line',
-                 {
+                data: { // ✅ Aquí estaba el error: faltaba "data:"
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento',
-                         valores,
+                        data: valores, // ✅ Aquí también: debe ser "data", no solo "valores"
                         borderColor: '#3182ce',
                         backgroundColor: 'rgba(49, 130, 206, 0.1)',
                         borderWidth: 3,
