@@ -403,50 +403,49 @@
             return datos;
         }
 
-        function renderizarEvolucionChart(data) {
-            const ctx = document.getElementById('evolucionChart').getContext('2d');
-            if (evolucionChart) {
-                evolucionChart.destroy();
-            }
-            const labels = data.map(d => d.mes);
-            const valores = data.map(d => d.cumplimiento);
-            evolucionChart = new Chart(ctx, {
-                type: 'line',
-                 {
-                    labels: labels,
-                    datasets: [{
-                        label: '% de Cumplimiento',
-                         valores,
-                        borderColor: '#3182ce',
-                        backgroundColor: 'rgba(49, 130, 206, 0.1)',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#0c2440',
-                        pointRadius: 5,
-                        tension: 0.3,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            }
+       function renderizarEvolucionChart(data) {
+    const ctx = document.getElementById('evolucionChart').getContext('2d');
+    if (evolucionChart) {
+        evolucionChart.destroy();
+    }
+    const labels = data.map(d => d.mes);
+    const valores = data.map(d => d.cumplimiento);
+    evolucionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '% de Cumplimiento',
+                data: valores,  // ✅ CORREGIDO: clave "data" con valor "valores"
+                borderColor: '#3182ce',
+                backgroundColor: 'rgba(49, 130, 206, 0.1)',
+                borderWidth: 3,
+                pointBackgroundColor: '#0c2440',
+                pointRadius: 5,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
                         }
                     }
                 }
-            });
+            }
         }
-
+    });
+}
         // Iniciar carga
         cargarResumenMensual();
     </script>
