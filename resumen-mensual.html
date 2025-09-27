@@ -212,4 +212,244 @@
         let evolucionChart = null;
 
         async function cargarResumenMensual() {
-            document
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resumenContent').style.display = 'none';
+            try {
+                const hoy = new Date();
+                const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+                const mesActual = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+                // Fechas formateadas correctamente
+                const inicio = primerDiaMes.toISOString().split('T')[0] + 'T00:00:00.000Z';
+                const fin = ultimoDiaMes.toISOString().split('T')[0] + 'T23:59:59.999Z';
+
+                // 1. Total de inspecciones este mes
+                const { data: inspeccionesMes, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id, estacion_id')
+                    .gte('created_at', inicio)
+                    .lte('created_at', fin);
+                if (inspError) throw inspError;
+                const totalInspecciones = inspeccionesMes.length;
+
+                // 2. % promedio de cumplimiento general
+                let cumplimientoGeneral = 0;
+                if (totalInspecciones > 0) {
+                    const idsInspecciones = inspeccionesMes.map(i => i.id);
+                    const { data: items, error: itemsError } = await supabase
+                        .from('items_inspeccion')
+                        .select('cumple')
+                        .in('inspeccion_id', idsInspecciones);
+                    if (!itemsError && items.length > 0) {
+                        const cumplidos = items.filter(i => i.cumple === true).length;
+                        cumplimientoGeneral = Math.round((cumplidos / items.length) * 100);
+                    }
+                }
+
+                // 3. Top 3 estaciones con mejor desempeño
+                const topEstaciones = await calcularTopEstaciones(inspeccionesMes);
+                const topEstacionesHtml = topEstaciones.map(est => 
+                    `<div class="top-item">${est.nombre} <span>${est.porcentaje}%</span></div>`
+                ).join('');
+
+                // 4. Top 3 ítems más fallados
+                const topItemsFallados = await calcularTopItemsFallados(inspeccionesMes);
+                const topItemsHtml = topItemsFallados.map(item => 
+                    `<div class="top-item">${nombresItems[item.nombre] || item.nombre} <span>${item.fallas} fallas</span></div>`
+                ).join('');
+
+                // 5. Evolución mensual (últimos 6 meses)
+                const evolucionData = await calcularEvolucionMensual();
+
+                // Renderizar KPIs
+                document.getElementById('kpiGrid').innerHTML = `
+                    <div class="kpi-card">
+                        <div class="kpi-label">Mes Actual</div>
+                        <div class="kpi-value">${mesActual}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total de Inspecciones</div>
+                        <div class="kpi-value">${totalInspecciones}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Cumplimiento Promedio</div>
+                        <div class="kpi-value porcentaje">${cumplimientoGeneral}%</div>
+                    </div>
+                `;
+                document.getElementById('topEstaciones').innerHTML = topEstacionesHtml || '<div style="text-align:center; color:#666;">No hay datos</div>';
+                document.getElementById('topItemsFallados').innerHTML = topItemsHtml || '<div style="text-align:center; color:#666;">No hay datos</div>';
+
+                // Renderizar gráfico
+                renderizarEvolucionChart(evolucionData);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('resumenContent').style.display = 'block';
+            } catch (error) {
+                console.error('Error al cargar resumen:', error);
+                document.getElementById('loading').textContent = 'Error al cargar los datos. Verifique la consola.';
+                document.getElementById('loading').style.display = 'block';
+            }
+        }
+
+        async function calcularTopEstaciones(inspecciones) {
+            if (inspecciones.length === 0) return [];
+            const idsInspecciones = inspecciones.map(i => i.id);
+            const { data: items, error } = await supabase
+                .from('items_inspeccion')
+                .select('inspeccion_id, cumple')
+                .in('inspeccion_id', idsInspecciones);
+            if (error || !items) return [];
+
+            const itemsPorInspeccion = {};
+            items.forEach(item => {
+                if (!itemsPorInspeccion[item.inspeccion_id]) {
+                    itemsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
+                }
+                itemsPorInspeccion[item.inspeccion_id].total++;
+                if (item.cumple) itemsPorInspeccion[item.inspeccion_id].cumplidos++;
+            });
+
+            const estacionesMap = {};
+            inspecciones.forEach(insp => {
+                const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
+                const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+                if (!estacionesMap[insp.estacion_id]) {
+                    estacionesMap[insp.estacion_id] = { total: 0, suma: 0, count: 0 };
+                }
+                estacionesMap[insp.estacion_id].suma += porcentaje;
+                estacionesMap[insp.estacion_id].count++;
+            });
+
+            const idsEstaciones = Object.keys(estacionesMap).map(id => parseInt(id));
+            const { data: estacionesData, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id, nombre')
+                .in('id', idsEstaciones);
+            if (estError) return [];
+
+            const estacionesConNombre = estacionesData.map(est => ({
+                id: est.id,
+                nombre: est.nombre,
+                porcentaje: Math.round(estacionesMap[est.id].suma / estacionesMap[est.id].count)
+            }));
+
+            return estacionesConNombre
+                .sort((a, b) => b.porcentaje - a.porcentaje)
+                .slice(0, 3);
+        }
+
+        async function calcularTopItemsFallados(inspecciones) {
+            if (inspecciones.length === 0) return [];
+            const idsInspecciones = inspecciones.map(i => i.id);
+            const { data: items, error } = await supabase
+                .from('items_inspeccion')
+                .select('item_nombre, cumple')
+                .in('inspeccion_id', idsInspecciones);
+            if (error || !items) return [];
+
+            const fallasPorItem = {};
+            items.forEach(item => {
+                if (!fallasPorItem[item.item_nombre]) {
+                    fallasPorItem[item.item_nombre] = 0;
+                }
+                if (item.cumple === false) {
+                    fallasPorItem[item.item_nombre]++;
+                }
+            });
+
+            return Object.entries(fallasPorItem)
+                .map(([nombre, fallas]) => ({ nombre, fallas }))
+                .sort((a, b) => b.fallas - a.fallas)
+                .slice(0, 3);
+        }
+
+        async function calcularEvolucionMensual() {
+            const datos = [];
+            const hoy = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+                const mes = fecha.toLocaleDateString('es-ES', { month: 'short' });
+                const primerDia = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+                const ultimoDia = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
+
+                const inicio = primerDia.toISOString().split('T')[0] + 'T00:00:00.000Z';
+                const fin = ultimoDia.toISOString().split('T')[0] + 'T23:59:59.999Z';
+
+                const { data: inspecciones, error } = await supabase
+                    .from('inspecciones')
+                    .select('id')
+                    .gte('created_at', inicio)
+                    .lte('created_at', fin);
+                if (error || !inspecciones || inspecciones.length === 0) {
+                    datos.push({ mes, cumplimiento: 0 });
+                    continue;
+                }
+
+                const ids = inspecciones.map(i => i.id);
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('cumple')
+                    .in('inspeccion_id', ids);
+                if (itemsError || items.length === 0) {
+                    datos.push({ mes, cumplimiento: 0 });
+                } else {
+                    const cumplidos = items.filter(i => i.cumple === true).length;
+                    const porcentaje = Math.round((cumplidos / items.length) * 100);
+                    datos.push({ mes, cumplimiento: porcentaje });
+                }
+            }
+            return datos;
+        }
+
+        function renderizarEvolucionChart(data) {
+            const ctx = document.getElementById('evolucionChart').getContext('2d');
+            if (evolucionChart) {
+                evolucionChart.destroy();
+            }
+
+            const labels = data.map(d => d.mes);
+            const valores = data.map(d => d.cumplimiento);
+
+            evolucionChart = new Chart(ctx, {
+                type: 'line',
+                 { // ✅ Corrección clave: falta ""
+                    labels: labels,
+                    datasets: [{
+                        label: '% de Cumplimiento',
+                         valores, // ✅ Corrección clave: falta ""
+                        borderColor: '#3182ce',
+                        backgroundColor: 'rgba(49, 130, 206, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#0c2440',
+                        pointRadius: 5,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Iniciar carga
+        cargarResumenMensual();
+    </script>
+</body>
+</html>
