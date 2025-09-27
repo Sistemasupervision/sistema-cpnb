@@ -592,11 +592,11 @@
 
             evolucionChart = new Chart(ctx, {
                 type: 'line',
-                data: {
+                 {
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento',
-                        data: valores,
+                         valores,
                         borderColor: '#2c5282',
                         backgroundColor: 'rgba(44, 82, 130, 0.12)',
                         borderWidth: 4,
@@ -683,6 +683,14 @@
                         ${document.getElementById('topItemsFallados').closest('.top-list').outerHTML}
                         <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 12px;">
                             <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-weight: 700;">
+                                Evolución Mensual de Cumplimiento
+                            </h3>
+                            <div style="height: 200px; background: white; border: 1px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666;">
+                                Gráfico no disponible en PDF
+                            </div>
+                        </div>
+                        <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+                            <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-weight: 700;">
                                 Comparativa por CCP
                             </h3>
                             ${document.getElementById('ccpComparison').outerHTML}
@@ -695,8 +703,6 @@
                 document.body.appendChild(printDiv);
                 printDiv.style.position = 'fixed';
                 printDiv.style.left = '-9999px';
-                printDiv.style.width = '800px';
-
                 const canvas = await html2canvas(printDiv, {
                     scale: 2,
                     useCORS: true,
