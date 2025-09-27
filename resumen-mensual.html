@@ -6,6 +6,8 @@
     <title>📊 Resumen Mensual - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         * {
@@ -32,6 +34,12 @@
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.15);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
         }
         .container::before {
             content: '';
@@ -59,34 +67,51 @@
             color: #0c2440;
             font-size: 28px;
             font-weight: 800;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             letter-spacing: -0.5px;
         }
-        .back-btn {
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .btn {
             padding: 12px 24px;
             border: none;
             border-radius: 12px;
             font-size: 16px;
             cursor: pointer;
-            margin-bottom: 25px;
             display: inline-flex;
             align-items: center;
             gap: 10px;
             font-weight: 700;
-            background: linear-gradient(135deg, #2c5282, #1a365d);
-            color: white;
-            box-shadow: 0 4px 12px rgba(26, 54, 93, 0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transition: all 0.3s ease;
         }
-        .back-btn:hover {
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(26, 54, 93, 0.4);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282, #1a365d);
+            color: white;
+        }
+        .pdf-btn {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
         }
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 22px;
             margin-bottom: 35px;
+            opacity: 0;
+            animation: slideIn 0.5s ease 0.2s forwards;
+        }
+        @keyframes slideIn {
+            to { opacity: 1; }
         }
         .kpi-card {
             background: linear-gradient(145deg, #f8fafc, #edf2f7);
@@ -131,6 +156,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease 0.3s forwards;
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
         .top-list {
             background: #f8fafc;
@@ -166,6 +196,34 @@
             height: 320px;
             position: relative;
         }
+        .ccp-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .ccp-card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .ccp-name {
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .ccp-cumplimiento {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3182ce, #2c5282);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         .loading {
             text-align: center;
             color: #4a5568;
@@ -177,7 +235,7 @@
             .container {
                 padding: 30px 20px;
             }
-            .kpi-grid {
+            .kpi-grid, .ccp-comparison {
                 grid-template-columns: 1fr;
             }
             .chart-wrapper {
@@ -186,18 +244,32 @@
             .title {
                 font-size: 24px;
             }
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="pdf-content">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">📊 Resumen Mensual de Inspecciones</h1>
         </div>
-        <button class="back-btn" onclick="window.location.href='index.html'">
-            <i class="fas fa-arrow-left"></i> Volver al Panel Principal
-        </button>
+        <div class="action-buttons">
+            <button class="btn back-btn" onclick="window.location.href='index.html'">
+                <i class="fas fa-arrow-left"></i> Volver al Panel Principal
+            </button>
+            <button class="btn pdf-btn" onclick="exportarResumenAPDF()">
+                <i class="fas fa-file-pdf"></i> Exportar a PDF
+            </button>
+        </div>
         <div id="loading" class="loading">Cargando resumen mensual...</div>
         <div id="resumenContent" style="display: none;">
             <div class="kpi-grid" id="kpiGrid"></div>
@@ -217,6 +289,11 @@
                 <div class="chart-wrapper">
                     <canvas id="evolucionChart"></canvas>
                 </div>
+            </div>
+
+            <div class="chart-container">
+                <h3 class="section-title" style="justify-content: center;"><i class="fas fa-layer-group"></i> Comparativa por CCP</h3>
+                <div class="ccp-comparison" id="ccpComparison"></div>
             </div>
         </div>
     </div>
@@ -241,6 +318,12 @@
             condiciones_generales: "Condiciones Generales",
             vehiculos: "Vehículos",
             motos: "Motos"
+        };
+        const ccpNombres = {
+            "metropolitano": "CCP METROPOLITANO",
+            "sur-del-lago": "CCP SUR DEL LAGO",
+            "guajira": "CCP GUAJIRA",
+            "col": "CCPE COL"
         };
         let evolucionChart = null;
 
@@ -295,6 +378,9 @@
                 // 5. Evolución mensual (últimos 6 meses)
                 const evolucionData = await calcularEvolucionMensual();
 
+                // 6. Comparativa por CCP
+                const ccpData = await calcularComparativaCCP(inspeccionesMes);
+
                 // Renderizar KPIs mejorados
                 document.getElementById('kpiGrid').innerHTML = `
                     <div class="kpi-card">
@@ -315,6 +401,20 @@
                 `;
                 document.getElementById('topEstaciones').innerHTML = topEstacionesHtml || '<div style="text-align:center; color:#666; padding:15px;">No hay datos suficientes</div>';
                 document.getElementById('topItemsFallados').innerHTML = topItemsHtml || '<div style="text-align:center; color:#666; padding:15px;">No hay datos suficientes</div>';
+
+                // Renderizar comparativa CCP
+                let ccpHtml = '';
+                if (ccpData && ccpData.length > 0) {
+                    ccpHtml = ccpData.map(ccp => `
+                        <div class="ccp-card">
+                            <div class="ccp-name">${ccpNombres[ccp.ccp_id] || ccp.ccp_id}</div>
+                            <div class="ccp-cumplimiento">${ccp.porcentaje}%</div>
+                        </div>
+                    `).join('');
+                } else {
+                    ccpHtml = '<div style="text-align:center; color:#666; padding:20px;">No hay datos por CCP</div>';
+                }
+                document.getElementById('ccpComparison').innerHTML = ccpHtml;
 
                 // Renderizar gráfico
                 renderizarEvolucionChart(evolucionData);
@@ -438,6 +538,49 @@
             return datos;
         }
 
+        async function calcularComparativaCCP(inspecciones) {
+            if (inspecciones.length === 0) return [];
+            
+            // Obtener estaciones con sus CCP
+            const idsEstaciones = [...new Set(inspecciones.map(i => i.estacion_id))];
+            const { data: estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id, ccp_id')
+                .in('id', idsEstaciones);
+            if (estError) return [];
+
+            const estacionCCPMap = {};
+            estaciones.forEach(est => {
+                estacionCCPMap[est.id] = est.ccp_id;
+            });
+
+            // Agrupar inspecciones por CCP
+            const ccpInspecciones = {};
+            inspecciones.forEach(insp => {
+                const ccp = estacionCCPMap[insp.estacion_id];
+                if (ccp) {
+                    if (!ccpInspecciones[ccp]) ccpInspecciones[ccp] = [];
+                    ccpInspecciones[ccp].push(insp.id);
+                }
+            });
+
+            // Calcular cumplimiento por CCP
+            const resultados = [];
+            for (const [ccpId, ids] of Object.entries(ccpInspecciones)) {
+                const { data: items, error } = await supabase
+                    .from('items_inspeccion')
+                    .select('cumple')
+                    .in('inspeccion_id', ids);
+                if (!error && items && items.length > 0) {
+                    const cumplidos = items.filter(i => i.cumple === true).length;
+                    const porcentaje = Math.round((cumplidos / items.length) * 100);
+                    resultados.push({ ccp_id: ccpId, porcentaje });
+                }
+            }
+
+            return resultados.sort((a, b) => b.porcentaje - a.porcentaje);
+        }
+
         function renderizarEvolucionChart(data) {
             const ctx = document.getElementById('evolucionChart').getContext('2d');
             if (evolucionChart) {
@@ -514,6 +657,77 @@
                     }
                 }
             });
+        }
+
+        async function exportarResumenAPDF() {
+            const content = document.getElementById('pdf-content');
+            if (!content) {
+                alert('No se puede exportar: contenido no encontrado.');
+                return;
+            }
+
+            try {
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = `
+                    <div style="font-family: Segoe UI, Arial, sans-serif; padding: 30px; max-width: 800px;">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: 800;">
+                                RESUMEN MENSUAL DE INSPECCIONES
+                            </h1>
+                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                        </div>
+                        ${document.getElementById('kpiGrid').outerHTML}
+                        ${document.getElementById('topEstaciones').closest('.top-list').outerHTML}
+                        ${document.getElementById('topItemsFallados').closest('.top-list').outerHTML}
+                        <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+                            <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-weight: 700;">
+                                Comparativa por CCP
+                            </h3>
+                            ${document.getElementById('ccpComparison').outerHTML}
+                        </div>
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+                printDiv.style.width = '800px';
+
+                const canvas = await html2canvas(printDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`resumen_mensual_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
+                document.body.removeChild(printDiv);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF. Intente nuevamente.');
+            }
         }
 
         // Iniciar carga
