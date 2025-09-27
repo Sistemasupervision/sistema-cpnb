@@ -34,12 +34,6 @@
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.15);
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.6s ease forwards;
-        }
-        @keyframes fadeInUp {
-            to { opacity: 1; transform: translateY(0); }
         }
         .container::before {
             content: '';
@@ -107,11 +101,6 @@
             grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 22px;
             margin-bottom: 35px;
-            opacity: 0;
-            animation: slideIn 0.5s ease 0.2s forwards;
-        }
-        @keyframes slideIn {
-            to { opacity: 1; }
         }
         .kpi-card {
             background: linear-gradient(145deg, #f8fafc, #edf2f7);
@@ -120,10 +109,6 @@
             text-align: center;
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-            transition: transform 0.2s;
-        }
-        .kpi-card:hover {
-            transform: translateY(-3px);
         }
         .kpi-icon {
             font-size: 28px;
@@ -156,11 +141,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            opacity: 0;
-            animation: fadeIn 0.5s ease 0.3s forwards;
-        }
-        @keyframes fadeIn {
-            to { opacity: 1; }
         }
         .top-list {
             background: #f8fafc;
@@ -341,7 +321,7 @@
                 const fin = ultimoDiaMes.toISOString().split('T')[0] + 'T23:59:59.999Z';
 
                 // 1. Total de inspecciones este mes
-                const {  inspeccionesMes, error: inspError } = await supabase
+                const { data: inspeccionesMes, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, estacion_id')
                     .gte('created_at', inicio)
@@ -353,7 +333,7 @@
                 let cumplimientoGeneral = 0;
                 if (totalInspecciones > 0) {
                     const idsInspecciones = inspeccionesMes.map(i => i.id);
-                    const {  items, error: itemsError } = await supabase
+                    const { data: items, error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .select('cumple')
                         .in('inspeccion_id', idsInspecciones);
@@ -458,7 +438,7 @@
             });
 
             const idsEstaciones = Object.keys(estacionesMap).map(id => parseInt(id));
-            const {  estacionesData, error: estError } = await supabase
+            const { data: estacionesData, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id, nombre')
                 .in('id', idsEstaciones);
@@ -478,7 +458,7 @@
         async function calcularTopItemsFallados(inspecciones) {
             if (inspecciones.length === 0) return [];
             const idsInspecciones = inspecciones.map(i => i.id);
-            const {  items, error } = await supabase
+            const { data: items, error } = await supabase
                 .from('items_inspeccion')
                 .select('item_nombre, cumple')
                 .in('inspeccion_id', idsInspecciones);
@@ -512,7 +492,7 @@
                 const inicio = primerDia.toISOString().split('T')[0] + 'T00:00:00.000Z';
                 const fin = ultimoDia.toISOString().split('T')[0] + 'T23:59:59.999Z';
 
-                const {  inspecciones, error } = await supabase
+                const { data: inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .gte('created_at', inicio)
@@ -543,7 +523,7 @@
             
             // Obtener estaciones con sus CCP
             const idsEstaciones = [...new Set(inspecciones.map(i => i.estacion_id))];
-            const {  estaciones, error: estError } = await supabase
+            const { data: estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id, ccp_id')
                 .in('id', idsEstaciones);
@@ -567,7 +547,7 @@
             // Calcular cumplimiento por CCP
             const resultados = [];
             for (const [ccpId, ids] of Object.entries(ccpInspecciones)) {
-                const {  items, error } = await supabase
+                const { data: items, error } = await supabase
                     .from('items_inspeccion')
                     .select('cumple')
                     .in('inspeccion_id', ids);
@@ -581,83 +561,84 @@
             return resultados.sort((a, b) => b.porcentaje - a.porcentaje);
         }
 
-      function renderizarEvolucionChart(data) {
-    const ctx = document.getElementById('evolucionChart').getContext('2d');
-    if (evolucionChart) {
-        evolucionChart.destroy();
-    }
-
-    const labels = data.map(d => d.mes);
-    const valores = data.map(d => d.cumplimiento);
-
-    evolucionChart = new Chart(ctx, {
-        type: 'line',
-         {  // <-- Aquí estaba el error: faltaba "data:"
-            labels: labels,
-            datasets: [{
-                label: '% de Cumplimiento',
-                 valores,  // <-- Aquí estaba el error: faltaba "data:"
-                borderColor: '#2c5282',
-                backgroundColor: 'rgba(44, 82, 130, 0.12)',
-                borderWidth: 4,
-                pointBackgroundColor: '#0c2440',
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                tension: 0.4,
-                fill: true,
-                cubicInterpolationMode: 'monotone'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { 
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        font: { size: 13, weight: 'bold' },
-                        color: '#2d3748'
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(12, 36, 64, 0.9)',
-                    titleFont: { size: 14, weight: 'bold' },
-                    bodyFont: { size: 13 },
-                    padding: 12,
-                    displayColors: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    },
-                    ticks: {
-                        callback: function(value) {
-                            return value + '%';
-                        },
-                        font: { size: 12 }
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: { size: 12, weight: 'bold' }
-                    }
-                }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index'
+        function renderizarEvolucionChart(data) {
+            const ctx = document.getElementById('evolucionChart').getContext('2d');
+            if (evolucionChart) {
+                evolucionChart.destroy();
             }
+
+            const labels = data.map(d => d.mes);
+            const valores = data.map(d => d.cumplimiento);
+
+            evolucionChart = new Chart(ctx, {
+                type: 'line',
+                 { // ✅ Corrección clave: falta ""
+                    labels: labels,
+                    datasets: [{
+                        label: '% de Cumplimiento',
+                         valores, // ✅ Corrección clave: falta ""
+                        borderColor: '#2c5282',
+                        backgroundColor: 'rgba(44, 82, 130, 0.12)',
+                        borderWidth: 4,
+                        pointBackgroundColor: '#0c2440',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: true,
+                        cubicInterpolationMode: 'monotone'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { size: 13, weight: 'bold' },
+                                color: '#2d3748'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(12, 36, 64, 0.9)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                font: { size: 12 }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
         }
-    });
-}
+
         async function exportarResumenAPDF() {
             const content = document.getElementById('pdf-content');
             if (!content) {
@@ -682,6 +663,14 @@
                         ${document.getElementById('topItemsFallados').closest('.top-list').outerHTML}
                         <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 12px;">
                             <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-weight: 700;">
+                                Evolución Mensual de Cumplimiento
+                            </h3>
+                            <div style="height: 200px; background: white; border: 1px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666;">
+                                Gráfico no disponible en PDF
+                            </div>
+                        </div>
+                        <div style="margin-top: 25px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+                            <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-weight: 700;">
                                 Comparativa por CCP
                             </h3>
                             ${document.getElementById('ccpComparison').outerHTML}
@@ -694,8 +683,6 @@
                 document.body.appendChild(printDiv);
                 printDiv.style.position = 'fixed';
                 printDiv.style.left = '-9999px';
-                printDiv.style.width = '800px';
-
                 const canvas = await html2canvas(printDiv, {
                     scale: 2,
                     useCORS: true,
