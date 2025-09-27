@@ -415,11 +415,11 @@
 
             evolucionChart = new Chart(ctx, {
                 type: 'line',
-                 { // ✅ Corrección: falta ""
+                data: { // ✅ Corrección: agregar la clave "data"
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento',
-                         valores, // ✅ Corrección: debe ser "data", no solo "valores"
+                        data: valores, // ✅ Corrección: usar "data" en lugar de "valores"
                         borderColor: '#3182ce',
                         backgroundColor: 'rgba(49, 130, 206, 0.1)',
                         borderWidth: 3,
