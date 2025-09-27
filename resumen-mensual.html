@@ -195,12 +195,10 @@
         };
         let chartInstance = null;
 
-        // Formatear mes y año (ej: "Mar 2025")
         function formatoMes(fecha) {
             return fecha.toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
         }
 
-        // Obtener rango de fechas para un mes específico
         function rangoMes(anio, mes) {
             const inicio = new Date(anio, mes, 1);
             const fin = new Date(anio, mes + 1, 0);
@@ -210,9 +208,8 @@
             };
         }
 
-        // Cargar datos de un mes
         async function cargarDatosMes(desde, hasta) {
-            const { data: estaciones, error: estError } = await supabase
+            const {  estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id')
                 .in('ccp_id', ccpOcidental);
@@ -220,7 +217,7 @@
             const idsEstaciones = estaciones.map(e => e.id);
             if (idsEstaciones.length === 0) return { inspecciones: [], items: [] };
 
-            const { data: inspecciones, error: inspError } = await supabase
+            const {  inspecciones, error: inspError } = await supabase
                 .from('inspecciones')
                 .select('id, estacion_id')
                 .in('estacion_id', idsEstaciones)
@@ -231,7 +228,7 @@
             if (inspecciones.length === 0) return { inspecciones: [], items: [] };
 
             const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
+            const {  items, error: itemsError } = await supabase
                 .from('items_inspeccion')
                 .select('cumple')
                 .in('inspeccion_id', idsInspecciones);
@@ -240,7 +237,6 @@
             return { inspecciones, items };
         }
 
-        // Calcular métricas
         function calcularMetricas(inspecciones, items) {
             const totalInspecciones = inspecciones.length;
             const totalItems = items.length;
@@ -249,7 +245,6 @@
             return { totalInspecciones, porcentaje };
         }
 
-        // Formatear comparación
         function formatoComparacion(actual, anterior, esPorcentaje = false) {
             if (anterior === 0 && actual === 0) return '';
             const diff = actual - anterior;
@@ -266,12 +261,10 @@
                 const mesActual = hoy.getMonth();
                 const anioActual = hoy.getFullYear();
 
-                // Mes actual
                 const rangoActual = rangoMes(anioActual, mesActual);
                 const datosActual = await cargarDatosMes(rangoActual.desde, rangoActual.hasta);
                 const metricasActual = calcularMetricas(datosActual.inspecciones, datosActual.items);
 
-                // Mes anterior
                 let mesAnterior = mesActual - 1;
                 let anioAnterior = anioActual;
                 if (mesAnterior < 0) {
@@ -282,10 +275,9 @@
                 const datosAnterior = await cargarDatosMes(rangoAnterior.desde, rangoAnterior.hasta);
                 const metricasAnterior = calcularMetricas(datosAnterior.inspecciones, datosAnterior.items);
 
-                // Contar por CCP (solo mes actual)
                 const conteoCCP = {};
                 if (datosActual.inspecciones.length > 0) {
-                    const { data: estacionesConCCP, error: ccpError } = await supabase
+                    const {  estacionesConCCP, error: ccpError } = await supabase
                         .from('estaciones_policiales')
                         .select('id, ccp_id')
                         .in('id', datosActual.inspecciones.map(i => i.estacion_id));
@@ -302,7 +294,6 @@
                     });
                 }
 
-                // Renderizar
                 let html = `
                     <div class="resumen-cards">
                         <div class="card">
@@ -329,7 +320,6 @@
                 `;
                 container.innerHTML = html;
 
-                // Gráfico
                 if (Object.keys(conteoCCP).length > 0) {
                     const ctx = document.getElementById('ccpChart').getContext('2d');
                     const labels = Object.keys(conteoCCP).map(k => ccpNombres[k] || k);
@@ -338,11 +328,11 @@
                     if (chartInstance) chartInstance.destroy();
                     chartInstance = new Chart(ctx, {
                         type: 'bar',
-                        data: {
+                         {
                             labels: labels,
                             datasets: [{
                                 label: 'Inspecciones este mes',
-                                data: data,
+                                 data,
                                 backgroundColor: 'rgba(49, 130, 206, 0.8)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
@@ -370,6 +360,9 @@
         }
 
         async function exportarResumenAPDF() {
+            // Asegurar que el gráfico esté renderizado
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const printContent = document.createElement('div');
             printContent.innerHTML = `
                 <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
@@ -393,7 +386,8 @@
                 const canvas = await html2canvas(printContent, {
                     scale: 2,
                     useCORS: true,
-                    logging: false
+                    logging: false,
+                    allowTaint: true
                 });
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
