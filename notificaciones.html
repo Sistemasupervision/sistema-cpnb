@@ -86,6 +86,9 @@
             border-radius: 12px;
             padding: 18px;
             border-left: 4px solid #ef4444;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
         .alerta-titulo {
             font-weight: bold;
@@ -99,6 +102,8 @@
             display: flex;
             justify-content: space-between;
             margin-top: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .ccp-badge {
             background: #fecaca;
@@ -106,6 +111,24 @@
             border-radius: 6px;
             font-weight: bold;
             font-size: 13px;
+        }
+        .acciones {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-reinspeccion {
+            padding: 8px 14px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-reinspeccion:hover {
+            background: #b91c1c;
         }
         .loading, .no-data {
             text-align: center;
@@ -144,7 +167,6 @@
             const hoy = new Date().toISOString().split('T')[0];
             const container = document.getElementById('alertasContainer');
             try {
-                // Obtener estaciones de REDIP OCCIDENTAL
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
@@ -155,13 +177,13 @@
                     container.innerHTML = '<div class="no-data">No hay estaciones en REDIP OCCIDENTAL.</div>';
                     return;
                 }
-               // Obtener inspecciones vencidas
-const { data: inspecciones, error: inspError } = await supabase
-    .from('inspecciones')
-    .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
-    .in('estacion_id', idsEstaciones)
-    .lte('proxima_inspeccion', hoy)
-    .order('proxima_inspeccion', { ascending: true });
+
+                const { data: inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
+                    .in('estacion_id', idsEstaciones)
+                    .lte('proxima_inspeccion', hoy)
+                    .order('proxima_inspeccion', { ascending: true });
                 if (inspError) throw inspError;
 
                 if (!inspecciones || inspecciones.length === 0) {
@@ -181,8 +203,13 @@ const { data: inspecciones, error: inspError } = await supabase
                                 <span>Última inspección: ${fechaInspeccion}</span>
                                 <span class="ccp-badge">${ccpNombre}</span>
                             </div>
-                            <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
+                            <div style="color: #dc2626; font-weight: bold;">
                                 ⚠️ Reinspección vencida desde: ${fechaProxima}
+                            </div>
+                            <div class="acciones">
+                                <button class="btn-reinspeccion" onclick="marcarReinspeccionada(${insp.id})">
+                                    ✅ Marcar como reinspeccionada
+                                </button>
                             </div>
                         </div>
                     `;
@@ -192,6 +219,32 @@ const { data: inspecciones, error: inspError } = await supabase
             } catch (error) {
                 console.error('Error al cargar notificaciones:', error);
                 container.innerHTML = '<div class="no-data">Error al cargar las notificaciones.</div>';
+            }
+        }
+
+        async function marcarReinspeccionada(inspeccionId) {
+            const nuevaFecha = prompt("Ingrese la nueva fecha de próxima inspección (AAAA-MM-DD):");
+            if (!nuevaFecha) return;
+
+            const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!fechaRegex.test(nuevaFecha)) {
+                alert("Formato de fecha inválido. Use AAAA-MM-DD.");
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('inspecciones')
+                    .update({ proxima_inspeccion: nuevaFecha })
+                    .eq('id', inspeccionId);
+
+                if (error) throw error;
+
+                alert("✅ Reinspección actualizada correctamente.");
+                cargarNotificaciones(); // Recargar lista
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                alert("❌ Error al actualizar la reinspección.");
             }
         }
 
