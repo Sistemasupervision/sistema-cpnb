@@ -221,11 +221,14 @@
                 const mesActual = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
                 // 1. Total de inspecciones este mes
+                const inicio = primerDiaMes.toISOString().split('T')[0] + 'T00:00:00.000Z';
+                const fin = ultimoDiaMes.toISOString().split('T')[0] + 'T23:59:59.999Z';
+
                 const { data: inspeccionesMes, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, estacion_id')
-                    .gte('created_at', primerDiaMes.toISOString())
-                    .lte('created_at', ultimoDiaMes.toISOString() + 'T23:59:59.999Z');
+                    .gte('created_at', inicio)
+                    .lte('created_at', fin);
                 if (inspError) throw inspError;
                 const totalInspecciones = inspeccionesMes.length;
 
@@ -369,23 +372,27 @@
                 const primerDia = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
                 const ultimoDia = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
 
+                const inicio = primerDia.toISOString().split('T')[0] + 'T00:00:00.000Z';
+                const fin = ultimoDia.toISOString().split('T')[0] + 'T23:59:59.999Z';
+
                 const { data: inspecciones, error } = await supabase
                     .from('inspecciones')
                     .select('id')
-                    .gte('created_at', primerDia.toISOString())
-                    .lte('created_at', ultimoDia.toISOString() + 'T23:59:59.999Z');
-
-                if (error || inspecciones.length === 0) {
+                    .gte('created_at', inicio)
+                    .lte('created_at', fin);
+                if (error) {
                     datos.push({ mes, cumplimiento: 0 });
                     continue;
                 }
-
+                if (inspecciones.length === 0) {
+                    datos.push({ mes, cumplimiento: 0 });
+                    continue;
+                }
                 const ids = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('cumple')
                     .in('inspeccion_id', ids);
-
                 if (itemsError || items.length === 0) {
                     datos.push({ mes, cumplimiento: 0 });
                 } else {
@@ -408,11 +415,11 @@
 
             evolucionChart = new Chart(ctx, {
                 type: 'line',
-                data: { // ✅ Aquí estaba el error: faltaba "data:"
+                 { // ✅ Corrección: falta ""
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento',
-                        data: valores, // ✅ Aquí también: debe ser "data", no solo "valores"
+                         valores, // ✅ Corrección: debe ser "data", no solo "valores"
                         borderColor: '#3182ce',
                         backgroundColor: 'rgba(49, 130, 206, 0.1)',
                         borderWidth: 3,
