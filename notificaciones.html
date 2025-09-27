@@ -86,9 +86,6 @@
             border-radius: 12px;
             padding: 18px;
             border-left: 4px solid #ef4444;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
         }
         .alerta-titulo {
             font-weight: bold;
@@ -102,8 +99,6 @@
             display: flex;
             justify-content: space-between;
             margin-top: 8px;
-            flex-wrap: wrap;
-            gap: 8px;
         }
         .ccp-badge {
             background: #fecaca;
@@ -113,9 +108,9 @@
             font-size: 13px;
         }
         .acciones {
+            margin-top: 12px;
             display: flex;
             gap: 10px;
-            margin-top: 10px;
         }
         .btn-reinspeccion {
             padding: 8px 14px;
@@ -126,6 +121,7 @@
             font-size: 13px;
             font-weight: bold;
             cursor: pointer;
+            flex: 1;
         }
         .btn-reinspeccion:hover {
             background: #b91c1c;
@@ -135,6 +131,64 @@
             color: #666;
             font-size: 18px;
             padding: 30px;
+        }
+
+        /* Modal de fecha */
+        #modalFecha {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .btn-aceptar {
+            background: #38a169;
+            color: white;
+        }
+        .btn-cancelar {
+            background: #e2e8f0;
+            color: #4a5568;
         }
     </style>
 </head>
@@ -151,6 +205,19 @@
             <div class="loading">Cargando notificaciones...</div>
         </div>
     </div>
+
+    <!-- Modal para seleccionar fecha -->
+    <div id="modalFecha">
+        <div class="modal-content">
+            <div class="modal-title">Nueva fecha de reinspección</div>
+            <input type="date" id="nuevaFechaInput" class="modal-input" min="">
+            <div class="modal-buttons">
+                <button class="modal-btn btn-cancelar" onclick="cerrarModalFecha()">Cancelar</button>
+                <button class="modal-btn btn-aceptar" onclick="confirmarNuevaFecha()">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -162,6 +229,10 @@
             "guajira": "CCP GUAJIRA",
             "col": "CCPE COL"
         };
+        let inspeccionIdActual = null;
+
+        // Establecer fecha mínima (hoy)
+        document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
         async function cargarNotificaciones() {
             const hoy = new Date().toISOString().split('T')[0];
@@ -177,7 +248,6 @@
                     container.innerHTML = '<div class="no-data">No hay estaciones en REDIP OCCIDENTAL.</div>';
                     return;
                 }
-
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
@@ -185,12 +255,10 @@
                     .lte('proxima_inspeccion', hoy)
                     .order('proxima_inspeccion', { ascending: true });
                 if (inspError) throw inspError;
-
                 if (!inspecciones || inspecciones.length === 0) {
                     container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
                     return;
                 }
-
                 let html = '<div class="alertas-list">';
                 inspecciones.forEach(insp => {
                     const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
@@ -203,11 +271,11 @@
                                 <span>Última inspección: ${fechaInspeccion}</span>
                                 <span class="ccp-badge">${ccpNombre}</span>
                             </div>
-                            <div style="color: #dc2626; font-weight: bold;">
+                            <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
                                 ⚠️ Reinspección vencida desde: ${fechaProxima}
                             </div>
                             <div class="acciones">
-                                <button class="btn-reinspeccion" onclick="marcarReinspeccionada(${insp.id})">
+                                <button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">
                                     ✅ Marcar como reinspeccionada
                                 </button>
                             </div>
@@ -222,25 +290,30 @@
             }
         }
 
-        async function marcarReinspeccionada(inspeccionId) {
-            const nuevaFecha = prompt("Ingrese la nueva fecha de próxima inspección (AAAA-MM-DD):");
-            if (!nuevaFecha) return;
+        function abrirModalFecha(inspeccionId) {
+            inspeccionIdActual = inspeccionId;
+            document.getElementById('modalFecha').style.display = 'flex';
+        }
 
-            const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
-            if (!fechaRegex.test(nuevaFecha)) {
-                alert("Formato de fecha inválido. Use AAAA-MM-DD.");
+        function cerrarModalFecha() {
+            document.getElementById('modalFecha').style.display = 'none';
+            document.getElementById('nuevaFechaInput').value = '';
+        }
+
+        async function confirmarNuevaFecha() {
+            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
+            if (!nuevaFecha) {
+                alert("Por favor seleccione una fecha.");
                 return;
             }
-
             try {
                 const { error } = await supabase
                     .from('inspecciones')
                     .update({ proxima_inspeccion: nuevaFecha })
-                    .eq('id', inspeccionId);
-
+                    .eq('id', inspeccionIdActual);
                 if (error) throw error;
-
                 alert("✅ Reinspección actualizada correctamente.");
+                cerrarModalFecha();
                 cargarNotificaciones(); // Recargar lista
             } catch (error) {
                 console.error("Error al actualizar:", error);
