@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Inspecciones - CPNB</title>
+    <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -22,14 +20,72 @@
             align-items: center;
             padding: 20px;
             position: relative;
-            overflow-x: hidden;
+            overflow: hidden;
+        }
+        .vector-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        .vector-circle {
+            position: absolute;
+            border: 2px solid rgba(255, 204, 0, 0.3);
+            border-radius: 50%;
+        }
+        .vector-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            left: -100px;
+        }
+        .vector-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            right: -50px;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+        .vector-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 30%;
+            right: 10%;
+            border-color: rgba(255, 204, 0, 0.4);
+        }
+        .vector-circle:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            bottom: 20%;
+            left: 5%;
+            border-color: rgba(44, 82, 130, 0.4);
+        }
+        .vector-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
+        }
+        .vector-line:nth-child(5) {
+            width: 200px;
+            top: 15%;
+            left: 20%;
+            transform: rotate(30deg);
+        }
+        .vector-line:nth-child(6) {
+            width: 150px;
+            bottom: 25%;
+            right: 25%;
+            transform: rotate(-45deg);
         }
         .container {
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             width: 100%;
-            max-width: 950px;
+            max-width: 450px;
             padding: 40px;
             position: relative;
             overflow: hidden;
@@ -47,1015 +103,633 @@
         }
         .logo-container {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
         .logo-img {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             object-fit: contain;
-            margin: 0 auto 15px;
+            margin: 0 auto 20px;
             display: block;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
         }
         .title {
             text-align: center;
             color: #0c2440;
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 25px;
+            line-height: 1.4;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
         }
-        .back-btn,
-        .btn-pdf {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            cursor: pointer;
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #ffcc00, #ff6b00);
+            border-radius: 2px;
+        }
+        .input-group {
             margin-bottom: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+        }
+        .input-group label {
+            display: block;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .input-group select,
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+        }
+        .input-group select:focus,
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            background-color: white;
+        }
+        .login-btn,
+        .redi-btn,
+        .action-btn,
+        .form-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
             font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
+        }
+        .login-btn:hover,
+        .redi-btn:hover,
+        .action-btn:hover,
+        .form-btn:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
+        }
+        .security-info {
+            text-align: center;
+            margin-top: 25px;
+            color: #4a5568;
+            font-size: 13px;
+            line-height: 1.6;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #3182ce;
+        }
+        .security-info strong {
+            color: #0c2440;
+            display: block;
+            margin-bottom: 8px;
+        }
+        #dashboardContainer,
+        #rediOccidentalContainer {
+            max-width: 600px;
+            padding: 50px;
+            display: none;
+        }
+        .user-info {
+            background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #3182ce;
+            margin-top: 20px;
+        }
+        .user-info h3 {
+            color: #0c2440;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .user-info p {
+            color: #4a5568;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .redi-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 25px 0;
+        }
+        .redi-btn {
+            width: auto;
+            padding: 12px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .error-message {
+            color: #e53e3e;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-            color: white;
-        }
-        .btn-pdf {
-            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
-            color: white;
-        }
-        .back-btn:hover,
-        .btn-pdf:hover {
-            opacity: 0.9;
-        }
-        #inspeccionesList {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .inspeccion-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            position: relative;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-        }
-        .inspeccion-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .estacion-info {
-            flex: 1;
-            min-width: 200px;
-        }
-        .inspeccion-estacion {
-            font-size: 19px;
-            font-weight: bold;
-            color: #0c2440;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .estado-indicador {
+            width: auto;
             display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-        .estado-rojo { background-color: #e53e3e; }
-        .estado-amarillo { background-color: #d69e2e; }
-        .estado-verde { background-color: #38a169; }
-        .alerta-pendiente {
-            color: #e53e3e;
-            font-weight: bold;
-            font-size: 14px;
-            display: block;
-            margin-top: 4px;
-        }
-        .meta-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin-top: 12px;
-        }
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-        }
-        .meta-label {
-            font-size: 12px;
-            color: #718096;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .meta-value {
-            font-size: 15px;
-            color: #2d3748;
-            font-weight: 600;
-        }
-        .cumplimiento-badge {
-            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 15px;
-            display: inline-block;
-            margin-top: 12px;
-        }
-        .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); }
-        .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); }
-        .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); }
-        .ver-btn,
-        .btn-reinspeccion {
-            border: none;
-            border-radius: 8px;
             padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 16px;
-            font-weight: bold;
-            width: 100%;
-            max-width: 200px;
-        }
-        .ver-btn {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
-            color: white;
-        }
-        .btn-reinspeccion {
-            background: #dc2626;
-            color: white;
-        }
-        .ver-btn:hover,
-        .btn-reinspeccion:hover {
-            opacity: 0.9;
-        }
-        #detalleModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 30px;
-            position: relative;
-        }
-        .close-modal {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 24px;
-            cursor: pointer;
-            color: #666;
-        }
-        .detalle-item {
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .detalle-item:last-child {
-            border-bottom: none;
-        }
-        .item-nombre {
-            font-weight: bold;
-            color: #0c2440;
-        }
-        .item-respuesta {
-            display: inline-block;
-            margin-left: 10px;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-        }
-        .item-respuesta.si {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-        .item-respuesta.no {
-            background: #fed7d7;
-            color: #9b2c2c;
-        }
-        .item-observacion {
-            margin-top: 6px;
-            font-size: 14px;
-            color: #4a5568;
-            font-style: italic;
-        }
-        .observaciones-generales {
             margin-top: 20px;
-            padding-top: 15px;
-            border-top: 2px solid #e2e8f0;
         }
-        .loading {
-            text-align: center;
-            color: #4a5568;
-            font-size: 18px;
-            padding: 30px;
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 25px;
-        }
-        .pagination button {
-            padding: 8px 14px;
-            border: 1px solid #cbd5e0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .pagination button.active {
-            background: #0c2440;
-            color: white;
-        }
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Modal de fecha */
-        #modalFecha {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content-fecha {
-            background: white;
-            padding: 25px;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #0c2440;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .modal-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #cbd5e0;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-        }
-        .modal-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 15px;
-        }
-        .btn-aceptar {
-            background: #38a169;
-            color: white;
-        }
-        .btn-cancelar {
-            background: #e2e8f0;
-            color: #4a5568;
-        }
-
-        @media (max-width: 600px) {
+        @media (max-width: 480px) {
             .container {
-                padding: 25px;
+                padding: 30px 20px;
             }
-            .card-header {
-                flex-direction: column;
-                align-items: flex-start;
+            #dashboardContainer,
+            #rediOccidentalContainer {
+                padding: 30px 20px;
             }
-            .meta-info {
-                grid-template-columns: 1fr;
+            .title {
+                font-size: 20px;
             }
-            .cumplimiento-badge {
-                margin-top: 16px;
+            .logo-img {
+                width: 100px;
+                height: 100px;
+            }
+            .security-info {
+                font-size: 12px;
+            }
+            .user-info {
+                padding: 20px;
+            }
+            .vector-circle {
+                transform: scale(0.7);
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+    <!-- Login Form -->
+    <div id="loginContainer" class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Historial de Inspecciones</h1>
+            <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
         </div>
-        <button class="back-btn" onclick="history.back()">
-            ← Volver 
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">Email</label>
+                <input type="email" id="username" placeholder="Ingrese su email" autocomplete="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="login-btn">Iniciar Sesión</button>
+            <div id="errorMessage" class="error-message"></div>
+        </form>
+        <div class="security-info">
+            <strong>Seguridad de extremo a extremo</strong>
+            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
+        </div>
+    </div>
+    <!-- Panel Principal (REDI) -->
+    <div id="dashboardContainer" class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title dashboard-title">Panel Principal</h1>
+        </div>
+        <div class="user-info">
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Nombre del Usuario</p>
+        </div>
+        <div class="redi-buttons">
+            <button class="redi-btn" data-redi="andes">REDIP LOS ANDES</button>
+            <button class="redi-btn" data-redi="capital">REDIP CAPITAL</button>
+            <button class="redi-btn" data-redi="central">REDIP CENTRAL</button>
+            <button class="redi-btn" id="rediOccidentalBtn">REDIP OCCIDENTAL</button>
+            <button class="redi-btn" data-redi="oriental">REDIP ORIENTAL</button>
+            <button class="redi-btn" data-redi="llanos">REDIP LOS LLANOS</button>
+            <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
+            <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
+        </div>
+        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+    </div>
+    <!-- Vista específica: REDI OCCIDENTAL -->
+    <div id="rediOccidentalContainer" class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">REDIP OCCIDENTAL</h1>
+        </div>
+        <form id="occidentalForm">
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                </select>
+            </div>
+            <button type="submit" class="form-btn">Continuar</button>
+        </form>
+        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Ver Historial de Inspecciones
         </button>
-        <button class="btn-pdf" onclick="exportarHistorialAPDF()" style="margin-bottom: 15px;">
-            📄 Exportar Historial a PDF
+        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Estadísticas
         </button>
-        <!-- Filtros -->
-        <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
-            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                <div class="input-group" style="flex: 1; min-width: 180px;">
-                    <label for="fechaDesde" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Desde:</label>
-                    <input type="date" id="fechaDesde" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
-                </div>
-                <div class="input-group" style="flex: 1; min-width: 180px;">
-                    <label for="fechaHasta" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Hasta:</label>
-                    <input type="date" id="fechaHasta" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
-                </div>
-            </div>
-            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                <div class="input-group" style="flex: 1; min-width: 300px;">
-                    <label for="ccpFilter" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Filtrar por CCP:</label>
-                    <select id="ccpFilter" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
-                        <option value="">Todos los CCP</option>
-                        <option value="metropolitano">CCP METROPOLITANO</option>
-                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                        <option value="guajira">CCP GUAJIRA</option>
-                        <option value="col">CCPE COL</option>
-                    </select>
-                </div>
-                <div class="input-group" style="flex: 1; min-width: 300px;">
-                    <label for="estacionFilter" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Filtrar por Estación:</label>
-                    <select id="estacionFilter" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
-                        <option value="">Todas las estaciones</option>
-                    </select>
-                </div>
-            </div>
-            <button class="btn-filtrar" onclick="aplicarFiltro()" style="align-self: flex-start; padding:12px 24px; font-size:16px; background:linear-gradient(135deg, #0c2440 0%, #1a365d 100%); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">
-                Aplicar Filtros
-            </button>
-        </div>
-        <div id="inspeccionesList">
-            <div class="loading">Cargando historial...</div>
-        </div>
-        <div class="pagination" id="pagination"></div>
+        <!-- ✅ BOTÓN DE NOTIFICACIONES CON CONTADOR -->
+        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🔔 Notificaciones
+        </button>
+        <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
+    📊 Resumen Mensual (KPIs)
+</button>
+        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-    <!-- Modal de Detalle -->
-    <div id="detalleModal">
-        <div class="modal-content">
-            <div id="detalleContenido"></div>
-        </div>
-    </div>
-
-    <!-- Modal para seleccionar fecha -->
-    <div id="modalFecha">
-        <div class="modal-content-fecha">
-            <div class="modal-title">Nueva fecha de reinspección</div>
-            <input type="date" id="nuevaFechaInput" class="modal-input" min="">
-            <div class="modal-buttons">
-                <button class="modal-btn btn-cancelar" onclick="cerrarModalFecha()">Cancelar</button>
-                <button class="modal-btn btn-aceptar" onclick="confirmarNuevaFecha()">Aceptar</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- CONTENEDOR DINÁMICO -->
+    <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        const ccpNombres = {
-            "metropolitano": "CCP METROPOLITANO",
-            "sur-del-lago": "CCP SUR DEL LAGO",
-            "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL"
-        };
-        const hoy = new Date();
-        const hace30Dias = new Date();
-        hace30Dias.setDate(hoy.getDate() - 30);
-        document.getElementById('fechaHasta').valueAsDate = hoy;
-        document.getElementById('fechaDesde').valueAsDate = hace30Dias;
-        let inspeccionesCache = [];
-        let paginaActual = 1;
-        const registrosPorPagina = 10;
-        let inspeccionIdActual = null;
-
-        // Establecer fecha mínima (hoy)
-        document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-
-        document.getElementById('ccpFilter').addEventListener('change', async () => {
-            const ccpId = document.getElementById('ccpFilter').value;
-            const estacionSelect = document.getElementById('estacionFilter');
-            estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
-            if (!ccpId) return;
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = email;
+                // ✅ Cargar notificaciones al iniciar sesión
+                await cargarNotificacionesAlIniciar();
+            } catch (error) {
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
+            }
+        }
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'none';
+                document.getElementById('dynamicView').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        }
+        function showRediOccidental() {
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
+            // ✅ Contar y mostrar notificaciones al entrar
+            contarYMostrarNotificaciones();
+        }
+        function backToDashboard() {
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+        }
+        async function handleOccidentalForm(e) {
+            e.preventDefault();
+            const ccpValue = document.getElementById('ccpSelect').value;
+            if (!ccpValue) {
+                alert('Por favor seleccione un CCP.');
+                return;
+            }
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre, ccp_id')
-                    .eq('ccp_id', ccpId)
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpValue)
                     .order('nombre', { ascending: true });
                 if (error) throw error;
+                if (!estaciones || estaciones.length === 0) {
+                    alert(`No hay estaciones registradas para ${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}.`);
+                    return;
+                }
+                let estacionesHtml = `
+                    <div class="logo-container">
+                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                        <h1 class="title">Selección de Estación Policial</h1>
+                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                            CCP: <strong>${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}</strong>
+                        </p>
+                    </div>
+                    <div class="input-group">
+                        <label for="estacionSelect">Seleccione Estación Policial:</label>
+                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                            <option value="">-- Elija una estación --</option>
+                `;
                 estaciones.forEach(est => {
-                    const opt = document.createElement('option');
-                    opt.value = est.id;
-                    opt.textContent = est.nombre;
-                    estacionSelect.appendChild(opt);
+                    estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
                 });
-            } catch (error) {
-                console.error('Error al cargar estaciones:', error);
-                alert('Error al cargar las estaciones');
-            }
-        });
-
-        async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
-            try {
-                const { data: todasEstaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre, ccp_id');
-                if (estError) throw estError;
-                const estacionMap = {};
-                const ccpEstaciones = {};
-                todasEstaciones.forEach(est => {
-                    estacionMap[est.id] = { nombre: est.nombre, ccp_id: est.ccp_id };
-                    if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
-                    ccpEstaciones[est.ccp_id].push(est.id);
-                });
-
-                let query = supabase
-                    .from('inspecciones')
-                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
-                    .order('created_at', { ascending: false });
-
-                if (fechaDesde && fechaHasta) {
-                    const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
-                    const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
-                    query = query
-                        .gte('created_at', desdeISO)
-                        .lte('created_at', hastaISO + 'T23:59:59.999Z');
-                }
-
-                let idsPermitidos = null;
-                if (estacionId) {
-                    idsPermitidos = [parseInt(estacionId)];
-                } else if (ccpId) {
-                    idsPermitidos = ccpEstaciones[ccpId] || [];
-                }
-
-                if (idsPermitidos !== null) {
-                    if (idsPermitidos.length === 0) {
-                        document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay estaciones para ese CCP.</div>';
-                        inspeccionesCache = [];
-                        renderizarPaginacion();
+                estacionesHtml += `
+                        </select>
+                    </div>
+                    <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
+                    <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
+                `;
+                document.getElementById('rediOccidentalContainer').style.display = 'none';
+                const dynamicView = document.getElementById('dynamicView');
+                dynamicView.innerHTML = estacionesHtml;
+                dynamicView.style.display = 'block';
+                document.getElementById('loadInspectionBtn').onclick = () => {
+                    const estacionId = document.getElementById('estacionSelect').value;
+                    if (!estacionId) {
+                        alert('Por favor seleccione una estación');
                         return;
                     }
-                    query = query.in('estacion_id', idsPermitidos);
-                }
-
-                const { data: inspecciones, error } = await query;
-                if (error) throw error;
-
-                const idsInspecciones = inspecciones.map(i => i.id);
-                let itemsPorInspeccion = {};
-                if (idsInspecciones.length > 0) {
-                    const { data: items, error: itemsError } = await supabase
-                        .from('items_inspeccion')
-                        .select('inspeccion_id, cumple')
-                        .in('inspeccion_id', idsInspecciones);
-                    if (!itemsError && items) {
-                        items.forEach(item => {
-                            if (!itemsPorInspeccion[item.inspeccion_id]) {
-                                itemsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
-                            }
-                            itemsPorInspeccion[item.inspeccion_id].total++;
-                            if (item.cumple) itemsPorInspeccion[item.inspeccion_id].cumplidos++;
-                        });
-                    }
-                }
-
-                inspeccionesCache = inspecciones.map(insp => {
-                    const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
-                    const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
-                    return {
-                        ...insp,
-                        estacion_nombre: estacionMap[insp.estacion_id]?.nombre || 'Estación no encontrada',
-                        ccp_id: estacionMap[insp.estacion_id]?.ccp_id || 'desconocido',
-                        porcentaje_cumplimiento: porcentaje
-                    };
-                });
-
-                paginaActual = 1;
-                renderizarLista();
-                renderizarPaginacion();
-            } catch (error) {
-                console.error('Error al cargar historial:', error);
-                document.getElementById('inspeccionesList').innerHTML = 
-                    `<div style="text-align:center; color:red; padding:30px;">Error: ${error.message || 'No se pudo cargar el historial.'}</div>`;
-                inspeccionesCache = [];
-                renderizarPaginacion();
-            }
-        }
-
-        function renderizarLista() {
-            const inicio = (paginaActual - 1) * registrosPorPagina;
-            const fin = inicio + registrosPorPagina;
-            const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
-            const contenedor = document.getElementById('inspeccionesList');
-
-            if (!inspeccionesCache || inspeccionesCache.length === 0) {
-                contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
-                return;
-            }
-
-            contenedor.innerHTML = '';
-            inspeccionesPagina.forEach(insp => {
-                const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                let estadoClase = 'estado-verde';
-                let alertaHTML = '';
-                const hoy = new Date();
-                hoy.setHours(0, 0, 0, 0);
-                if (insp.proxima_inspeccion) {
-                    const fechaProxima = new Date(insp.proxima_inspeccion);
-                    fechaProxima.setHours(0, 0, 0, 0);
-                    const diffDias = Math.ceil((fechaProxima - hoy) / (1000 * 60 * 60 * 24));
-                    if (fechaProxima <= hoy) {
-                        estadoClase = 'estado-rojo';
-                        alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
-                    } else if (diffDias <= 7) {
-                        estadoClase = 'estado-amarillo';
-                    }
-                }
-
-                let claseCumplimiento = 'cumplimiento-bajo';
-                if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
-                else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
-
-                // Botones dinámicos
-                let botonesHTML = `<button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>`;
-                if (estadoClase === 'estado-rojo') {
-                    botonesHTML += `
-                        <button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">
-                            ✅ Marcar como reinspeccionada
-                        </button>
-                    `;
-                }
-
-                const card = document.createElement('div');
-                card.className = 'inspeccion-card';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div class="estacion-info">
-                            <div class="inspeccion-estacion">
-                                ${insp.estacion_nombre}
-                                <span class="estado-indicador ${estadoClase}"></span>
-                            </div>
-                            ${alertaHTML}
-                        </div>
-                        <div class="cumplimiento-badge ${claseCumplimiento}">
-                            ${insp.porcentaje_cumplimiento}% cumplimiento
-                        </div>
-                    </div>
-                    <div class="meta-info">
-                        <div class="meta-item">
-                            <span class="meta-label">Fecha y Hora</span>
-                            <span class="meta-value">${fechaInspeccion}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Inspector</span>
-                            <span class="meta-value">${insp.inspector_email}</span>
-                        </div>
-                    </div>
-                    ${botonesHTML}
-                `;
-                contenedor.appendChild(card);
-            });
-        }
-
-        function renderizarPaginacion() {
-            const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
-            const paginacionDiv = document.getElementById('pagination');
-            paginacionDiv.innerHTML = '';
-            if (totalPaginas <= 1) return;
-
-            const maxVisible = 5;
-            let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
-            let end = Math.min(totalPaginas, start + maxVisible - 1);
-            if (end - start + 1 < maxVisible) {
-                start = Math.max(1, end - maxVisible + 1);
-            }
-
-            const prevBtn = document.createElement('button');
-            prevBtn.textContent = '«';
-            prevBtn.disabled = paginaActual === 1;
-            prevBtn.onclick = () => {
-                if (paginaActual > 1) {
-                    paginaActual--;
-                    renderizarLista();
-                    renderizarPaginacion();
-                }
-            };
-            paginacionDiv.appendChild(prevBtn);
-
-            for (let i = start; i <= end; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = i;
-                btn.className = i === paginaActual ? 'active' : '';
-                btn.onclick = () => {
-                    paginaActual = i;
-                    renderizarLista();
-                    renderizarPaginacion();
+                    const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+                    loadInspectionForm(estacionId, estacionNombre);
                 };
-                paginacionDiv.appendChild(btn);
+                document.getElementById('backToCcpBtn').onclick = () => {
+                    dynamicView.style.display = 'none';
+                    document.getElementById('rediOccidentalContainer').style.display = 'block';
+                };
+            } catch (error) {
+                console.error('Error al cargar estaciones:', error);
+                alert('Error al cargar las estaciones policiales');
             }
-
-            const nextBtn = document.createElement('button');
-            nextBtn.textContent = '»';
-            nextBtn.disabled = paginaActual === totalPaginas;
-            nextBtn.onclick = () => {
-                if (paginaActual < totalPaginas) {
-                    paginaActual++;
-                    renderizarLista();
-                    renderizarPaginacion();
-                }
-            };
-            paginacionDiv.appendChild(nextBtn);
+        }
+        async function checkAuthState() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = user.email;
+                // ✅ Cargar notificaciones al verificar estado
+                await cargarNotificacionesAlIniciar();
+            }
         }
 
-        function aplicarFiltro() {
-            const desde = document.getElementById('fechaDesde').value;
-            const hasta = document.getElementById('fechaHasta').value;
-            const ccpId = document.getElementById('ccpFilter').value;
-            const estacionId = document.getElementById('estacionFilter').value;
-            if (desde && hasta && new Date(desde) > new Date(hasta)) {
-                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".');
-                return;
-            }
-            cargarHistorial(desde, hasta, ccpId, estacionId);
-        }
-
-        async function mostrarDetalle(inspeccionId) {
+        // ✅ Función para contar reinspecciones vencidas en REDIP OCCIDENTAL
+        async function contarReinspeccionesVencidas() {
             try {
-                const { data: items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
-                    .eq('inspeccion_id', inspeccionId)
-                    .order('item_nombre', { ascending: true });
-                const { data: inspeccion, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
-                    .eq('id', inspeccionId)
-                    .single();
-                if (itemsError || inspError) throw itemsError || inspError;
-
-                let nombreEstacion = 'Estación no disponible';
-                const { data: estacionData, error: estError } = await supabase
+                const hoy = new Date().toISOString().split('T')[0];
+                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('nombre')
-                    .eq('id', inspeccion.estacion_id)
-                    .single();
-                if (!estError && estacionData) {
-                    nombreEstacion = estacionData.nombre;
-                }
+                    .select('id')
+                    .in('ccp_id', ccpOcidental);
+                if (estError) throw estError;
+                const idsEstaciones = estaciones.map(e => e.id);
+                if (idsEstaciones.length === 0) return 0;
 
-                const nombres = {
-                    baño_dama: "Baño Dama",
-                    baño_caballero: "Baño Caballero",
-                    dormitorio_femenino: "Dormitorio Femenino",
-                    dormitorio_masculino: "Dormitorio Masculino",
-                    cocina: "Cocina",
-                    comedor: "Comedor",
-                    lavanderia: "Lavandería",
-                    oficina_del_jefe: "Oficina del Jefe",
-                    oficina_de_rrhh: "Oficina de RRHH",
-                    condiciones_electricas: "Condiciones Eléctricas",
-                    fachada: "Fachada",
-                    condiciones_de_pintura: "Condiciones de Pintura",
-                    jardines: "Jardines",
-                    condiciones_generales: "Condiciones Generales",
-                    vehiculos: "Vehículos",
-                    motos: "Motos"
-                };
+                const { count, error: countError } = await supabase
+                    .from('inspecciones')
+                    .select('*', { count: 'exact', head: true })
+                    .in('estacion_id', idsEstaciones)
+                    .lte('proxima_inspeccion', hoy);
+                if (countError) throw countError;
+                return count || 0;
+            } catch (error) {
+                console.error('Error al contar notificaciones:', error);
+                return 0;
+            }
+        }
 
-                let fechaFormateada = 'Fecha no disponible';
-                if (inspeccion.created_at) {
-                    const fechaObj = new Date(inspeccion.created_at);
-                    if (!isNaN(fechaObj.getTime())) {
-                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    }
-                }
+        // ✅ Función para mostrar el contador en el botón
+        async function contarYMostrarNotificaciones() {
+            const contador = await contarReinspeccionesVencidas();
+            const boton = document.getElementById('botonNotificaciones');
+            if (boton) {
+                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
+            }
+        }
 
-                let html = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
-                            <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
-                        </div>
-                    </div>
-                    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                            <div style="flex: 1; min-width: 200px;">
-                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
-                                <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
-                            </div>
-                            <div style="flex: 1; min-width: 200px;">
-                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
-                                <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
-                            </div>
-                            <div style="flex: 1; min-width: 200px;">
-                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
-                                <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+        // ✅ Cargar notificaciones al iniciar sesión
+        async function cargarNotificacionesAlIniciar() {
+            // No hace falta hacer nada aquí, ya que el contador se carga al entrar a REDIP OCCIDENTAL
+        }
 
-                if (items && items.length > 0) {
-                    html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
-                    items.forEach(item => {
-                        const nombre = nombres[item.item_nombre] || item.item_nombre;
-                        const clase = item.cumple ? 'si' : 'no';
-                        const texto = item.cumple ? 'Sí' : 'No';
-                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
-                        html += `
-                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
-                                    <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
-                                        ${texto}${porcentajeTexto}
-                                    </span>
+        function loadInspectionForm(estacionId, estacionNombre) {
+            const items = [
+                "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
+                "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
+                "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
+                "condiciones_generales", "vehiculos", "motos"
+            ];
+            const nombres = {
+                baño_dama: "Baño Dama",
+                baño_caballero: "Baño Caballero",
+                dormitorio_femenino: "Dormitorio Femenino",
+                dormitorio_masculino: "Dormitorio Masculino",
+                cocina: "Cocina",
+                comedor: "Comedor",
+                lavanderia: "Lavandería",
+                oficina_del_jefe: "Oficina del Jefe",
+                oficina_de_rrhh: "Oficina de RRHH",
+                condiciones_electricas: "Condiciones Eléctricas",
+                fachada: "Fachada",
+                condiciones_de_pintura: "Condiciones de Pintura",
+                jardines: "Jardines",
+                condiciones_generales: "Condiciones Generales",
+                vehiculos: "Vehículos",
+                motos: "Motos"
+            };
+            const hoy = new Date().toISOString().split('T')[0];
+            let formHtml = `
+                <div class="logo-container">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Formulario de Inspección</h1>
+                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                        Estación: <strong>${estacionNombre}</strong>
+                    </p>
+                </div>
+                <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
+                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
+            `;
+            items.forEach(item => {
+                formHtml += `
+                    <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                        <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
+                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
+                            <option value="null">-- Seleccione --</option>
+                            <option value="true">Sí</option>
+                            <option value="false">No</option>
+                        </select>
+                        <textarea class="observacion-text" data-item="${item}" 
+                            placeholder="Observaciones" 
+                            style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
+                            rows="3"></textarea>
+                        <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
+                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
+                                Porcentaje de estatus
+                            </label>
+                            <div style="padding:10px 0;">
+                                <input type="range" class="porcentaje-slider" data-item="${item}" 
+                                    min="0" max="100" value="0"
+                                    style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
+                                    oninput="this.nextElementSibling.value = this.value + '%'"
+                                >
+                                <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
+                                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#718096;">
+                                    <span>0</span>
+                                    <span>10</span>
+                                    <span>20</span>
+                                    <span>30</span>
+                                    <span>40</span>
+                                    <span>50</span>
+                                    <span>60</span>
+                                    <span>70</span>
+                                    <span>80</span>
+                                    <span>90</span>
+                                    <span>100</span>
                                 </div>
-                                ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
-                                    <strong>Observación:</strong> ${item.observacion}
-                                </div>` : ''}
                             </div>
-                        `;
-                    });
-                } else {
-                    html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
-                }
-
-                if (inspeccion.observaciones_generales) {
-                    html += `
-                        <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
-                            <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
-                            <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
-                        </div>
-                    `;
-                }
-
-                document.getElementById('detalleContenido').innerHTML = html;
-                document.getElementById('detalleModal').style.display = 'flex';
-            } catch (error) {
-                console.error('Error al cargar detalles:', error);
-                alert('Error al cargar los detalles.');
-            }
-        }
-
-        function cerrarModal() {
-            document.getElementById('detalleModal').style.display = 'none';
-        }
-
-        document.getElementById('detalleModal').addEventListener('click', (e) => {
-            if (e.target.id === 'detalleModal') cerrarModal();
-        });
-
-        async function exportarInspeccionAPDF() {
-            const content = document.getElementById('detalleContenido');
-            if (!content || !content.innerHTML.trim()) {
-                alert('No hay contenido para exportar.');
-                return;
-            }
-            try {
-                const printContent = document.createElement('div');
-                printContent.innerHTML = `
-                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                        </div>
-                        ${content.innerHTML}
-                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
                         </div>
                     </div>
                 `;
-                document.body.appendChild(printContent);
-                printContent.style.position = 'fixed';
-                printContent.style.left = '-9999px';
-                const canvas = await html2canvas(printContent, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
-                });
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-                const fecha = new Date().toISOString().slice(0, 10);
-                pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
-                document.body.removeChild(printContent);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('Error al generar el PDF. Intente nuevamente.');
-            }
-        }
-
-        async function exportarHistorialAPDF() {
-            if (inspeccionesCache.length === 0) {
-                alert('No hay inspecciones para exportar.');
-                return;
-            }
-            try {
-                let htmlContent = `
-                    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px;">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
-                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                        </div>
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
-                            <thead>
-                                <tr style="background-color: #0c2440; color: white;">
-                                    <th style="padding: 10px; border: 1px solid #ddd;">Fecha</th>
-                                    <th style="padding: 10px; border: 1px solid #ddd;">Estación</th>
-                                    <th style="padding: 10px; border: 1px solid #ddd;">Inspector</th>
-                                    <th style="padding: 10px; border: 1px solid #ddd;">Próxima</th>
-                                    <th style="padding: 10px; border: 1px solid #ddd;">CCP</th>
-                                    <th style="padding: 10px; border: 1px solid #ddd;">Cumplimiento</th>
-                                    <th style="padding: 10px; border: 1px solid #ddd;">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                inspeccionesCache.forEach(insp => {
-                    const fecha = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    const proxima = insp.proxima_inspeccion 
-                        ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
-                        : 'No programada';
-                    const ccpNombre = ccpNombres[insp.ccp_id] || insp.ccp_id;
-                    let estadoTexto = 'En orden';
-                    let estadoColor = '#38a169';
-                    const hoy = new Date();
-                    hoy.setHours(0,0,0,0);
-                    if (insp.proxima_inspeccion) {
-                        const fechaProxima = new Date(insp.proxima_inspeccion);
-                        fechaProxima.setHours(0,0,0,0);
-                        if (fechaProxima <= hoy) {
-                            estadoTexto = 'Vencida';
-                            estadoColor = '#e53e3e';
-                        } else if ((fechaProxima - hoy) <= 7 * 24 * 60 * 60 * 1000) {
-                            estadoTexto = 'Próxima';
-                            estadoColor = '#d69e2e';
+            });
+            formHtml += `
+                </div>
+                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
+                    <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
+                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
+                </div>
+                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
+                    <input type="date" id="proximaInspeccion" 
+                        min="${hoy}"
+                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
+                </div>
+                <div style="text-align:center; margin-top:30px; grid-column: span 3;">
+                    <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
+                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
+                </div>
+            </form>
+        `;
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = formHtml;
+            dynamicView.style.display = 'block';
+            dynamicView.style.maxWidth = '950px';
+            dynamicView.style.padding = '40px';
+            document.querySelectorAll('.cumple-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const item = this.dataset.item;
+                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+                    const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
+                    if (this.value === 'null') {
+                        textarea.style.display = 'none';
+                        porcentajeContainer.style.display = 'none';
+                        textarea.value = '';
+                    } else {
+                        textarea.style.display = 'block';
+                        if (this.value === 'true') {
+                            porcentajeContainer.style.display = 'block';
+                        } else {
+                            porcentajeContainer.style.display = 'none';
                         }
                     }
-                    htmlContent += `
-                        <tr>
-                            <td style="padding: 8px; border: 1px solid #eee;">${fecha}</td>
-                            <td style="padding: 8px; border: 1px solid #eee;">${insp.estacion_nombre}</td>
-                            <td style="padding: 8px; border: 1px solid #eee;">${insp.inspector_email}</td>
-                            <td style="padding: 8px; border: 1px solid #eee;">${proxima}</td>
-                            <td style="padding: 8px; border: 1px solid #eee;">${ccpNombre}</td>
-                            <td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">${insp.porcentaje_cumplimiento}%</td>
-                            <td style="padding: 8px; border: 1px solid #eee; color: ${estadoColor}; font-weight: bold;">${estadoTexto}</td>
-                        </tr>
-                    `;
                 });
-                htmlContent += `
-                            </tbody>
-                        </table>
-                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                            Total de inspecciones: ${inspeccionesCache.length}<br>
-                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
-                        </div>
-                    </div>
-                `;
-                const printDiv = document.createElement('div');
-                printDiv.innerHTML = htmlContent;
-                document.body.appendChild(printDiv);
-                printDiv.style.position = 'fixed';
-                printDiv.style.left = '-9999px';
-                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+            });
+            document.getElementById('backToEstacionesBtn').onclick = () => {
+                handleOccidentalForm({ preventDefault: () => {} });
+            };
+            document.getElementById('inspectionForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert('Debe estar autenticado para guardar.');
+                    return;
                 }
-                pdf.save(`historial_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
-                document.body.removeChild(printDiv);
-            } catch (error) {
-                console.error('Error PDF historial:', error);
-                alert('Error al generar el PDF del historial.');
-            }
-        }
-
-        // ✅ NUEVA FUNCIONALIDAD: Modal de fecha
-        function abrirModalFecha(inspeccionId) {
-            inspeccionIdActual = inspeccionId;
-            document.getElementById('modalFecha').style.display = 'flex';
-        }
-
-        function cerrarModalFecha() {
-            document.getElementById('modalFecha').style.display = 'none';
-            document.getElementById('nuevaFechaInput').value = '';
-        }
-
-        async function confirmarNuevaFecha() {
-            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
-            if (!nuevaFecha) {
-                alert("Por favor seleccione una fecha.");
-                return;
-            }
-            try {
-                const { error } = await supabase
+                const itemsData = [];
+                items.forEach(item => {
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const cumpleValue = select.value;
+                    if (cumpleValue === 'null') return;
+                    const cumple = cumpleValue === 'true';
+                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+                    let porcentaje = 0;
+                    if (cumple) {
+                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                        porcentaje = parseInt(slider?.value) || 0;
+                    }
+                    itemsData.push({
+                        item_nombre: item,
+                        cumple: cumple,
+                        observacion: observacion,
+                        porcentaje_cumplimiento: porcentaje
+                    });
+                });
+                if (itemsData.length === 0) {
+                    alert('Debe responder al menos un ítem.');
+                    return;
+                }
+                const proximaFecha = document.getElementById('proximaInspeccion').value || null;
+                const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
-                    .update({ proxima_inspeccion: nuevaFecha })
-                    .eq('id', inspeccionIdActual);
-                if (error) throw error;
-                alert("✅ Reinspección actualizada correctamente.");
-                cerrarModalFecha();
-                // Recargar con los filtros actuales
-                const desde = document.getElementById('fechaDesde').value;
-                const hasta = document.getElementById('fechaHasta').value;
-                const ccpId = document.getElementById('ccpFilter').value;
-                const estacionId = document.getElementById('estacionFilter').value;
-                cargarHistorial(desde || null, hasta || null, ccpId || null, estacionId || null);
-            } catch (error) {
-                console.error("Error al actualizar:", error);
-                alert("❌ Error al actualizar la reinspección.");
-            }
+                    .insert({
+                        estacion_id: estacionId,
+                        inspector_email: user.email,
+                        observaciones_generales: document.getElementById('observacionesGenerales').value || null,
+                        proxima_inspeccion: proximaFecha
+                    })
+                    .select()
+                    .single();
+                if (inspError) {
+                    console.error('Error al crear inspección:', inspError);
+                    alert('Error al guardar la inspección: ' + (inspError.message || ''));
+                    return;
+                }
+                const itemsToInsert = itemsData.map(item => ({
+                    inspeccion_id: inspeccionData.id,
+                    ...item
+                }));
+                const { error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .insert(itemsToInsert);
+                if (itemsError) {
+                    console.error('Error al guardar ítems:', itemsError);
+                    alert('Error al guardar los ítems: ' + (itemsError.message || ''));
+                } else {
+                    alert('✅ Inspección guardada exitosamente.');
+                    handleOccidentalForm({ preventDefault: () => {} });
+                }
+            };
         }
-
-        cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+        checkAuthState();
     </script>
 </body>
 </html>
