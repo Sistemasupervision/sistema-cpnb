@@ -113,18 +113,21 @@
             gap: 10px;
         }
         .btn-reinspeccion {
-            padding: 8px 14px;
-            background: #dc2626;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
             color: white;
             border: none;
-            border-radius: 6px;
-            font-size: 13px;
+            border-radius: 10px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             flex: 1;
+            text-align: center;
+            transition: all 0.2s ease;
         }
         .btn-reinspeccion:hover {
-            background: #b91c1c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .loading, .no-data {
             text-align: center;
@@ -132,7 +135,6 @@
             font-size: 18px;
             padding: 30px;
         }
-
         /* Modal de fecha */
         #modalFecha {
             display: none;
@@ -205,7 +207,6 @@
             <div class="loading">Cargando notificaciones...</div>
         </div>
     </div>
-
     <!-- Modal para seleccionar fecha -->
     <div id="modalFecha">
         <div class="modal-content">
@@ -217,7 +218,6 @@
             </div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -230,15 +230,40 @@
             "col": "CCPE COL"
         };
         let inspeccionIdActual = null;
-
-        // Establecer fecha mínima (hoy)
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+
+        // ✅ VERIFICACIÓN DE ACCESO
+        async function verificarAcceso() {
+            const {  { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión para acceder a esta página.');
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || data.redip !== 'occidental') {
+                    alert('⚠️ No tiene permisos para acceder a esta sección.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                cargarNotificaciones();
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('Error al verificar sus permisos.');
+                window.location.href = 'index.html';
+            }
+        }
 
         async function cargarNotificaciones() {
             const hoy = new Date().toISOString().split('T')[0];
             const container = document.getElementById('alertasContainer');
             try {
-                const { data: estaciones, error: estError } = await supabase
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpOcidental);
@@ -248,7 +273,7 @@
                     container.innerHTML = '<div class="no-data">No hay estaciones en REDIP OCCIDENTAL.</div>';
                     return;
                 }
-                const { data: inspecciones, error: inspError } = await supabase
+                const {  inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
                     .in('estacion_id', idsEstaciones)
@@ -294,12 +319,10 @@
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
-
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
-
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha) {
@@ -314,14 +337,15 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                cargarNotificaciones(); // Recargar lista
+                cargarNotificaciones();
             } catch (error) {
                 console.error("Error al actualizar:", error);
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
 
-        cargarNotificaciones();
+        // ✅ EJECUTAR VERIFICACIÓN AL CARGAR
+        verificarAcceso();
     </script>
 </body>
 </html>
