@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
@@ -10,7 +10,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
         }
         body {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
@@ -18,7 +18,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 16px;
             position: relative;
             overflow: hidden;
         }
@@ -28,65 +28,34 @@
             left: 0;
             width: 100%;
             height: 100%;
-            opacity: 0.15;
+            opacity: 0.1;
             z-index: 0;
+            pointer-events: none;
         }
         .vector-circle {
             position: absolute;
             border: 2px solid rgba(255, 204, 0, 0.3);
             border-radius: 50%;
         }
-        .vector-circle:nth-child(1) {
-            width: 300px;
-            height: 300px;
-            top: -100px;
-            left: -100px;
-        }
-        .vector-circle:nth-child(2) {
-            width: 200px;
-            height: 200px;
-            bottom: -50px;
-            right: -50px;
-            border-color: rgba(255, 107, 0, 0.3);
-        }
-        .vector-circle:nth-child(3) {
-            width: 150px;
-            height: 150px;
-            top: 30%;
-            right: 10%;
-            border-color: rgba(255, 204, 0, 0.4);
-        }
-        .vector-circle:nth-child(4) {
-            width: 250px;
-            height: 250px;
-            bottom: 20%;
-            left: 5%;
-            border-color: rgba(44, 82, 130, 0.4);
-        }
+        .vector-circle:nth-child(1) { width: 250px; height: 250px; top: -80px; left: -80px; }
+        .vector-circle:nth-child(2) { width: 180px; height: 180px; bottom: -40px; right: -40px; }
+        .vector-circle:nth-child(3) { width: 130px; height: 130px; top: 35%; right: 8%; }
+        .vector-circle:nth-child(4) { width: 220px; height: 220px; bottom: 15%; left: 3%; }
         .vector-line {
             position: absolute;
             height: 2px;
             background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
         }
-        .vector-line:nth-child(5) {
-            width: 200px;
-            top: 15%;
-            left: 20%;
-            transform: rotate(30deg);
-        }
-        .vector-line:nth-child(6) {
-            width: 150px;
-            bottom: 25%;
-            right: 25%;
-            transform: rotate(-45deg);
-        }
+        .vector-line:nth-child(5) { width: 180px; top: 20%; left: 15%; transform: rotate(30deg); }
+        .vector-line:nth-child(6) { width: 130px; bottom: 30%; right: 20%; transform: rotate(-45deg); }
+
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
             width: 100%;
             max-width: 450px;
-            padding: 40px;
+            padding: 32px 24px;
             position: relative;
             overflow: hidden;
             z-index: 10;
@@ -98,74 +67,71 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 8px;
+            height: 6px;
             background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         .logo-container {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
         }
         .logo-img {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             object-fit: contain;
-            margin: 0 auto 20px;
+            margin: 0 auto 16px;
             display: block;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
         }
         .title {
             text-align: center;
             color: #0c2440;
-            font-size: 24px;
-            font-weight: bold;
-            line-height: 1.4;
-            margin-bottom: 30px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
-            position: relative;
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 24px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.08);
         }
         .title::after {
             content: '';
             position: absolute;
-            bottom: -10px;
+            bottom: -8px;
             left: 50%;
             transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
+            width: 50px;
+            height: 2.5px;
             background: linear-gradient(90deg, #ffcc00, #ff6b00);
             border-radius: 2px;
         }
+
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         .input-group label {
             display: block;
             color: #2d3748;
             margin-bottom: 8px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 15px;
         }
-        .input-group select,
         .input-group input,
+        .input-group select,
         .input-group textarea {
             width: 100%;
             padding: 14px;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
             font-size: 16px;
-            transition: all 0.3s ease;
             background-color: #f8fafc;
+            transition: all 0.25s ease;
         }
-        .input-group select:focus,
         .input-group input:focus,
+        .input-group select:focus,
         .input-group textarea:focus {
             outline: none;
             border-color: #3182ce;
-            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
             background-color: white;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
         }
+
         .login-btn,
         .redi-btn,
         .action-btn,
@@ -175,29 +141,34 @@
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
+            transition: all 0.25s ease;
+            margin-top: 12px;
+            box-shadow: 0 4px 12px rgba(12, 36, 64, 0.3);
+            min-height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .login-btn:hover,
         .redi-btn:hover,
         .action-btn:hover,
         .form-btn:hover {
             background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(12, 36, 64, 0.4);
         }
+
         .security-info {
             text-align: center;
-            margin-top: 25px;
+            margin-top: 24px;
             color: #4a5568;
             font-size: 13px;
-            line-height: 1.6;
-            padding: 15px;
+            line-height: 1.5;
+            padding: 14px;
             background: #f8fafc;
             border-radius: 12px;
             border-left: 4px solid #3182ce;
@@ -205,80 +176,127 @@
         .security-info strong {
             color: #0c2440;
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
+
         #dashboardContainer,
         #rediOccidentalContainer {
             max-width: 600px;
-            padding: 50px;
+            padding: 32px 24px;
             display: none;
         }
+
         .user-info {
             background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
-            padding: 25px;
-            border-radius: 15px;
+            padding: 20px;
+            border-radius: 14px;
             border-left: 4px solid #3182ce;
             margin-top: 20px;
+            text-align: center;
         }
         .user-info h3 {
             color: #0c2440;
-            margin-bottom: 10px;
-            font-size: 18px;
+            margin-bottom: 8px;
+            font-size: 17px;
         }
         .user-info p {
             color: #4a5568;
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 15px;
+            font-weight: 600;
+            word-break: break-all;
         }
+
         .redi-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
-            margin: 25px 0;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin: 22px 0;
         }
+        @media (min-width: 481px) {
+            .redi-buttons {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+        }
+
         .redi-btn {
             width: auto;
-            padding: 12px;
+            padding: 14px;
             font-size: 14px;
             text-align: center;
+            min-height: 50px;
         }
+
         .error-message {
             color: #e53e3e;
             font-size: 14px;
-            margin-top: 10px;
+            margin-top: 12px;
             text-align: center;
             display: none;
+            background: #fff5f5;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #fed7d7;
         }
+
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             width: auto;
-            display: inline-block;
-            padding: 10px 20px;
+            display: inline-flex;
+            padding: 12px 20px;
             margin-top: 20px;
+            font-size: 16px;
+            border-radius: 12px;
+            min-height: 48px;
         }
+
+        #dynamicView {
+            display: none;
+            max-width: 950px;
+            padding: 32px 20px;
+        }
+
+        /* Scroll suave en formularios largos */
+        #inspectionForm {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        #inspectionForm::-webkit-scrollbar {
+            width: 6px;
+        }
+        #inspectionForm::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        /* Ajustes específicos para móviles */
         @media (max-width: 480px) {
-            .container {
-                padding: 30px 20px;
+            body { padding: 12px; }
+            .container { padding: 24px 18px; }
+            .logo-img { width: 90px; height: 90px; }
+            .title { font-size: 20px; }
+            .input-group input,
+            .input-group select,
+            .input-group textarea {
+                font-size: 16px; /* Evita zoom en iOS */
+                padding: 15px;
             }
-            #dashboardContainer,
-            #rediOccidentalContainer {
-                padding: 30px 20px;
+            .login-btn,
+            .action-btn,
+            .form-btn {
+                font-size: 16px;
+                padding: 15px;
+                min-height: 50px;
             }
-            .title {
-                font-size: 20px;
+            .redi-buttons {
+                grid-template-columns: 1fr;
             }
-            .logo-img {
-                width: 100px;
-                height: 100px;
+            .user-info {
+                padding: 16px;
             }
             .security-info {
                 font-size: 12px;
-            }
-            .user-info {
-                padding: 20px;
-            }
-            .vector-circle {
-                transform: scale(0.7);
+                padding: 12px;
             }
         }
     </style>
@@ -292,6 +310,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -312,14 +331,15 @@
         </form>
         <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
-            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
+            <p>Todas las comunicaciones están cifradas para proteger la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
     </div>
+
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title dashboard-title">Panel Principal</h1>
+            <h1 class="title">Panel Principal</h1>
         </div>
         <div class="user-info">
             <h3>Usuario Conectado</h3>
@@ -337,6 +357,7 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
+
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -362,27 +383,29 @@
         <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Estadísticas
         </button>
-        <!-- ✅ BOTÓN DE NOTIFICACIONES CON CONTADOR -->
         <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🔔 Notificaciones
         </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
-    📊 Resumen Mensual (KPIs)
-</button>
+            📊 Resumen Mensual (KPIs)
+        </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-    <!-- CONTENEDOR DINÁMICO -->
-    <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
+
+    <div id="dynamicView" class="container" style="display:none;"></div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -393,13 +416,13 @@
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
-                // ✅ Cargar notificaciones al iniciar sesión
                 await cargarNotificacionesAlIniciar();
             } catch (error) {
                 console.error('Error en login:', error);
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
+
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -413,16 +436,18 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
+
         function showRediOccidental() {
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('rediOccidentalContainer').style.display = 'block';
-            // ✅ Contar y mostrar notificaciones al entrar
             contarYMostrarNotificaciones();
         }
+
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
+
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -445,13 +470,13 @@
                     <div class="logo-container">
                         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                         <h1 class="title">Selección de Estación Policial</h1>
-                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:15px;">
                             CCP: <strong>${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}</strong>
                         </p>
                     </div>
                     <div class="input-group">
                         <label for="estacionSelect">Seleccione Estación Policial:</label>
-                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
                             <option value="">-- Elija una estación --</option>
                 `;
                 estaciones.forEach(est => {
@@ -485,23 +510,21 @@
                 alert('Error al cargar las estaciones policiales');
             }
         }
+
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
-                // ✅ Cargar notificaciones al verificar estado
                 await cargarNotificacionesAlIniciar();
             }
         }
 
-        // ✅ Función para contar reinspecciones vencidas en REDIP OCCIDENTAL
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
                 const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
@@ -509,7 +532,6 @@
                 if (estError) throw estError;
                 const idsEstaciones = estaciones.map(e => e.id);
                 if (idsEstaciones.length === 0) return 0;
-
                 const { count, error: countError } = await supabase
                     .from('inspecciones')
                     .select('*', { count: 'exact', head: true })
@@ -523,7 +545,6 @@
             }
         }
 
-        // ✅ Función para mostrar el contador en el botón
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
@@ -532,10 +553,7 @@
             }
         }
 
-        // ✅ Cargar notificaciones al iniciar sesión
-        async function cargarNotificacionesAlIniciar() {
-            // No hace falta hacer nada aquí, ya que el contador se carga al entrar a REDIP OCCIDENTAL
-        }
+        async function cargarNotificacionesAlIniciar() {}
 
         function loadInspectionForm(estacionId, estacionNombre) {
             const items = [
@@ -567,28 +585,28 @@
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                     <h1 class="title">Formulario de Inspección</h1>
-                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:15px;">
                         Estación: <strong>${estacionNombre}</strong>
                     </p>
                 </div>
-                <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
-                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
+                <form id="inspectionForm">
+                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 20px; margin-bottom: 24px;">
             `;
             items.forEach(item => {
                 formHtml += `
-                    <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                        <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
-                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
+                    <div class="item-card" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+                        <label style="font-weight: bold; color: #0c2440; font-size:15px;">${nombres[item]}</label>
+                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:10px; margin-top:10px; font-size:16px;">
                             <option value="null">-- Seleccione --</option>
                             <option value="true">Sí</option>
                             <option value="false">No</option>
                         </select>
                         <textarea class="observacion-text" data-item="${item}" 
                             placeholder="Observaciones" 
-                            style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
+                            style="width:100%; padding:12px; margin-top:12px; border-radius:10px; display:none; border:1px solid #cbd5e0; font-size:14px; background:#fff;"
                             rows="3"></textarea>
                         <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
-                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
+                            <label style="font-weight: bold; color: #0c2440; font-size:14px; display:block; margin-bottom:8px;">
                                 Porcentaje de estatus
                             </label>
                             <div style="padding:10px 0;">
@@ -597,20 +615,7 @@
                                     style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
                                     oninput="this.nextElementSibling.value = this.value + '%'"
                                 >
-                                <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
-                                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#718096;">
-                                    <span>0</span>
-                                    <span>10</span>
-                                    <span>20</span>
-                                    <span>30</span>
-                                    <span>40</span>
-                                    <span>50</span>
-                                    <span>60</span>
-                                    <span>70</span>
-                                    <span>80</span>
-                                    <span>90</span>
-                                    <span>100</span>
-                                </div>
+                                <output class="porcentaje-output" style="display:block; text-align:center; font-size:14px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
                             </div>
                         </div>
                     </div>
@@ -618,28 +623,29 @@
             });
             formHtml += `
                 </div>
-                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                <div class="input-group">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
                     <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
                         style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
                 </div>
-                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                <div class="input-group" style="margin-top:20px;">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
                     <input type="date" id="proximaInspeccion" 
                         min="${hoy}"
                         style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
                 </div>
-                <div style="text-align:center; margin-top:30px; grid-column: span 3;">
-                    <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
-                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
+                <div style="text-align:center; margin-top:28px;">
+                    <button type="submit" class="form-btn" style="padding:15px 30px; font-size:17px;">Guardar Inspección</button>
+                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:16px; padding:12px 22px;">← Volver a Estaciones</button>
                 </div>
             </form>
         `;
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = formHtml;
             dynamicView.style.display = 'block';
-            dynamicView.style.maxWidth = '950px';
-            dynamicView.style.padding = '40px';
+            dynamicView.style.maxWidth = '100%';
+            dynamicView.style.padding = '24px 16px';
+
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -659,9 +665,11 @@
                     }
                 });
             });
+
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
+
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const { data: { user } } = await supabase.auth.getUser();
@@ -724,6 +732,7 @@
                 }
             };
         }
+
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
