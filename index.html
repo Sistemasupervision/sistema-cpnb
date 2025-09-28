@@ -18,9 +18,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 16px;
+            padding: 20px;
             position: relative;
-            overflow-x: hidden;
+            overflow: hidden;
         }
         .vector-bg {
             position: absolute;
@@ -28,17 +28,65 @@
             left: 0;
             width: 100%;
             height: 100%;
-            opacity: 0.1;
+            opacity: 0.15;
             z-index: 0;
-            display: none; /* oculto en móvil para rendimiento */
+        }
+        .vector-circle {
+            position: absolute;
+            border: 2px solid rgba(255, 204, 0, 0.3);
+            border-radius: 50%;
+        }
+        .vector-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            left: -100px;
+        }
+        .vector-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            right: -50px;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+        .vector-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 30%;
+            right: 10%;
+            border-color: rgba(255, 204, 0, 0.4);
+        }
+        .vector-circle:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            bottom: 20%;
+            left: 5%;
+            border-color: rgba(44, 82, 130, 0.4);
+        }
+        .vector-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
+        }
+        .vector-line:nth-child(5) {
+            width: 200px;
+            top: 15%;
+            left: 20%;
+            transform: rotate(30deg);
+        }
+        .vector-line:nth-child(6) {
+            width: 150px;
+            bottom: 25%;
+            right: 25%;
+            transform: rotate(-45deg);
         }
         .container {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             width: 100%;
             max-width: 450px;
-            padding: 24px 16px;
+            padding: 40px;
             position: relative;
             overflow: hidden;
             z-index: 10;
@@ -50,30 +98,47 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 6px;
+            height: 8px;
             background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         .logo-container {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 30px;
         }
         .logo-img {
-            width: 80px;
-            height: 80px;
+            width: 120px;
+            height: 120px;
             object-fit: contain;
-            margin: 0 auto 16px;
+            margin: 0 auto 20px;
             display: block;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
         }
         .title {
             text-align: center;
             color: #0c2440;
-            font-size: 20px;
+            font-size: 24px;
             font-weight: bold;
             line-height: 1.4;
-            margin-bottom: 24px;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #ffcc00, #ff6b00);
+            border-radius: 2px;
         }
         .input-group {
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }
         .input-group label {
             display: block;
@@ -89,16 +154,24 @@
             padding: 14px;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
-            font-size: 16px; /* evita zoom en iOS */
+            font-size: 16px;
+            transition: all 0.3s ease;
             background-color: #f8fafc;
-            min-height: 48px;
+        }
+        .input-group select:focus,
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+            background-color: white;
         }
         .login-btn,
         .redi-btn,
         .action-btn,
         .form-btn {
             width: 100%;
-            padding: 14px;
+            padding: 16px;
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             color: white;
             border: none;
@@ -106,84 +179,119 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 12px;
-            min-height: 48px;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
         }
-        .redi-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 12px;
-            margin: 20px 0;
+        .login-btn:hover,
+        .redi-btn:hover,
+        .action-btn:hover,
+        .form-btn:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
         }
         .security-info {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 25px;
             color: #4a5568;
-            font-size: 12px;
-            line-height: 1.5;
-            padding: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            padding: 15px;
             background: #f8fafc;
-            border-radius: 10px;
+            border-radius: 12px;
             border-left: 4px solid #3182ce;
         }
+        .security-info strong {
+            color: #0c2440;
+            display: block;
+            margin-bottom: 8px;
+        }
+        #dashboardContainer,
+        #rediOccidentalContainer {
+            max-width: 600px;
+            padding: 50px;
+            display: none;
+        }
         .user-info {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 16px;
+            background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #3182ce;
+            margin-top: 20px;
         }
         .user-info h3 {
             color: #0c2440;
-            margin-bottom: 8px;
-            font-size: 16px;
+            margin-bottom: 10px;
+            font-size: 18px;
         }
         .user-info p {
             color: #4a5568;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
+        }
+        .redi-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 25px 0;
+        }
+        .redi-btn {
+            width: auto;
+            padding: 12px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .error-message {
+            color: #e53e3e;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             width: auto;
             display: inline-block;
-            padding: 12px 16px;
-            margin-top: 16px;
-            font-size: 16px;
-            min-height: 48px;
+            padding: 10px 20px;
+            margin-top: 20px;
         }
-        .error-message {
-            color: #e53e3e;
-            font-size: 14px;
-            margin-top: 12px;
-            text-align: center;
-            display: none;
-        }
-
-        /* Ajustes específicos para móviles */
-        @media (max-width: 600px) {
-            .items-grid {
-                grid-template-columns: 1fr !important;
-                gap: 16px;
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
             }
-            #dynamicView {
-                padding: 20px 12px !important;
-            }
-            .item-card {
-                padding: 16px !important;
+            #dashboardContainer,
+            #rediOccidentalContainer {
+                padding: 30px 20px;
             }
             .title {
-                font-size: 18px;
+                font-size: 20px;
             }
             .logo-img {
-                width: 70px;
-                height: 70px;
+                width: 100px;
+                height: 100px;
+            }
+            .security-info {
+                font-size: 12px;
+            }
+            .user-info {
+                padding: 20px;
+            }
+            .vector-circle {
+                transform: scale(0.7);
             }
         }
     </style>
 </head>
 <body>
-    <div class="vector-bg"></div>
-
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -204,15 +312,14 @@
         </form>
         <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
-            <p>Todas las comunicaciones están cifradas para proteger la información del CPNB.</p>
+            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
     </div>
-
-    <!-- Panel Principal -->
-    <div id="dashboardContainer" class="container" style="display:none;">
+    <!-- Panel Principal (REDI) -->
+    <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Panel Principal</h1>
+            <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         <div class="user-info">
             <h3>Usuario Conectado</h3>
@@ -226,13 +333,12 @@
             <button class="redi-btn" data-redi="oriental">REDIP ORIENTAL</button>
             <button class="redi-btn" data-redi="llanos">REDIP LOS LLANOS</button>
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
-            <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA</button>
+            <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-
-    <!-- REDI OCCIDENTAL -->
-    <div id="rediOccidentalContainer" class="container" style="display:none;">
+    <!-- Vista específica: REDI OCCIDENTAL -->
+    <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">REDIP OCCIDENTAL</h1>
@@ -250,28 +356,33 @@
             </div>
             <button type="submit" class="form-btn">Continuar</button>
         </form>
-        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top:12px;">Ver Historial</button>
-        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top:12px;">Estadísticas</button>
-        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top:12px;">🔔 Notificaciones</button>
-        <button onclick="window.location.href='resumen-mensual.html'" class="action-btn" style="margin-top:12px;">📊 Resumen Mensual</button>
-        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel</button>
+        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Ver Historial de Inspecciones
+        </button>
+        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Estadísticas
+        </button>
+        <!-- ✅ BOTÓN DE NOTIFICACIONES CON CONTADOR -->
+        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🔔 Notificaciones
+        </button>
+        <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
+    📊 Resumen Mensual (KPIs)
+</button>
+        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-
-    <div id="dynamicView" class="container" style="display:none; max-width:950px;"></div>
-
+    <!-- CONTENEDOR DINÁMICO -->
+    <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
     <script>
-        // === MISMO CÓDIGO JS DE TU ARCHIVO ORIGINAL ===
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -282,13 +393,13 @@
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
+                // ✅ Cargar notificaciones al iniciar sesión
                 await cargarNotificacionesAlIniciar();
             } catch (error) {
                 console.error('Error en login:', error);
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
-
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -302,18 +413,16 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-
         function showRediOccidental() {
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('rediOccidentalContainer').style.display = 'block';
+            // ✅ Contar y mostrar notificaciones al entrar
             contarYMostrarNotificaciones();
         }
-
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
-
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -329,20 +438,20 @@
                     .order('nombre', { ascending: true });
                 if (error) throw error;
                 if (!estaciones || estaciones.length === 0) {
-                    alert(`No hay estaciones registradas para esa CCP.`);
+                    alert(`No hay estaciones registradas para ${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}.`);
                     return;
                 }
                 let estacionesHtml = `
                     <div class="logo-container">
                         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                        <h1 class="title">Selección de Estación</h1>
-                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:15px;">
+                        <h1 class="title">Selección de Estación Policial</h1>
+                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
                             CCP: <strong>${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}</strong>
                         </p>
                     </div>
                     <div class="input-group">
-                        <label for="estacionSelect">Estación Policial:</label>
-                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px; min-height:48px;">
+                        <label for="estacionSelect">Seleccione Estación Policial:</label>
+                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
                             <option value="">-- Elija una estación --</option>
                 `;
                 estaciones.forEach(est => {
@@ -351,7 +460,7 @@
                 estacionesHtml += `
                         </select>
                     </div>
-                    <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario</button>
+                    <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
                     <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
                 `;
                 document.getElementById('rediOccidentalContainer').style.display = 'none';
@@ -373,24 +482,26 @@
                 };
             } catch (error) {
                 console.error('Error al cargar estaciones:', error);
-                alert('Error al cargar las estaciones');
+                alert('Error al cargar las estaciones policiales');
             }
         }
-
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
+                // ✅ Cargar notificaciones al verificar estado
                 await cargarNotificacionesAlIniciar();
             }
         }
 
+        // ✅ Función para contar reinspecciones vencidas en REDIP OCCIDENTAL
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
                 const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
@@ -398,6 +509,7 @@
                 if (estError) throw estError;
                 const idsEstaciones = estaciones.map(e => e.id);
                 if (idsEstaciones.length === 0) return 0;
+
                 const { count, error: countError } = await supabase
                     .from('inspecciones')
                     .select('*', { count: 'exact', head: true })
@@ -411,6 +523,7 @@
             }
         }
 
+        // ✅ Función para mostrar el contador en el botón
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
@@ -419,8 +532,9 @@
             }
         }
 
+        // ✅ Cargar notificaciones al iniciar sesión
         async function cargarNotificacionesAlIniciar() {
-            // nada especial aquí
+            // No hace falta hacer nada aquí, ya que el contador se carga al entrar a REDIP OCCIDENTAL
         }
 
         function loadInspectionForm(estacionId, estacionNombre) {
@@ -453,25 +567,25 @@
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                     <h1 class="title">Formulario de Inspección</h1>
-                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:15px;">
+                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
                         Estación: <strong>${estacionNombre}</strong>
                     </p>
                 </div>
-                <form id="inspectionForm" style="max-height: 70vh; overflow-y: auto;">
-                    <div class="items-grid" style="display: grid; grid-template-columns: 1fr; gap: 18px; margin-bottom: 24px;">
+                <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
+                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
             `;
             items.forEach(item => {
                 formHtml += `
-                    <div class="item-card" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+                    <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                         <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
-                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:12px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:16px; min-height:48px;">
+                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
                             <option value="null">-- Seleccione --</option>
                             <option value="true">Sí</option>
                             <option value="false">No</option>
                         </select>
                         <textarea class="observacion-text" data-item="${item}" 
                             placeholder="Observaciones" 
-                            style="width:100%; padding:12px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:14px; background:#fff; min-height:80px;"
+                            style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
                             rows="3"></textarea>
                         <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
                             <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
@@ -484,6 +598,19 @@
                                     oninput="this.nextElementSibling.value = this.value + '%'"
                                 >
                                 <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
+                                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#718096;">
+                                    <span>0</span>
+                                    <span>10</span>
+                                    <span>20</span>
+                                    <span>30</span>
+                                    <span>40</span>
+                                    <span>50</span>
+                                    <span>60</span>
+                                    <span>70</span>
+                                    <span>80</span>
+                                    <span>90</span>
+                                    <span>100</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -491,29 +618,28 @@
             });
             formHtml += `
                 </div>
-                <div class="input-group" style="margin-top:20px;">
+                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
-                    <textarea id="observacionesGenerales" placeholder="Observaciones adicionales..." 
-                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px; min-height:100px;" rows="4"></textarea>
+                    <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
+                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
                 </div>
-                <div class="input-group" style="margin-top:20px;">
+                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
                     <input type="date" id="proximaInspeccion" 
                         min="${hoy}"
-                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px; min-height:48px;">
+                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
                 </div>
-                <div style="text-align:center; margin-top:24px;">
-                    <button type="submit" class="form-btn" style="padding:14px; font-size:17px;">Guardar Inspección</button>
-                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:12px 20px;">← Volver</button>
+                <div style="text-align:center; margin-top:30px; grid-column: span 3;">
+                    <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
+                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
                 </div>
             </form>
         `;
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = formHtml;
             dynamicView.style.display = 'block';
-            dynamicView.style.maxWidth = '100%';
-            dynamicView.style.padding = '20px 12px';
-
+            dynamicView.style.maxWidth = '950px';
+            dynamicView.style.padding = '40px';
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -533,16 +659,14 @@
                     }
                 });
             });
-
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
-
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
-                    alert('Debe estar autenticado.');
+                    alert('Debe estar autenticado para guardar.');
                     return;
                 }
                 const itemsData = [];
@@ -581,7 +705,7 @@
                     .single();
                 if (inspError) {
                     console.error('Error al crear inspección:', inspError);
-                    alert('Error al guardar: ' + (inspError.message || ''));
+                    alert('Error al guardar la inspección: ' + (inspError.message || ''));
                     return;
                 }
                 const itemsToInsert = itemsData.map(item => ({
@@ -593,14 +717,13 @@
                     .insert(itemsToInsert);
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
-                    alert('Error al guardar los ítems.');
+                    alert('Error al guardar los ítems: ' + (itemsError.message || ''));
                 } else {
                     alert('✅ Inspección guardada exitosamente.');
                     handleOccidentalForm({ preventDefault: () => {} });
                 }
             };
         }
-
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
