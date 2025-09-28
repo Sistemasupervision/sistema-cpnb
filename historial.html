@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
+        /* ... (todo el CSS igual que antes) ... */
         * {
             margin: 0;
             padding: 0;
@@ -178,7 +179,6 @@
         .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); }
         .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); }
         .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); }
-        /* ✅ ESTILOS ACTUALIZADOS PARA LOS BOTONES */
         .botones-container {
             display: flex;
             gap: 12px;
@@ -391,6 +391,7 @@
     </style>
 </head>
 <body>
+    <!-- ... (HTML igual que antes) ... -->
     <div class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -479,6 +480,34 @@
         let inspeccionIdActual = null;
         // Establecer fecha mínima (hoy)
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+
+        // ✅ VERIFICACIÓN DE AUTENTICACIÓN Y REDIP AL CARGAR
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión para acceder a esta página.');
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || data.redip !== 'occidental') {
+                    alert('⚠️ No tiene permisos para acceder a esta sección.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('Error al verificar sus permisos.');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Resto del código igual...
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -502,6 +531,7 @@
                 alert('Error al cargar las estaciones');
             }
         });
+
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
                 const { data: todasEstaciones, error: estError } = await supabase
@@ -581,6 +611,7 @@
                 renderizarPaginacion();
             }
         }
+
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
@@ -617,7 +648,7 @@
                 let claseCumplimiento = 'cumplimiento-bajo';
                 if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
                 else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
-                // ✅ BOTONES DENTRO DE UN CONTENEDOR FLEXIBLE
+                // Botones dinámicos
                 let botonesHTML = `
                     <div class="botones-container">
                         <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
@@ -661,6 +692,7 @@
                 contenedor.appendChild(card);
             });
         }
+
         function renderizarPaginacion() {
             const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
             const paginacionDiv = document.getElementById('pagination');
@@ -706,6 +738,7 @@
             };
             paginacionDiv.appendChild(nextBtn);
         }
+
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -717,6 +750,7 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
+
         async function mostrarDetalle(inspeccionId) {
             try {
                 const { data: items, error: itemsError } = await supabase
@@ -834,12 +868,15 @@
                 alert('Error al cargar los detalles.');
             }
         }
+
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
+
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
+
         async function exportarInspeccionAPDF() {
             const content = document.getElementById('detalleContenido');
             if (!content || !content.innerHTML.trim()) {
@@ -894,6 +931,7 @@
                 alert('Error al generar el PDF. Intente nuevamente.');
             }
         }
+
         async function exportarHistorialAPDF() {
             if (inspeccionesCache.length === 0) {
                 alert('No hay inspecciones para exportar.');
@@ -999,15 +1037,17 @@
                 alert('Error al generar el PDF del historial.');
             }
         }
-        // ✅ NUEVA FUNCIONALIDAD: Modal de fecha
+
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
+
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
+
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha) {
@@ -1022,7 +1062,6 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                // Recargar con los filtros actuales
                 const desde = document.getElementById('fechaDesde').value;
                 const hasta = document.getElementById('fechaHasta').value;
                 const ccpId = document.getElementById('ccpFilter').value;
@@ -1033,7 +1072,11 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
-        cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
+
+        // ✅ EJECUTAR VERIFICACIÓN AL CARGAR
+        verificarAcceso().then(() => {
+            cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
+        });
     </script>
 </body>
 </html>
