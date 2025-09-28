@@ -377,7 +377,7 @@
             🔔 Notificaciones
         </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
-            📊 Resumen Mensual 
+            📊 Resumen Mensual (KPIs)
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
@@ -425,7 +425,7 @@
             }
         }
 
-        // ✅ NUEVA FUNCIÓN: verificar acceso a REDIP OCCIDENTAL
+        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
         async function showRediOccidental() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -442,7 +442,6 @@
                     return;
                 }
 
-                // Si tiene permiso, mostrar la vista
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
                 contarYMostrarNotificaciones();
@@ -753,7 +752,6 @@
             };
         }
 
-        // ✅ Eventos actualizados
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
