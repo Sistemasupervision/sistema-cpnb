@@ -723,11 +723,69 @@
                 }
             };
         }
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+  // === NUEVA LÓGICA DE VALIDACIÓN DE REDIP ===
+async function verificarAccesoRedip(redipRequerida) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip')
+        .eq('user_id', user.id)
+        .single();
+
+    if (error || !data) {
+        console.warn('No se encontró asignación de REDIP para el usuario:', user.id);
+        return false;
+    }
+
+    return data.redip === redipRequerida;
+}
+
+async function manejarClickRedip(redipKey, accionPermitida) {
+    const tieneAcceso = await verificarAccesoRedip(redipKey);
+    if (!tieneAcceso) {
+        const nombresRedip = {
+            andes: "LOS ANDES",
+            capital: "CAPITAL",
+            central: "CENTRAL",
+            occidental: "OCCIDENTAL",
+            oriental: "ORIENTAL",
+            llanos: "LOS LLANOS",
+            guayana: "GUAYANA",
+            maritima: "MARÍTIMA E INSULAR"
+        };
+        const nombre = nombresRedip[redipKey] || redipKey.toUpperCase();
+        alert(`⚠️ No tiene permisos para acceder a REDIP ${nombre}.\nPor favor contacte al administrador.`);
+        return;
+    }
+    accionPermitida();
+}
+
+// Asignar eventos a todos los botones de REDIP
+document.querySelectorAll('.redi-btn').forEach(btn => {
+    const redip = btn.dataset.redi;
+    if (redip === 'occidental') {
+        // Caso especial: ya tiene función definida
+        btn.addEventListener('click', () => {
+            manejarClickRedip('occidental', showRediOccidental);
+        });
+    } else {
+        // Para las otras REDIP (aún no implementadas, pero ya validan acceso)
+        btn.addEventListener('click', () => {
+            manejarClickRedip(redip, () => {
+                alert(`✅ Acceso permitido a REDIP ${redip.toUpperCase()}.\n(En desarrollo)`);
+            });
+        });
+    }
+});
+
+// Eventos restantes
+document.getElementById('loginForm').addEventListener('submit', handleLogin);
+document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+checkAuthState();
         checkAuthState();
     </script>
 </body>
