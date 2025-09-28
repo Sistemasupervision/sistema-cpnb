@@ -125,7 +125,6 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
 
-        // ✅ VERIFICACIÓN DE ACCESO SEGURA
         async function verificarAcceso() {
             const {  { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -183,21 +182,23 @@
                 if (countError2) throw countError2;
 
                 // Promedio de cumplimiento
-                const {  items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('cumple')
-                    .in('inspeccion_id', async () => {
-                        const {  inspIds, error } = await supabase
-                            .from('inspecciones')
-                            .select('id')
-                            .in('estacion_id', idsEstaciones);
-                        if (error) throw error;
-                        return inspIds.map(i => i.id);
-                    });
+                const {  inspIds, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id')
+                    .in('estacion_id', idsEstaciones);
+                if (inspError) throw inspError;
+
                 let promedio = 0;
-                if (items && items.length > 0) {
-                    const cumplidos = items.filter(i => i.cumple).length;
-                    promedio = Math.round((cumplidos / items.length) * 100);
+                if (inspIds && inspIds.length > 0) {
+                    const ids = inspIds.map(i => i.id);
+                    const {  items, error: itemsError } = await supabase
+                        .from('items_inspeccion')
+                        .select('cumple')
+                        .in('inspeccion_id', ids);
+                    if (!itemsError && items && items.length > 0) {
+                        const cumplidos = items.filter(i => i.cumple).length;
+                        promedio = Math.round((cumplidos / items.length) * 100);
+                    }
                 }
 
                 container.innerHTML = `
@@ -222,7 +223,6 @@
             }
         }
 
-        // ✅ EJECUTAR VERIFICACIÓN AL CARGAR
         verificarAcceso();
     </script>
 </body>
