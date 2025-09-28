@@ -101,7 +101,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             position: relative;
             transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
         }
         .inspeccion-card:hover {
             transform: translateY(-2px);
@@ -178,9 +177,8 @@
         .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); }
         .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); }
         .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); }
-        .ver-btn {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
-            color: white;
+        .ver-btn,
+        .btn-reinspeccion {
             border: none;
             border-radius: 8px;
             padding: 10px 20px;
@@ -191,7 +189,16 @@
             width: 100%;
             max-width: 200px;
         }
-        .ver-btn:hover {
+        .ver-btn {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+        }
+        .btn-reinspeccion {
+            background: #dc2626;
+            color: white;
+        }
+        .ver-btn:hover,
+        .btn-reinspeccion:hover {
             opacity: 0.9;
         }
         #detalleModal {
@@ -360,12 +367,11 @@
         <div class="pagination" id="pagination"></div>
     </div>
     <!-- Modal de Detalle -->
-<!-- Modal de Detalle -->
-<div id="detalleModal">
-    <div class="modal-content">
-        <div id="detalleContenido"></div>
+    <div id="detalleModal">
+        <div class="modal-content">
+            <div id="detalleContenido"></div>
+        </div>
     </div>
-</div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -391,7 +397,7 @@
             estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
             if (!ccpId) return;
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -411,7 +417,7 @@
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
-                const { data: todasEstaciones, error: estError } = await supabase
+                const {  todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
                 if (estError) throw estError;
@@ -442,6 +448,7 @@
                 } else if (ccpId) {
                     idsPermitidos = ccpEstaciones[ccpId] || [];
                 }
+
                 if (idsPermitidos !== null) {
                     if (idsPermitidos.length === 0) {
                         document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay estaciones para ese CCP.</div>';
@@ -452,14 +459,13 @@
                     query = query.in('estacion_id', idsPermitidos);
                 }
 
-                const { data: inspecciones, error } = await query;
+                const {  inspecciones, error } = await query;
                 if (error) throw error;
 
-                // ✅ Obtener ítems para calcular cumplimiento
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
-                    const { data: items, error: itemsError } = await supabase
+                    const {  items, error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .select('inspeccion_id, cumple')
                         .in('inspeccion_id', idsInspecciones);
@@ -502,10 +508,12 @@
             const fin = inicio + registrosPorPagina;
             const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
             const contenedor = document.getElementById('inspeccionesList');
+
             if (!inspeccionesCache || inspeccionesCache.length === 0) {
                 contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
                 return;
             }
+
             contenedor.innerHTML = '';
             inspeccionesPagina.forEach(insp => {
                 const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
@@ -516,7 +524,6 @@
                     minute: '2-digit'
                 });
 
-                // Estado de próxima inspección
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 const hoy = new Date();
@@ -533,10 +540,19 @@
                     }
                 }
 
-                // Clasificación por cumplimiento
                 let claseCumplimiento = 'cumplimiento-bajo';
                 if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
                 else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
+
+                // Botones dinámicos
+                let botonesHTML = `<button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>`;
+                if (estadoClase === 'estado-rojo') {
+                    botonesHTML += `
+                        <button class="btn-reinspeccion" onclick="marcarReinspeccionada(${insp.id})">
+                            ✅ Marcar como reinspeccionada
+                        </button>
+                    `;
+                }
 
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
@@ -563,7 +579,7 @@
                             <span class="meta-value">${insp.inspector_email}</span>
                         </div>
                     </div>
-                    <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
+                    ${botonesHTML}
                 `;
                 contenedor.appendChild(card);
             });
@@ -574,12 +590,14 @@
             const paginacionDiv = document.getElementById('pagination');
             paginacionDiv.innerHTML = '';
             if (totalPaginas <= 1) return;
+
             const maxVisible = 5;
             let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
             let end = Math.min(totalPaginas, start + maxVisible - 1);
             if (end - start + 1 < maxVisible) {
                 start = Math.max(1, end - maxVisible + 1);
             }
+
             const prevBtn = document.createElement('button');
             prevBtn.textContent = '«';
             prevBtn.disabled = paginaActual === 1;
@@ -591,6 +609,7 @@
                 }
             };
             paginacionDiv.appendChild(prevBtn);
+
             for (let i = start; i <= end; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
@@ -602,6 +621,7 @@
                 };
                 paginacionDiv.appendChild(btn);
             }
+
             const nextBtn = document.createElement('button');
             nextBtn.textContent = '»';
             nextBtn.disabled = paginaActual === totalPaginas;
@@ -626,136 +646,132 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
-        
-  async function mostrarDetalle(inspeccionId) {
-    try {
-        const { data: items, error: itemsError } = await supabase
-            .from('items_inspeccion')
-            .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
-            .eq('inspeccion_id', inspeccionId)
-            .order('item_nombre', { ascending: true });
-        const { data: inspeccion, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
-            .eq('id', inspeccionId)
-            .single();
-        if (itemsError || inspError) throw itemsError || inspError;
 
-        let nombreEstacion = 'Estación no disponible';
-        const { data: estacionData, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('nombre')
-            .eq('id', inspeccion.estacion_id)
-            .single();
-        if (!estError && estacionData) {
-            nombreEstacion = estacionData.nombre;
-        }
+        async function mostrarDetalle(inspeccionId) {
+            try {
+                const {  items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+                    .eq('inspeccion_id', inspeccionId)
+                    .order('item_nombre', { ascending: true });
+                const {  inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
+                    .eq('id', inspeccionId)
+                    .single();
+                if (itemsError || inspError) throw itemsError || inspError;
 
-        const nombres = {
-            baño_dama: "Baño Dama",
-            baño_caballero: "Baño Caballero",
-            dormitorio_femenino: "Dormitorio Femenino",
-            dormitorio_masculino: "Dormitorio Masculino",
-            cocina: "Cocina",
-            comedor: "Comedor",
-            lavanderia: "Lavandería",
-            oficina_del_jefe: "Oficina del Jefe",
-            oficina_de_rrhh: "Oficina de RRHH",
-            condiciones_electricas: "Condiciones Eléctricas",
-            fachada: "Fachada",
-            condiciones_de_pintura: "Condiciones de Pintura",
-            jardines: "Jardines",
-            condiciones_generales: "Condiciones Generales",
-            vehiculos: "Vehículos",
-            motos: "Motos"
-        };
+                let nombreEstacion = 'Estación no disponible';
+                const {  estacionData, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('nombre')
+                    .eq('id', inspeccion.estacion_id)
+                    .single();
+                if (!estError && estacionData) {
+                    nombreEstacion = estacionData.nombre;
+                }
 
-        let fechaFormateada = 'Fecha no disponible';
-        if (inspeccion.created_at) {
-            const fechaObj = new Date(inspeccion.created_at);
-            if (!isNaN(fechaObj.getTime())) {
-                fechaFormateada = fechaObj.toLocaleString('es-ES', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const nombres = {
+                    baño_dama: "Baño Dama",
+                    baño_caballero: "Baño Caballero",
+                    dormitorio_femenino: "Dormitorio Femenino",
+                    dormitorio_masculino: "Dormitorio Masculino",
+                    cocina: "Cocina",
+                    comedor: "Comedor",
+                    lavanderia: "Lavandería",
+                    oficina_del_jefe: "Oficina del Jefe",
+                    oficina_de_rrhh: "Oficina de RRHH",
+                    condiciones_electricas: "Condiciones Eléctricas",
+                    fachada: "Fachada",
+                    condiciones_de_pintura: "Condiciones de Pintura",
+                    jardines: "Jardines",
+                    condiciones_generales: "Condiciones Generales",
+                    vehiculos: "Vehículos",
+                    motos: "Motos"
+                };
+
+                let fechaFormateada = 'Fecha no disponible';
+                if (inspeccion.created_at) {
+                    const fechaObj = new Date(inspeccion.created_at);
+                    if (!isNaN(fechaObj.getTime())) {
+                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
+                            <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
+                        </div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (items && items.length > 0) {
+                    html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
+                    items.forEach(item => {
+                        const nombre = nombres[item.item_nombre] || item.item_nombre;
+                        const clase = item.cumple ? 'si' : 'no';
+                        const texto = item.cumple ? 'Sí' : 'No';
+                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+                        html += `
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
+                                    <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
+                                        ${texto}${porcentajeTexto}
+                                    </span>
+                                </div>
+                                ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                                    <strong>Observación:</strong> ${item.observacion}
+                                </div>` : ''}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
+                }
+
+                if (inspeccion.observaciones_generales) {
+                    html += `
+                        <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
+                            <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('detalleContenido').innerHTML = html;
+                document.getElementById('detalleModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Error al cargar detalles:', error);
+                alert('Error al cargar los detalles.');
             }
         }
 
-        // ✅ Generar TODO el contenido del modal aquí
-        let html = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
-                <div style="display: flex; gap: 8px;">
-                    <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
-                    <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
-                </div>
-            </div>
-            
-            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
-                        <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
-                        <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
-                        <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        if (items && items.length > 0) {
-            html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
-            items.forEach(item => {
-                const nombre = nombres[item.item_nombre] || item.item_nombre;
-                const clase = item.cumple ? 'si' : 'no';
-                const texto = item.cumple ? 'Sí' : 'No';
-                const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
-                
-                html += `
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
-                            <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
-                                ${texto}${porcentajeTexto}
-                            </span>
-                        </div>
-                        ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
-                            <strong>Observación:</strong> ${item.observacion}
-                        </div>` : ''}
-                    </div>
-                `;
-            });
-        } else {
-            html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
-        }
-
-        if (inspeccion.observaciones_generales) {
-            html += `
-                <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
-                    <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
-                    <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
-                </div>
-            `;
-        }
-
-        // ✅ Insertar TODO en el contenedor
-        document.getElementById('detalleContenido').innerHTML = html;
-        document.getElementById('detalleModal').style.display = 'flex';
-
-    } catch (error) {
-        console.error('Error al cargar detalles:', error);
-        alert('Error al cargar los detalles.');
-    }
-}
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
@@ -922,6 +938,38 @@
             } catch (error) {
                 console.error('Error PDF historial:', error);
                 alert('Error al generar el PDF del historial.');
+            }
+        }
+
+        // ✅ NUEVA FUNCIÓN: Marcar como reinspeccionada
+        async function marcarReinspeccionada(inspeccionId) {
+            const nuevaFecha = prompt("Ingrese la nueva fecha de próxima inspección (AAAA-MM-DD):");
+            if (!nuevaFecha) return;
+
+            const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!fechaRegex.test(nuevaFecha)) {
+                alert("Formato de fecha inválido. Use AAAA-MM-DD.");
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('inspecciones')
+                    .update({ proxima_inspeccion: nuevaFecha })
+                    .eq('id', inspeccionId);
+
+                if (error) throw error;
+
+                alert("✅ Reinspección actualizada correctamente.");
+                // Recargar con los filtros actuales
+                const desde = document.getElementById('fechaDesde').value;
+                const hasta = document.getElementById('fechaHasta').value;
+                const ccpId = document.getElementById('ccpFilter').value;
+                const estacionId = document.getElementById('estacionFilter').value;
+                cargarHistorial(desde || null, hasta || null, ccpId || null, estacionId || null);
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                alert("❌ Error al actualizar la reinspección.");
             }
         }
 
