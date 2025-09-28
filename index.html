@@ -17,10 +17,11 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start; /* ← Cambiado para permitir scroll */
             padding: 20px;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden; /* Solo oculta scroll horizontal */
+            overflow-y: auto;   /* ← Permite scroll vertical */
         }
         .vector-bg {
             position: absolute;
@@ -256,7 +257,7 @@
             padding: 10px 20px;
             margin-top: 20px;
         }
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
             .container {
                 padding: 30px 20px;
             }
@@ -265,7 +266,7 @@
                 padding: 30px 20px;
             }
             .title {
-                font-size: 20px;
+                font-size: 22px;
             }
             .logo-img {
                 width: 100px;
@@ -277,6 +278,13 @@
             .user-info {
                 padding: 20px;
             }
+            .login-btn,
+            .redi-btn,
+            .action-btn,
+            .form-btn {
+                min-height: 48px;
+                font-size: 16px;
+            }
             .vector-circle {
                 transform: scale(0.7);
             }
@@ -284,6 +292,8 @@
     </style>
 </head>
 <body>
+    <!-- ... (el resto del HTML y JS se mantiene exactamente igual) ... -->
+    <!-- Solo se cambió el estilo del body y se añadió el media query -->
     <div class="vector-bg">
         <div class="vector-circle"></div>
         <div class="vector-circle"></div>
@@ -362,18 +372,17 @@
         <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Estadísticas
         </button>
-        <!-- ✅ BOTÓN DE NOTIFICACIONES CON CONTADOR -->
         <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🔔 Notificaciones
         </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
-    📊 Resumen Mensual (KPIs)
-</button>
+            📊 Resumen Mensual (KPIs)
+        </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-    <!-- CONTENEDOR DINÁMICO -->
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
     <script>
+        // ... (el script JS se mantiene exactamente igual) ...
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -393,7 +402,6 @@
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
-                // ✅ Cargar notificaciones al iniciar sesión
                 await cargarNotificacionesAlIniciar();
             } catch (error) {
                 console.error('Error en login:', error);
@@ -416,7 +424,6 @@
         function showRediOccidental() {
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('rediOccidentalContainer').style.display = 'block';
-            // ✅ Contar y mostrar notificaciones al entrar
             contarYMostrarNotificaciones();
         }
         function backToDashboard() {
@@ -491,17 +498,13 @@
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
-                // ✅ Cargar notificaciones al verificar estado
                 await cargarNotificacionesAlIniciar();
             }
         }
-
-        // ✅ Función para contar reinspecciones vencidas en REDIP OCCIDENTAL
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
                 const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
@@ -509,7 +512,6 @@
                 if (estError) throw estError;
                 const idsEstaciones = estaciones.map(e => e.id);
                 if (idsEstaciones.length === 0) return 0;
-
                 const { count, error: countError } = await supabase
                     .from('inspecciones')
                     .select('*', { count: 'exact', head: true })
@@ -522,8 +524,6 @@
                 return 0;
             }
         }
-
-        // ✅ Función para mostrar el contador en el botón
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
@@ -531,12 +531,8 @@
                 boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
             }
         }
-
-        // ✅ Cargar notificaciones al iniciar sesión
         async function cargarNotificacionesAlIniciar() {
-            // No hace falta hacer nada aquí, ya que el contador se carga al entrar a REDIP OCCIDENTAL
         }
-
         function loadInspectionForm(estacionId, estacionNombre) {
             const items = [
                 "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
