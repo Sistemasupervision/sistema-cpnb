@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas - REDIP OCCIDENTAL</title>
+    <title>Notificaciones - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
@@ -75,28 +76,37 @@
         .back-btn:hover {
             opacity: 0.9;
         }
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+        .alertas-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
-        .stat-card {
-            background: linear-gradient(135deg, #f0f9ff, #e6f7ff);
-            border: 1px solid #bee3f8;
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
+        .alerta-card {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 18px;
+            border-left: 4px solid #ef4444;
         }
-        .stat-value {
-            font-size: 28px;
+        .alerta-titulo {
             font-weight: bold;
             color: #0c2440;
-            margin: 10px 0;
+            font-size: 17px;
+            margin-bottom: 8px;
         }
-        .stat-label {
-            color: #4a5568;
+        .alerta-detalles {
             font-size: 14px;
+            color: #4a5568;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+        .ccp-badge {
+            background: #fecaca;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
         }
         .loading, .no-data {
             text-align: center;
@@ -110,13 +120,13 @@
     <div class="container">
         <div class="logo-container">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">📊 Estadísticas - REDIP OCCIDENTAL</h1>
+            <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP OCCIDENTAL</h1>
         </div>
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver a REDIP OCCIDENTAL
         </button>
-        <div id="statsContainer">
-            <div class="loading">Cargando estadísticas...</div>
+        <div id="alertasContainer">
+            <div class="loading">Cargando notificaciones...</div>
         </div>
     </div>
     <script>
@@ -124,40 +134,21 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+        const ccpNombres = {
+            "metropolitano": "CCP METROPOLITANO",
+            "sur-del-lago": "CCP SUR DEL LAGO",
+            "guajira": "CCP GUAJIRA",
+            "col": "CCPE COL"
+        };
 
-        // ✅ VERIFICACIÓN DE ACCESO SEGURA
-        async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('Debe iniciar sesión para acceder a esta página.');
-                window.location.href = 'index.html';
-                return;
-            }
+        async function cargarNotificaciones() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const container = document.getElementById('alertasContainer');
             try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || data.redip !== 'occidental') {
-                    alert('⚠️ No tiene permisos para acceder a esta sección.');
-                    window.location.href = 'index.html';
-                    return;
-                }
-                cargarEstadisticas();
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('Error al verificar sus permisos.');
-                window.location.href = 'index.html';
-            }
-        }
-
-        async function cargarEstadisticas() {
-            const container = document.getElementById('statsContainer');
-            try {
-                const {  estaciones, error: estError } = await supabase
+                // Obtener estaciones de REDIP OCCIDENTAL
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('id')
+                    .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (estError) throw estError;
                 const idsEstaciones = estaciones.map(e => e.id);
@@ -165,65 +156,47 @@
                     container.innerHTML = '<div class="no-data">No hay estaciones en REDIP OCCIDENTAL.</div>';
                     return;
                 }
+               // Obtener inspecciones vencidas
+const { data: inspecciones, error: inspError } = await supabase
+    .from('inspecciones')
+    .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
+    .in('estacion_id', idsEstaciones)
+    .lte('proxima_inspeccion', hoy)
+    .order('proxima_inspeccion', { ascending: true });
+                if (inspError) throw inspError;
 
-                // Total de inspecciones
-                const { count: totalInspecciones, error: countError1 } = await supabase
-                    .from('inspecciones')
-                    .select('*', { count: 'exact', head: true })
-                    .in('estacion_id', idsEstaciones);
-                if (countError1) throw countError1;
-
-                // Inspecciones vencidas
-                const hoy = new Date().toISOString().split('T')[0];
-                const { count: vencidas, error: countError2 } = await supabase
-                    .from('inspecciones')
-                    .select('*', { count: 'exact', head: true })
-                    .in('estacion_id', idsEstaciones)
-                    .lte('proxima_inspeccion', hoy);
-                if (countError2) throw countError2;
-
-                // Promedio de cumplimiento
-                const {  items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('cumple')
-                    .in('inspeccion_id', async () => {
-                        const {  inspIds, error } = await supabase
-                            .from('inspecciones')
-                            .select('id')
-                            .in('estacion_id', idsEstaciones);
-                        if (error) throw error;
-                        return inspIds.map(i => i.id);
-                    });
-                let promedio = 0;
-                if (items && items.length > 0) {
-                    const cumplidos = items.filter(i => i.cumple).length;
-                    promedio = Math.round((cumplidos / items.length) * 100);
+                if (!inspecciones || inspecciones.length === 0) {
+                    container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
+                    return;
                 }
 
-                container.innerHTML = `
-                    <div class="stats-container">
-                        <div class="stat-card">
-                            <div class="stat-label">Total de Inspecciones</div>
-                            <div class="stat-value">${totalInspecciones || 0}</div>
+                let html = '<div class="alertas-list">';
+                inspecciones.forEach(insp => {
+                    const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
+                    const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                    const ccpNombre = ccpNombres[insp.estaciones_policiales.ccp_id] || insp.estaciones_policiales.ccp_id;
+                    html += `
+                        <div class="alerta-card">
+                            <div class="alerta-titulo">${insp.estaciones_policiales.nombre}</div>
+                            <div class="alerta-detalles">
+                                <span>Última inspección: ${fechaInspeccion}</span>
+                                <span class="ccp-badge">${ccpNombre}</span>
+                            </div>
+                            <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
+                                ⚠️ Reinspección vencida desde: ${fechaProxima}
+                            </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Reinspecciones Vencidas</div>
-                            <div class="stat-value">${vencidas || 0}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Promedio de Cumplimiento</div>
-                            <div class="stat-value">${promedio}%</div>
-                        </div>
-                    </div>
-                `;
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
             } catch (error) {
-                console.error('Error al cargar estadísticas:', error);
-                container.innerHTML = '<div class="no-data">Error al cargar las estadísticas.</div>';
+                console.error('Error al cargar notificaciones:', error);
+                container.innerHTML = '<div class="no-data">Error al cargar las notificaciones.</div>';
             }
         }
 
-        // ✅ EJECUTAR VERIFICACIÓN AL CARGAR
-        verificarAcceso();
+        cargarNotificaciones();
     </script>
 </body>
 </html>
