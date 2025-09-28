@@ -150,76 +150,6 @@
         .error {
             color: #e53e3e;
         }
-        /* Nuevas secciones */
-        .alertas-section {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        .alertas-title {
-            color: #dc2626;
-            font-weight: bold;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .alerta-item {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 3px solid #ef4444;
-        }
-        .alerta-estacion {
-            font-weight: bold;
-            color: #0c2440;
-        }
-        .alerta-detalles {
-            font-size: 13px;
-            color: #4a5568;
-            margin-top: 4px;
-        }
-        .proximo-section {
-            background: #fffbeb;
-            border: 1px solid #fbbf24;
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        .proximo-title {
-            color: #d97706;
-            font-weight: bold;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .proximo-item {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 3px solid #f59e0b;
-        }
-        .ejecutivo-section {
-            background: #ebf8ff;
-            border: 1px solid #bee3f8;
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        .ejecutivo-title {
-            color: #2b6cb0;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .ejecutivo-texto {
-            line-height: 1.6;
-            color: #2d3748;
-        }
         @media (max-width: 600px) {
             .container {
                 padding: 25px;
@@ -319,100 +249,6 @@
             return `<span class="comparacion ${clase}">${valor} vs mes anterior</span>`;
         }
 
-        // ✅ NUEVA FUNCIÓN: Cargar alertas de reinspección vencida
-        async function cargarAlertasVencidas() {
-            const hoy = new Date().toISOString().split('T')[0];
-            const { data: estaciones, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('id, nombre, ccp_id')
-                .in('ccp_id', ccpOcidental);
-            if (estError) throw estError;
-            const idsEstaciones = estaciones.map(e => e.id);
-            if (idsEstaciones.length === 0) return [];
-            const { data: inspecciones, error: inspError } = await supabase
-                .from('inspecciones')
-                .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
-                .in('estacion_id', idsEstaciones)
-                .lte('proxima_inspeccion', hoy)
-                .order('proxima_inspeccion', { ascending: true });
-            if (inspError) throw inspError;
-            return inspecciones || [];
-        }
-
-        // ✅ NUEVA FUNCIÓN: Cargar próximas reinspecciones (7 días)
-        async function cargarProximasReinspecciones() {
-            const hoy = new Date();
-            const en7Dias = new Date();
-            en7Dias.setDate(hoy.getDate() + 7);
-            const hasta = en7Dias.toISOString().split('T')[0];
-            const desde = hoy.toISOString().split('T')[0];
-            const { data: estaciones, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('id, nombre, ccp_id')
-                .in('ccp_id', ccpOcidental);
-            if (estError) throw estError;
-            const idsEstaciones = estaciones.map(e => e.id);
-            if (idsEstaciones.length === 0) return [];
-            const { data: inspecciones, error: inspError } = await supabase
-                .from('inspecciones')
-                .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
-                .in('estacion_id', idsEstaciones)
-                .gte('proxima_inspeccion', desde)
-                .lte('proxima_inspeccion', hasta)
-                .order('proxima_inspeccion', { ascending: true });
-            if (inspError) throw inspError;
-            return inspecciones || [];
-        }
-
-        // ✅ NUEVA FUNCIÓN: Calcular cumplimiento por CCP
-        async function calcularCumplimientoPorCCP() {
-            const hoy = new Date();
-            const mesActual = hoy.getMonth();
-            const anioActual = hoy.getFullYear();
-            const rango = rangoMes(anioActual, mesActual);
-            const { data: estaciones, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('id, ccp_id')
-                .in('ccp_id', ccpOcidental);
-            if (estError) throw estError;
-            const idsEstaciones = estaciones.map(e => e.id);
-            if (idsEstaciones.length === 0) return {};
-            const { data: inspecciones, error: inspError } = await supabase
-                .from('inspecciones')
-                .select('id, estacion_id')
-                .in('estacion_id', idsEstaciones)
-                .gte('created_at', rango.desde)
-                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
-            if (inspError) throw inspError;
-            if (inspecciones.length === 0) return {};
-            const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
-                .from('items_inspeccion')
-                .select('inspeccion_id, cumple')
-                .in('inspeccion_id', idsInspecciones);
-            if (itemsError) throw itemsError;
-            const estacionCCP = {};
-            estaciones.forEach(e => {
-                estacionCCP[e.id] = e.ccp_id;
-            });
-            const ccpItems = {};
-            items.forEach(item => {
-                const insp = inspecciones.find(i => i.id === item.inspeccion_id);
-                if (insp) {
-                    const ccp = estacionCCP[insp.estacion_id];
-                    if (!ccpItems[ccp]) ccpItems[ccp] = { total: 0, cumplidos: 0 };
-                    ccpItems[ccp].total++;
-                    if (item.cumple) ccpItems[ccp].cumplidos++;
-                }
-            });
-            const resultado = {};
-            Object.keys(ccpItems).forEach(ccp => {
-                const stats = ccpItems[ccp];
-                resultado[ccp] = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
-            });
-            return resultado;
-        }
-
         async function cargarResumenMensual() {
             const container = document.getElementById('resumenContainer');
             try {
@@ -431,72 +267,24 @@
                 const rangoAnterior = rangoMes(anioAnterior, mesAnterior);
                 const datosAnterior = await cargarDatosMes(rangoAnterior.desde, rangoAnterior.hasta);
                 const metricasAnterior = calcularMetricas(datosAnterior.inspecciones, datosAnterior.items);
-                const alertasVencidas = await cargarAlertasVencidas();
-                const proximas = await cargarProximasReinspecciones();
-                const cumplimientoCCP = await calcularCumplimientoPorCCP();
-
-                // Resumen ejecutivo
-                let textoEjecutivo = "✅ El cumplimiento general se mantiene estable.";
-                if (metricasActual.porcentaje < 70) {
-                    textoEjecutivo = "⚠️ El cumplimiento promedio es bajo. Se recomienda reforzar las inspecciones en estaciones críticas.";
-                } else if (metricasActual.porcentaje >= 80) {
-                    textoEjecutivo = "✅ Excelente nivel de cumplimiento. Mantener el ritmo de supervisión.";
-                }
-                if (alertasVencidas.length > 0) {
-                    textoEjecutivo += ` 🚨 Hay ${alertasVencidas.length} reinspecciones vencidas que requieren atención inmediata.`;
-                }
-
-                // Renderizar HTML
-                let html = '';
-
-                // Alertas críticas
-                if (alertasVencidas.length > 0) {
-                    html += `
-                        <div class="alertas-section">
-                            <div class="alertas-title">🚨 Reinspecciones Vencidas (${alertasVencidas.length})</div>
-                    `;
-                    alertasVencidas.forEach(a => {
-                        const fechaVenc = new Date(a.proxima_inspeccion).toLocaleDateString('es-ES');
-                        const ccpNombre = ccpNombres[a.estaciones_policiales.ccp_id] || a.estaciones_policiales.ccp_id;
-                        html += `
-                            <div class="alerta-item">
-                                <div class="alerta-estacion">${a.estaciones_policiales.nombre}</div>
-                                <div class="alerta-detalles">Vencida desde: ${fechaVenc} | ${ccpNombre}</div>
-                            </div>
-                        `;
+                const conteoCCP = {};
+                if (datosActual.inspecciones.length > 0) {
+                    const { data: estacionesConCCP, error: ccpError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('id, ccp_id')
+                        .in('id', datosActual.inspecciones.map(i => i.estacion_id));
+                    if (ccpError) throw ccpError;
+                    const estacionCCPMap = {};
+                    estacionesConCCP.forEach(e => {
+                        estacionCCPMap[e.id] = e.ccp_id;
                     });
-                    html += '</div>';
-                }
-
-                // Próximas reinspecciones
-                if (proximas.length > 0) {
-                    html += `
-                        <div class="proximo-section">
-                            <div class="proximo-title">📅 Próximas Reinspecciones (7 días)</div>
-                    `;
-                    proximas.forEach(p => {
-                        const fechaProg = new Date(p.proxima_inspeccion).toLocaleDateString('es-ES');
-                        const ccpNombre = ccpNombres[p.estaciones_policiales.ccp_id] || p.estaciones_policiales.ccp_id;
-                        html += `
-                            <div class="proximo-item">
-                                <div class="alerta-estacion">${p.estaciones_policiales.nombre}</div>
-                                <div class="alerta-detalles">Programada: ${fechaProg} | ${ccpNombre}</div>
-                            </div>
-                        `;
+                    datosActual.inspecciones.forEach(insp => {
+                        const ccp = estacionCCPMap[insp.estacion_id] || 'otro';
+                        conteoCCP[ccp] = (conteoCCP[ccp] || 0) + 1;
                     });
-                    html += '</div>';
                 }
 
-                // Resumen ejecutivo
-                html += `
-                    <div class="ejecutivo-section">
-                        <div class="ejecutivo-title">📋 Resumen Ejecutivo</div>
-                        <div class="ejecutivo-texto">${textoEjecutivo}</div>
-                    </div>
-                `;
-
-                // Métricas principales
-                html += `
+                let html = `
                     <div class="resumen-cards">
                         <div class="card">
                             <div class="card-label">Inspecciones este mes<br>(${formatoMes(hoy)})</div>
@@ -513,65 +301,51 @@
                             <div class="card-value">${datosActual.items.length}</div>
                         </div>
                     </div>
-                `;
-
-                // Gráfico de cumplimiento por CCP
-                if (Object.keys(cumplimientoCCP).length > 0) {
-                    html += `
-                        <div class="chart-container">
-                            <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440;">Cumplimiento por CCP (${formatoMes(hoy)})</h3>
-                            <div class="chart-wrapper">
-                                <canvas id="ccpChart"></canvas>
-                            </div>
+                    <div class="chart-container">
+                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440;">Inspecciones por CCP (${formatoMes(hoy)})</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="ccpChart"></canvas>
                         </div>
-                    `;
-                }
-
+                    </div>
+                `;
                 container.innerHTML = html;
 
-                // Renderizar gráfico
-                if (Object.keys(cumplimientoCCP).length > 0) {
+                if (Object.keys(conteoCCP).length > 0) {
                     const ctx = document.getElementById('ccpChart').getContext('2d');
-                    const labels = Object.keys(cumplimientoCCP).map(k => ccpNombres[k] || k);
-                    const data = Object.values(cumplimientoCCP);
+                    const labels = Object.keys(conteoCCP).map(k => ccpNombres[k] || k);
+                    const data = Object.values(conteoCCP);
                     if (chartInstance) chartInstance.destroy();
                     chartInstance = new Chart(ctx, {
-                        type: 'horizontalBar',
+                        type: 'bar',
                         data: {
                             labels: labels,
                             datasets: [{
-                                label: '% Cumplimiento',
+                                label: 'Inspecciones este mes',
                                 data: data,
-                                backgroundColor: data.map(v => 
-                                    v >= 80 ? 'rgba(56, 161, 105, 0.8)' :
-                                    v >= 60 ? 'rgba(214, 158, 46, 0.8)' :
-                                    'rgba(229, 62, 62, 0.8)'
-                                ),
-                                borderColor: data.map(v => 
-                                    v >= 80 ? 'rgba(56, 161, 105, 1)' :
-                                    v >= 60 ? 'rgba(214, 158, 46, 1)' :
-                                    'rgba(229, 62, 62, 1)'
-                                ),
-                                borderWidth: 1
+                                backgroundColor: 'rgba(49, 130, 206, 0.8)',
+                                borderColor: 'rgba(49, 130, 206, 1)',
+                                borderWidth: 1,
+                                borderRadius: 6
                             }]
                         },
                         options: {
+                            indexAxis: 'y',
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
+                            plugins: { 
+                                legend: { display: false } 
+                            },
                             scales: {
                                 x: {
                                     beginAtZero: true,
-                                    max: 100,
-                                    ticks: {
-                                        callback: function(value) { return value + '%'; }
+                                    ticks: { 
+                                        precision: 0 
                                     }
                                 }
                             }
                         }
                     });
                 }
-
             } catch (error) {
                 console.error('Error al cargar resumen mensual:', error);
                 container.innerHTML = `<div class="error">Error al cargar el resumen: ${error.message || ''}</div>`;
