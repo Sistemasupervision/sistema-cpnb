@@ -17,11 +17,11 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* ← Cambiado para permitir scroll */
+            align-items: flex-start;
             padding: 20px;
             position: relative;
-            overflow-x: hidden; /* Solo oculta scroll horizontal */
-            overflow-y: auto;   /* ← Permite scroll vertical */
+            overflow-x: hidden;
+            overflow-y: auto;
         }
         .vector-bg {
             position: absolute;
@@ -292,8 +292,6 @@
     </style>
 </head>
 <body>
-    <!-- ... (el resto del HTML y JS se mantiene exactamente igual) ... -->
-    <!-- Solo se cambió el estilo del body y se añadió el media query -->
     <div class="vector-bg">
         <div class="vector-circle"></div>
         <div class="vector-circle"></div>
@@ -308,26 +306,26 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
         </div>
-   <form id="loginForm">
-    <div class="input-group">
-        <label for="username">Email</label>
-        <input type="email" id="username" placeholder="Ingrese su email" autocomplete="username" required>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">Email</label>
+                <input type="email" id="username" placeholder="Ingrese su email" autocomplete="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="login-btn">Iniciar Sesión</button>
+            <div id="errorMessage" class="error-message"></div>
+        </form>
+        <div class="security-info">
+            <strong>Seguridad de extremo a extremo</strong>
+            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
+        </div>
+        <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
+            © OTIC-ZULIA. Todos los derechos reservados.
+        </p>
     </div>
-    <div class="input-group">
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
-    </div>
-    <button type="submit" class="login-btn">Iniciar Sesión</button>
-    <div id="errorMessage" class="error-message"></div>
-</form>
-<div class="security-info">
-    <strong>Seguridad de extremo a extremo</strong>
-    <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
-</div>
-<p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
-   copyright © OTIC-ZULIA. Todos los derechos reservados.
-</p>
-</div>
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -385,16 +383,17 @@
     </div>
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
     <script>
-        // ... (el script JS se mantiene exactamente igual) ...
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -411,6 +410,7 @@
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
+
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -424,15 +424,39 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-        function showRediOccidental() {
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('rediOccidentalContainer').style.display = 'block';
-            contarYMostrarNotificaciones();
+
+        // ✅ NUEVA FUNCIÓN: verificar acceso a REDIP OCCIDENTAL
+        async function showRediOccidental() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error || !data || data.redip !== 'occidental') {
+                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
+                    return;
+                }
+
+                // Si tiene permiso, mostrar la vista
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+                contarYMostrarNotificaciones();
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+            }
         }
+
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
+
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -495,6 +519,7 @@
                 alert('Error al cargar las estaciones policiales');
             }
         }
+
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -504,6 +529,7 @@
                 await cargarNotificacionesAlIniciar();
             }
         }
+
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
@@ -527,6 +553,7 @@
                 return 0;
             }
         }
+
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
@@ -534,8 +561,10 @@
                 boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
             }
         }
+
         async function cargarNotificacionesAlIniciar() {
         }
+
         function loadInspectionForm(estacionId, estacionNombre) {
             const items = [
                 "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
@@ -723,69 +752,13 @@
                 }
             };
         }
-  // === NUEVA LÓGICA DE VALIDACIÓN DE REDIP ===
-async function verificarAccesoRedip(redipRequerida) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
 
-    const { data, error } = await supabase
-        .from('usuarios_redip')
-        .select('redip')
-        .eq('user_id', user.id)
-        .single();
-
-    if (error || !data) {
-        console.warn('No se encontró asignación de REDIP para el usuario:', user.id);
-        return false;
-    }
-
-    return data.redip === redipRequerida;
-}
-
-async function manejarClickRedip(redipKey, accionPermitida) {
-    const tieneAcceso = await verificarAccesoRedip(redipKey);
-    if (!tieneAcceso) {
-        const nombresRedip = {
-            andes: "LOS ANDES",
-            capital: "CAPITAL",
-            central: "CENTRAL",
-            occidental: "OCCIDENTAL",
-            oriental: "ORIENTAL",
-            llanos: "LOS LLANOS",
-            guayana: "GUAYANA",
-            maritima: "MARÍTIMA E INSULAR"
-        };
-        const nombre = nombresRedip[redipKey] || redipKey.toUpperCase();
-        alert(`⚠️ No tiene permisos para acceder a REDIP ${nombre}.\nPor favor contacte al administrador.`);
-        return;
-    }
-    accionPermitida();
-}
-
-// Asignar eventos a todos los botones de REDIP
-document.querySelectorAll('.redi-btn').forEach(btn => {
-    const redip = btn.dataset.redi;
-    if (redip === 'occidental') {
-        // Caso especial: ya tiene función definida
-        btn.addEventListener('click', () => {
-            manejarClickRedip('occidental', showRediOccidental);
-        });
-    } else {
-        // Para las otras REDIP (aún no implementadas, pero ya validan acceso)
-        btn.addEventListener('click', () => {
-            manejarClickRedip(redip, () => {
-                alert(`✅ Acceso permitido a REDIP ${redip.toUpperCase()}.\n(En desarrollo)`);
-            });
-        });
-    }
-});
-
-// Eventos restantes
-document.getElementById('loginForm').addEventListener('submit', handleLogin);
-document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-checkAuthState();
+        // ✅ Eventos actualizados
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
         checkAuthState();
     </script>
 </body>
