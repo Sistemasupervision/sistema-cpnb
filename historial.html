@@ -178,29 +178,38 @@
         .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); }
         .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); }
         .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); }
+        /* ✅ ESTILOS ACTUALIZADOS PARA LOS BOTONES */
+        .botones-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: flex-start;
+        }
         .ver-btn,
         .btn-reinspeccion {
             border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
+            border-radius: 10px;
+            padding: 12px 16px;
             font-size: 14px;
             cursor: pointer;
-            margin-top: 16px;
             font-weight: bold;
-            width: 100%;
-            max-width: 200px;
+            flex: 1;
+            min-width: 140px;
+            text-align: center;
+            transition: all 0.2s ease;
         }
         .ver-btn {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             color: white;
         }
         .btn-reinspeccion {
-            background: #dc2626;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
             color: white;
         }
         .ver-btn:hover,
         .btn-reinspeccion:hover {
-            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         #detalleModal {
             display: none;
@@ -299,7 +308,6 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-
         /* Modal de fecha */
         #modalFecha {
             display: none;
@@ -357,7 +365,6 @@
             background: #e2e8f0;
             color: #4a5568;
         }
-
         @media (max-width: 600px) {
             .container {
                 padding: 25px;
@@ -371,6 +378,14 @@
             }
             .cumplimiento-badge {
                 margin-top: 16px;
+            }
+            .botones-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .ver-btn,
+            .btn-reinspeccion {
+                min-width: auto;
             }
         }
     </style>
@@ -432,7 +447,6 @@
             <div id="detalleContenido"></div>
         </div>
     </div>
-
     <!-- Modal para seleccionar fecha -->
     <div id="modalFecha">
         <div class="modal-content-fecha">
@@ -444,7 +458,6 @@
             </div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -464,10 +477,8 @@
         let paginaActual = 1;
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
-
         // Establecer fecha mínima (hoy)
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -491,7 +502,6 @@
                 alert('Error al cargar las estaciones');
             }
         });
-
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
                 const { data: todasEstaciones, error: estError } = await supabase
@@ -505,12 +515,10 @@
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
                     ccpEstaciones[est.ccp_id].push(est.id);
                 });
-
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
-
                 if (fechaDesde && fechaHasta) {
                     const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
                     const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
@@ -518,14 +526,12 @@
                         .gte('created_at', desdeISO)
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
-
                 let idsPermitidos = null;
                 if (estacionId) {
                     idsPermitidos = [parseInt(estacionId)];
                 } else if (ccpId) {
                     idsPermitidos = ccpEstaciones[ccpId] || [];
                 }
-
                 if (idsPermitidos !== null) {
                     if (idsPermitidos.length === 0) {
                         document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay estaciones para ese CCP.</div>';
@@ -535,10 +541,8 @@
                     }
                     query = query.in('estacion_id', idsPermitidos);
                 }
-
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
-
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -556,7 +560,6 @@
                         });
                     }
                 }
-
                 inspeccionesCache = inspecciones.map(insp => {
                     const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
                     const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
@@ -567,7 +570,6 @@
                         porcentaje_cumplimiento: porcentaje
                     };
                 });
-
                 paginaActual = 1;
                 renderizarLista();
                 renderizarPaginacion();
@@ -579,18 +581,15 @@
                 renderizarPaginacion();
             }
         }
-
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
             const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
             const contenedor = document.getElementById('inspeccionesList');
-
             if (!inspeccionesCache || inspeccionesCache.length === 0) {
                 contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
                 return;
             }
-
             contenedor.innerHTML = '';
             inspeccionesPagina.forEach(insp => {
                 const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
@@ -600,7 +599,6 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 const hoy = new Date();
@@ -616,13 +614,14 @@
                         estadoClase = 'estado-amarillo';
                     }
                 }
-
                 let claseCumplimiento = 'cumplimiento-bajo';
                 if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
                 else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
-
-                // Botones dinámicos
-                let botonesHTML = `<button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>`;
+                // ✅ BOTONES DENTRO DE UN CONTENEDOR FLEXIBLE
+                let botonesHTML = `
+                    <div class="botones-container">
+                        <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
+                `;
                 if (estadoClase === 'estado-rojo') {
                     botonesHTML += `
                         <button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">
@@ -630,6 +629,7 @@
                         </button>
                     `;
                 }
+                botonesHTML += `</div>`;
 
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
@@ -661,20 +661,17 @@
                 contenedor.appendChild(card);
             });
         }
-
         function renderizarPaginacion() {
             const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
             const paginacionDiv = document.getElementById('pagination');
             paginacionDiv.innerHTML = '';
             if (totalPaginas <= 1) return;
-
             const maxVisible = 5;
             let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
             let end = Math.min(totalPaginas, start + maxVisible - 1);
             if (end - start + 1 < maxVisible) {
                 start = Math.max(1, end - maxVisible + 1);
             }
-
             const prevBtn = document.createElement('button');
             prevBtn.textContent = '«';
             prevBtn.disabled = paginaActual === 1;
@@ -686,7 +683,6 @@
                 }
             };
             paginacionDiv.appendChild(prevBtn);
-
             for (let i = start; i <= end; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
@@ -698,7 +694,6 @@
                 };
                 paginacionDiv.appendChild(btn);
             }
-
             const nextBtn = document.createElement('button');
             nextBtn.textContent = '»';
             nextBtn.disabled = paginaActual === totalPaginas;
@@ -711,7 +706,6 @@
             };
             paginacionDiv.appendChild(nextBtn);
         }
-
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -723,7 +717,6 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
-
         async function mostrarDetalle(inspeccionId) {
             try {
                 const { data: items, error: itemsError } = await supabase
@@ -737,7 +730,6 @@
                     .eq('id', inspeccionId)
                     .single();
                 if (itemsError || inspError) throw itemsError || inspError;
-
                 let nombreEstacion = 'Estación no disponible';
                 const { data: estacionData, error: estError } = await supabase
                     .from('estaciones_policiales')
@@ -747,7 +739,6 @@
                 if (!estError && estacionData) {
                     nombreEstacion = estacionData.nombre;
                 }
-
                 const nombres = {
                     baño_dama: "Baño Dama",
                     baño_caballero: "Baño Caballero",
@@ -766,7 +757,6 @@
                     vehiculos: "Vehículos",
                     motos: "Motos"
                 };
-
                 let fechaFormateada = 'Fecha no disponible';
                 if (inspeccion.created_at) {
                     const fechaObj = new Date(inspeccion.created_at);
@@ -780,7 +770,6 @@
                         });
                     }
                 }
-
                 let html = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
@@ -806,7 +795,6 @@
                         </div>
                     </div>
                 `;
-
                 if (items && items.length > 0) {
                     html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
                     items.forEach(item => {
@@ -831,7 +819,6 @@
                 } else {
                     html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
                 }
-
                 if (inspeccion.observaciones_generales) {
                     html += `
                         <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
@@ -840,7 +827,6 @@
                         </div>
                     `;
                 }
-
                 document.getElementById('detalleContenido').innerHTML = html;
                 document.getElementById('detalleModal').style.display = 'flex';
             } catch (error) {
@@ -848,15 +834,12 @@
                 alert('Error al cargar los detalles.');
             }
         }
-
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
-
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-
         async function exportarInspeccionAPDF() {
             const content = document.getElementById('detalleContenido');
             if (!content || !content.innerHTML.trim()) {
@@ -911,7 +894,6 @@
                 alert('Error al generar el PDF. Intente nuevamente.');
             }
         }
-
         async function exportarHistorialAPDF() {
             if (inspeccionesCache.length === 0) {
                 alert('No hay inspecciones para exportar.');
@@ -1017,18 +999,15 @@
                 alert('Error al generar el PDF del historial.');
             }
         }
-
         // ✅ NUEVA FUNCIONALIDAD: Modal de fecha
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
-
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
-
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha) {
@@ -1054,7 +1033,6 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
-
         cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
     </script>
 </body>
