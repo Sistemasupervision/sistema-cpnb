@@ -307,7 +307,7 @@
             estacionSelect.disabled = !ccpId;
             if (!ccpId) return;
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -343,7 +343,7 @@
             document.getElementById('mensajeSinDatos').style.display = 'none';
 
             try {
-                const {  inspecciones, error: inspError } = await supabase
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .eq('estacion_id', estacionId);
@@ -355,7 +355,7 @@
                 }
 
                 const idsInspecciones = inspecciones.map(i => i.id);
-                const {  items, error: itemsError } = await supabase
+                const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, porcentaje_cumplimiento')
                     .in('inspeccion_id', idsInspecciones);
@@ -412,11 +412,11 @@
             const data = todosLosItems.map(k => estadisticas[k] || 0);
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                 {
+                data: {
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento Promedio',
-                         data,
+                        data: data,
                         backgroundColor: 'rgba(49, 130, 206, 0.8)',
                         borderColor: 'rgba(49, 130, 206, 1)',
                         borderWidth: 1,
