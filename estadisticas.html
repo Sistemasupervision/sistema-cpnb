@@ -6,6 +6,8 @@
     <title>Estadísticas de Inspecciones - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -62,21 +64,34 @@
             font-weight: bold;
             margin-bottom: 25px;
         }
-        .back-btn {
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .back-btn,
+        .pdf-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
             font-size: 15px;
             cursor: pointer;
-            margin-bottom: 20px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             font-weight: bold;
+        }
+        .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
         }
-        .back-btn:hover {
+        .pdf-btn {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+        }
+        .back-btn:hover,
+        .pdf-btn:hover {
             opacity: 0.9;
         }
         .filtro-container {
@@ -207,9 +222,14 @@
         </div>
         <!-- SELECCIÓN: CCP + Estación -->
         <div id="seleccionContainer">
-            <button class="back-btn" onclick="window.location.href='index.html'">
-                ← Volver al Panel Principal
-            </button>
+            <div class="action-buttons">
+                <button class="back-btn" onclick="window.location.href='index.html'">
+                    ← Volver al Panel Principal
+                </button>
+                <button class="pdf-btn" id="exportarPdfBtn" onclick="exportarEstadisticasAPDF()" disabled>
+                    📄 Exportar a PDF
+                </button>
+            </div>
             <div class="filtro-container">
                 <div class="input-group">
                     <label for="ccpFilter">Seleccione CCP:</label>
@@ -234,9 +254,14 @@
         <!-- RESULTADOS: Gráficos y porcentajes -->
         <div id="resultadosContainer" style="display: none;">
             <div class="stats-header" id="statsHeader"></div>
-            <button class="back-btn" onclick="volverASeleccion()">
-                ← Seleccionar otra estación
-            </button>
+            <div class="action-buttons">
+                <button class="back-btn" onclick="volverASeleccion()">
+                    ← Seleccionar otra estación
+                </button>
+                <button class="pdf-btn" onclick="exportarEstadisticasAPDF()">
+                    📄 Exportar a PDF
+                </button>
+            </div>
             <div class="chart-container">
                 <div class="chart-wrapper">
                     <canvas id="cumplimientoChart"></canvas>
@@ -276,12 +301,10 @@
             jardines: "Jardines",
             condiciones_generales: "Condiciones Generales",
             vehiculos: "Vehículos",
-            motos: "Motos",
-            botiquin_emergencia: "Botiquín de Emergencia",
-            libros: "Libros"
-            
+            motos: "Motos"
         };
         const todosLosItems = Object.keys(nombresItems);
+
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -310,17 +333,21 @@
                 alert('Error al cargar las estaciones');
             }
         });
+
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
             if (!estacionId) return;
             await cargarEstadisticas(estacionId);
         });
+
         async function cargarEstadisticas(estacionId) {
             const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
             document.getElementById('seleccionContainer').style.display = 'none';
             document.getElementById('resultadosContainer').style.display = 'none';
             document.getElementById('mensajeCarga').style.display = 'block';
             document.getElementById('mensajeSinDatos').style.display = 'none';
+            document.getElementById('exportarPdfBtn').disabled = true;
+
             try {
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
@@ -332,6 +359,7 @@
                     document.getElementById('mensajeSinDatos').style.display = 'block';
                     return;
                 }
+
                 const idsInspecciones = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -343,11 +371,13 @@
                     document.getElementById('mensajeSinDatos').style.display = 'block';
                     return;
                 }
+
                 const estadisticas = calcularEstadisticas(items);
                 renderizarGrafico(estadisticas, estacionNombre);
                 renderizarPorcentajes(estadisticas);
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
+                document.getElementById('exportarPdfBtn').disabled = false;
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
                 document.getElementById('mensajeCarga').style.display = 'none';
@@ -355,6 +385,7 @@
                 document.getElementById('mensajeSinDatos').style.display = 'block';
             }
         }
+
         function calcularEstadisticas(items) {
             const resultado = {};
             todosLosItems.forEach(item => {
@@ -378,6 +409,7 @@
             });
             return resultado;
         }
+
         function renderizarGrafico(estadisticas, nombreEstacion) {
             const ctx = document.getElementById('cumplimientoChart').getContext('2d');
             if (chartInstance) {
@@ -453,6 +485,7 @@
             });
             document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
         }
+
         function renderizarPorcentajes(estadisticas) {
             const container = document.getElementById('porcentajesContainer');
             container.innerHTML = '';
@@ -468,6 +501,7 @@
                 container.appendChild(itemDiv);
             });
         }
+
         function volverASeleccion() {
             document.getElementById('seleccionContainer').style.display = 'block';
             document.getElementById('resultadosContainer').style.display = 'none';
@@ -479,6 +513,84 @@
             }
             document.getElementById('porcentajesContainer').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
+            document.getElementById('exportarPdfBtn').disabled = true;
+        }
+
+        async function exportarEstadisticasAPDF() {
+            const resultadosDiv = document.getElementById('resultadosContainer');
+            if (resultadosDiv.style.display !== 'block') {
+                alert('No hay estadísticas para exportar.');
+                return;
+            }
+
+            const estacionNombre = document.getElementById('statsHeader').textContent.replace('Estadísticas para: ', '');
+            const fechaActual = new Date().toLocaleString('es-ES');
+
+            const printContent = document.createElement('div');
+            printContent.innerHTML = `
+                <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                             alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                        <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">ESTADÍSTICAS DE INSPECCIÓN</h1>
+                        <p style="color: #4a5568; font-size: 16px;">Estación: <strong>${estacionNombre}</strong></p>
+                        <p style="color: #666; font-size: 14px;">Fecha de generación: ${fechaActual}</p>
+                    </div>
+                    <div style="margin-top: 25px;">
+                        ${document.querySelector('.chart-container').outerHTML}
+                    </div>
+                    <div style="margin-top: 30px;">
+                        <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px;">Porcentajes por Ítem</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+                            ${document.getElementById('porcentajesContainer').innerHTML}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(printContent);
+            printContent.style.position = 'fixed';
+            printContent.style.left = '-9999px';
+
+            try {
+                // Forzar render del gráfico antes de capturar
+                if (chartInstance) {
+                    chartInstance.resize();
+                }
+
+                const canvas = await html2canvas(printContent, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    allowTaint: true
+                });
+
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`estadisticas_cpnb_${estacionNombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF. Intente nuevamente.');
+            } finally {
+                document.body.removeChild(printContent);
+            }
         }
     </script>
 </body>
