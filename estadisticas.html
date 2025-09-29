@@ -220,16 +220,11 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Estadísticas de Inspecciones</h1>
         </div>
-        <!-- SELECCIÓN: CCP + Estación -->
+        <!-- SELECCIÓN: CCP + Estación (SIN botón PDF aquí) -->
         <div id="seleccionContainer">
-            <div class="action-buttons">
-                <button class="back-btn" onclick="window.location.href='index.html'">
-                    ← Volver al Panel Principal
-                </button>
-                <button class="pdf-btn" id="exportarPdfBtn" onclick="exportarEstadisticasAPDF()" disabled>
-                    📄 Exportar a PDF
-                </button>
-            </div>
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← Volver al Panel Principal
+            </button>
             <div class="filtro-container">
                 <div class="input-group">
                     <label for="ccpFilter">Seleccione CCP:</label>
@@ -251,7 +246,7 @@
                 </div>
             </div>
         </div>
-        <!-- RESULTADOS: Gráficos y porcentajes -->
+        <!-- RESULTADOS: Gráficos, porcentajes Y botón PDF aquí -->
         <div id="resultadosContainer" style="display: none;">
             <div class="stats-header" id="statsHeader"></div>
             <div class="action-buttons">
@@ -346,7 +341,6 @@
             document.getElementById('resultadosContainer').style.display = 'none';
             document.getElementById('mensajeCarga').style.display = 'block';
             document.getElementById('mensajeSinDatos').style.display = 'none';
-            document.getElementById('exportarPdfBtn').disabled = true;
 
             try {
                 const { data: inspecciones, error: inspError } = await supabase
@@ -377,7 +371,6 @@
                 renderizarPorcentajes(estadisticas);
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
-                document.getElementById('exportarPdfBtn').disabled = false;
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
                 document.getElementById('mensajeCarga').style.display = 'none';
@@ -513,7 +506,6 @@
             }
             document.getElementById('porcentajesContainer').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
-            document.getElementById('exportarPdfBtn').disabled = true;
         }
 
         async function exportarEstadisticasAPDF() {
@@ -553,7 +545,6 @@
             printContent.style.left = '-9999px';
 
             try {
-                // Forzar render del gráfico antes de capturar
                 if (chartInstance) {
                     chartInstance.resize();
                 }
