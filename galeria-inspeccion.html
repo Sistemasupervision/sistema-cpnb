@@ -305,43 +305,42 @@
         let paginaActual = 1;
         const INSPECCIONES_POR_PAGINA = 3;
 
-        // Cargar estaciones al cambiar CCP
-        document.getElementById('ccpSelect').addEventListener('change', async () => {
-            const ccp = document.getElementById('ccpSelect').value;
-            const estacionSelect = document.getElementById('estacionSelect');
-            const loadBtn = document.getElementById('loadGaleriaBtn');
+       // Cargar estaciones al cambiar CCP
+document.getElementById('ccpSelect').addEventListener('change', async () => {
+    const ccp = document.getElementById('ccpSelect').value;
+    const estacionSelect = document.getElementById('estacionSelect');
+    const loadBtn = document.getElementById('loadGaleriaBtn');
 
-            if (!ccp) {
-                estacionSelect.disabled = true;
-                estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
-                loadBtn.disabled = true;
-                return;
-            }
+    if (!ccp) {
+        estacionSelect.disabled = true;
+        estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
+        loadBtn.disabled = true;
+        return;
+    }
 
-            try {
-                const { data: estaciones, error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccp)
-                    .order('nombre', { ascending: true });
+    try {
+        const { data: estaciones, error } = await supabase
+            .from('estaciones_policiales')
+            .select('id, nombre')
+            .eq('ccp_id', ccp)
+            .order('nombre', { ascending: true });
 
-                if (error) throw error;
+        if (error) throw error;
 
-                estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
-                estaciones.forEach(est => {
-                    const opt = document.createElement('option');
-                    opt.value = est.id;
-                    opt.textContent = est.nombre;
-                    estacionSelect.appendChild(opt);
-                });
-                estacionSelect.disabled = false;
-                // ✅ NO deshabilitamos el botón aquí → lo controla el evento 'change'
-            } catch (err) {
-                console.error('Error al cargar estaciones:', err);
-                alert('Error al cargar estaciones');
-            }
+        estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
+        estaciones.forEach(est => {
+            const opt = document.createElement('option');
+            opt.value = est.id;
+            opt.textContent = est.nombre;
+            estacionSelect.appendChild(opt);
         });
-
+        estacionSelect.disabled = false;
+        // ✅ NO deshabilitamos el botón aquí → lo controla el evento 'change'
+    } catch (err) {
+        console.error('Error al cargar estaciones:', err);
+        alert('Error al cargar estaciones');
+    }
+});
         // ✅ Habilitar/deshabilitar botón al seleccionar estación
         document.getElementById('estacionSelect').addEventListener('change', () => {
             const estacionId = document.getElementById('estacionSelect').value;
