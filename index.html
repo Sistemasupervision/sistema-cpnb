@@ -6,6 +6,7 @@
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
+        /* ... (tu CSS existente, sin cambios) ... */
         * {
             margin: 0;
             padding: 0;
@@ -300,6 +301,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -326,6 +328,7 @@
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
+
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -348,6 +351,7 @@
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
+
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
@@ -357,15 +361,15 @@
         <form id="occidentalForm">
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
-              <select id="ccpSelect" required>
-    <option value="">-- Elija una opción --</option>
-    <option value="metropolitano">CCP METROPOLITANO</option>
-    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-    <option value="guajira">CCP GUAJIRA</option>
-    <option value="col">CCPE COL</option>
-    <option value="lara">CCPE LARA</option>      
-    <option value="falcon">CCPE FALCÓN</option>  
-</select>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>      
+                    <option value="falcon">CCPE FALCÓN</option>  
+                </select>
             </div>
             <button type="submit" class="form-btn">Continuar</button>
         </form>
@@ -383,7 +387,9 @@
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
+
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -394,6 +400,33 @@
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        // ✅ FUNCIÓN PARA SUBIR IMÁGENES A SUPABASE STORAGE
+        async function uploadImages(files, inspectionId, itemKey) {
+            if (!files || files.length === 0) return [];
+            const uploadedUrls = [];
+            const timestamp = Date.now();
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const ext = file.name.split('.').pop().toLowerCase();
+                const filePath = `inspecciones/${inspectionId}/${itemKey}_${timestamp}_${i}.${ext}`;
+                const { data, error } = await supabase.storage
+                    .from('inspecciones-fotos')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                if (error) {
+                    console.error('Error al subir imagen:', error);
+                    throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
+                }
+                const { publicUrl } = supabase.storage
+                    .from('inspecciones-fotos')
+                    .getPublicUrl(filePath);
+                uploadedUrls.push(publicUrl.publicUrl);
+            }
+            return uploadedUrls;
         }
 
         async function handleLogin(e) {
@@ -427,23 +460,19 @@
             }
         }
 
-        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
         async function showRediOccidental() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
             try {
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-
                 if (error || !data || data.redip !== 'occidental') {
                     alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
                     return;
                 }
-
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
                 contarYMostrarNotificaciones();
@@ -563,8 +592,7 @@
             }
         }
 
-        async function cargarNotificacionesAlIniciar() {
-        }
+        async function cargarNotificacionesAlIniciar() {}
 
         function loadInspectionForm(estacionId, estacionNombre) {
             const items = [
@@ -642,6 +670,13 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- ✅ INPUT DE FOTOS POR ÍTEM -->
+                        <input type="file" class="foto-input" data-item="${item}" 
+                               accept="image/*" multiple
+                               style="width:100%; margin-top:10px; font-size:13px;">
+                        <small style="color:#718096; display:block; margin-top:4px;">
+                            (Opcional) Suba fotos del área inspeccionada
+                        </small>
                     </div>
                 `;
             });
@@ -669,6 +704,7 @@
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
+
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -688,9 +724,11 @@
                     }
                 });
             });
+
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
+
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const { data: { user } } = await supabase.auth.getUser();
@@ -698,29 +736,8 @@
                     alert('Debe estar autenticado para guardar.');
                     return;
                 }
-                const itemsData = [];
-                items.forEach(item => {
-                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                    const cumpleValue = select.value;
-                    if (cumpleValue === 'null') return;
-                    const cumple = cumpleValue === 'true';
-                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-                    let porcentaje = 0;
-                    if (cumple) {
-                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-                        porcentaje = parseInt(slider?.value) || 0;
-                    }
-                    itemsData.push({
-                        item_nombre: item,
-                        cumple: cumple,
-                        observacion: observacion,
-                        porcentaje_cumplimiento: porcentaje
-                    });
-                });
-                if (itemsData.length === 0) {
-                    alert('Debe responder al menos un ítem.');
-                    return;
-                }
+
+                // Crear inspección primero
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                 const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
@@ -732,18 +749,60 @@
                     })
                     .select()
                     .single();
+
                 if (inspError) {
                     console.error('Error al crear inspección:', inspError);
                     alert('Error al guardar la inspección: ' + (inspError.message || ''));
                     return;
                 }
-                const itemsToInsert = itemsData.map(item => ({
-                    inspeccion_id: inspeccionData.id,
-                    ...item
-                }));
+
+                // Preparar ítems con fotos
+                const itemsToInsert = [];
+                for (const item of items) {
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const cumpleValue = select.value;
+                    if (cumpleValue === 'null') continue;
+
+                    const cumple = cumpleValue === 'true';
+                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+                    let porcentaje = 0;
+                    if (cumple) {
+                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                        porcentaje = parseInt(slider?.value) || 0;
+                    }
+
+                    // Subir fotos
+                    let fotosUrls = [];
+                    const fileInput = document.querySelector(`.foto-input[data-item="${item}"]`);
+                    if (fileInput && fileInput.files.length > 0) {
+                        try {
+                            fotosUrls = await uploadImages(fileInput.files, inspeccionData.id, item);
+                        } catch (uploadErr) {
+                            alert(`⚠️ Error al subir fotos del ítem "${nombres[item]}". Inspección guardada sin imágenes.`);
+                            console.error(uploadErr);
+                        }
+                    }
+
+                    itemsToInsert.push({
+                        inspeccion_id: inspeccionData.id,
+                        item_nombre: item,
+                        cumple: cumple,
+                        observacion: observacion,
+                        porcentaje_cumplimiento: porcentaje,
+                        fotos_urls: fotosUrls.length > 0 ? fotosUrls : null
+                    });
+                }
+
+                if (itemsToInsert.length === 0) {
+                    alert('Debe responder al menos un ítem.');
+                    return;
+                }
+
+                // Guardar ítems
                 const { error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .insert(itemsToInsert);
+
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
                     alert('Error al guardar los ítems: ' + (itemsError.message || ''));
