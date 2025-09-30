@@ -327,13 +327,25 @@ document.getElementById('ccpSelect').addEventListener('change', async () => {
 
         if (error) throw error;
 
-        estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
-        estaciones.forEach(est => {
-            const opt = document.createElement('option');
-            opt.value = est.id;
-            opt.textContent = est.nombre;
-            estacionSelect.appendChild(opt);
-        });
+       // Limpiar opciones
+estacionSelect.innerHTML = '';
+
+// Agregar opción por defecto
+const defaultOption = document.createElement('option');
+defaultOption.value = '';
+defaultOption.textContent = '-- Elija una estación --';
+estacionSelect.appendChild(defaultOption);
+
+// Agregar estaciones
+estaciones.forEach(est => {
+    const opt = document.createElement('option');
+    opt.value = est.id;
+    opt.textContent = est.nombre;
+    estacionSelect.appendChild(opt);
+});
+
+// ✅ Eliminar el atributo 'disabled' de forma explícita
+estacionSelect.removeAttribute('disabled');
         estacionSelect.disabled = false;
         // ✅ NO deshabilitamos el botón aquí → lo controla el evento 'change'
     } catch (err) {
