@@ -112,10 +112,6 @@
             object-fit: contain;
             margin: 0 auto 20px;
             display: block;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
         }
         .title {
             text-align: center;
@@ -357,15 +353,15 @@
         <form id="occidentalForm">
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
-              <select id="ccpSelect" required>
-    <option value="">-- Elija una opción --</option>
-    <option value="metropolitano">CCP METROPOLITANO</option>
-    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-    <option value="guajira">CCP GUAJIRA</option>
-    <option value="col">CCPE COL</option>
-    <option value="lara">CCPE LARA</option>      
-    <option value="falcon">CCPE FALCÓN</option>  
-</select>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>      
+                    <option value="falcon">CCPE FALCÓN</option>  
+                </select>
             </div>
             <button type="submit" class="form-btn">Continuar</button>
         </form>
@@ -392,12 +388,14 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -414,6 +412,7 @@
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
+
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -427,7 +426,7 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
+
         async function showRediOccidental() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -449,10 +448,12 @@
                 alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
             }
         }
+
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         }
+
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -515,6 +516,7 @@
                 alert('Error al cargar las estaciones policiales');
             }
         }
+
         async function checkAuthState() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -524,6 +526,7 @@
                 await cargarNotificacionesAlIniciar();
             }
         }
+
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
@@ -547,6 +550,7 @@
                 return 0;
             }
         }
+
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
@@ -554,8 +558,10 @@
                 boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
             }
         }
+
         async function cargarNotificacionesAlIniciar() {
         }
+
         // ✅ FUNCIÓN ACTUALIZADA CON SUBIDA DE IMÁGENES
         function loadInspectionForm(estacionId, estacionNombre) {
             const items = [
@@ -668,6 +674,7 @@
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
+
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -687,9 +694,11 @@
                     }
                 });
             });
+
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
+
             // ✅ SUBIR INSPECCIÓN CON IMÁGENES
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
@@ -698,12 +707,15 @@
                     alert('Debe estar autenticado para guardar.');
                     return;
                 }
+
                 const itemsData = [];
                 const imagenesPorItem = {};
+
                 items.forEach(item => {
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                     const cumpleValue = select.value;
                     if (cumpleValue === 'null') return;
+
                     const cumple = cumpleValue === 'true';
                     const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                     let porcentaje = 0;
@@ -711,10 +723,12 @@
                         const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                         porcentaje = parseInt(slider?.value) || 0;
                     }
+
                     // ✅ Capturar archivos de imagen
                     const img1 = document.querySelector(`.imagen-input[data-item="${item}"][data-num="1"]`).files[0];
                     const img2 = document.querySelector(`.imagen-input[data-item="${item}"][data-num="2"]`).files[0];
                     imagenesPorItem[item] = { img1, img2 };
+
                     itemsData.push({
                         item_nombre: item,
                         cumple: cumple,
@@ -722,10 +736,12 @@
                         porcentaje_cumplimiento: porcentaje
                     });
                 });
+
                 if (itemsData.length === 0) {
                     alert('Debe responder al menos un ítem.');
                     return;
                 }
+
                 try {
                     // Crear inspección
                     const { data: inspeccionData, error: inspError } = await supabase
@@ -738,12 +754,15 @@
                         })
                         .select()
                         .single();
+
                     if (inspError) throw inspError;
+
                     // Subir imágenes y guardar URLs
                     const itemsToInsert = [];
                     for (const item of itemsData) {
                         let url1 = null, url2 = null;
                         const imgs = imagenesPorItem[item.item_nombre] || {};
+
                         // Subir imagen 1
                         if (imgs.img1) {
                             const path1 = `inspecciones/${inspeccionData.id}/${item.item_nombre}/1_${imgs.img1.name}`;
@@ -753,6 +772,7 @@
                                 url1 = data.publicUrl;
                             }
                         }
+
                         // Subir imagen 2
                         if (imgs.img2) {
                             const path2 = `inspecciones/${inspeccionData.id}/${item.item_nombre}/2_${imgs.img2.name}`;
@@ -762,6 +782,7 @@
                                 url2 = data.publicUrl;
                             }
                         }
+
                         itemsToInsert.push({
                             inspeccion_id: inspeccionData.id,
                             item_nombre: item.item_nombre,
@@ -772,18 +793,23 @@
                             imagen2_url: url2
                         });
                     }
+
                     const { error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .insert(itemsToInsert);
+
                     if (itemsError) throw itemsError;
+
                     alert('✅ Inspección y fotos guardadas exitosamente.');
                     handleOccidentalForm({ preventDefault: () => {} });
+
                 } catch (error) {
                     console.error('Error al guardar:', error);
                     alert('❌ Error al guardar la inspección: ' + (error.message || ''));
                 }
             };
         }
+
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
