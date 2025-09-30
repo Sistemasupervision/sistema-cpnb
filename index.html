@@ -669,6 +669,10 @@
                         <small style="color:#718096; display:block; margin-top:4px;">
                             (Opcional) Suba fotos del área inspeccionada
                         </small>
+                        <span class="foto-indicador" data-item="${item}" 
+                              style="display:none; color:#38a169; font-weight:bold; font-size:13px; margin-top:6px;">
+                            ✅ Fotos seleccionadas
+                        </span>
                     </div>
                 `;
             });
@@ -696,25 +700,63 @@
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
+            
+            // 👇 NUEVO: Manejar cambios en "Sí/No" con deshabilitar fotos e indicador
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
                     const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
                     const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
+                    const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
+                    const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
+
                     if (this.value === 'null') {
                         textarea.style.display = 'none';
                         porcentajeContainer.style.display = 'none';
                         textarea.value = '';
+                        if (fotoInput) {
+                            fotoInput.disabled = true;
+                            fotoInput.value = '';
+                        }
+                        if (indicador) indicador.style.display = 'none';
                     } else {
                         textarea.style.display = 'block';
                         if (this.value === 'true') {
                             porcentajeContainer.style.display = 'block';
-                        } else {
+                            if (fotoInput) fotoInput.disabled = false;
+                        } else { // "No"
                             porcentajeContainer.style.display = 'none';
+                            if (fotoInput) {
+                                fotoInput.disabled = true;
+                                fotoInput.value = '';
+                            }
+                        }
+                        // Actualizar indicador
+                        if (indicador && fotoInput && !fotoInput.disabled && fotoInput.files && fotoInput.files.length > 0) {
+                            indicador.style.display = 'block';
+                        } else if (indicador) {
+                            indicador.style.display = 'none';
                         }
                     }
                 });
             });
+
+            // 👇 NUEVO: Manejar cambios en el input de fotos
+            document.querySelectorAll('.foto-input').forEach(input => {
+                input.addEventListener('change', function () {
+                    const item = this.dataset.item;
+                    const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const estaHabilitado = !this.disabled && select && select.value === 'true';
+
+                    if (estaHabilitado && this.files && this.files.length > 0) {
+                        indicador.style.display = 'block';
+                    } else if (indicador) {
+                        indicador.style.display = 'none';
+                    }
+                });
+            });
+
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
