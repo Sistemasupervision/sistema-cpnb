@@ -19,18 +19,15 @@
             content:''; position:absolute; top:0; left:0; right:0; height:8px;
             background:linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
-        .header {
-            text-align:center; margin-bottom:30px;
-        }
         .logo-img {
             width:80px; height:80px; object-fit:contain; margin-bottom:15px;
         }
-        .title { color:#0c2440; font-size:24px; font-weight:bold; }
+        .title { color:#0c2440; font-size:24px; font-weight:bold; text-align:center; margin-bottom:25px; }
         .back-btn {
             display:inline-block; padding:10px 20px; background:#2c5282; color:white;
             border:none; border-radius:10px; margin-bottom:20px; text-decoration:none;
         }
-        .loading { text-align:center; padding:30px; color:#666; }
+        .loading { text-align:center; padding:30px; color:#666; font-size:18px; }
         .inspeccion-item {
             background:#f8fafc; padding:20px; margin-bottom:25px; border-radius:12px;
             border:1px solid #e2e8f0;
@@ -40,8 +37,8 @@
             flex-wrap:wrap; gap:10px;
         }
         .galeria-grid {
-            display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap:15px; margin-top:15px;
+            display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap:15px;
         }
         .imagen-item {
             background:white; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);
@@ -56,7 +53,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <div style="text-align:center;">
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" class="logo-img">
             <h1 class="title">Galería de Inspecciones</h1>
         </div>
@@ -91,32 +88,66 @@
             libros: "Libros"
         };
 
-     const { data: items, error } = await supabase
-    .from('items_inspeccion')
-    .select(`
-        inspeccion_id,
-        item_nombre,
-        imagen1_url,
-        imagen2_url,
-        inspecciones!inner(
-            created_at,
-            estacion_id,
-            estaciones_policiales!inner(nombre)
-        )
-    `)
-    .or('imagen1_url.neq.null,imagen2_url.neq.null')
-    .order('inspecciones.created_at', { ascending: false })
-    .limit(100);
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (error || !data || data.redip !== 'occidental') {
+                alert('⚠️ No tiene permisos para esta sección.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        async function cargarGaleria() {
+            const container = document.getElementById('galeriaContainer');
+            try {
+                // ✅ Consulta simplificada: solo datos necesarios
+                const { data: items, error } = await supabase
+                    .from('items_inspeccion')
+                    .select(`
+                        inspeccion_id,
+                        item_nombre,
+                        imagen1_url,
+                        imagen2_url,
+                        inspecciones (
+                            created_at,
+                            estacion_id,
+                            estaciones_policiales (nombre)
+                        )
+                    `)
+                    .or('imagen1_url.neq.null,imagen2_url.neq.null')
+                    .order('inspecciones.created_at', { ascending: false })
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<div class="loading">No hay imágenes registradas aún.</div>';
+                    return;
+                }
 
                 // Agrupar por inspección
                 const inspecciones = {};
                 items.forEach(item => {
+                    const insp = item.inspecciones;
+                    if (!insp || !insp.estaciones_policiales) return;
+
                     const id = item.inspeccion_id;
                     if (!inspecciones[id]) {
                         inspecciones[id] = {
                             id,
-                            estacion: item.inspecciones.estaciones_policiales.nombre,
-                            fecha: new Date(item.inspecciones.created_at).toLocaleDateString('es-ES'),
+                            estacion: insp.estaciones_policiales.nombre || 'Estación desconocida',
+                            fecha: new Date(insp.created_at).toLocaleDateString('es-ES'),
                             imagenes: []
                         };
                     }
@@ -145,7 +176,8 @@
                             <div class="galeria-grid">
                                 ${insp.imagenes.map(img => `
                                     <div class="imagen-item">
-                                        <img src="${img.url}" alt="${img.label}" onerror="this.parentElement.style.display='none'">
+                                        <img src="${img.url}" alt="${img.label}" 
+                                             onerror="this.parentElement.style.display='none'">
                                         <div class="imagen-label">${img.label}</div>
                                     </div>
                                 `).join('')}
@@ -156,38 +188,18 @@
 
                 container.innerHTML = html;
             } catch (err) {
-                console.error('Error:', err);
-                container.innerHTML = '<div class="loading" style="color:red;">Error al cargar la galería.</div>';
+                console.error('Error detallado:', err);
+                container.innerHTML = `<div class="loading" style="color:red;">
+                    ❌ Error al cargar la galería.<br>
+                    <small>${err.message || 'Error desconocido'}</small>
+                </div>`;
             }
         }
 
-        // Verificar acceso (solo REDIP OCCIDENTAL)
-        async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
-                return;
-            }
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || data.redip !== 'occidental') {
-                    alert('⚠️ No tiene permisos para esta sección.');
-                    window.location.href = 'index.html';
-                    return;
-                }
-                cargarGaleria();
-            } catch (err) {
-                alert('Error de autenticación.');
-                window.location.href = 'index.html';
-            }
-        }
-
-        verificarAcceso();
+        // Ejecutar
+        verificarAcceso().then(acceso => {
+            if (acceso) cargarGaleria();
+        });
     </script>
 </body>
 </html>
