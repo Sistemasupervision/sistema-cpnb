@@ -335,15 +335,17 @@
                     estacionSelect.appendChild(opt);
                 });
                 estacionSelect.disabled = false;
-                loadBtn.disabled = true;
+                // ✅ NO deshabilitamos el botón aquí → lo controla el evento 'change'
             } catch (err) {
                 console.error('Error al cargar estaciones:', err);
                 alert('Error al cargar estaciones');
             }
         });
 
+        // ✅ Habilitar/deshabilitar botón al seleccionar estación
         document.getElementById('estacionSelect').addEventListener('change', () => {
-            document.getElementById('loadGaleriaBtn').disabled = !document.getElementById('estacionSelect').value;
+            const estacionId = document.getElementById('estacionSelect').value;
+            document.getElementById('loadGaleriaBtn').disabled = !estacionId;
         });
 
         // Cargar todas las inspecciones con fotos
@@ -489,12 +491,15 @@
             document.getElementById('zoomModal').style.display = 'none';
         }
 
-        document.querySelector('.close-zoom')?.addEventListener('click', closeZoom);
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeZoom();
-        });
-        document.getElementById('zoomModal')?.addEventListener('click', (e) => {
-            if (e.target === document.getElementById('zoomModal')) closeZoom();
+        // Eventos para cerrar el zoom
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.close-zoom')?.addEventListener('click', closeZoom);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeZoom();
+            });
+            document.getElementById('zoomModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('zoomModal')) closeZoom();
+            });
         });
     </script>
 </body>
