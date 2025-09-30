@@ -703,101 +703,125 @@ function loadInspectionForm(estacionId, estacionNombre) {
     document.getElementById('backToEstacionesBtn').onclick = () => {
         handleOccidentalForm({ preventDefault: () => {} });
     };
+    
+document.getElementById('inspectionForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert('Debe estar autenticado para guardar.');
+        return;
+    }
 
-    // Manejar envío del formulario
-    document.getElementById('inspectionForm').onsubmit = async (e) => {
-        e.preventDefault();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            alert('Debe estar autenticado para guardar.');
-            return;
+    // Crear inspección primero
+    const proximaFecha = document.getElementById('proximaInspeccion').value || null;
+    const { data: inspeccionData, error: inspError } = await supabase
+        .from('inspecciones')
+        .insert({
+            estacion_id: estacionId,
+            inspector_email: user.email,
+            observaciones_generales: document.getElementById('observacionesGenerales').value || null,
+            proxima_inspeccion: proximaFecha
+        })
+        .select()
+        .single();
+
+    if (inspError) {
+        console.error('Error al crear inspección:', inspError);
+        alert('Error al guardar la inspección: ' + (inspError.message || ''));
+        return;
+    }
+
+    const itemsToInsert = [];
+    const items = [
+        "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
+        "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
+        "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
+        "condiciones_generales", "vehiculos", "motos"
+    ];
+
+    for (const item of items) {
+        const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+        const cumpleValue = select.value;
+        if (cumpleValue === 'null') continue;
+
+        const cumple = cumpleValue === 'true';
+        const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+        let porcentaje = 0;
+        if (cumple) {
+            const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+            porcentaje = parseInt(slider?.value) || 0;
         }
 
-        // Crear inspección primero
-        const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-        const { data: inspeccionData, error: inspError } = await supabase
-            .from('inspecciones')
-            .insert({
-                estacion_id: estacionId,
-                inspector_email: user.email,
-                observaciones_generales: document.getElementById('observacionesGenerales').value || null,
-                proxima_inspeccion: proximaFecha
-            })
-            .select()
-            .single();
+        // ✅ Subir fotos (máximo 2)
+        let foto1_url = null;
+        let foto2_url = null;
 
-        if (inspError) {
-            console.error('Error al crear inspección:', inspError);
-            alert('Error al guardar la inspección: ' + (inspError.message || ''));
-            return;
-        }
+        // Subir foto 1
+        const fileInput1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`);
+        if (fileInput1?.files[0]) {
+            const file1 = fileInput1.files[0];
+            const filePath1 = `inspecciones/${inspeccionData.id}/${item}_1_${file1.name}`;
+            const { error: uploadError1 } = await supabase.storage
+                .from('inspecciones-fotos')
+                .upload(filePath1, file1, { upsert: true });
 
-        // Subir fotos y preparar ítems
-        const itemsToInsert = [];
-        for (const item of items) {
-            const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-            const cumpleValue = select.value;
-            if (cumpleValue === 'null') continue;
-
-            const cumple = cumpleValue === 'true';
-            const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-            let porcentaje = 0;
-            if (cumple) {
-                const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-                porcentaje = parseInt(slider?.value) || 0;
+            if (!uploadError1) {
+                const { data: { publicUrl } } = supabase.storage
+                    .from('inspecciones-fotos')
+                    .getPublicUrl(filePath1);
+                foto1_url = publicUrl;
+            } else {
+                console.warn('Error al subir foto 1:', uploadError1);
             }
+        }
 
-            // Subir fotos
-            let fotosUrls = [null, null];
-            for (let i = 0; i < 2; i++) {
-                const fileInput = document.querySelector(`.foto-input[data-item="${item}"][data-index="${i}"]`);
-                const file = fileInput?.files[0];
-                if (file) {
-                    const filePath = `inspecciones/${inspeccionData.id}/${item}_${i}_${file.name}`;
-                    const { data, error } = await supabase.storage
-                        .from('inspecciones-fotos')
-                        .upload(filePath, file, { upsert: true });
+        // Subir foto 2
+        const fileInput2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`);
+        if (fileInput2?.files[0]) {
+            const file2 = fileInput2.files[0];
+            const filePath2 = `inspecciones/${inspeccionData.id}/${item}_2_${file2.name}`;
+            const { error: uploadError2 } = await supabase.storage
+                .from('inspecciones-fotos')
+                .upload(filePath2, file2, { upsert: true });
 
-                    if (error) {
-                        console.warn(`Error al subir foto ${i} para ${item}:`, error);
-                    } else {
-                        const { data: publicUrlData } = supabase.storage
-                            .from('inspecciones-fotos')
-                            .getPublicUrl(filePath);
-                        fotosUrls[i] = publicUrlData.publicUrl;
-                    }
-                }
+            if (!uploadError2) {
+                const { data: { publicUrl } } = supabase.storage
+                    .from('inspecciones-fotos')
+                    .getPublicUrl(filePath2);
+                foto2_url = publicUrl;
+            } else {
+                console.warn('Error al subir foto 2:', uploadError2);
             }
-
-            itemsToInsert.push({
-                inspeccion_id: inspeccionData.id,
-                item_nombre: item,
-                cumple: cumple,
-                observacion: observacion,
-                porcentaje_cumplimiento: porcentaje,
-                foto1_url: fotosUrls[0],
-                foto2_url: fotosUrls[1]
-            });
         }
 
-        if (itemsToInsert.length === 0) {
-            alert('Debe responder al menos un ítem.');
-            return;
-        }
+        itemsToInsert.push({
+            inspeccion_id: inspeccionData.id,
+            item_nombre: item,
+            cumple: cumple,
+            observacion: observacion,
+            porcentaje_cumplimiento: porcentaje,
+            foto1_url: foto1_url,
+            foto2_url: foto2_url
+        });
+    }
 
-        const { error: itemsError } = await supabase
-            .from('items_inspeccion')
-            .insert(itemsToInsert);
+    if (itemsToInsert.length === 0) {
+        alert('Debe responder al menos un ítem.');
+        return;
+    }
 
-        if (itemsError) {
-            console.error('Error al guardar ítems:', itemsError);
-            alert('Error al guardar los ítems: ' + (itemsError.message || ''));
-        } else {
-            alert('✅ Inspección guardada exitosamente.');
-            handleOccidentalForm({ preventDefault: () => {} });
-        }
-    };
-}
+    const { error: itemsError } = await supabase
+        .from('items_inspeccion')
+        .insert(itemsToInsert);
+
+    if (itemsError) {
+        console.error('Error al guardar ítems:', itemsError);
+        alert('Error al guardar los ítems: ' + (itemsError.message || ''));
+    } else {
+        alert('✅ Inspección guardada exitosamente.');
+        handleOccidentalForm({ preventDefault: () => {} });
+    }
+};
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
