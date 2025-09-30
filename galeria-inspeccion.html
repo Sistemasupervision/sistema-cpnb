@@ -72,15 +72,19 @@
             font-weight: 600;
             font-size: 14px;
         }
-        .input-group select,
-        .input-group input,
-        .input-group textarea {
+        .input-group select {
             width: 100%;
             padding: 14px;
             border: 2px solid #e2e8f0;
             border-radius: 12px;
             font-size: 16px;
             background-color: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .input-group select:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
         }
         .form-btn {
             width: 100%;
@@ -93,79 +97,111 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
+            box-shadow: 0 4px 10px rgba(12, 36, 64, 0.3);
+            transition: all 0.2s ease;
+        }
+        .form-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(12, 36, 64, 0.4);
         }
         .form-btn:disabled {
             background: #cbd5e0;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 6px 12px;
+            padding: 6px 14px;
             font-size: 14px;
+            font-weight: bold;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
+            gap: 6px;
         }
         .galeria-header {
             display: none;
             margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
         }
         .galeria-header h2 {
             color: #0c2440;
             font-size: 20px;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         .galeria-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
             margin-top: 10px;
         }
         .foto-card {
-            background: #f8fafc;
+            background: #f9fafb;
             border-radius: 12px;
-            padding: 15px;
+            padding: 16px;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.06);
             display: flex;
             flex-direction: column;
             align-items: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .foto-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         .foto-item {
             width: 100%;
-            max-height: 200px;
+            height: 180px;
             object-fit: cover;
             border-radius: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #cbd5e0;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
         }
         .foto-label {
             text-align: center;
             font-size: 13px;
             color: #2d3748;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .inspeccion-header {
+            grid-column: span 3;
+            background: #edf2f7;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-top: 24px;
             font-weight: bold;
-            margin-top: 6px;
+            color: #2d3748;
+            font-size: 16px;
         }
-        .no-fotos {
+        .no-fotos, .loading {
             text-align: center;
             color: #4a5568;
             font-size: 18px;
-            padding: 40px;
+            padding: 50px 20px;
             grid-column: span 3;
         }
-        .loading {
-            text-align: center;
-            color: #4a5568;
-            font-size: 18px;
-            padding: 40px;
-            grid-column: span 3;
+        @media (max-width: 768px) {
+            .galeria-container {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 16px;
+            }
+            .foto-item {
+                height: 140px;
+            }
+            .container {
+                padding: 25px;
+            }
         }
     </style>
 </head>
@@ -199,11 +235,11 @@
             <button id="loadGaleriaBtn" class="form-btn" disabled>Cargar Galería</button>
         </div>
 
-        <!-- Encabezado de la galería (con botón Volver) -->
+        <!-- Encabezado de la galería -->
         <div id="galeriaHeader" class="galeria-header">
             <h2>
                 <a href="#" class="back-btn" onclick="volverAlSelector(); return false;">← Volver</a>
-                Fotos de: <span id="nombreEstacion"></span>
+                <span id="nombreEstacion"></span>
             </h2>
         </div>
 
@@ -249,7 +285,7 @@
             }
 
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -264,8 +300,10 @@
                     opt.textContent = est.nombre;
                     estacionSelect.appendChild(opt);
                 });
-                estacionSelect.disabled = false;
-                // ✅ No deshabilitamos el botón aquí → lo controla el evento 'change'
+
+                // ✅ Corrección clave: eliminar el atributo 'disabled' explícitamente
+                estacionSelect.removeAttribute('disabled');
+
             } catch (err) {
                 console.error('Error al cargar estaciones:', err);
                 alert('Error al cargar estaciones');
@@ -284,18 +322,18 @@
 
             if (!estacionId) return;
 
-            // Mostrar encabezado con nombre de la estación
-            document.getElementById('nombreEstacion').textContent = estacionNombre;
+            // Mostrar encabezado
+            document.getElementById('nombreEstacion').textContent = `Fotos de: ${estacionNombre}`;
             document.getElementById('galeriaHeader').style.display = 'block';
 
             // Ocultar selector y mostrar galería
             document.getElementById('selectorForm').style.display = 'none';
             const galeriaContainer = document.getElementById('galeriaContainer');
             galeriaContainer.style.display = 'grid';
-            galeriaContainer.innerHTML = '<div class="loading">Cargando fotos...</div>';
+            galeriaContainer.innerHTML = `<div class="loading">Cargando fotos de la estación...</div>`;
 
             try {
-                const { data: inspecciones, error: inspError } = await supabase
+                const {  inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, created_at')
                     .eq('estacion_id', estacionId)
@@ -322,7 +360,6 @@
                     );
 
                     if (itemsConFotos.length === 0) continue;
-
                     hayFotos = true;
 
                     const fecha = new Date(insp.created_at).toLocaleDateString('es-ES');
@@ -355,11 +392,10 @@
 
             } catch (err) {
                 console.error('Error al cargar galería:', err);
-                document.getElementById('galeriaContainer').innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+                galeriaContainer.innerHTML = `<div class="no-fotos">❌ Error al cargar las fotos: ${err.message}</div>`;
             }
         });
 
-        // Función para volver al selector
         function volverAlSelector() {
             document.getElementById('selectorForm').style.display = 'block';
             document.getElementById('galeriaHeader').style.display = 'none';
