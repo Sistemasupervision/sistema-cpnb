@@ -148,6 +148,9 @@
             margin-top: 20px;
             font-weight: bold;
             color: #2d3748;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .no-fotos {
             text-align: center;
@@ -171,7 +174,6 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Galería de Inspección</h1>
         </div>
-
         <!-- Formulario de selección -->
         <div id="selectorForm">
             <div class="input-group">
@@ -194,16 +196,13 @@
             </div>
             <button id="loadGaleriaBtn" class="form-btn" disabled>Cargar Galería</button>
         </div>
-
         <!-- Galería -->
         <div id="galeriaContainer" class="galeria-container" style="display:none;"></div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const nombres = {
             baño_dama: "Baño Dama",
             baño_caballero: "Baño Caballero",
@@ -223,28 +222,26 @@
             motos: "Motos"
         };
 
+        let estacionNombreGlobal = '';
+
         // Cargar estaciones al cambiar CCP
         document.getElementById('ccpSelect').addEventListener('change', async () => {
             const ccp = document.getElementById('ccpSelect').value;
             const estacionSelect = document.getElementById('estacionSelect');
             const loadBtn = document.getElementById('loadGaleriaBtn');
-
             if (!ccp) {
                 estacionSelect.disabled = true;
                 estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
                 loadBtn.disabled = true;
                 return;
             }
-
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
                     .order('nombre', { ascending: true });
-
                 if (error) throw error;
-
                 estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
@@ -253,7 +250,8 @@
                     estacionSelect.appendChild(opt);
                 });
                 estacionSelect.disabled = false;
-                loadBtn.disabled = true;
+                // ✅ Corrección clave: NO deshabilitar el botón aquí
+                // El evento 'change' del select lo controlará
             } catch (err) {
                 console.error('Error al cargar estaciones:', err);
                 alert('Error al cargar estaciones');
@@ -262,79 +260,74 @@
 
         // Habilitar botón al seleccionar estación
         document.getElementById('estacionSelect').addEventListener('change', () => {
-            document.getElementById('loadGaleriaBtn').disabled = !document.getElementById('estacionSelect').value;
+            const estacionId = document.getElementById('estacionSelect').value;
+            document.getElementById('loadGaleriaBtn').disabled = !estacionId;
         });
 
         // Cargar galería
         document.getElementById('loadGaleriaBtn').addEventListener('click', async () => {
             const estacionId = document.getElementById('estacionSelect').value;
+            estacionNombreGlobal = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+            
             if (!estacionId) return;
 
             const selectorForm = document.getElementById('selectorForm');
             const galeriaContainer = document.getElementById('galeriaContainer');
-            galeriaContainer.innerHTML = '<div class="loading">Cargando fotos...</div>';
+            galeriaContainer.innerHTML = `<div class="loading">Cargando fotos de la estación: <strong>${estacionNombreGlobal}</strong>...</div>`;
             galeriaContainer.style.display = 'grid';
             selectorForm.style.display = 'none';
 
             try {
-                // Obtener todas las inspecciones de la estación
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, created_at')
                     .eq('estacion_id', estacionId)
                     .order('created_at', { ascending: false });
-
                 if (inspError) throw inspError;
-
                 if (inspecciones.length === 0) {
-                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
+                    galeriaContainer.innerHTML = `
+                        <div class="inspeccion-header">
+                            <span>Fotos de: <strong>${estacionNombreGlobal}</strong></span>
+                            <button class="back-btn" onclick="volverAlSelector()">← Volver</button>
+                        </div>
+                        <div class="no-fotos">No hay inspecciones registradas para esta estación.</div>
+                    `;
                     return;
                 }
 
                 let hayFotos = false;
-
                 for (const insp of inspecciones) {
-                    // Obtener TODOS los ítems de esta inspección
                     const { data: items, error: itemError } = await supabase
                         .from('items_inspeccion')
                         .select('item_nombre, fotos_urls')
                         .eq('inspeccion_id', insp.id);
-
                     if (itemError) continue;
-
-                    // Filtrar solo los que tienen fotos (en JS, para evitar error 400)
                     const itemsConFotos = items.filter(item => 
-                        item.fotos_urls && 
-                        Array.isArray(item.fotos_urls) && 
-                        item.fotos_urls.length > 0
+                        item.fotos_urls && Array.isArray(item.fotos_urls) && item.fotos_urls.length > 0
                     );
-
                     if (itemsConFotos.length === 0) continue;
-
                     hayFotos = true;
 
-                    // Mostrar encabezado de inspección
                     const fecha = new Date(insp.created_at).toLocaleDateString('es-ES');
                     const header = document.createElement('div');
                     header.className = 'inspeccion-header';
-                    header.textContent = `Inspección del ${fecha}`;
+                    header.innerHTML = `
+                        Inspección del ${fecha}
+                        <button class="back-btn" onclick="volverAlSelector()" style="padding:6px 12px; font-size:12px;">← Volver</button>
+                    `;
                     galeriaContainer.appendChild(header);
 
-                    // Mostrar fotos
                     itemsConFotos.forEach(item => {
                         item.fotos_urls.forEach(url => {
                             const card = document.createElement('div');
                             card.className = 'foto-card';
-
                             const img = document.createElement('img');
                             img.src = url;
                             img.alt = item.item_nombre;
                             img.className = 'foto-item';
-
                             const label = document.createElement('div');
                             label.className = 'foto-label';
                             label.textContent = nombres[item.item_nombre] || item.item_nombre;
-
                             card.appendChild(img);
                             card.appendChild(label);
                             galeriaContainer.appendChild(card);
@@ -343,14 +336,32 @@
                 }
 
                 if (!hayFotos) {
-                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay fotos asociadas a esta estación.</div>';
+                    galeriaContainer.innerHTML = `
+                        <div class="inspeccion-header">
+                            <span>Fotos de: <strong>${estacionNombreGlobal}</strong></span>
+                            <button class="back-btn" onclick="volverAlSelector()">← Volver</button>
+                        </div>
+                        <div class="no-fotos">No hay fotos asociadas a esta estación.</div>
+                    `;
                 }
 
             } catch (err) {
                 console.error('Error al cargar galería:', err);
-                galeriaContainer.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+                document.getElementById('galeriaContainer').innerHTML = `
+                    <div class="inspeccion-header">
+                        <span>Fotos de: <strong>${estacionNombreGlobal}</strong></span>
+                        <button class="back-btn" onclick="volverAlSelector()">← Volver</button>
+                    </div>
+                    <div class="no-fotos">❌ Error: ${err.message}</div>
+                `;
             }
         });
+
+        // Función para volver al selector
+        function volverAlSelector() {
+            document.getElementById('selectorForm').style.display = 'block';
+            document.getElementById('galeriaContainer').style.display = 'none';
+        }
     </script>
 </body>
 </html>
