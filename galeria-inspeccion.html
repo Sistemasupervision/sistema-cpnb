@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Inspección</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 900px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1.4;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #ffcc00, #ff6b00);
+            border-radius: 2px;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .back-btn:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+        }
+        .galeria-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .foto-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .foto-item {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #cbd5e0;
+        }
+        .foto-label {
+            text-align: center;
+            font-size: 14px;
+            color: #2d3748;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+        .no-fotos {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            padding: 40px;
+            grid-column: span 3;
+        }
+        .loading {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            padding: 40px;
+            grid-column: span 3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Galería de Inspección</h1>
+        <button class="back-btn" onclick="window.history.back()">← Volver</button>
+        <div id="galeriaContainer" class="galeria-container">
+            <div class="loading">Cargando fotos...</div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // Obtener el ID de la inspección desde la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const inspeccionId = urlParams.get('id');
+
+        if (!inspeccionId) {
+            document.getElementById('galeriaContainer').innerHTML = `
+                <div class="no-fotos">⚠️ No se proporcionó un ID de inspección.</div>
+            `;
+            throw new Error('No se proporcionó un ID de inspección.');
+        }
+
+        async function cargarGaleria() {
+            try {
+                // Consultar los ítems de la inspección
+                const { data: items, error } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, fotos_urls')
+                    .eq('inspeccion_id', inspeccionId)
+                    .not('fotos_urls', 'is', null); // Solo ítems con fotos
+
+                if (error) throw error;
+
+                const galeriaContainer = document.getElementById('galeriaContainer');
+                galeriaContainer.innerHTML = '';
+
+                if (items.length === 0) {
+                    galeriaContainer.innerHTML = `
+                        <div class="no-fotos">No hay fotos asociadas a esta inspección.</div>
+                    `;
+                    return;
+                }
+
+                // Mapear cada foto a una tarjeta
+                items.forEach(item => {
+                    if (!item.fotos_urls || item.fotos_urls.length === 0) return;
+
+                    item.fotos_urls.forEach(url => {
+                        const card = document.createElement('div');
+                        card.className = 'foto-card';
+
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.alt = item.item_nombre;
+                        img.className = 'foto-item';
+
+                        const label = document.createElement('div');
+                        label.className = 'foto-label';
+                        label.textContent = item.item_nombre;
+
+                        card.appendChild(img);
+                        card.appendChild(label);
+                        galeriaContainer.appendChild(card);
+                    });
+                });
+
+            } catch (err) {
+                console.error('Error al cargar la galería:', err);
+                document.getElementById('galeriaContainer').innerHTML = `
+                    <div class="no-fotos">❌ Error al cargar las fotos: ${err.message}</div>
+                `;
+            }
+        }
+
+        // Cargar la galería cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', cargarGaleria);
+    </script>
+</body>
+</html>
