@@ -395,8 +395,7 @@
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
 
-        // ✅ FUNCIÓN PARA SUBIR IMÁGENES A SUPABASE STORAGE
-      async function uploadImages(files, inspectionId, itemKey) {
+       async function uploadImages(files, inspectionId, itemKey) {
     if (!files || files.length === 0) return [];
     const uploadedUrls = [];
     const timestamp = Date.now();
@@ -424,15 +423,15 @@
             throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
         }
 
-        const { publicUrl } = supabase.storage
+        // ✅ Corrección: getPublicUrl devuelve { data: { publicUrl: ... } }
+        const { data: { publicUrl } } = supabase.storage
             .from('inspecciones-fotos')
             .getPublicUrl(filePath);
 
-        uploadedUrls.push(publicUrl.publicUrl);
+        uploadedUrls.push(publicUrl);
     }
     return uploadedUrls;
 }
-
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
