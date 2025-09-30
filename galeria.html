@@ -91,23 +91,22 @@
             libros: "Libros"
         };
 
-        async function cargarGaleria() {
-            const container = document.getElementById('galeriaContainer');
-            try {
-                // Obtener últimas 20 inspecciones con imágenes
-                const { data: items, error } = await supabase
-                    .from('items_inspeccion')
-                    .select('inspeccion_id, item_nombre, imagen1_url, imagen2_url, inspecciones(created_at, estacion_id, estaciones_policiales(nombre))')
-                    .or('imagen1_url.neq.null,imagen2_url.neq.null')
-                    .order('inspecciones.created_at', { ascending: false })
-                    .limit(100);
-
-                if (error) throw error;
-
-                if (!items || items.length === 0) {
-                    container.innerHTML = '<div class="loading">No hay imágenes registradas aún.</div>';
-                    return;
-                }
+     const { data: items, error } = await supabase
+    .from('items_inspeccion')
+    .select(`
+        inspeccion_id,
+        item_nombre,
+        imagen1_url,
+        imagen2_url,
+        inspecciones!inner(
+            created_at,
+            estacion_id,
+            estaciones_policiales!inner(nombre)
+        )
+    `)
+    .or('imagen1_url.neq.null,imagen2_url.neq.null')
+    .order('inspecciones.created_at', { ascending: false })
+    .limit(100);
 
                 // Agrupar por inspección
                 const inspecciones = {};
