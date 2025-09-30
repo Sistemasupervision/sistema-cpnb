@@ -248,7 +248,7 @@
                 return;
             }
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -289,7 +289,7 @@
             selectorForm.style.display = 'none';
 
             try {
-                const {  inspecciones, error: inspError } = await supabase
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id, created_at')
                     .eq('estacion_id', estacionId)
@@ -304,7 +304,7 @@
 
                 todasLasFotos = [];
                 for (const insp of inspecciones) {
-                    const {  items, error: itemError } = await supabase
+                    const { data: items, error: itemError } = await supabase
                         .from('items_inspeccion')
                         .select('item_nombre, fotos_urls')
                         .eq('inspeccion_id', insp.id);
@@ -312,6 +312,7 @@
                     const itemsConFotos = items.filter(item => 
                         item.fotos_urls && Array.isArray(item.fotos_urls) && item.fotos_urls.length > 0
                     );
+                    // ✅ Formato con fecha y hora
                     const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
                         month: '2-digit',
@@ -324,7 +325,7 @@
                             todasLasFotos.push({
                                 url: url,
                                 item: item.item_nombre,
-                                fechaHora: fechaHora
+                                fechaHora: fechaHora  // ✅ clave actualizada
                             });
                         });
                     }
@@ -356,6 +357,7 @@
 
             galeriaContainer.innerHTML = '';
             
+            // ✅ Agrupar por fecha y hora completa
             const fotosPorFechaHora = {};
             fotosPagina.forEach(foto => {
                 if (!fotosPorFechaHora[foto.fechaHora]) {
@@ -367,7 +369,7 @@
             Object.keys(fotosPorFechaHora).forEach(fechaHora => {
                 const header = document.createElement('div');
                 header.className = 'inspeccion-header';
-                header.textContent = `Inspección del ${fechaHora}`;
+                header.textContent = `Inspección del ${fechaHora}`; // ✅ muestra fecha y hora
                 galeriaContainer.appendChild(header);
                 
                 fotosPorFechaHora[fechaHora].forEach(foto => {
