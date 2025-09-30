@@ -94,6 +94,10 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        .form-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
@@ -290,15 +294,22 @@
                 let hayFotos = false;
 
                 for (const insp of inspecciones) {
-                    // Obtener ítems con fotos de esta inspección
+                    // Obtener TODOS los ítems de esta inspección
                     const { data: items, error: itemError } = await supabase
                         .from('items_inspeccion')
-                        .select('item_nombre, fotos_urls, created_at')
-                        .eq('inspeccion_id', insp.id)
-                        .not('fotos_urls', 'is', null);
+                        .select('item_nombre, fotos_urls')
+                        .eq('inspeccion_id', insp.id);
 
                     if (itemError) continue;
-                    if (items.length === 0) continue;
+
+                    // Filtrar solo los que tienen fotos (en JS, para evitar error 400)
+                    const itemsConFotos = items.filter(item => 
+                        item.fotos_urls && 
+                        Array.isArray(item.fotos_urls) && 
+                        item.fotos_urls.length > 0
+                    );
+
+                    if (itemsConFotos.length === 0) continue;
 
                     hayFotos = true;
 
@@ -310,8 +321,7 @@
                     galeriaContainer.appendChild(header);
 
                     // Mostrar fotos
-                    items.forEach(item => {
-                        if (!item.fotos_urls) return;
+                    itemsConFotos.forEach(item => {
                         item.fotos_urls.forEach(url => {
                             const card = document.createElement('div');
                             card.className = 'foto-card';
