@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Inspecciones - CPNB</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height:100vh; padding:20px;
+        }
+        .container {
+            background:white; border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,0.4);
+            max-width:1200px; margin:0 auto; padding:40px; position:relative;
+        }
+        .container::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:8px;
+            background:linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .header {
+            text-align:center; margin-bottom:30px;
+        }
+        .logo-img {
+            width:80px; height:80px; object-fit:contain; margin-bottom:15px;
+        }
+        .title { color:#0c2440; font-size:24px; font-weight:bold; }
+        .back-btn {
+            display:inline-block; padding:10px 20px; background:#2c5282; color:white;
+            border:none; border-radius:10px; margin-bottom:20px; text-decoration:none;
+        }
+        .loading { text-align:center; padding:30px; color:#666; }
+        .inspeccion-item {
+            background:#f8fafc; padding:20px; margin-bottom:25px; border-radius:12px;
+            border:1px solid #e2e8f0;
+        }
+        .inspeccion-header {
+            display:flex; justify-content:space-between; margin-bottom:15px;
+            flex-wrap:wrap; gap:10px;
+        }
+        .galeria-grid {
+            display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap:15px; margin-top:15px;
+        }
+        .imagen-item {
+            background:white; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);
+        }
+        .imagen-item img {
+            width:100%; height:150px; object-fit:cover; display:block;
+        }
+        .imagen-label {
+            padding:6px; font-size:12px; text-align:center; color:#2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" class="logo-img">
+            <h1 class="title">Galería de Inspecciones</h1>
+        </div>
+        <a href="index.html" class="back-btn">← Volver a REDIP OCCIDENTAL</a>
+        <div id="galeriaContainer">
+            <div class="loading">Cargando galería...</div>
+        </div>
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        const nombresItems = {
+            baño_dama: "Baño Dama",
+            baño_caballero: "Baño Caballero",
+            dormitorio_femenino: "Dormitorio Femenino",
+            dormitorio_masculino: "Dormitorio Masculino",
+            cocina: "Cocina",
+            comedor: "Comedor",
+            lavanderia: "Lavandería",
+            oficina_del_jefe: "Oficina del Jefe",
+            oficina_de_rrhh: "Oficina de RRHH",
+            condiciones_electricas: "Condiciones Eléctricas",
+            fachada: "Fachada",
+            condiciones_de_pintura: "Condiciones de Pintura",
+            jardines: "Jardines",
+            condiciones_generales: "Condiciones Generales",
+            vehiculos: "Vehículos",
+            motos: "Motos",
+            botiquin_emergencia: "Botiquín",
+            libros: "Libros"
+        };
+
+        async function cargarGaleria() {
+            const container = document.getElementById('galeriaContainer');
+            try {
+                // Obtener últimas 20 inspecciones con imágenes
+                const { data: items, error } = await supabase
+                    .from('items_inspeccion')
+                    .select('inspeccion_id, item_nombre, imagen1_url, imagen2_url, inspecciones(created_at, estacion_id, estaciones_policiales(nombre))')
+                    .or('imagen1_url.neq.null,imagen2_url.neq.null')
+                    .order('inspecciones.created_at', { ascending: false })
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<div class="loading">No hay imágenes registradas aún.</div>';
+                    return;
+                }
+
+                // Agrupar por inspección
+                const inspecciones = {};
+                items.forEach(item => {
+                    const id = item.inspeccion_id;
+                    if (!inspecciones[id]) {
+                        inspecciones[id] = {
+                            id,
+                            estacion: item.inspecciones.estaciones_policiales.nombre,
+                            fecha: new Date(item.inspecciones.created_at).toLocaleDateString('es-ES'),
+                            imagenes: []
+                        };
+                    }
+                    if (item.imagen1_url) {
+                        inspecciones[id].imagenes.push({
+                            url: item.imagen1_url,
+                            label: nombresItems[item.item_nombre] + ' (1)'
+                        });
+                    }
+                    if (item.imagen2_url) {
+                        inspecciones[id].imagenes.push({
+                            url: item.imagen2_url,
+                            label: nombresItems[item.item_nombre] + ' (2)'
+                        });
+                    }
+                });
+
+                let html = '';
+                Object.values(inspecciones).forEach(insp => {
+                    html += `
+                        <div class="inspeccion-item">
+                            <div class="inspeccion-header">
+                                <strong>${insp.estacion}</strong>
+                                <span>${insp.fecha}</span>
+                            </div>
+                            <div class="galeria-grid">
+                                ${insp.imagenes.map(img => `
+                                    <div class="imagen-item">
+                                        <img src="${img.url}" alt="${img.label}" onerror="this.parentElement.style.display='none'">
+                                        <div class="imagen-label">${img.label}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (err) {
+                console.error('Error:', err);
+                container.innerHTML = '<div class="loading" style="color:red;">Error al cargar la galería.</div>';
+            }
+        }
+
+        // Verificar acceso (solo REDIP OCCIDENTAL)
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || data.redip !== 'occidental') {
+                    alert('⚠️ No tiene permisos para esta sección.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                cargarGaleria();
+            } catch (err) {
+                alert('Error de autenticación.');
+                window.location.href = 'index.html';
+            }
+        }
+
+        verificarAcceso();
+    </script>
+</body>
+</html>
