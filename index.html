@@ -397,7 +397,6 @@
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-
        async function uploadImages(files, inspectionId, itemKey) {
     if (!files || files.length === 0) return [];
     const uploadedUrls = [];
@@ -405,32 +404,26 @@
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const ext = file.name.split('.').pop().toLowerCase();
-
         // ✅ Normalizar el itemKey para evitar caracteres inválidos
         const normalizedItemKey = itemKey
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-zA-Z0-9_]/g, '_');
-
         const filePath = `inspecciones/${inspectionId}/${normalizedItemKey}_${timestamp}_${i}.${ext}`;
-
         const { data, error } = await supabase.storage
             .from('inspecciones-fotos')
             .upload(filePath, file, {
                 cacheControl: '3600',
                 upsert: false
             });
-
         if (error) {
             console.error('Error al subir imagen:', error);
             throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
         }
-
         // ✅ Corrección: getPublicUrl devuelve { data: { publicUrl: ... } }
         const { data: { publicUrl } } = supabase.storage
             .from('inspecciones-fotos')
             .getPublicUrl(filePath);
-
         uploadedUrls.push(publicUrl);
     }
     return uploadedUrls;
@@ -598,7 +591,8 @@
                 "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
                 "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
                 "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
-                "condiciones_generales", "vehiculos", "motos","botiquin_emergencia", "libros"
+                "condiciones_generales", "vehiculos", "motos",
+                "botiquin_emergencia", "libros"
             ];
             const nombres = {
                 baño_dama: "Baño Dama",
@@ -672,16 +666,16 @@
                             </div>
                         </div>
                         <!-- ✅ INPUT DE FOTOS POR ÍTEM -->
-                       <input type="file" class="foto-input" data-item="${item}" 
-       accept="image/*" multiple
-       style="width:100%; margin-top:10px; font-size:13px;">
-<small style="color:#718096; display:block; margin-top:4px;">
-    (Opcional) Suba fotos del área inspeccionada
-</small>
-<span class="foto-indicador" data-item="${item}" 
-      style="display:none; color:#38a169; font-weight:bold; font-size:14px; margin-top:6px;">
-    ✅ Fotos seleccionadas
-</span>
+                        <input type="file" class="foto-input" data-item="${item}" 
+                               accept="image/*" multiple
+                               style="width:100%; margin-top:10px; font-size:13px;">
+                        <small style="color:#718096; display:block; margin-top:4px;">
+                            (Opcional) Suba fotos del área inspeccionada
+                        </small>
+                        <span class="foto-indicador" data-item="${item}" 
+                              style="display:none; color:#38a169; font-weight:bold; font-size:13px; margin-top:6px;">
+                            ✅ Fotos seleccionadas
+                        </span>
                     </div>
                 `;
             });
@@ -709,45 +703,63 @@
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
-           document.querySelectorAll('.cumple-select').forEach(select => {
-    select.addEventListener('change', function () {
-        const item = this.dataset.item;
-        const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-        const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
-        const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
-        
 
-        if (this.value === 'null') {
-            textarea.style.display = 'none';
-            porcentajeContainer.style.display = 'none';
-            textarea.value = '';
-            if (fotoInput) {
-                fotoInput.disabled = true;
-                fotoInput.value = ''; // Limpia cualquier archivo seleccionado
-            }
-        } else {
-            textarea.style.display = 'block';
-            if (this.value === 'true') {
-                porcentajeContainer.style.display = 'block';
-                if (fotoInput) fotoInput.disabled = false;
-            } else { // this.value === 'false'
-                porcentajeContainer.style.display = 'none';
-                if (fotoInput) {
-                    fotoInput.disabled = true;
-                    fotoInput.value = ''; // Limpia las fotos si cambia a "No"
-                    
-// Manejar indicador de fotos seleccionadas
-document.querySelectorAll('.foto-input').forEach(input => {
-    input.addEventListener('change', function () {
-        const item = this.dataset.item;
-        const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
-        if (this.files && this.files.length > 0) {
-            indicador.style.display = 'block';
-        } else {
-            indicador.style.display = 'none';
-        }
-    });
-});
+            // 👇 NUEVO: Manejar cambios en "Sí/No" con deshabilitar fotos e indicador
+            document.querySelectorAll('.cumple-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const item = this.dataset.item;
+                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+                    const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
+                    const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
+                    const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
+
+                    if (this.value === 'null') {
+                        textarea.style.display = 'none';
+                        porcentajeContainer.style.display = 'none';
+                        textarea.value = '';
+                        if (fotoInput) {
+                            fotoInput.disabled = true;
+                            fotoInput.value = '';
+                        }
+                        if (indicador) indicador.style.display = 'none';
+                    } else {
+                        textarea.style.display = 'block';
+                        if (this.value === 'true') {
+                            porcentajeContainer.style.display = 'block';
+                            if (fotoInput) fotoInput.disabled = false;
+                        } else { // "No"
+                            porcentajeContainer.style.display = 'none';
+                            if (fotoInput) {
+                                fotoInput.disabled = true;
+                                fotoInput.value = '';
+                            }
+                        }
+                        // Actualizar indicador
+                        if (indicador && fotoInput && !fotoInput.disabled && fotoInput.files && fotoInput.files.length > 0) {
+                            indicador.style.display = 'block';
+                        } else if (indicador) {
+                            indicador.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            // 👇 NUEVO: Manejar cambios en el input de fotos
+            document.querySelectorAll('.foto-input').forEach(input => {
+                input.addEventListener('change', function () {
+                    const item = this.dataset.item;
+                    const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const estaHabilitado = !this.disabled && select && select.value === 'true';
+
+                    if (estaHabilitado && this.files && this.files.length > 0) {
+                        indicador.style.display = 'block';
+                    } else if (indicador) {
+                        indicador.style.display = 'none';
+                    }
+                });
+            });
+
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
@@ -758,7 +770,6 @@ document.querySelectorAll('.foto-input').forEach(input => {
                     alert('Debe estar autenticado para guardar.');
                     return;
                 }
-
                 // Crear la inspección primero
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                 const { data: inspeccionData, error: inspError } = await supabase
@@ -771,20 +782,17 @@ document.querySelectorAll('.foto-input').forEach(input => {
                     })
                     .select()
                     .single();
-
                 if (inspError) {
                     console.error('Error al crear inspección:', inspError);
                     alert('Error al guardar la inspección: ' + (inspError.message || ''));
                     return;
                 }
-
                 // Procesar ítems y subir fotos
                 const itemsToInsert = [];
                 for (const item of items) {
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                     const cumpleValue = select.value;
                     if (cumpleValue === 'null') continue;
-
                     const cumple = cumpleValue === 'true';
                     const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                     let porcentaje = 0;
@@ -792,7 +800,6 @@ document.querySelectorAll('.foto-input').forEach(input => {
                         const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                         porcentaje = parseInt(slider?.value) || 0;
                     }
-
                     // Subir fotos si existen
                     let fotosUrls = [];
                     const fileInput = document.querySelector(`.foto-input[data-item="${item}"]`);
@@ -804,7 +811,6 @@ document.querySelectorAll('.foto-input').forEach(input => {
                             console.error(uploadErr);
                         }
                     }
-
                     itemsToInsert.push({
                         inspeccion_id: inspeccionData.id,
                         item_nombre: item,
@@ -814,17 +820,14 @@ document.querySelectorAll('.foto-input').forEach(input => {
                         fotos_urls: fotosUrls.length > 0 ? fotosUrls : null
                     });
                 }
-
                 if (itemsToInsert.length === 0) {
                     alert('Debe responder al menos un ítem.');
                     return;
                 }
-
                 // Guardar ítems
                 const { error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .insert(itemsToInsert);
-
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
                     alert('Error al guardar los ítems: ' + (itemsError.message || ''));
