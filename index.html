@@ -705,25 +705,36 @@
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
-            document.querySelectorAll('.cumple-select').forEach(select => {
-                select.addEventListener('change', function () {
-                    const item = this.dataset.item;
-                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-                    const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
-                    if (this.value === 'null') {
-                        textarea.style.display = 'none';
-                        porcentajeContainer.style.display = 'none';
-                        textarea.value = '';
-                    } else {
-                        textarea.style.display = 'block';
-                        if (this.value === 'true') {
-                            porcentajeContainer.style.display = 'block';
-                        } else {
-                            porcentajeContainer.style.display = 'none';
-                        }
-                    }
-                });
-            });
+           document.querySelectorAll('.cumple-select').forEach(select => {
+    select.addEventListener('change', function () {
+        const item = this.dataset.item;
+        const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+        const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
+        const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
+
+        if (this.value === 'null') {
+            textarea.style.display = 'none';
+            porcentajeContainer.style.display = 'none';
+            textarea.value = '';
+            if (fotoInput) {
+                fotoInput.disabled = true;
+                fotoInput.value = ''; // Limpia cualquier archivo seleccionado
+            }
+        } else {
+            textarea.style.display = 'block';
+            if (this.value === 'true') {
+                porcentajeContainer.style.display = 'block';
+                if (fotoInput) fotoInput.disabled = false;
+            } else { // this.value === 'false'
+                porcentajeContainer.style.display = 'none';
+                if (fotoInput) {
+                    fotoInput.disabled = true;
+                    fotoInput.value = ''; // Limpia las fotos si cambia a "No"
+                }
+            }
+        }
+    });
+});
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
