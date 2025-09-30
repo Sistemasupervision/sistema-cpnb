@@ -111,82 +111,96 @@
         async function cargarGaleria() {
             const container = document.getElementById('galeriaContainer');
             try {
-                // ✅ Consulta simplificada: solo datos necesarios
-                const { data: items, error } = await supabase
+                // Paso 1: Obtener últimas 50 inspecciones
+                const { data: inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select(`
+                        id,
+                        created_at,
+                        estacion_id,
+                        estaciones_policiales!inner(nombre)
+                    `)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (inspError) throw inspError;
+                if (!inspecciones || inspecciones.length === 0) {
+                    container.innerHTML = '<div class="loading">No hay inspecciones aún.</div>';
+                    return;
+                }
+
+                const idsInspecciones = inspecciones.map(i => i.id);
+
+                // Paso 2: Obtener ítems con imágenes
+                const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select(`
                         inspeccion_id,
                         item_nombre,
                         imagen1_url,
-                        imagen2_url,
-                        inspecciones (
-                            created_at,
-                            estacion_id,
-                            estaciones_policiales (nombre)
-                        )
+                        imagen2_url
                     `)
-                    .or('imagen1_url.neq.null,imagen2_url.neq.null')
-                    .order('inspecciones.created_at', { ascending: false })
-                    .limit(100);
+                    .in('inspeccion_id', idsInspecciones)
+                    .or('imagen1_url.neq.null,imagen2_url.neq.null');
 
-                if (error) throw error;
-
+                if (itemsError) throw itemsError;
                 if (!items || items.length === 0) {
                     container.innerHTML = '<div class="loading">No hay imágenes registradas aún.</div>';
                     return;
                 }
 
-                // Agrupar por inspección
-                const inspecciones = {};
+                // Agrupar ítems por inspección
+                const itemsPorInspeccion = {};
                 items.forEach(item => {
-                    const insp = item.inspecciones;
-                    if (!insp || !insp.estaciones_policiales) return;
-
-                    const id = item.inspeccion_id;
-                    if (!inspecciones[id]) {
-                        inspecciones[id] = {
-                            id,
-                            estacion: insp.estaciones_policiales.nombre || 'Estación desconocida',
-                            fecha: new Date(insp.created_at).toLocaleDateString('es-ES'),
-                            imagenes: []
-                        };
+                    if (!itemsPorInspeccion[item.inspeccion_id]) {
+                        itemsPorInspeccion[item.inspeccion_id] = [];
                     }
-                    if (item.imagen1_url) {
-                        inspecciones[id].imagenes.push({
-                            url: item.imagen1_url,
-                            label: nombresItems[item.item_nombre] + ' (1)'
-                        });
-                    }
-                    if (item.imagen2_url) {
-                        inspecciones[id].imagenes.push({
-                            url: item.imagen2_url,
-                            label: nombresItems[item.item_nombre] + ' (2)'
-                        });
-                    }
+                    itemsPorInspeccion[item.inspeccion_id].push(item);
                 });
 
+                // Renderizar
                 let html = '';
-                Object.values(inspecciones).forEach(insp => {
+                inspecciones.forEach(insp => {
+                    if (!itemsPorInspeccion[insp.id]) return;
+
                     html += `
                         <div class="inspeccion-item">
                             <div class="inspeccion-header">
-                                <strong>${insp.estacion}</strong>
-                                <span>${insp.fecha}</span>
+                                <strong>${insp.estaciones_policiales.nombre}</strong>
+                                <span>${new Date(insp.created_at).toLocaleDateString('es-ES')}</span>
                             </div>
                             <div class="galeria-grid">
-                                ${insp.imagenes.map(img => `
-                                    <div class="imagen-item">
-                                        <img src="${img.url}" alt="${img.label}" 
-                                             onerror="this.parentElement.style.display='none'">
-                                        <div class="imagen-label">${img.label}</div>
-                                    </div>
-                                `).join('')}
+                    `;
+
+                    itemsPorInspeccion[insp.id].forEach(item => {
+                        if (item.imagen1_url) {
+                            html += `
+                                <div class="imagen-item">
+                                    <img src="${item.imagen1_url}" alt="${nombresItems[item.item_nombre] || item.item_nombre} (1)"
+                                         onerror="this.parentElement.style.display='none'">
+                                    <div class="imagen-label">${(nombresItems[item.item_nombre] || item.item_nombre)} (1)</div>
+                                </div>
+                            `;
+                        }
+                        if (item.imagen2_url) {
+                            html += `
+                                <div class="imagen-item">
+                                    <img src="${item.imagen2_url}" alt="${nombresItems[item.item_nombre] || item.item_nombre} (2)"
+                                         onerror="this.parentElement.style.display='none'">
+                                    <div class="imagen-label">${(nombresItems[item.item_nombre] || item.item_nombre)} (2)</div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    html += `
                             </div>
                         </div>
                     `;
                 });
 
-                container.innerHTML = html;
+                container.innerHTML = html || '<div class="loading">No hay imágenes para mostrar.</div>';
+
             } catch (err) {
                 console.error('Error detallado:', err);
                 container.innerHTML = `<div class="loading" style="color:red;">
