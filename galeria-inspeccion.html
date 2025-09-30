@@ -132,11 +132,6 @@
             border-radius: 8px;
             margin-bottom: 10px;
             border: 1px solid #cbd5e0;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .foto-item:hover {
-            transform: scale(1.02);
         }
         .foto-label {
             text-align: center;
@@ -173,35 +168,6 @@
             justify-content: center;
             margin-top: 25px;
             gap: 10px;
-        }
-
-        /* Modal de Zoom */
-        #zoomModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        #zoomImage {
-            max-width: 90%;
-            max-height: 90%;
-            border: 3px solid white;
-            border-radius: 8px;
-            object-fit: contain;
-        }
-        #closeZoom {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
         }
         .download-btn {
             margin-top: 8px;
@@ -255,12 +221,6 @@
         <button id="backToSelectorBtn" class="back-btn" style="display: none; margin-top: 20px;">← Volver a Selección</button>
     </div>
 
-    <!-- Modal de Zoom -->
-    <div id="zoomModal">
-        <span id="closeZoom">&times;</span>
-        <img id="zoomImage" alt="Vista ampliada">
-    </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -290,7 +250,6 @@
         let paginaActual = 1;
         const fotosPorPagina = 12;
 
-        // Cargar estaciones al cambiar CCP
         document.getElementById('ccpSelect').addEventListener('change', async () => {
             const ccp = document.getElementById('ccpSelect').value;
             const estacionSelect = document.getElementById('estacionSelect');
@@ -323,12 +282,10 @@
             }
         });
 
-        // Habilitar botón al seleccionar estación
         document.getElementById('estacionSelect').addEventListener('change', () => {
             document.getElementById('loadGaleriaBtn').disabled = !document.getElementById('estacionSelect').value;
         });
 
-        // Cargar galería
         document.getElementById('loadGaleriaBtn').addEventListener('click', async () => {
             const estacionId = document.getElementById('estacionSelect').value;
             if (!estacionId) return;
@@ -432,12 +389,12 @@
                     img.src = foto.url;
                     img.alt = foto.item;
                     img.className = 'foto-item';
-                    img.dataset.url = foto.url;
                     
                     const label = document.createElement('div');
                     label.className = 'foto-label';
                     label.textContent = nombres[foto.item] || foto.item;
                     
+                    // ✅ Botón de DESCARGA AUTOMÁTICA (sin previsualizar)
                     const downloadBtn = document.createElement('button');
                     downloadBtn.className = 'download-btn';
                     downloadBtn.textContent = '📥 Descargar';
@@ -455,27 +412,9 @@
                     card.appendChild(label);
                     card.appendChild(downloadBtn);
                     galeriaContainer.appendChild(card);
-
-                    // Zoom al hacer clic en la imagen
-                    img.addEventListener('click', () => {
-                        document.getElementById('zoomImage').src = foto.url;
-                        document.getElementById('zoomModal').style.display = 'flex';
-                    });
                 });
             });
         }
-
-        // Cerrar modal de zoom
-        document.getElementById('closeZoom').addEventListener('click', () => {
-            document.getElementById('zoomModal').style.display = 'none';
-        });
-
-        // Cerrar modal al hacer clic fuera de la imagen
-        document.getElementById('zoomModal').addEventListener('click', (e) => {
-            if (e.target.id === 'zoomModal') {
-                document.getElementById('zoomModal').style.display = 'none';
-            }
-        });
 
         function actualizarPaginacion() {
             const totalPaginas = Math.ceil(todasLasFotos.length / fotosPorPagina);
@@ -518,12 +457,10 @@
             controles.appendChild(btnSiguiente);
         }
 
-        // Botón: Volver al menú principal
         document.getElementById('backToMenuBtn').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
 
-        // Botón: Volver al selector de CCP/estación
         document.getElementById('backToSelectorBtn').addEventListener('click', () => {
             document.getElementById('selectorForm').style.display = 'block';
             document.getElementById('galeriaContainer').style.display = 'none';
