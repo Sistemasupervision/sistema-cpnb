@@ -376,8 +376,8 @@
             Estadísticas
         </button>
         <button onclick="window.location.href='galeria-inspeccion.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-    🖼️ Galería de Inspección
-</button>
+            🖼️ Galería de Inspección
+        </button>
         <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🔔 Notificaciones
         </button>
@@ -397,44 +397,6 @@
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-
-       async function uploadImages(files, inspectionId, itemKey) {
-    if (!files || files.length === 0) return [];
-    const uploadedUrls = [];
-    const timestamp = Date.now();
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const ext = file.name.split('.').pop().toLowerCase();
-
-        // ✅ Normalizar el itemKey para evitar caracteres inválidos
-        const normalizedItemKey = itemKey
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-zA-Z0-9_]/g, '_');
-
-        const filePath = `inspecciones/${inspectionId}/${normalizedItemKey}_${timestamp}_${i}.${ext}`;
-
-        const { data, error } = await supabase.storage
-            .from('inspecciones-fotos')
-            .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
-
-        if (error) {
-            console.error('Error al subir imagen:', error);
-            throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
-        }
-
-        // ✅ Corrección: getPublicUrl devuelve { data: { publicUrl: ... } }
-        const { data: { publicUrl } } = supabase.storage
-            .from('inspecciones-fotos')
-            .getPublicUrl(filePath);
-
-        uploadedUrls.push(publicUrl);
-    }
-    return uploadedUrls;
-}
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -475,7 +437,8 @@
                     .eq('user_id', user.id)
                     .single();
                 if (error || !data || data.redip !== 'occidental') {
-                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
+                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.
+Por favor contacte al administrador.');
                     return;
                 }
                 document.getElementById('dashboardContainer').style.display = 'none';
@@ -732,7 +695,6 @@
                     alert('Debe estar autenticado para guardar.');
                     return;
                 }
-
                 // Crear la inspección primero
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                 const { data: inspeccionData, error: inspError } = await supabase
@@ -745,20 +707,17 @@
                     })
                     .select()
                     .single();
-
                 if (inspError) {
                     console.error('Error al crear inspección:', inspError);
                     alert('Error al guardar la inspección: ' + (inspError.message || ''));
                     return;
                 }
-
                 // Procesar ítems y subir fotos
                 const itemsToInsert = [];
                 for (const item of items) {
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                     const cumpleValue = select.value;
                     if (cumpleValue === 'null') continue;
-
                     const cumple = cumpleValue === 'true';
                     const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                     let porcentaje = 0;
@@ -766,7 +725,6 @@
                         const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                         porcentaje = parseInt(slider?.value) || 0;
                     }
-
                     // Subir fotos si existen
                     let fotosUrls = [];
                     const fileInput = document.querySelector(`.foto-input[data-item="${item}"]`);
@@ -778,7 +736,6 @@
                             console.error(uploadErr);
                         }
                     }
-
                     itemsToInsert.push({
                         inspeccion_id: inspeccionData.id,
                         item_nombre: item,
@@ -788,17 +745,14 @@
                         fotos_urls: fotosUrls.length > 0 ? fotosUrls : null
                     });
                 }
-
                 if (itemsToInsert.length === 0) {
                     alert('Debe responder al menos un ítem.');
                     return;
                 }
-
                 // Guardar ítems
                 const { error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .insert(itemsToInsert);
-
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
                     alert('Error al guardar los ítems: ' + (itemsError.message || ''));
@@ -808,6 +762,46 @@
                 }
             };
         }
+
+        // ✅ FUNCIÓN PARA SUBIR IMÁGENES A SUPABASE STORAGE
+        async function uploadImages(files, inspectionId, itemKey) {
+            if (!files || files.length === 0) return [];
+            const uploadedUrls = [];
+            const timestamp = Date.now();
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const ext = file.name.split('.').pop().toLowerCase();
+
+                // ✅ Normalizar el itemKey para evitar caracteres inválidos
+                const normalizedItemKey = itemKey
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-zA-Z0-9_]/g, '_');
+
+                const filePath = `inspecciones/${inspectionId}/${normalizedItemKey}_${timestamp}_${i}.${ext}`;
+
+                const { data, error } = await supabase.storage
+                    .from('inspecciones-fotos')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (error) {
+                    console.error('Error al subir imagen:', error);
+                    throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
+                }
+
+                // ✅ Corrección: getPublicUrl devuelve { data: { publicUrl: ... } }
+                const { data: { publicUrl } } = supabase.storage
+                    .from('inspecciones-fotos')
+                    .getPublicUrl(filePath);
+
+                uploadedUrls.push(publicUrl);
+            }
+            return uploadedUrls;
+        }
+
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
