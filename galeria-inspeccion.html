@@ -291,7 +291,19 @@
                     .eq('ccp_id', ccp)
                     .order('nombre', { ascending: true });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error de Supabase:', error);
+                    alert('Error al cargar estaciones: ' + (error.message || 'Permiso denegado'));
+                    return;
+                }
+
+                // ✅ Verificar que estaciones sea un array
+                if (!Array.isArray(estaciones) || estaciones.length === 0) {
+                    estacionSelect.innerHTML = '<option value="">-- No hay estaciones disponibles --</option>';
+                    estacionSelect.disabled = true;
+                    loadBtn.disabled = true;
+                    return;
+                }
 
                 estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
@@ -301,12 +313,12 @@
                     estacionSelect.appendChild(opt);
                 });
 
-                // ✅ Corrección clave: eliminar el atributo 'disabled' explícitamente
                 estacionSelect.removeAttribute('disabled');
+                loadBtn.disabled = true; // Se habilitará al seleccionar una opción
 
             } catch (err) {
-                console.error('Error al cargar estaciones:', err);
-                alert('Error al cargar estaciones');
+                console.error('Error inesperado:', err);
+                alert('Error al cargar estaciones: ' + (err.message || 'Intente más tarde'));
             }
         });
 
@@ -324,7 +336,7 @@
 
             // Mostrar encabezado
             document.getElementById('nombreEstacion').textContent = `Fotos de: ${estacionNombre}`;
-            document.getElementById('galeriaHeader').style.display = 'block';
+            document.getElementById('galeriaHeader').style.display = 'flex';
 
             // Ocultar selector y mostrar galería
             document.getElementById('selectorForm').style.display = 'none';
@@ -341,14 +353,14 @@
 
                 if (inspError) throw inspError;
 
-                if (inspecciones.length === 0) {
+                if (!Array.isArray(inspecciones) || inspecciones.length === 0) {
                     galeriaContainer.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
                     return;
                 }
 
                 let hayFotos = false;
                 for (const insp of inspecciones) {
-                    const { data: items, error: itemError } = await supabase
+                    const {  items, error: itemError } = await supabase
                         .from('items_inspeccion')
                         .select('item_nombre, fotos_urls')
                         .eq('inspeccion_id', insp.id);
