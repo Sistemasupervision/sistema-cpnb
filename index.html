@@ -427,8 +427,9 @@
             }
         }
 
+        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
         async function showRediOccidental() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
             try {
@@ -465,7 +466,7 @@
                 return;
             }
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpValue)
@@ -521,7 +522,7 @@
         }
 
         async function checkAuthState() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
@@ -534,7 +535,7 @@
             try {
                 const hoy = new Date().toISOString().split('T')[0];
                 const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpOcidental);
@@ -641,14 +642,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- ✅ CONTENEDOR DE FOTOS -->
-                        <div class="fotos-container" data-item="${item}" style="margin-top:12px; display:none;">
-                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
-                                📸 Fotos (máx. 2)
-                            </label>
-                            <input type="file" class="foto-input" data-item="${item}" data-index="0" accept="image/*" capture="environment" style="width:100%; margin-bottom:6px;">
-                            <input type="file" class="foto-input" data-item="${item}" data-index="1" accept="image/*" capture="environment" style="width:100%;">
-                        </div>
                     </div>
                 `;
             });
@@ -676,22 +669,17 @@
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
-
-            // Mostrar/Ocultar observaciones, porcentaje y fotos
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
                     const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
                     const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
-                    const fotosContainer = document.querySelector(`.fotos-container[data-item="${item}"]`);
                     if (this.value === 'null') {
                         textarea.style.display = 'none';
                         porcentajeContainer.style.display = 'none';
-                        fotosContainer.style.display = 'none';
                         textarea.value = '';
                     } else {
                         textarea.style.display = 'block';
-                        fotosContainer.style.display = 'block';
                         if (this.value === 'true') {
                             porcentajeContainer.style.display = 'block';
                         } else {
@@ -700,22 +688,41 @@
                     }
                 });
             });
-
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
-
-            // ✅ MANEJADOR DE ENVÍO CON SUBIDA DE FOTOS
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
-                const {  { user } } = await supabase.auth.getUser(); // ✅ CORREGIDO
+                const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
                     alert('Debe estar autenticado para guardar.');
                     return;
                 }
-
+                const itemsData = [];
+                items.forEach(item => {
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const cumpleValue = select.value;
+                    if (cumpleValue === 'null') return;
+                    const cumple = cumpleValue === 'true';
+                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+                    let porcentaje = 0;
+                    if (cumple) {
+                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                        porcentaje = parseInt(slider?.value) || 0;
+                    }
+                    itemsData.push({
+                        item_nombre: item,
+                        cumple: cumple,
+                        observacion: observacion,
+                        porcentaje_cumplimiento: porcentaje
+                    });
+                });
+                if (itemsData.length === 0) {
+                    alert('Debe responder al menos un ítem.');
+                    return;
+                }
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-                const {  inspeccionData, error: inspError } = await supabase
+                const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
                     .insert({
                         estacion_id: estacionId,
@@ -725,87 +732,18 @@
                     })
                     .select()
                     .single();
-
                 if (inspError) {
                     console.error('Error al crear inspección:', inspError);
                     alert('Error al guardar la inspección: ' + (inspError.message || ''));
                     return;
                 }
-
-                const itemsToInsert = [];
-                for (const item of items) {
-                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                    const cumpleValue = select.value;
-                    if (cumpleValue === 'null') continue;
-
-                    const cumple = cumpleValue === 'true';
-                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-                    let porcentaje = 0;
-                    if (cumple) {
-                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-                        porcentaje = parseInt(slider?.value) || 0;
-                    }
-
-                    // ✅ Subir fotos
-                    let foto1_url = null;
-                    let foto2_url = null;
-
-                    // Foto 1
-                    const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
-                    if (file1) {
-                        const cleanName = file1.name
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .replace(/[^a-zA-Z0-9._-]/g, '_')
-                            .toLowerCase();
-                        const filePath1 = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${cleanName}`;
-                        const { error: err1 } = await supabase.storage
-                            .from('inspecciones-fotos')
-                            .upload(filePath1, file1, { upsert: true });
-                        if (!err1) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(filePath1);
-                            foto1_url = data.publicUrl;
-                        }
-                    }
-
-                    // Foto 2
-                    const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
-                    if (file2) {
-                        const cleanName = file2.name
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .replace(/[^a-zA-Z0-9._-]/g, '_')
-                            .toLowerCase();
-                        const filePath2 = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${cleanName}`;
-                        const { error: err2 } = await supabase.storage
-                            .from('inspecciones-fotos')
-                            .upload(filePath2, file2, { upsert: true });
-                        if (!err2) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(filePath2);
-                            foto2_url = data.publicUrl;
-                        }
-                    }
-
-                    itemsToInsert.push({
-                        inspeccion_id: inspeccionData.id,
-                        item_nombre: item,
-                        cumple: cumple,
-                        observacion: observacion,
-                        porcentaje_cumplimiento: porcentaje,
-                        foto1_url: foto1_url,
-                        foto2_url: foto2_url
-                    });
-                }
-
-                if (itemsToInsert.length === 0) {
-                    alert('Debe responder al menos un ítem.');
-                    return;
-                }
-
+                const itemsToInsert = itemsData.map(item => ({
+                    inspeccion_id: inspeccionData.id,
+                    ...item
+                }));
                 const { error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .insert(itemsToInsert);
-
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
                     alert('Error al guardar los ítems: ' + (itemsError.message || ''));
