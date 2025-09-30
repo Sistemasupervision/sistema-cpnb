@@ -112,10 +112,6 @@
             object-fit: contain;
             margin: 0 auto 20px;
             display: block;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
         }
         .title {
             text-align: center;
@@ -357,15 +353,15 @@
         <form id="occidentalForm">
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
-              <select id="ccpSelect" required>
-    <option value="">-- Elija una opción --</option>
-    <option value="metropolitano">CCP METROPOLITANO</option>
-    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-    <option value="guajira">CCP GUAJIRA</option>
-    <option value="col">CCPE COL</option>
-    <option value="lara">CCPE LARA</option>      
-    <option value="falcon">CCPE FALCÓN</option>  
-</select>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>      
+                    <option value="falcon">CCPE FALCÓN</option>  
+                </select>
             </div>
             <button type="submit" class="form-btn">Continuar</button>
         </form>
@@ -380,6 +376,10 @@
         </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
             📊 Resumen Mensual (KPIs)
+        </button>
+        <!-- ✅ BOTÓN DE GALERÍA -->
+        <button onclick="window.location.href='galeria.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🖼️ Galería de Inspecciones
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
@@ -427,23 +427,19 @@
             }
         }
 
-        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
         async function showRediOccidental() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
             try {
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-
                 if (error || !data || data.redip !== 'occidental') {
                     alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
                     return;
                 }
-
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
                 contarYMostrarNotificaciones();
@@ -565,274 +561,255 @@
 
         async function cargarNotificacionesAlIniciar() {
         }
-        
-function loadInspectionForm(estacionId, estacionNombre) {
-    const items = [
-        "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
-        "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
-        "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
-        "condiciones_generales", "vehiculos", "motos"
-    ];
-    const nombres = {
-        baño_dama: "Baño Dama",
-        baño_caballero: "Baño Caballero",
-        dormitorio_femenino: "Dormitorio Femenino",
-        dormitorio_masculino: "Dormitorio Masculino",
-        cocina: "Cocina",
-        comedor: "Comedor",
-        lavanderia: "Lavandería",
-        oficina_del_jefe: "Oficina del Jefe",
-        oficina_de_rrhh: "Oficina de RRHH",
-        condiciones_electricas: "Condiciones Eléctricas",
-        fachada: "Fachada",
-        condiciones_de_pintura: "Condiciones de Pintura",
-        jardines: "Jardines",
-        condiciones_generales: "Condiciones Generales",
-        vehiculos: "Vehículos",
-        motos: "Motos"
-    };
-    const hoy = new Date().toISOString().split('T')[0];
-    let formHtml = `
-        <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Formulario de Inspección</h1>
-            <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                Estación: <strong>${estacionNombre}</strong>
-            </p>
-        </div>
-        <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
-            <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
-    `;
-    items.forEach(item => {
-        formHtml += `
-            <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
-                <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
-                    <option value="null">-- Seleccione --</option>
-                    <option value="true">Sí</option>
-                    <option value="false">No</option>
-                </select>
-                <textarea class="observacion-text" data-item="${item}" 
-                    placeholder="Observaciones" 
-                    style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
-                    rows="3"></textarea>
-                <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
-                    <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
-                        Porcentaje de estatus
-                    </label>
-                    <div style="padding:10px 0;">
-                        <input type="range" class="porcentaje-slider" data-item="${item}" 
-                            min="0" max="100" value="0"
-                            style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
-                            oninput="this.nextElementSibling.value = this.value + '%'"
-                        >
-                        <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
-                        <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#718096;">
-                            <span>0</span>
-                            <span>10</span>
-                            <span>20</span>
-                            <span>30</span>
-                            <span>40</span>
-                            <span>50</span>
-                            <span>60</span>
-                            <span>70</span>
-                            <span>80</span>
-                            <span>90</span>
-                            <span>100</span>
+
+        // ✅ FUNCIÓN ACTUALIZADA CON SUBIDA DE IMÁGENES
+        function loadInspectionForm(estacionId, estacionNombre) {
+            const items = [
+                "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
+                "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
+                "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
+                "condiciones_generales", "vehiculos", "motos", "botiquin_emergencia", "libros"
+            ];
+            const nombres = {
+                baño_dama: "Baño Dama",
+                baño_caballero: "Baño Caballero",
+                dormitorio_femenino: "Dormitorio Femenino",
+                dormitorio_masculino: "Dormitorio Masculino",
+                cocina: "Cocina",
+                comedor: "Comedor",
+                lavanderia: "Lavandería",
+                oficina_del_jefe: "Oficina del Jefe",
+                oficina_de_rrhh: "Oficina de RRHH",
+                condiciones_electricas: "Condiciones Eléctricas",
+                fachada: "Fachada",
+                condiciones_de_pintura: "Condiciones de Pintura",
+                jardines: "Jardines",
+                condiciones_generales: "Condiciones Generales",
+                vehiculos: "Vehículos",
+                motos: "Motos", 
+                botiquin_emergencia:"Botiquín de Emergencia",
+                libros: "Libros"
+            };
+            const hoy = new Date().toISOString().split('T')[0];
+            let formHtml = `
+                <div class="logo-container">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Formulario de Inspección</h1>
+                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                        Estación: <strong>${estacionNombre}</strong>
+                    </p>
+                </div>
+                <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
+                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
+            `;
+            items.forEach(item => {
+                formHtml += `
+                    <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                        <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
+                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
+                            <option value="null">-- Seleccione --</option>
+                            <option value="true">Sí</option>
+                            <option value="false">No</option>
+                        </select>
+                        <textarea class="observacion-text" data-item="${item}" 
+                            placeholder="Observaciones" 
+                            style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
+                            rows="3"></textarea>
+                        <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
+                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
+                                Porcentaje de estatus
+                            </label>
+                            <div style="padding:10px 0;">
+                                <input type="range" class="porcentaje-slider" data-item="${item}" 
+                                    min="0" max="100" value="0"
+                                    style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
+                                    oninput="this.nextElementSibling.value = this.value + '%'"
+                                >
+                                <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
+                                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#718096;">
+                                    <span>0</span>
+                                    <span>10</span>
+                                    <span>20</span>
+                                    <span>30</span>
+                                    <span>40</span>
+                                    <span>50</span>
+                                    <span>60</span>
+                                    <span>70</span>
+                                    <span>80</span>
+                                    <span>90</span>
+                                    <span>100</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ✅ SECCIÓN DE IMÁGENES -->
+                        <div class="imagenes-container" style="margin-top:15px;">
+                            <label style="font-size:12px; color:#4a5568; display:block; margin:8px 0 4px;">📸 Imágenes (máx. 2):</label>
+                            <input type="file" accept="image/*" data-item="${item}" data-num="1" class="imagen-input" style="width:100%; margin-bottom:6px; font-size:12px;">
+                            <input type="file" accept="image/*" data-item="${item}" data-num="2" class="imagen-input" style="width:100%; font-size:12px;">
                         </div>
                     </div>
+                `;
+            });
+            formHtml += `
                 </div>
-                <!-- ✅ CONTENEDOR DE FOTOS (solo visible si se responde) -->
-                <div class="fotos-container" data-item="${item}" style="margin-top:12px; display:none;">
-                    <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
-                        📸 Fotos (máx. 2)
-                    </label>
-                    <input type="file" class="foto-input" data-item="${item}" data-index="0" accept="image/*" capture="environment" style="width:100%; margin-bottom:6px;">
-                    <input type="file" class="foto-input" data-item="${item}" data-index="1" accept="image/*" capture="environment" style="width:100%;">
+                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
+                    <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
+                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
                 </div>
-            </div>
+                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
+                    <input type="date" id="proximaInspeccion" 
+                        min="${hoy}"
+                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
+                </div>
+                <div style="text-align:center; margin-top:30px; grid-column: span 3;">
+                    <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
+                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
+                </div>
+            </form>
         `;
-    });
-    formHtml += `
-        </div>
-        <div class="input-group" style="margin-top:20px; grid-column: span 3;">
-            <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
-            <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
-                style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
-        </div>
-        <div class="input-group" style="margin-top:20px; grid-column: span 3;">
-            <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-            <input type="date" id="proximaInspeccion" 
-                min="${hoy}"
-                style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
-        </div>
-        <div style="text-align:center; margin-top:30px; grid-column: span 3;">
-            <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
-            <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
-        </div>
-    </form>
-`;
-    const dynamicView = document.getElementById('dynamicView');
-    dynamicView.innerHTML = formHtml;
-    dynamicView.style.display = 'block';
-    dynamicView.style.maxWidth = '950px';
-    dynamicView.style.padding = '40px';
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = formHtml;
+            dynamicView.style.display = 'block';
+            dynamicView.style.maxWidth = '950px';
+            dynamicView.style.padding = '40px';
 
-    // ✅ Mostrar/Ocultar fotos al responder un ítem
-    document.querySelectorAll('.cumple-select').forEach(select => {
-        select.addEventListener('change', function () {
-            const item = this.dataset.item;
-            const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-            const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
-            const fotosContainer = document.querySelector(`.fotos-container[data-item="${item}"]`);
-            if (this.value === 'null') {
-                textarea.style.display = 'none';
-                porcentajeContainer.style.display = 'none';
-                fotosContainer.style.display = 'none';
-                textarea.value = '';
-            } else {
-                textarea.style.display = 'block';
-                fotosContainer.style.display = 'block';
-                if (this.value === 'true') {
-                    porcentajeContainer.style.display = 'block';
-                } else {
-                    porcentajeContainer.style.display = 'none';
+            document.querySelectorAll('.cumple-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const item = this.dataset.item;
+                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+                    const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
+                    if (this.value === 'null') {
+                        textarea.style.display = 'none';
+                        porcentajeContainer.style.display = 'none';
+                        textarea.value = '';
+                    } else {
+                        textarea.style.display = 'block';
+                        if (this.value === 'true') {
+                            porcentajeContainer.style.display = 'block';
+                        } else {
+                            porcentajeContainer.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            document.getElementById('backToEstacionesBtn').onclick = () => {
+                handleOccidentalForm({ preventDefault: () => {} });
+            };
+
+            // ✅ SUBIR INSPECCIÓN CON IMÁGENES
+            document.getElementById('inspectionForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert('Debe estar autenticado para guardar.');
+                    return;
                 }
-            }
-        });
-    });
 
-    document.getElementById('backToEstacionesBtn').onclick = () => {
-        handleOccidentalForm({ preventDefault: () => {} });
-    };
-    
-document.getElementById('inspectionForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const {  { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('Debe estar autenticado para guardar.');
-        return;
-    }
+                const itemsData = [];
+                const imagenesPorItem = {};
 
-    // Crear inspección primero
-    const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-    const { data: inspeccionData, error: inspError } = await supabase
-        .from('inspecciones')
-        .insert({
-            estacion_id: estacionId,
-            inspector_email: user.email,
-            observaciones_generales: document.getElementById('observacionesGenerales').value || null,
-            proxima_inspeccion: proximaFecha
-        })
-        .select()
-        .single();
+                items.forEach(item => {
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const cumpleValue = select.value;
+                    if (cumpleValue === 'null') return;
 
-    if (inspError) {
-        console.error('Error al crear inspección:', inspError);
-        alert('Error al guardar la inspección: ' + (inspError.message || ''));
-        return;
-    }
+                    const cumple = cumpleValue === 'true';
+                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+                    let porcentaje = 0;
+                    if (cumple) {
+                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                        porcentaje = parseInt(slider?.value) || 0;
+                    }
 
-    const itemsToInsert = [];
-    const items = [
-        "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
-        "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
-        "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
-        "condiciones_generales", "vehiculos", "motos"
-    ];
+                    // ✅ Capturar archivos de imagen
+                    const img1 = document.querySelector(`.imagen-input[data-item="${item}"][data-num="1"]`).files[0];
+                    const img2 = document.querySelector(`.imagen-input[data-item="${item}"][data-num="2"]`).files[0];
+                    imagenesPorItem[item] = { img1, img2 };
 
-    for (const item of items) {
-        const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-        const cumpleValue = select.value;
-        if (cumpleValue === 'null') continue;
+                    itemsData.push({
+                        item_nombre: item,
+                        cumple: cumple,
+                        observacion: observacion,
+                        porcentaje_cumplimiento: porcentaje
+                    });
+                });
 
-        const cumple = cumpleValue === 'true';
-        const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-        let porcentaje = 0;
-        if (cumple) {
-            const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-            porcentaje = parseInt(slider?.value) || 0;
+                if (itemsData.length === 0) {
+                    alert('Debe responder al menos un ítem.');
+                    return;
+                }
+
+                try {
+                    // Crear inspección
+                    const { data: inspeccionData, error: inspError } = await supabase
+                        .from('inspecciones')
+                        .insert({
+                            estacion_id: estacionId,
+                            inspector_email: user.email,
+                            observaciones_generales: document.getElementById('observacionesGenerales').value || null,
+                            proxima_inspeccion: document.getElementById('proximaInspeccion').value || null
+                        })
+                        .select()
+                        .single();
+
+                    if (inspError) throw inspError;
+
+                    // Subir imágenes y guardar URLs
+                    const itemsToInsert = [];
+                    for (const item of itemsData) {
+                        let url1 = null, url2 = null;
+                        const imgs = imagenesPorItem[item.item_nombre] || {};
+
+                        // Subir imagen 1
+                        if (imgs.img1) {
+                            const path1 = `inspecciones/${inspeccionData.id}/${item.item_nombre}/1_${imgs.img1.name}`;
+                            const { error: err1 } = await supabase.storage.from('inspecciones').upload(path1, imgs.img1, { upsert: true });
+                            if (!err1) {
+                                const { data } = supabase.storage.from('inspecciones').getPublicUrl(path1);
+                                url1 = data.publicUrl;
+                            }
+                        }
+
+                        // Subir imagen 2
+                        if (imgs.img2) {
+                            const path2 = `inspecciones/${inspeccionData.id}/${item.item_nombre}/2_${imgs.img2.name}`;
+                            const { error: err2 } = await supabase.storage.from('inspecciones').upload(path2, imgs.img2, { upsert: true });
+                            if (!err2) {
+                                const { data } = supabase.storage.from('inspecciones').getPublicUrl(path2);
+                                url2 = data.publicUrl;
+                            }
+                        }
+
+                        itemsToInsert.push({
+                            inspeccion_id: inspeccionData.id,
+                            item_nombre: item.item_nombre,
+                            cumple: item.cumple,
+                            observacion: item.observacion,
+                            porcentaje_cumplimiento: item.porcentaje_cumplimiento,
+                            imagen1_url: url1,
+                            imagen2_url: url2
+                        });
+                    }
+
+                    const { error: itemsError } = await supabase
+                        .from('items_inspeccion')
+                        .insert(itemsToInsert);
+
+                    if (itemsError) throw itemsError;
+
+                    alert('✅ Inspección y fotos guardadas exitosamente.');
+                    handleOccidentalForm({ preventDefault: () => {} });
+
+                } catch (error) {
+                    console.error('Error al guardar:', error);
+                    alert('❌ Error al guardar la inspección: ' + (error.message || ''));
+                }
+            };
         }
 
-        // ✅ Subir fotos (máximo 2)
-        let foto1_url = null;
-        let foto2_url = null;
-
-        // Foto 1
-        const fileInput1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`);
-        if (fileInput1?.files[0]) {
-            const file1 = fileInput1.files[0];
-            // 🚫 Normalizar nombre: quitar acentos, espacios, y caracteres no permitidos
-            const fileNameClean = file1.name
-                .normalize('NFD') // Descompone caracteres acentuados
-                .replace(/[\u0300-\u036f]/g, '') // Elimina diacríticos
-                .replace(/[^a-zA-Z0-9._-]/g, '_') // Solo letras, números, punto, guión, guión bajo
-                .toLowerCase(); // Opcional: todo minúscula
-
-            const filePath1 = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${fileNameClean}`;
-            const { error: uploadError1 } = await supabase.storage
-                .from('inspecciones-fotos')
-                .upload(filePath1, file1, { upsert: true });
-
-            if (!uploadError1) {
-                const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(filePath1);
-                foto1_url = data.publicUrl;
-            } else {
-                console.warn('Error al subir foto 1:', uploadError1);
-            }
-        }
-
-        // Foto 2
-        const fileInput2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`);
-        if (fileInput2?.files[0]) {
-            const file2 = fileInput2.files[0];
-            const fileNameClean = file2.name
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-zA-Z0-9._-]/g, '_')
-                .toLowerCase();
-
-            const filePath2 = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${fileNameClean}`;
-            const { error: uploadError2 } = await supabase.storage
-                .from('inspecciones-fotos')
-                .upload(filePath2, file2, { upsert: true });
-
-            if (!uploadError2) {
-                const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(filePath2);
-                foto2_url = data.publicUrl;
-            } else {
-                console.warn('Error al subir foto 2:', uploadError2);
-            }
-        }
-
-        itemsToInsert.push({
-            inspeccion_id: inspeccionData.id,
-            item_nombre: item,
-            cumple: cumple,
-            observacion: observacion,
-            porcentaje_cumplimiento: porcentaje,
-            foto1_url: foto1_url,
-            foto2_url: foto2_url
-        });
-    }
-
-    if (itemsToInsert.length === 0) {
-        alert('Debe responder al menos un ítem.');
-        return;
-    }
-
-    const { error: itemsError } = await supabase
-        .from('items_inspeccion')
-        .insert(itemsToInsert);
-
-    if (itemsError) {
-        console.error('Error al guardar ítems:', itemsError);
-        alert('Error al guardar los ítems: ' + (itemsError.message || ''));
-    } else {
-        alert('✅ Inspección guardada exitosamente.');
-        handleOccidentalForm({ preventDefault: () => {} });
-    }
-};
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
@@ -841,4 +818,4 @@ document.getElementById('inspectionForm').onsubmit = async (e) => {
         checkAuthState();
     </script>
 </body>
-</html>
+</h
