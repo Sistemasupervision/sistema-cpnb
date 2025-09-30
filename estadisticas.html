@@ -222,9 +222,9 @@
         </div>
         <!-- SELECCIÓN: CCP + Estación (SIN botón PDF aquí) -->
         <div id="seleccionContainer">
-         <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
-    ← Volver al Panel Principal
-</button>
+            <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
+                ← Volver al Panel Principal
+            </button>
             <div class="filtro-container">
                 <div class="input-group">
                     <label for="ccpFilter">Seleccione CCP:</label>
@@ -520,35 +520,34 @@
 
             const printContent = document.createElement('div');
             printContent.innerHTML = `
-                <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 15px; width: 190mm; box-sizing: border-box;">
                     <div style="text-align: center; margin-bottom: 20px;">
                         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                             alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                        <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">ESTADÍSTICAS DE INSPECCIÓN</h1>
-                        <p style="color: #4a5568; font-size: 16px;">Estación: <strong>${estacionNombre}</strong></p>
-                        <p style="color: #666; font-size: 14px;">Fecha de generación: ${fechaActual}</p>
+                             alt="Logo CPNB" style="width: 30mm; height: 30mm; object-fit: contain;">
+                        <h1 style="color: #0c2440; margin-top: 10px; font-size: 18px; line-height: 1.3;">ESTADÍSTICAS DE INSPECCIÓN</h1>
+                        <p style="color: #4a5568; font-size: 14px; margin-top: 6px;">Estación: <strong>${estacionNombre}</strong></p>
+                        <p style="color: #666; font-size: 12px; margin-top: 4px;">Fecha de generación: ${fechaActual}</p>
                     </div>
-                    <div style="margin-top: 25px;" id="chart-placeholder">
-                        <!-- El gráfico se insertará aquí como imagen -->
+                    <div style="margin-top: 20px;" id="chart-placeholder">
+                        <!-- Gráfico como imagen -->
                     </div>
-                    <div style="margin-top: 30px;">
-                        <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px;">Porcentajes por Ítem</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
-                            ${document.getElementById('porcentajesContainer').innerHTML}
+                    <div style="margin-top: 25px;">
+                        <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px; font-size: 16px;">Porcentajes por Ítem</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(45mm, 1fr)); gap: 10px; font-size: 12px;">
+                            ${document.getElementById('porcentajesContainer').innerHTML.replace(/font-size:\s*\d+/g, 'font-size: 12')}
                         </div>
                     </div>
                 </div>
             `;
 
-            // Convertir el gráfico de Chart.js a imagen
             const canvas = document.getElementById('cumplimientoChart');
             if (canvas && chartInstance) {
                 chartInstance.resize();
                 const imgSrc = canvas.toDataURL('image/png');
                 const placeholder = printContent.querySelector('#chart-placeholder');
                 placeholder.innerHTML = `
-                    <div class="chart-container" style="padding:20px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
-                        <img src="${imgSrc}" alt="Gráfico de cumplimiento" style="width:100%; height:auto; display:block;">
+                    <div style="padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <img src="${imgSrc}" alt="Gráfico" style="width: 100%; height: auto; display: block; max-height: 100mm;">
                     </div>
                 `;
             }
@@ -558,30 +557,32 @@
             printContent.style.left = '-9999px';
 
             try {
-                const captureCanvas = await html2canvas(printContent, {
+                const canvasPDF = await html2canvas(printContent, {
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    allowTaint: true
+                    width: 190 * 3.78,
+                    windowWidth: 190 * 3.78
                 });
 
                 const { jsPDF } = window.jspdf;
-                const imgData = captureCanvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (captureCanvas.height * imgWidth) / captureCanvas.width;
+                const pdf = new jsPDF('p', 'mm', 'letter');
+                const imgData = canvasPDF.toDataURL('image/png');
+                const imgWidth = 190;
+                const pageHeight = 279;
+                const imgHeight = (canvasPDF.height * imgWidth) / canvasPDF.width;
+
                 let heightLeft = imgHeight;
-                let position = 0;
+                let position = 10;
 
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight - 20;
 
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
+                while (heightLeft > 0) {
                     pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+                    position = 10 - (imgHeight - heightLeft);
+                    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight - 20;
                 }
 
                 pdf.save(`estadisticas_cpnb_${estacionNombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
