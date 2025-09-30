@@ -44,26 +44,55 @@
             height: 8px;
             background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 20px;
+            display: block;
+        }
         .title {
             text-align: center;
             color: #0c2440;
             font-size: 24px;
             font-weight: bold;
-            line-height: 1.4;
             margin-bottom: 30px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
-            position: relative;
         }
-        .title::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, #ffcc00, #ff6b00);
-            border-radius: 2px;
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .input-group select,
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            background-color: #f8fafc;
+        }
+        .form-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
@@ -76,13 +105,11 @@
             margin-bottom: 20px;
             display: inline-block;
         }
-        .back-btn:hover {
-            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
-        }
         .galeria-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
+            margin-top: 20px;
         }
         .foto-card {
             background: #f8fafc;
@@ -104,10 +131,19 @@
         }
         .foto-label {
             text-align: center;
-            font-size: 14px;
+            font-size: 13px;
             color: #2d3748;
             font-weight: bold;
-            margin-top: 8px;
+            margin-top: 6px;
+        }
+        .inspeccion-header {
+            grid-column: span 3;
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #2d3748;
         }
         .no-fotos {
             text-align: center;
@@ -127,11 +163,36 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="title">Galería de Inspección</h1>
-        <button class="back-btn" onclick="window.history.back()">← Volver</button>
-        <div id="galeriaContainer" class="galeria-container">
-            <div class="loading">Cargando fotos...</div>
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Galería de Inspección</h1>
         </div>
+
+        <!-- Formulario de selección -->
+        <div id="selectorForm">
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>      
+                    <option value="falcon">CCPE FALCÓN</option>  
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="estacionSelect">Seleccione Estación Policial:</label>
+                <select id="estacionSelect" disabled>
+                    <option value="">-- Primero seleccione un CCP --</option>
+                </select>
+            </div>
+            <button id="loadGaleriaBtn" class="form-btn" disabled>Cargar Galería</button>
+        </div>
+
+        <!-- Galería -->
+        <div id="galeriaContainer" class="galeria-container" style="display:none;"></div>
     </div>
 
     <script>
@@ -139,71 +200,147 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Obtener el ID de la inspección desde la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const inspeccionId = urlParams.get('id');
+        const nombres = {
+            baño_dama: "Baño Dama",
+            baño_caballero: "Baño Caballero",
+            dormitorio_femenino: "Dormitorio Femenino",
+            dormitorio_masculino: "Dormitorio Masculino",
+            cocina: "Cocina",
+            comedor: "Comedor",
+            lavanderia: "Lavandería",
+            oficina_del_jefe: "Oficina del Jefe",
+            oficina_de_rrhh: "Oficina de RRHH",
+            condiciones_electricas: "Condiciones Eléctricas",
+            fachada: "Fachada",
+            condiciones_de_pintura: "Condiciones de Pintura",
+            jardines: "Jardines",
+            condiciones_generales: "Condiciones Generales",
+            vehiculos: "Vehículos",
+            motos: "Motos"
+        };
 
-        if (!inspeccionId) {
-            document.getElementById('galeriaContainer').innerHTML = `
-                <div class="no-fotos">⚠️ No se proporcionó un ID de inspección.</div>
-            `;
-            throw new Error('No se proporcionó un ID de inspección.');
-        }
+        // Cargar estaciones al cambiar CCP
+        document.getElementById('ccpSelect').addEventListener('change', async () => {
+            const ccp = document.getElementById('ccpSelect').value;
+            const estacionSelect = document.getElementById('estacionSelect');
+            const loadBtn = document.getElementById('loadGaleriaBtn');
 
-        async function cargarGaleria() {
+            if (!ccp) {
+                estacionSelect.disabled = true;
+                estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
+                loadBtn.disabled = true;
+                return;
+            }
+
             try {
-                // Consultar los ítems de la inspección
-                const { data: items, error } = await supabase
-                    .from('items_inspeccion')
-                    .select('item_nombre, fotos_urls')
-                    .eq('inspeccion_id', inspeccionId)
-                    .not('fotos_urls', 'is', null); // Solo ítems con fotos
+                const { data: estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccp)
+                    .order('nombre', { ascending: true });
 
                 if (error) throw error;
 
-                const galeriaContainer = document.getElementById('galeriaContainer');
-                galeriaContainer.innerHTML = '';
+                estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.id;
+                    opt.textContent = est.nombre;
+                    estacionSelect.appendChild(opt);
+                });
+                estacionSelect.disabled = false;
+                loadBtn.disabled = true;
+            } catch (err) {
+                console.error('Error al cargar estaciones:', err);
+                alert('Error al cargar estaciones');
+            }
+        });
 
-                if (items.length === 0) {
-                    galeriaContainer.innerHTML = `
-                        <div class="no-fotos">No hay fotos asociadas a esta inspección.</div>
-                    `;
+        // Habilitar botón al seleccionar estación
+        document.getElementById('estacionSelect').addEventListener('change', () => {
+            document.getElementById('loadGaleriaBtn').disabled = !document.getElementById('estacionSelect').value;
+        });
+
+        // Cargar galería
+        document.getElementById('loadGaleriaBtn').addEventListener('click', async () => {
+            const estacionId = document.getElementById('estacionSelect').value;
+            if (!estacionId) return;
+
+            const selectorForm = document.getElementById('selectorForm');
+            const galeriaContainer = document.getElementById('galeriaContainer');
+            galeriaContainer.innerHTML = '<div class="loading">Cargando fotos...</div>';
+            galeriaContainer.style.display = 'grid';
+            selectorForm.style.display = 'none';
+
+            try {
+                // Obtener todas las inspecciones de la estación
+                const { data: inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id, created_at')
+                    .eq('estacion_id', estacionId)
+                    .order('created_at', { ascending: false });
+
+                if (inspError) throw inspError;
+
+                if (inspecciones.length === 0) {
+                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
                     return;
                 }
 
-                // Mapear cada foto a una tarjeta
-                items.forEach(item => {
-                    if (!item.fotos_urls || item.fotos_urls.length === 0) return;
+                let hayFotos = false;
 
-                    item.fotos_urls.forEach(url => {
-                        const card = document.createElement('div');
-                        card.className = 'foto-card';
+                for (const insp of inspecciones) {
+                    // Obtener ítems con fotos de esta inspección
+                    const { data: items, error: itemError } = await supabase
+                        .from('items_inspeccion')
+                        .select('item_nombre, fotos_urls, created_at')
+                        .eq('inspeccion_id', insp.id)
+                        .not('fotos_urls', 'is', null);
 
-                        const img = document.createElement('img');
-                        img.src = url;
-                        img.alt = item.item_nombre;
-                        img.className = 'foto-item';
+                    if (itemError) continue;
+                    if (items.length === 0) continue;
 
-                        const label = document.createElement('div');
-                        label.className = 'foto-label';
-                        label.textContent = item.item_nombre;
+                    hayFotos = true;
 
-                        card.appendChild(img);
-                        card.appendChild(label);
-                        galeriaContainer.appendChild(card);
+                    // Mostrar encabezado de inspección
+                    const fecha = new Date(insp.created_at).toLocaleDateString('es-ES');
+                    const header = document.createElement('div');
+                    header.className = 'inspeccion-header';
+                    header.textContent = `Inspección del ${fecha}`;
+                    galeriaContainer.appendChild(header);
+
+                    // Mostrar fotos
+                    items.forEach(item => {
+                        if (!item.fotos_urls) return;
+                        item.fotos_urls.forEach(url => {
+                            const card = document.createElement('div');
+                            card.className = 'foto-card';
+
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.alt = item.item_nombre;
+                            img.className = 'foto-item';
+
+                            const label = document.createElement('div');
+                            label.className = 'foto-label';
+                            label.textContent = nombres[item.item_nombre] || item.item_nombre;
+
+                            card.appendChild(img);
+                            card.appendChild(label);
+                            galeriaContainer.appendChild(card);
+                        });
                     });
-                });
+                }
+
+                if (!hayFotos) {
+                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay fotos asociadas a esta estación.</div>';
+                }
 
             } catch (err) {
-                console.error('Error al cargar la galería:', err);
-                document.getElementById('galeriaContainer').innerHTML = `
-                    <div class="no-fotos">❌ Error al cargar las fotos: ${err.message}</div>
-                `;
+                console.error('Error al cargar galería:', err);
+                galeriaContainer.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
             }
-        }
-
-        // Cargar la galería cuando el DOM esté listo
-        document.addEventListener('DOMContentLoaded', cargarGaleria);
+        });
     </script>
 </body>
 </html>
