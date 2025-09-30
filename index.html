@@ -672,12 +672,16 @@
                             </div>
                         </div>
                         <!-- ✅ INPUT DE FOTOS POR ÍTEM -->
-                        <input type="file" class="foto-input" data-item="${item}" 
-                               accept="image/*" multiple
-                               style="width:100%; margin-top:10px; font-size:13px;">
-                        <small style="color:#718096; display:block; margin-top:4px;">
-                            (Opcional) Suba fotos del área inspeccionada
-                        </small>
+                       <input type="file" class="foto-input" data-item="${item}" 
+       accept="image/*" multiple
+       style="width:100%; margin-top:10px; font-size:13px;">
+<small style="color:#718096; display:block; margin-top:4px;">
+    (Opcional) Suba fotos del área inspeccionada
+</small>
+<span class="foto-indicador" data-item="${item}" 
+      style="display:none; color:#38a169; font-weight:bold; font-size:14px; margin-top:6px;">
+    ✅ Fotos seleccionadas
+</span>
                     </div>
                 `;
             });
@@ -711,6 +715,7 @@
         const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
         const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
         const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
+        
 
         if (this.value === 'null') {
             textarea.style.display = 'none';
@@ -730,8 +735,16 @@
                 if (fotoInput) {
                     fotoInput.disabled = true;
                     fotoInput.value = ''; // Limpia las fotos si cambia a "No"
-                }
-            }
+                    
+// Manejar indicador de fotos seleccionadas
+document.querySelectorAll('.foto-input').forEach(input => {
+    input.addEventListener('change', function () {
+        const item = this.dataset.item;
+        const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
+        if (this.files && this.files.length > 0) {
+            indicador.style.display = 'block';
+        } else {
+            indicador.style.display = 'none';
         }
     });
 });
