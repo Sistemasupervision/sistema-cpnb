@@ -138,7 +138,7 @@
             border: 1px solid #e2e8f0;
         }
         .chart-wrapper {
-            height: 300px;
+            height: 350px;
             position: relative;
         }
         .loading, .error {
@@ -155,7 +155,7 @@
                 padding: 25px;
             }
             .chart-wrapper {
-                height: 250px;
+                height: 300px;
             }
             .action-buttons {
                 flex-direction: column;
@@ -181,7 +181,6 @@
             <div class="loading">Cargando resumen mensual...</div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -191,16 +190,16 @@
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
             "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL"
+            "col": "CCPE COL",
+            "lara": "CCPE LARA",
+            "falcon": "CCPE FALCÓN"
         };
         let chartInstance = null;
 
-        // Formatear mes y año (ej: "Mar 2025")
         function formatoMes(fecha) {
             return fecha.toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
         }
 
-        // Obtener rango de fechas para un mes específico
         function rangoMes(anio, mes) {
             const inicio = new Date(anio, mes, 1);
             const fin = new Date(anio, mes + 1, 0);
@@ -210,7 +209,41 @@
             };
         }
 
-        // Cargar datos de un mes
+        async function cargarInspeccionesPorCCP(desde, hasta) {
+            // Obtener estaciones de REDIP OCCIDENTAL
+            const { data: estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id, ccp_id')
+                .in('ccp_id', ccpOcidental);
+            if (estError) throw estError;
+            if (estaciones.length === 0) return {};
+
+            const idsEstaciones = estaciones.map(e => e.id);
+            const estacionCCPMap = {};
+            estaciones.forEach(e => {
+                estacionCCPMap[e.id] = e.ccp_id;
+            });
+
+            // Obtener inspecciones en el rango
+            const { data: inspecciones, error: inspError } = await supabase
+                .from('inspecciones')
+                .select('estacion_id')
+                .in('estacion_id', idsEstaciones)
+                .gte('created_at', desde)
+                .lte('created_at', hasta + 'T23:59:59.999Z');
+            if (inspError) throw inspError;
+
+            // Contar por CCP
+            const conteo = {};
+            inspecciones.forEach(insp => {
+                const ccp = estacionCCPMap[insp.estacion_id];
+                if (ccp) {
+                    conteo[ccp] = (conteo[ccp] || 0) + 1;
+                }
+            });
+            return conteo;
+        }
+
         async function cargarDatosMes(desde, hasta) {
             const { data: estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
@@ -240,7 +273,6 @@
             return { inspecciones, items };
         }
 
-        // Calcular métricas
         function calcularMetricas(inspecciones, items) {
             const totalInspecciones = inspecciones.length;
             const totalItems = items.length;
@@ -249,7 +281,6 @@
             return { totalInspecciones, porcentaje };
         }
 
-        // Formatear comparación
         function formatoComparacion(actual, anterior, esPorcentaje = false) {
             if (anterior === 0 && actual === 0) return '';
             const diff = actual - anterior;
@@ -270,6 +301,7 @@
                 const rangoActual = rangoMes(anioActual, mesActual);
                 const datosActual = await cargarDatosMes(rangoActual.desde, rangoActual.hasta);
                 const metricasActual = calcularMetricas(datosActual.inspecciones, datosActual.items);
+                const conteoActual = await cargarInspeccionesPorCCP(rangoActual.desde, rangoActual.hasta);
 
                 // Mes anterior
                 let mesAnterior = mesActual - 1;
@@ -281,26 +313,13 @@
                 const rangoAnterior = rangoMes(anioAnterior, mesAnterior);
                 const datosAnterior = await cargarDatosMes(rangoAnterior.desde, rangoAnterior.hasta);
                 const metricasAnterior = calcularMetricas(datosAnterior.inspecciones, datosAnterior.items);
+                const conteoAnterior = await cargarInspeccionesPorCCP(rangoAnterior.desde, rangoAnterior.hasta);
 
-                // Contar por CCP (solo mes actual)
-                const conteoCCP = {};
-                if (datosActual.inspecciones.length > 0) {
-                    const { data: estacionesConCCP, error: ccpError } = await supabase
-                        .from('estaciones_policiales')
-                        .select('id, ccp_id')
-                        .in('id', datosActual.inspecciones.map(i => i.estacion_id));
-                    if (ccpError) throw ccpError;
-
-                    const estacionCCPMap = {};
-                    estacionesConCCP.forEach(e => {
-                        estacionCCPMap[e.id] = e.ccp_id;
-                    });
-
-                    datosActual.inspecciones.forEach(insp => {
-                        const ccp = estacionCCPMap[insp.estacion_id] || 'otro';
-                        conteoCCP[ccp] = (conteoCCP[ccp] || 0) + 1;
-                    });
-                }
+                // Preparar datos para el gráfico
+                const todosCCP = [...new Set([...Object.keys(conteoActual), ...Object.keys(conteoAnterior)])];
+                const labels = todosCCP.map(k => ccpNombres[k] || k);
+                const dataActual = todosCCP.map(k => conteoActual[k] || 0);
+                const dataAnterior = todosCCP.map(k => conteoAnterior[k] || 0);
 
                 // Renderizar
                 let html = `
@@ -321,7 +340,9 @@
                         </div>
                     </div>
                     <div class="chart-container">
-                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440;">Inspecciones por CCP (${formatoMes(hoy)})</h3>
+                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440;">
+                            Inspecciones por CCP: ${formatoMes(hoy)} vs ${formatoMes(new Date(anioAnterior, mesAnterior))}
+                        </h3>
                         <div class="chart-wrapper">
                             <canvas id="ccpChart"></canvas>
                         </div>
@@ -329,39 +350,46 @@
                 `;
                 container.innerHTML = html;
 
-                // Gráfico
-                if (Object.keys(conteoCCP).length > 0) {
-                    const ctx = document.getElementById('ccpChart').getContext('2d');
-                    const labels = Object.keys(conteoCCP).map(k => ccpNombres[k] || k);
-                    const data = Object.values(conteoCCP);
-
-                    if (chartInstance) chartInstance.destroy();
-                    chartInstance = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Inspecciones este mes',
-                                data: data,
+                // Gráfico comparativo
+                const ctx = document.getElementById('ccpChart').getContext('2d');
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: formatoMes(hoy),
+                                data: dataActual,
                                 backgroundColor: 'rgba(49, 130, 206, 0.8)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
-                                borderRadius: 6
-                            }]
+                                borderRadius: 4
+                            },
+                            {
+                                label: formatoMes(new Date(anioAnterior, mesAnterior)),
+                                data: dataAnterior,
+                                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                                borderColor: 'rgba(220, 38, 38, 1)',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' }
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: { precision: 0 }
-                                }
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
                             }
                         }
-                    });
-                }
+                    }
+                });
 
             } catch (error) {
                 console.error('Error al cargar resumen mensual:', error);
@@ -388,7 +416,6 @@
             document.body.appendChild(printContent);
             printContent.style.position = 'fixed';
             printContent.style.left = '-9999px';
-
             try {
                 const canvas = await html2canvas(printContent, {
                     scale: 2,
