@@ -175,6 +175,14 @@
             padding: 40px;
             grid-column: span 3;
         }
+        #filtroFechas {
+            display: none;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
         #paginacionContainer {
             display: none;
             justify-content: center;
@@ -232,7 +240,7 @@
             <div id="estacionNombreDisplay"></div>
         </div>
 
-        <!-- Formulario de selección -->
+        <!-- Formulario de selección (sin fechas) -->
         <div id="selectorForm">
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
@@ -252,16 +260,26 @@
                     <option value="">-- Primero seleccione un CCP --</option>
                 </select>
             </div>
-            <div class="input-group">
-                <label for="fechaDesde">Fecha desde:</label>
-                <input type="date" id="fechaDesde">
-            </div>
-            <div class="input-group">
-                <label for="fechaHasta">Fecha hasta:</label>
-                <input type="date" id="fechaHasta" value="">
-            </div>
             <button id="loadGaleriaBtn" class="form-btn" disabled>Cargar Galería</button>
             <button id="backToMenuBtn" class="back-btn" style="margin-top: 20px;">← Volver al Menú</button>
+        </div>
+
+        <!-- Filtro de fechas (oculto al inicio) -->
+        <div id="filtroFechas">
+            <h3 style="text-align:center; margin-bottom:15px; color:#0c2440;">Filtrar por Fecha</h3>
+            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                <div class="input-group" style="flex:1; min-width:200px;">
+                    <label for="fechaDesde">Desde:</label>
+                    <input type="date" id="fechaDesde">
+                </div>
+                <div class="input-group" style="flex:1; min-width:200px;">
+                    <label for="fechaHasta">Hasta:</label>
+                    <input type="date" id="fechaHasta">
+                </div>
+                <div style="display:flex; align-items:end;">
+                    <button id="aplicarFiltroBtn" class="form-btn" style="padding:12px; font-size:14px; margin:0;">Aplicar Filtro</button>
+                </div>
+            </div>
         </div>
 
         <!-- Galería -->
@@ -306,8 +324,10 @@
         let todasLasFotos = [];
         let paginaActual = 1;
         const fotosPorPagina = 12;
+        let estacionIdActual = null;
+        let estacionNombreActual = '';
 
-        // Establecer fecha actual en "Fecha hasta"
+        // Establecer fecha actual en "Fecha hasta" al cargar
         document.getElementById('fechaHasta').valueAsDate = new Date();
 
         // Cargar estaciones al cambiar CCP
@@ -347,25 +367,39 @@
             document.getElementById('loadGaleriaBtn').disabled = !document.getElementById('estacionSelect').value;
         });
 
-        // Cargar galería con filtro de fechas
+        // Cargar galería inicial (sin filtro)
         document.getElementById('loadGaleriaBtn').addEventListener('click', async () => {
-            const estacionId = document.getElementById('estacionSelect').value;
-            if (!estacionId) return;
+            estacionIdActual = document.getElementById('estacionSelect').value;
+            if (!estacionIdActual) return;
 
             const estacionSelect = document.getElementById('estacionSelect');
-            const estacionNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
-            document.getElementById('estacionNombreDisplay').textContent = `Estación: ${estacionNombre}`;
-            document.getElementById('estacionNombreDisplay').style.display = 'block';
+            estacionNombreActual = estacionSelect.options[estacionSelect.selectedIndex].text;
 
-            const fechaDesde = document.getElementById('fechaDesde').value;
-            const fechaHasta = document.getElementById('fechaHasta').value;
+            document.getElementById('estacionNombreDisplay').textContent = `Estación: ${estacionNombreActual}`;
+            document.getElementById('estacionNombreDisplay').style.display = 'block';
 
             const selectorForm = document.getElementById('selectorForm');
             const galeriaContainer = document.getElementById('galeriaContainer');
-            galeriaContainer.innerHTML = `<div class="loading">Cargando fotos de: <strong>${estacionNombre}</strong>...</div>`;
+            galeriaContainer.innerHTML = `<div class="loading">Cargando fotos de: <strong>${estacionNombreActual}</strong>...</div>`;
             galeriaContainer.style.display = 'grid';
             selectorForm.style.display = 'none';
 
+            // Mostrar el filtro de fechas
+            document.getElementById('filtroFechas').style.display = 'block';
+
+            await cargarFotos(estacionIdActual, null, null);
+        });
+
+        // Aplicar filtro de fechas
+        document.getElementById('aplicarFiltroBtn').addEventListener('click', async () => {
+            const fechaDesde = document.getElementById('fechaDesde').value;
+            const fechaHasta = document.getElementById('fechaHasta').value;
+            await cargarFotos(estacionIdActual, fechaDesde, fechaHasta);
+        });
+
+        // Función reutilizable para cargar fotos con o sin filtro
+        async function cargarFotos(estacionId, fechaDesde, fechaHasta) {
+            const galeriaContainer = document.getElementById('galeriaContainer');
             try {
                 let query = supabase
                     .from('inspecciones')
@@ -437,7 +471,7 @@
                 document.getElementById('paginacionContainer').style.display = 'none';
                 document.getElementById('backToSelectorBtn').style.display = 'block';
             }
-        });
+        }
 
         async function descargarImagen(url, nombreItem) {
             try {
@@ -565,6 +599,7 @@
             document.getElementById('selectorForm').style.display = 'block';
             document.getElementById('galeriaContainer').style.display = 'none';
             document.getElementById('paginacionContainer').style.display = 'none';
+            document.getElementById('filtroFechas').style.display = 'none';
             document.getElementById('backToSelectorBtn').style.display = 'none';
             document.getElementById('estacionNombreDisplay').style.display = 'none';
         });
