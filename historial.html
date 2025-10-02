@@ -882,13 +882,25 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-   async function exportarInspeccionAPDF() {
+ async function exportarInspeccionAPDF() {
     const content = document.getElementById('detalleContenido');
     if (!content || !content.innerHTML.trim()) {
         alert('No hay contenido para exportar.');
         return;
     }
+
+    // ✅ Obtener el ID de la inspección desde el modal (lo extraemos del botón "PDF")
+    // Suponiendo que el botón PDF tiene un atributo data-inspeccion-id
+    // Pero como no lo tenemos, lo inferimos desde el contenido (mejor solución abajo)
+
+    // Alternativa: buscar el ID desde el contenido (poco robusto)
+    // Mejor: pasarlo como parámetro. Pero para no romper, usamos null por ahora.
+    // Si necesitas vincularlo a la inspección, avísame y ajustamos el botón.
+
     try {
+        // ✅ Generar número de reporte único desde la BD
+        const numeroReporte = await generarNumeroReporte('inspeccion'); // o 'inspeccion', null
+
         const htmlContent = `
             <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -896,39 +908,39 @@
                          alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
                     <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
                     <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                    <p style="color: #2d3748; font-size: 14px; margin-top: 8px; font-weight: 600;">
+                        N° de Reporte: <strong>${numeroReporte}</strong>
+                    </p>
                 </div>
                 ${content.innerHTML}
-                
-<!-- ✅ Sección de firmas con mayor separación entre niveles -->
-<div style="margin-top: 50px; page-break-inside: avoid;">
-    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
-        Firmas de conformidad
-    </h3>
 
-    <!-- Nivel Operativo: Inspector y Jefe de Estación -->
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
-        <div style="text-align: center;">
-            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
-        </div>
-        <div style="text-align: center;">
-            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
-        </div>
-    </div>
+                <!-- ✅ Sección de firmas con mayor separación -->
+                <div style="margin-top: 50px; page-break-inside: avoid;">
+                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+                        Firmas de conformidad
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Nivel Directivo: Jefe de CCP y Jefe de REDIP -->
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
-        <div style="text-align: center;">
-            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
-        </div>
-        <div style="text-align: center;">
-            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
-        </div>
-    </div>
-</div>
                 <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
                     Fecha de generación: ${new Date().toLocaleString('es-ES')}
                 </div>
@@ -1149,6 +1161,28 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
+        async function generarNumeroReporte(tipo, inspeccionId = null) {
+    try {
+        // Insertar en la tabla 'reportes'
+        const { data, error } = await supabase
+            .from('reportes')
+            .insert({ tipo_reporte: tipo, inspeccion_id: inspeccionId })
+            .select('id')
+            .single();
+
+        if (error) throw error;
+
+        const secuencia = String(data.id).padStart(6, '0'); // Ej: 000123
+        const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // 20251002
+        return `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${secuencia}`;
+    } catch (err) {
+        console.error('Error al generar número de reporte:', err);
+        // Fallback: usar timestamp si falla la BD
+        const fallback = String(Date.now()).slice(-6);
+        const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        return `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${fallback}`;
+    }
+}
 
         // ✅ EJECUTAR VERIFICACIÓN AL CARGAR
         verificarAcceso().then(() => {
