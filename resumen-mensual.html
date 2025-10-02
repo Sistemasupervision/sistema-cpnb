@@ -517,84 +517,92 @@
             }
         }
 
-        // ✅ FUNCIÓN CORREGIDA PARA EXPORTAR CON GRÁFICOS
-        async function exportarResumenAPDF() {
-            const canvas = document.getElementById('ccpChart');
-            if (!canvas) {
-                alert('Gráfico no encontrado');
-                return;
-            }
+  async function exportarResumenAPDF() {
+    const redipNombre = "OCCIDENTAL"; 
+    const fechaHoy = new Date();
+    const fechaStr = fechaHoy.toISOString().slice(0, 10).replace(/-/g, ''); // Ej: 20251002
+    const secuencia = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0'); // Ej: 427
+    const numeroReporte = `CPNB-REDIP-${redipNombre}-${fechaStr}-${secuencia}`;
 
-            const imgDataUrl = canvas.toDataURL('image/png');
+    const canvas = document.getElementById('ccpChart');
+    if (!canvas) {
+        alert('Gráfico no encontrado');
+        return;
+    }
 
-            const clone = document.getElementById('resumenContainer').cloneNode(true);
-            const chartImg = document.createElement('img');
-            chartImg.src = imgDataUrl;
-            chartImg.style.width = '100%';
-            chartImg.style.height = 'auto';
-            chartImg.style.marginTop = '15px';
+    const imgDataUrl = canvas.toDataURL('image/png');
 
-            const canvasInClone = clone.querySelector('canvas');
-            if (canvasInClone && canvasInClone.parentElement) {
-                canvasInClone.parentElement.replaceWith(chartImg);
-            }
+    const clone = document.getElementById('resumenContainer').cloneNode(true);
+    const chartImg = document.createElement('img');
+    chartImg.src = imgDataUrl;
+    chartImg.style.width = '100%';
+    chartImg.style.height = 'auto';
+    chartImg.style.marginTop = '15px';
 
-            const printContent = document.createElement('div');
-            printContent.innerHTML = `
-                <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
-                    <div style="text-align: center; margin-bottom: 25px;">
-                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                             alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                        <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: bold;">
-                            RESUMEN MENSUAL DE INSPECCIONES
-                        </h1>
-                        <p style="color: #4a5568; font-size: 15px;">REDIP OCCIDENTAL - Comparación de Meses</p>
-                    </div>
-                    ${clone.innerHTML}
-                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
-                    </div>
-                </div>
-            `;
+    const canvasInClone = clone.querySelector('canvas');
+    if (canvasInClone && canvasInClone.parentElement) {
+        canvasInClone.parentElement.replaceWith(chartImg);
+    }
 
-            document.body.appendChild(printContent);
-            printContent.style.position = 'fixed';
-            printContent.style.left = '-9999px';
+    const printContent = document.createElement('div');
+    printContent.innerHTML = `
+        <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                     alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: bold;">
+                    RESUMEN MENSUAL DE INSPECCIONES
+                </h1>
+                <p style="color: #4a5568; font-size: 15px;">REDIP OCCIDENTAL - Comparación de Meses</p>
+                <p style="color: #2d3748; font-size: 14px; margin-top: 8px; font-weight: 600;">
+                    N° de Reporte: <strong>${numeroReporte}</strong>
+                </p>
+            </div>
+            ${clone.innerHTML}
+            <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                Fecha de generación: ${fechaHoy.toLocaleString('es-ES')}
+            </div>
+        </div>
+    `;
 
-            try {
-                const canvasPDF = await html2canvas(printContent, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    allowTaint: true
-                });
+    document.body.appendChild(printContent);
+    printContent.style.position = 'fixed';
+    printContent.style.left = '-9999px';
 
-                const { jsPDF } = window.jspdf;
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvasPDF.height * imgWidth) / canvasPDF.width;
-                let heightLeft = imgHeight;
-                let position = 0;
+    try {
+        const canvasPDF = await html2canvas(printContent, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true
+        });
 
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+        const { jsPDF } = window.jspdf;
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvasPDF.height * imgWidth) / canvasPDF.width;
+        let heightLeft = imgHeight;
+        let position = 0;
 
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight + 10;
-                    pdf.addPage();
-                    pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
 
-                pdf.save(`resumen_comparativo_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('Error al generar el PDF. Revisa la consola.');
-            } finally {
-                document.body.removeChild(printContent);
-            }
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight + 10;
+            pdf.addPage();
+            pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
         }
+
+        pdf.save(`resumen_comparativo_cpnb_${fechaStr}.pdf`);
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('Error al generar el PDF. Revisa la consola.');
+    } finally {
+        document.body.removeChild(printContent);
+    }
+}
 
         // Inicializar
         llenarSelectores();
