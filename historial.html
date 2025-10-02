@@ -738,8 +738,8 @@
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
         async function mostrarDetalle(inspeccionId) {
-            inspeccionIdActual = inspeccionId; // ← ✅ CLAVE: asignar ID actual
-            try {
+     inspeccionIdActual = inspeccionId; // ←←← AGREGA ESTA LÍNEA AQUÍ
+    try {
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
@@ -867,114 +867,119 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
         async function exportarInspeccionAPDF() {
-            const content = document.getElementById('detalleContenido');
-            if (!content || !content.innerHTML.trim()) {
-                alert('No hay contenido para exportar.');
-                return;
-            }
-            try {
-                // ✅ Generar número de reporte único
-                const { data: nuevoReporte, error: insertError } = await supabase
-                    .from('reportes')
-                    .insert({ inspeccion_id: inspeccionIdActual })
-                    .select('id, fecha_generacion')
-                    .single();
+    const content = document.getElementById('detalleContenido');
+    if (!content || !content.innerHTML.trim()) {
+        alert('No hay contenido para exportar.');
+        return;
+    }
+    if (!inspeccionIdActual) {
+        alert('⚠️ Error: No se ha cargado una inspección válida.');
+        return;
+    }
+    try {
+        // ✅ Insertar en 'reportes' para obtener ID único
+        const { data: nuevoReporte, error: insertError } = await supabase
+            .from('reportes')
+            .insert({ inspeccion_id: inspeccionIdActual })
+            .select('id, fecha_generacion')
+            .single();
 
-                if (insertError) {
-                    console.error('Error al crear reporte:', insertError);
-                    alert('⚠️ No se pudo generar el número de reporte. Verifique conexión o permisos.');
-                    return;
-                }
+        if (insertError) {
+            console.error('Error al crear reporte:', insertError);
+            alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
+            return;
+        }
 
-                const fechaGen = new Date(nuevoReporte.fecha_generacion);
-                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
-                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+        // ✅ Generar número de reporte
+        const fechaGen = new Date(nuevoReporte.fecha_generacion);
+        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+        const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
 
-                // Actualizar con el número
-                await supabase
-                    .from('reportes')
-                    .update({ numero_reporte: numeroReporte })
-                    .eq('id', nuevoReporte.id);
+        // ✅ Actualizar con el número (opcional pero recomendado)
+        await supabase
+            .from('reportes')
+            .update({ numero_reporte: numeroReporte })
+            .eq('id', nuevoReporte.id);
 
-                // Generar PDF
-                const htmlContent = `
-                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+        // ✅ Generar PDF
+        const htmlContent = `
+            <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                    <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                    <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+                </div>
+                ${content.innerHTML}
+                <div style="margin-top: 50px; page-break-inside: avoid;">
+                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
                         </div>
-                        ${content.innerHTML}
-                        <div style="margin-top: 50px; page-break-inside: avoid;">
-                            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
-                                </div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
                         </div>
                     </div>
-                `;
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                </div>
+            </div>
+        `;
 
-                const printDiv = document.createElement('div');
-                printDiv.innerHTML = htmlContent;
-                document.body.appendChild(printDiv);
-                printDiv.style.position = 'fixed';
-                printDiv.style.left = '-9999px';
+        const printDiv = document.createElement('div');
+        printDiv.innerHTML = htmlContent;
+        document.body.appendChild(printDiv);
+        printDiv.style.position = 'fixed';
+        printDiv.style.left = '-9999px';
 
-                const canvas = await html2canvas(printDiv, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
-                });
+        const canvas = await html2canvas(printDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
 
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
 
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-
-                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
-                document.body.removeChild(printDiv);
-                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('❌ Error al generar el reporte.');
-            }
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
         }
+
+        pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+        document.body.removeChild(printDiv);
+        alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('❌ Error al generar el reporte.');
+    }
+}
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
