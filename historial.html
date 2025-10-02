@@ -8,7 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        /* ... (el mismo CSS que ya tienes, sin cambios) ... */
         * {
             margin: 0;
             padding: 0;
@@ -460,6 +459,7 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // ✅ CORREGIDO: se agregaron "lara" y "falcon"
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
@@ -478,6 +478,7 @@
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -502,6 +503,7 @@
                 window.location.href = 'index.html';
             }
         }
+
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -525,6 +527,7 @@
                 alert('Error al cargar las estaciones');
             }
         });
+
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
                 const { data: todasEstaciones, error: estError } = await supabase
@@ -538,10 +541,12 @@
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
                     ccpEstaciones[est.ccp_id].push(est.id);
                 });
+
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
+
                 if (fechaDesde && fechaHasta) {
                     const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
                     const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
@@ -549,6 +554,7 @@
                         .gte('created_at', desdeISO)
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
+
                 let idsPermitidos = null;
                 if (estacionId) {
                     idsPermitidos = [parseInt(estacionId)];
@@ -564,8 +570,10 @@
                     }
                     query = query.in('estacion_id', idsPermitidos);
                 }
+
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
+
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -583,6 +591,7 @@
                         });
                     }
                 }
+
                 inspeccionesCache = inspecciones.map(insp => {
                     const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
                     const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
@@ -593,6 +602,7 @@
                         porcentaje_cumplimiento: porcentaje
                     };
                 });
+
                 paginaActual = 1;
                 renderizarLista();
                 renderizarPaginacion();
@@ -604,6 +614,7 @@
                 renderizarPaginacion();
             }
         }
+
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
@@ -622,6 +633,7 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
+
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 const hoy = new Date();
@@ -637,9 +649,11 @@
                         estadoClase = 'estado-amarillo';
                     }
                 }
+
                 let claseCumplimiento = 'cumplimiento-bajo';
                 if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
                 else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
+
                 let botonesHTML = `
                     <div class="botones-container">
                         <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
@@ -652,6 +666,7 @@
                     `;
                 }
                 botonesHTML += `</div>`;
+
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
                 card.innerHTML = `
@@ -682,17 +697,20 @@
                 contenedor.appendChild(card);
             });
         }
+
         function renderizarPaginacion() {
             const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
             const paginacionDiv = document.getElementById('pagination');
             paginacionDiv.innerHTML = '';
             if (totalPaginas <= 1) return;
+
             const maxVisible = 5;
             let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
             let end = Math.min(totalPaginas, start + maxVisible - 1);
             if (end - start + 1 < maxVisible) {
                 start = Math.max(1, end - maxVisible + 1);
             }
+
             const prevBtn = document.createElement('button');
             prevBtn.textContent = '«';
             prevBtn.disabled = paginaActual === 1;
@@ -704,6 +722,7 @@
                 }
             };
             paginacionDiv.appendChild(prevBtn);
+
             for (let i = start; i <= end; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
@@ -715,6 +734,7 @@
                 };
                 paginacionDiv.appendChild(btn);
             }
+
             const nextBtn = document.createElement('button');
             nextBtn.textContent = '»';
             nextBtn.disabled = paginaActual === totalPaginas;
@@ -727,6 +747,7 @@
             };
             paginacionDiv.appendChild(nextBtn);
         }
+
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -739,21 +760,22 @@
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
 
-        // ✅ CORREGIDO: ahora asigna inspeccionIdActual
         async function mostrarDetalle(inspeccionId) {
-            inspeccionIdActual = inspeccionId; // ← ¡IMPORTANTE!
             try {
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
                     .eq('inspeccion_id', inspeccionId)
                     .order('item_nombre', { ascending: true });
+
                 const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
                     .single();
+
                 if (itemsError || inspError) throw itemsError || inspError;
+
                 let nombreEstacion = 'Estación no disponible';
                 const { data: estacionData, error: estError } = await supabase
                     .from('estaciones_policiales')
@@ -763,6 +785,7 @@
                 if (!estError && estacionData) {
                     nombreEstacion = estacionData.nombre;
                 }
+
                 const nombres = {
                     baño_dama: "Baño Dama",
                     baño_caballero: "Baño Caballero",
@@ -784,6 +807,7 @@
                     libros: "Elementos de supervisión y control",
                     equipos_tecnologicos: "Equipos Tecnológicos" 
                 };
+
                 let fechaFormateada = 'Fecha no disponible';
                 if (inspeccion.created_at) {
                     const fechaObj = new Date(inspeccion.created_at);
@@ -797,6 +821,7 @@
                         });
                     }
                 }
+
                 let html = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
@@ -822,6 +847,7 @@
                         </div>
                     </div>
                 `;
+
                 if (items && items.length > 0) {
                     html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
                     items.forEach(item => {
@@ -846,6 +872,7 @@
                 } else {
                     html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
                 }
+
                 if (inspeccion.observaciones_generales) {
                     html += `
                         <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
@@ -854,6 +881,7 @@
                         </div>
                     `;
                 }
+
                 document.getElementById('detalleContenido').innerHTML = html;
                 document.getElementById('detalleModal').style.display = 'flex';
             } catch (error) {
@@ -861,143 +889,117 @@
                 alert('Error al cargar los detalles.');
             }
         }
+
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
+
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        // ✅ NUEVA FUNCIÓN: exportarInspeccionAPDF con número de reporte único
         async function exportarInspeccionAPDF() {
-            const content = document.getElementById('detalleContenido');
-            if (!content || !content.innerHTML.trim()) {
-                alert('No hay contenido para exportar.');
-                return;
-            }
+    const content = document.getElementById('detalleContenido');
+    if (!content || !content.innerHTML.trim()) {
+        alert('No hay contenido para exportar.');
+        return;
+    }
+    try {
+        const htmlContent = `
+            <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                    <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                </div>
+                ${content.innerHTML}
 
-            try {
-                // 1. Insertar en reportes para obtener ID único
-                const { data: reporte, error: insertError } = await supabase
-                    .from('reportes')
-                    .insert({ inspeccion_id: inspeccionIdActual })
-                    .select('id, fecha_generacion')
-                    .single();
-
-                if (insertError) {
-                    console.error('Error al crear reporte:', insertError);
-                    alert('⚠️ No se pudo generar el número de reporte. Verifique la conexión o permisos.');
-                    return;
-                }
-
-                // 2. Generar número de reporte
-                const fechaGen = new Date(reporte.fecha_generacion);
-                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-                const consecutivo = String(reporte.id).padStart(6, '0');
-                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
-
-                // 3. Actualizar con el número
-                await supabase
-                    .from('reportes')
-                    .update({ numero_reporte: numeroReporte })
-                    .eq('id', reporte.id);
-
-                // 4. Obtener datos para el PDF
-                const nombreEstacion = content.querySelector('strong')?.nextSibling?.textContent?.trim() ||
-                    content.querySelector('div[style*="Estación:"]')?.querySelector('span')?.textContent?.trim() ||
-                    'Desconocida';
-
-                // 5. Generar HTML del PDF
-                const htmlContent = `
-                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+                <!-- ✅ Sección de firmas con buen espaciado y separación -->
+                <div style="margin-top: 50px; page-break-inside: avoid;">
+                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+                        Firmas de conformidad
+                    </h3>
+                    <!-- Primer nivel: operativo -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
                         </div>
-                        ${content.innerHTML}
-                        <div style="margin-top: 50px; page-break-inside: avoid;">
-                            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
-                                Firmas de conformidad
-                            </h3>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
-                                </div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
                         </div>
                     </div>
-                `;
+                    <!-- Segundo nivel: directivo -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                        </div>
+                    </div>
+                </div>
 
-                const printDiv = document.createElement('div');
-                printDiv.innerHTML = htmlContent;
-                document.body.appendChild(printDiv);
-                printDiv.style.position = 'fixed';
-                printDiv.style.left = '-9999px';
+                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                </div>
+            </div>
+        `;
 
-                const canvas = await html2canvas(printDiv, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
-                });
+        const printDiv = document.createElement('div');
+        printDiv.innerHTML = htmlContent;
+        document.body.appendChild(printDiv);
+        printDiv.style.position = 'fixed';
+        printDiv.style.left = '-9999px';
 
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
+        const canvas = await html2canvas(printDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
 
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
 
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
 
-                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
-                document.body.removeChild(printDiv);
-
-                alert(`✅ Reporte generado con éxito.\nN°: ${numeroReporte}`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('❌ Error al generar el reporte. Intente nuevamente.');
-            }
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
         }
+
+        const fecha = new Date().toISOString().slice(0, 10);
+        pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
+        document.body.removeChild(printDiv);
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('Error al generar el PDF. Intente nuevamente.');
+    }
+}
 
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
+
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
+
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha) {
@@ -1022,6 +1024,7 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
+
         verificarAcceso().then(() => {
             cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
         });
