@@ -292,7 +292,7 @@
         async function cargarDatosPorCCP(anio, mes) {
             try {
                 const rango = rangoMes(anio, mes);
-                const { data: estaciones, error: estError } = await supabase
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, ccp_id')
                     .in('ccp_id', ccpOcidental);
@@ -313,7 +313,7 @@
                 if (!inspecciones || inspecciones.length === 0) return {};
 
                 const idsInspecciones = inspecciones.map(i => i.id);
-                const { data: items, error: itemsError } = await supabase
+                const {  items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('inspeccion_id, cumple')
                     .in('inspeccion_id', idsInspecciones);
@@ -412,12 +412,12 @@
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
                     type: 'bar',
-                    data: {
+                     {
                         labels: labels,
                         datasets: [
                             {
                                 label: formatoMes(anioBase, mesBase),
-                                data: dataBase,
+                                 dataBase,
                                 backgroundColor: 'rgba(49, 130, 206, 0.85)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
@@ -425,7 +425,7 @@
                             },
                             {
                                 label: formatoMes(anioComp, mesComp),
-                                data: dataComp,
+                                 dataComp,
                                 backgroundColor: 'rgba(239, 68, 68, 0.75)',
                                 borderColor: 'rgba(220, 38, 38, 1)',
                                 borderWidth: 1,
