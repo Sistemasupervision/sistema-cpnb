@@ -459,7 +459,6 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        // ✅ CORREGIDO: se agregaron "lara" y "falcon"
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
@@ -527,7 +526,7 @@
         });
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
-                const {  todasEstaciones, error: estError } = await supabase
+                const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
                 if (estError) throw estError;
@@ -569,7 +568,7 @@
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
-                    const {  items, error: itemsError } = await supabase
+                    const { data: items, error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .select('inspeccion_id, cumple')
                         .in('inspeccion_id', idsInspecciones);
@@ -738,256 +737,244 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId);
         }
-       async function mostrarDetalle(inspeccionId) {
-    inspeccionIdActual = inspeccionId; // ← Agregado para reportes
-    try {
-        // Cargar ítems
-        const { data: itemsRaw, error: itemsError } = await supabase
-            .from('items_inspeccion')
-            .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
-            .eq('inspeccion_id', inspeccionId)
-            .order('item_nombre', { ascending: true });
-
-        // Cargar datos de la inspección
-        const { data: inspeccion, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
-            .eq('id', inspeccionId)
-            .single();
-
-        if (inspError) throw inspError;
-
-        // Asegurar que items sea un array
-        const items = Array.isArray(itemsRaw) ? itemsRaw : [];
-
-        let nombreEstacion = 'Estación no disponible';
-        const { data: estacionData, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('nombre')
-            .eq('id', inspeccion.estacion_id)
-            .single();
-        if (!estError && estacionData) {
-            nombreEstacion = estacionData.nombre;
-        }
-
-        const nombres = {
-            baño_dama: "Baño Dama",
-            baño_caballero: "Baño Caballero",
-            dormitorio_femenino: "Dormitorio Femenino",
-            dormitorio_masculino: "Dormitorio Masculino",
-            cocina: "Cocina",
-            comedor: "Comedor",
-            lavanderia: "Lavandería",
-            oficina_del_jefe: "Oficina del Jefe",
-            oficina_de_rrhh: "Oficina de RRHH",
-            condiciones_electricas: "Condiciones Eléctricas",
-            fachada: "Fachada",
-            condiciones_de_pintura: "Condiciones de Pintura",
-            jardines: "Jardines",
-            condiciones_generales: "Otros",
-            vehiculos: "Vehículos",
-            motos: "Motos",
-            botiquin_emergencia: "Servicio médico/implementos médicos",
-            libros: "Elementos de supervisión y control",
-            equipos_tecnologicos: "Equipos Tecnológicos" 
-        };
-
-        let fechaFormateada = 'Fecha no disponible';
-        if (inspeccion.created_at) {
-            const fechaObj = new Date(inspeccion.created_at);
-            if (!isNaN(fechaObj.getTime())) {
-                fechaFormateada = fechaObj.toLocaleString('es-ES', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            }
-        }
-
-        let html = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
-                <div style="display: flex; gap: 8px;">
-                    <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
-                    <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
-                </div>
-            </div>
-            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
-                        <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
-                        <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
-                        <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        if (items.length > 0) {
-            html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
-            items.forEach(item => {
-                const nombre = nombres[item.item_nombre] || item.item_nombre;
-                const clase = item.cumple ? 'si' : 'no';
-                const texto = item.cumple ? 'Sí' : 'No';
-                const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
-                html += `
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
-                            <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
-                                ${texto}${porcentajeTexto}
-                            </span>
+        async function mostrarDetalle(inspeccionId) {
+            inspeccionIdActual = inspeccionId; // ← ✅ CLAVE: asignar ID actual
+            try {
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+                    .eq('inspeccion_id', inspeccionId)
+                    .order('item_nombre', { ascending: true });
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
+                    .eq('id', inspeccionId)
+                    .single();
+                if (itemsError || inspError) throw itemsError || inspError;
+                let nombreEstacion = 'Estación no disponible';
+                const { data: estacionData, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('nombre')
+                    .eq('id', inspeccion.estacion_id)
+                    .single();
+                if (!estError && estacionData) {
+                    nombreEstacion = estacionData.nombre;
+                }
+                const nombres = {
+                    baño_dama: "Baño Dama",
+                    baño_caballero: "Baño Caballero",
+                    dormitorio_femenino: "Dormitorio Femenino",
+                    dormitorio_masculino: "Dormitorio Masculino",
+                    cocina: "Cocina",
+                    comedor: "Comedor",
+                    lavanderia: "Lavandería",
+                    oficina_del_jefe: "Oficina del Jefe",
+                    oficina_de_rrhh: "Oficina de RRHH",
+                    condiciones_electricas: "Condiciones Eléctricas",
+                    fachada: "Fachada",
+                    condiciones_de_pintura: "Condiciones de Pintura",
+                    jardines: "Jardines",
+                    condiciones_generales: "Otros",
+                    vehiculos: "Vehículos",
+                    motos: "Motos",
+                    botiquin_emergencia: "Servicio médico/implementos médicos",
+                    libros: "Elementos de supervisión y control",
+                    equipos_tecnologicos: "Equipos Tecnológicos" 
+                };
+                let fechaFormateada = 'Fecha no disponible';
+                if (inspeccion.created_at) {
+                    const fechaObj = new Date(inspeccion.created_at);
+                    if (!isNaN(fechaObj.getTime())) {
+                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
+                            <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
                         </div>
-                        ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
-                            <strong>Observación:</strong> ${item.observacion}
-                        </div>` : ''}
+                    </div>
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
+                            </div>
+                        </div>
                     </div>
                 `;
-            });
-        } else {
-            html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
+                // ✅ Asegurar que items sea un array
+                const itemsArray = Array.isArray(items) ? items : [];
+                if (itemsArray.length > 0) {
+                    html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
+                    itemsArray.forEach(item => {
+                        const nombre = nombres[item.item_nombre] || item.item_nombre;
+                        const clase = item.cumple ? 'si' : 'no';
+                        const texto = item.cumple ? 'Sí' : 'No';
+                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+                        html += `
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
+                                    <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
+                                        ${texto}${porcentajeTexto}
+                                    </span>
+                                </div>
+                                ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                                    <strong>Observación:</strong> ${item.observacion}
+                                </div>` : ''}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
+                }
+                if (inspeccion.observaciones_generales) {
+                    html += `
+                        <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
+                            <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
+                        </div>
+                    `;
+                }
+                document.getElementById('detalleContenido').innerHTML = html;
+                document.getElementById('detalleModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Error al cargar detalles:', error);
+                alert('Error al cargar los detalles.');
+            }
         }
-
-        if (inspeccion.observaciones_generales) {
-            html += `
-                <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
-                    <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
-                    <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
-                </div>
-            `;
-        }
-
-        document.getElementById('detalleContenido').innerHTML = html;
-        document.getElementById('detalleModal').style.display = 'flex';
-    } catch (error) {
-        console.error('Error al cargar detalles:', error);
-        alert('Error al cargar los detalles.');
-    }
-}
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-       async function exportarInspeccionAPDF() {
-    const content = document.getElementById('detalleContenido');
-    if (!content || !content.innerHTML.trim()) {
-        alert('No hay contenido para exportar.');
-        return;
-    }
-    try {
-        // ✅ Generar número de reporte único
-        const { data: nuevoReporte, error: insertError } = await supabase
-            .from('reportes')
-            .insert({ inspeccion_id: inspeccionIdActual })
-            .select('id, fecha_generacion')
-            .single();
+        async function exportarInspeccionAPDF() {
+            const content = document.getElementById('detalleContenido');
+            if (!content || !content.innerHTML.trim()) {
+                alert('No hay contenido para exportar.');
+                return;
+            }
+            try {
+                // ✅ Generar número de reporte único
+                const { data: nuevoReporte, error: insertError } = await supabase
+                    .from('reportes')
+                    .insert({ inspeccion_id: inspeccionIdActual })
+                    .select('id, fecha_generacion')
+                    .single();
 
-        if (insertError) {
-            console.error('Error al crear reporte:', insertError);
-            alert('⚠️ No se pudo generar el número de reporte. Verifique conexión o permisos en Supabase.');
-            return;
-        }
+                if (insertError) {
+                    console.error('Error al crear reporte:', insertError);
+                    alert('⚠️ No se pudo generar el número de reporte. Verifique conexión o permisos.');
+                    return;
+                }
 
-        const fechaGen = new Date(nuevoReporte.fecha_generacion);
-        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
-        const consecutivo = String(nuevoReporte.id).padStart(6, '0');
-        const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+                const fechaGen = new Date(nuevoReporte.fecha_generacion);
+                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
 
-        // Actualizar registro con el número (opcional pero recomendado)
-        await supabase
-            .from('reportes')
-            .update({ numero_reporte: numeroReporte })
-            .eq('id', nuevoReporte.id);
+                // Actualizar con el número
+                await supabase
+                    .from('reportes')
+                    .update({ numero_reporte: numeroReporte })
+                    .eq('id', nuevoReporte.id);
 
-        // Generar PDF
-        const htmlContent = `
-            <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                    <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                    <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
-                </div>
-                ${content.innerHTML}
-                <div style="margin-top: 50px; page-break-inside: avoid;">
-                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+                // Generar PDF
+                const htmlContent = `
+                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
                         </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
+                        ${content.innerHTML}
+                        <div style="margin-top: 50px; page-break-inside: avoid;">
+                            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
-                        </div>
-                    </div>
-                </div>
-                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
-                </div>
-            </div>
-        `;
+                `;
 
-        const printDiv = document.createElement('div');
-        printDiv.innerHTML = htmlContent;
-        document.body.appendChild(printDiv);
-        printDiv.style.position = 'fixed';
-        printDiv.style.left = '-9999px';
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
 
-        const canvas = await html2canvas(printDiv, {
-            scale: 2,
-            useCORS: true,
-            logging: false
-        });
+                const canvas = await html2canvas(printDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
 
-        const { jsPDF } = window.jspdf;
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+                document.body.removeChild(printDiv);
+                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('❌ Error al generar el reporte.');
+            }
         }
-
-        pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
-        document.body.removeChild(printDiv);
-        alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
-    } catch (error) {
-        console.error('Error al generar PDF:', error);
-        alert('❌ Error al generar el reporte.');
-    }
-}
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
