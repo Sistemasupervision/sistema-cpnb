@@ -882,60 +882,97 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        async function exportarInspeccionAPDF() {
-            const content = document.getElementById('detalleContenido');
-            if (!content || !content.innerHTML.trim()) {
-                alert('No hay contenido para exportar.');
-                return;
-            }
-            try {
-                const printContent = document.createElement('div');
-                printContent.innerHTML = `
-                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+       async function exportarInspeccionAPDF() {
+    const content = document.getElementById('detalleContenido');
+    if (!content || !content.innerHTML.trim()) {
+        alert('No hay contenido para exportar.');
+        return;
+    }
+    try {
+        const htmlContent = `
+            <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                    <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                </div>
+                ${content.innerHTML}
+
+                <!-- ✅ Sección de firmas -->
+                <div style="margin-top: 40px; page-break-inside: avoid;">
+                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 20px; font-size: 16px;">
+                        Firmas de conformidad
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; padding-top: 30px; margin-bottom: 5px; font-weight: bold; color: #2d3748;">
+                                Inspector
+                            </div>
                         </div>
-                        ${content.innerHTML}
-                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; padding-top: 30px; margin-bottom: 5px; font-weight: bold; color: #2d3748;">
+                                Jefe de la Estación Policial
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; padding-top: 30px; margin-bottom: 5px; font-weight: bold; color: #2d3748;">
+                                Jefe de CCP
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #000; padding-top: 30px; margin-bottom: 5px; font-weight: bold; color: #2d3748;">
+                                Jefe de REDIP
+                            </div>
                         </div>
                     </div>
-                `;
-                document.body.appendChild(printContent);
-                printContent.style.position = 'fixed';
-                printContent.style.left = '-9999px';
-                const canvas = await html2canvas(printContent, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
-                });
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-                const fecha = new Date().toISOString().slice(0, 10);
-                pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
-                document.body.removeChild(printContent);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('Error al generar el PDF. Intente nuevamente.');
-            }
+                </div>
+
+                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                </div>
+            </div>
+        `;
+
+        const printDiv = document.createElement('div');
+        printDiv.innerHTML = htmlContent;
+        document.body.appendChild(printDiv);
+        printDiv.style.position = 'fixed';
+        printDiv.style.left = '-9999px';
+
+        const canvas = await html2canvas(printDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
+
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
         }
+
+        const fecha = new Date().toISOString().slice(0, 10);
+        pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
+        document.body.removeChild(printDiv);
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('Error al generar el PDF. Intente nuevamente.');
+    }
+}
 
        async function exportarHistorialAPDF() {
     if (inspeccionesCache.length === 0) {
