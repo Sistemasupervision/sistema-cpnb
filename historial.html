@@ -882,7 +882,7 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-       async function exportarInspeccionAPDF() {
+     async function exportarInspeccionAPDF() {
     const content = document.getElementById('detalleContenido');
     if (!content || !content.innerHTML.trim()) {
         alert('No hay contenido para exportar.');
@@ -973,7 +973,6 @@
         alert('Error al generar el PDF. Intente nuevamente.');
     }
 }
-
        async function exportarHistorialAPDF() {
     if (inspeccionesCache.length === 0) {
         alert('No hay inspecciones para exportar.');
