@@ -117,12 +117,13 @@
             border-color: #3182ce;
             box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
         }
+        /* ✅ Botones alineados a la derecha */
         .action-buttons {
             display: flex;
+            justify-content: flex-end;
             gap: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            justify-content: center;
         }
         .btn {
             padding: 12px 24px;
@@ -213,8 +214,7 @@
                 grid-template-columns: 1fr;
             }
             .action-buttons {
-                flex-direction: column;
-                align-items: center;
+                justify-content: center;
             }
             .btn {
                 width: 100%;
@@ -232,6 +232,16 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Resumen Mensual - REDIP OCCIDENTAL</h1>
             <p class="subtitle">Comparación de cumplimiento por Centro de Coordinación Policial (CCP)</p>
+        </div>
+
+        <!-- ✅ Botones alineados a la derecha -->
+        <div class="action-buttons">
+            <button class="btn back-btn" onclick="window.location.href='index.html'">
+                ← Volver a REDIP OCCIDENTAL
+            </button>
+            <button class="btn pdf-btn" onclick="exportarResumenAPDF()">
+                📄 Exportar a PDF
+            </button>
         </div>
 
         <!-- Sección: Selección de Meses -->
@@ -255,16 +265,6 @@
                     <select id="anioComparar"></select>
                 </div>
             </div>
-        </div>
-
-        <!-- Botones de acción -->
-        <div class="action-buttons">
-            <button class="btn back-btn" onclick="window.location.href='index.html'">
-                ← Volver a REDIP OCCIDENTAL
-            </button>
-            <button class="btn pdf-btn" onclick="exportarResumenAPDF()">
-                📄 Exportar a PDF
-            </button>
         </div>
 
         <!-- Sección: Resumen y Gráfico -->
@@ -343,7 +343,7 @@
 
         async function cargarDatosPorCCP(anio, mes) {
             const rango = rangoMes(anio, mes);
-            const { data: estaciones, error: estError } = await supabase
+            const {  estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id, ccp_id')
                 .in('ccp_id', ccpOcidental);
@@ -354,7 +354,7 @@
             const estacionCCPMap = {};
             estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
 
-            const { data: inspecciones, error: inspError } = await supabase
+            const {  inspecciones, error: inspError } = await supabase
                 .from('inspecciones')
                 .select('id, estacion_id')
                 .in('estacion_id', idsEstaciones)
@@ -364,7 +364,7 @@
             if (inspecciones.length === 0) return {};
 
             const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
+            const {  items, error: itemsError } = await supabase
                 .from('items_inspeccion')
                 .select('inspeccion_id, cumple')
                 .in('inspeccion_id', idsInspecciones);
@@ -458,12 +458,12 @@
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
                     type: 'bar',
-                    data: {
+                     {
                         labels: labels,
                         datasets: [
                             {
                                 label: formatoMes(anioBase, mesBase),
-                                data: dataBase,
+                                 dataBase,
                                 backgroundColor: 'rgba(49, 130, 206, 0.85)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
@@ -472,7 +472,7 @@
                             },
                             {
                                 label: formatoMes(anioComp, mesComp),
-                                data: dataComp,
+                                 dataComp,
                                 backgroundColor: 'rgba(239, 68, 68, 0.75)',
                                 borderColor: 'rgba(220, 38, 38, 1)',
                                 borderWidth: 1,
