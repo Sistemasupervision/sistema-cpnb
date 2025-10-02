@@ -46,7 +46,7 @@
         }
         .logo-container {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .logo-img {
             width: 100px;
@@ -60,7 +60,7 @@
             color: #0c2440;
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .controls {
             display: flex;
@@ -142,20 +142,6 @@
             font-weight: bold;
             color: #0c2440;
         }
-        .comparacion {
-            font-size: 14px;
-            margin-top: 6px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-        }
-        .comparacion.positiva {
-            color: #38a169;
-        }
-        .comparacion.negativa {
-            color: #e53e3e;
-        }
         .chart-container {
             background: #f8fafc;
             padding: 20px;
@@ -164,7 +150,7 @@
             border: 1px solid #e2e8f0;
         }
         .chart-wrapper {
-            height: 300px;
+            height: 350px;
             position: relative;
         }
         .loading, .error {
@@ -181,7 +167,7 @@
                 padding: 25px;
             }
             .chart-wrapper {
-                height: 250px;
+                height: 300px;
             }
             .controls, .action-buttons {
                 flex-direction: column;
@@ -196,7 +182,7 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">📊 Resumen Mensual - REDIP OCCIDENTAL</h1>
         </div>
-        <!-- Selector de meses -->
+        <!-- Selectores de meses -->
         <div class="controls">
             <div class="input-group">
                 <label for="mesBase">Mes base:</label>
@@ -236,12 +222,14 @@
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
             "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL"
+            "col": "CCPE COL",
+            "lara": "CCPE LARA",
+            "falcon": "CCPE FALCÓN"
         };
         let chartInstance = null;
 
-        function formatoMes(fecha) {
-            return fecha.toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
+        function formatoMes(anio, mes) {
+            return new Date(anio, mes).toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
         }
 
         function rangoMes(anio, mes) {
@@ -251,48 +239,6 @@
                 desde: inicio.toISOString().split('T')[0],
                 hasta: fin.toISOString().split('T')[0]
             };
-        }
-
-        async function cargarDatosMes(desde, hasta) {
-            const { data: estaciones, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('id')
-                .in('ccp_id', ccpOcidental);
-            if (estError) throw estError;
-            const idsEstaciones = estaciones.map(e => e.id);
-            if (idsEstaciones.length === 0) return { inspecciones: [], items: [] };
-            const { data: inspecciones, error: inspError } = await supabase
-                .from('inspecciones')
-                .select('id, estacion_id')
-                .in('estacion_id', idsEstaciones)
-                .gte('created_at', desde)
-                .lte('created_at', hasta + 'T23:59:59.999Z');
-            if (inspError) throw inspError;
-            if (inspecciones.length === 0) return { inspecciones: [], items: [] };
-            const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
-                .from('items_inspeccion')
-                .select('cumple')
-                .in('inspeccion_id', idsInspecciones);
-            if (itemsError) throw itemsError;
-            return { inspecciones, items };
-        }
-
-        function calcularMetricas(inspecciones, items) {
-            const totalInspecciones = inspecciones.length;
-            const totalItems = items.length;
-            const cumplidos = items.filter(i => i.cumple === true).length;
-            const porcentaje = totalItems > 0 ? Math.round((cumplidos / totalItems) * 100) : 0;
-            return { totalInspecciones, porcentaje };
-        }
-
-        function formatoComparacion(actual, anterior, esPorcentaje = false) {
-            if (anterior === 0 && actual === 0) return '';
-            const diff = actual - anterior;
-            const simbolo = diff >= 0 ? '+' : '';
-            const clase = diff > 0 ? 'positiva' : diff < 0 ? 'negativa' : '';
-            const valor = esPorcentaje ? `${simbolo}${diff}%` : `${simbolo}${diff}`;
-            return `<span class="comparacion ${clase}">${valor} vs mes anterior</span>`;
         }
 
         // Llenar selectores con últimos 24 meses
@@ -334,7 +280,67 @@
             aniosComp.value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
         }
 
-        async function cargarResumenMensual() {
+        async function cargarDatosPorCCP(anio, mes) {
+            const rango = rangoMes(anio, mes);
+            const {  estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id, ccp_id')
+                .in('ccp_id', ccpOcidental);
+            if (estError) throw estError;
+            if (estaciones.length === 0) return {};
+
+            const idsEstaciones = estaciones.map(e => e.id);
+            const estacionCCPMap = {};
+            estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
+
+            const {  inspecciones, error: inspError } = await supabase
+                .from('inspecciones')
+                .select('id, estacion_id')
+                .in('estacion_id', idsEstaciones)
+                .gte('created_at', rango.desde)
+                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+            if (inspError) throw inspError;
+            if (inspecciones.length === 0) return {};
+
+            const idsInspecciones = inspecciones.map(i => i.id);
+            const {  items, error: itemsError } = await supabase
+                .from('items_inspeccion')
+                .select('inspeccion_id, cumple')
+                .in('inspeccion_id', idsInspecciones);
+            if (itemsError) throw itemsError;
+
+            const itemsPorInspeccion = {};
+            items.forEach(item => {
+                if (!itemsPorInspeccion[item.inspeccion_id]) {
+                    itemsPorInspeccion[item.inspeccion_id] = [];
+                }
+                itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
+            });
+
+            const metricasPorCCP = {};
+            inspecciones.forEach(insp => {
+                const ccp = estacionCCPMap[insp.estacion_id];
+                if (!metricasPorCCP[ccp]) {
+                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
+                }
+                metricasPorCCP[ccp].totalInspecciones++;
+                const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
+                metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
+                metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
+            });
+
+            const resultado = {};
+            Object.keys(metricasPorCCP).forEach(ccp => {
+                const m = metricasPorCCP[ccp];
+                resultado[ccp] = {
+                    inspecciones: m.totalInspecciones,
+                    porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
+                };
+            });
+            return resultado;
+        }
+
+        async function cargarResumen() {
             const container = document.getElementById('resumenContainer');
             try {
                 const anioBase = parseInt(document.getElementById('anioBase').value);
@@ -342,56 +348,45 @@
                 const anioComp = parseInt(document.getElementById('anioComparar').value);
                 const mesComp = parseInt(document.getElementById('mesComparar').value);
 
-                // Mes base
-                const rangoBase = rangoMes(anioBase, mesBase);
-                const datosBase = await cargarDatosMes(rangoBase.desde, rangoBase.hasta);
-                const metricasBase = calcularMetricas(datosBase.inspecciones, datosBase.items);
+                const metricasBase = await cargarDatosPorCCP(anioBase, mesBase);
+                const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
 
-                // Mes comparación
-                const rangoComp = rangoMes(anioComp, mesComp);
-                const datosComp = await cargarDatosMes(rangoComp.desde, rangoComp.hasta);
-                const metricasComp = calcularMetricas(datosComp.inspecciones, datosComp.items);
+                const metricasComp = await cargarDatosPorCCP(anioComp, mesComp);
+                const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
 
-                // Contar por CCP (solo mes base)
-                const conteoCCP = {};
-                if (datosBase.inspecciones.length > 0) {
-                    const { data: estacionesConCCP, error: ccpError } = await supabase
-                        .from('estaciones_policiales')
-                        .select('id, ccp_id')
-                        .in('id', datosBase.inspecciones.map(i => i.estacion_id));
-                    if (ccpError) throw ccpError;
-                    const estacionCCPMap = {};
-                    estacionesConCCP.forEach(e => {
-                        estacionCCPMap[e.id] = e.ccp_id;
-                    });
-                    datosBase.inspecciones.forEach(insp => {
-                        const ccp = estacionCCPMap[insp.estacion_id] || 'otro';
-                        conteoCCP[ccp] = (conteoCCP[ccp] || 0) + 1;
-                    });
-                }
+                // Preparar datos para el gráfico
+                const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
+                const labels = todosCCP.map(k => ccpNombres[k] || k);
+                const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
+                const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
 
-                // Renderizar
                 let html = `
                     <div class="resumen-cards">
                         <div class="card">
-                            <div class="card-label">Inspecciones (${formatoMes(new Date(anioBase, mesBase))})</div>
-                            <div class="card-value">${metricasBase.totalInspecciones}</div>
+                            <div class="card-label">Inspecciones (${formatoMes(anioBase, mesBase)})</div>
+                            <div class="card-value">${totalInspeccionesBase}</div>
                         </div>
                         <div class="card">
                             <div class="card-label">Cumplimiento promedio</div>
-                            <div class="card-value">${metricasBase.porcentaje}%</div>
+                            <div class="card-value">${promedioBase}%</div>
                         </div>
                         <div class="card">
-                            <div class="card-label">Inspecciones (${formatoMes(new Date(anioComp, mesComp))})</div>
-                            <div class="card-value">${metricasComp.totalInspecciones}</div>
+                            <div class="card-label">Inspecciones (${formatoMes(anioComp, mesComp)})</div>
+                            <div class="card-value">${totalInspeccionesComp}</div>
                         </div>
                         <div class="card">
                             <div class="card-label">Cumplimiento promedio</div>
-                            <div class="card-value">${metricasComp.porcentaje}%</div>
+                            <div class="card-value">${promedioComp}%</div>
                         </div>
                     </div>
                     <div class="chart-container">
-                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440;">Inspecciones por CCP (${formatoMes(new Date(anioBase, mesBase))})</h3>
+                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440;">
+                            Comparación de cumplimiento por CCP
+                        </h3>
                         <div class="chart-wrapper">
                             <canvas id="ccpChart"></canvas>
                         </div>
@@ -399,41 +394,49 @@
                 `;
                 container.innerHTML = html;
 
-                // Gráfico (solo mes base)
-                if (Object.keys(conteoCCP).length > 0) {
-                    const ctx = document.getElementById('ccpChart').getContext('2d');
-                    const labels = Object.keys(conteoCCP).map(k => ccpNombres[k] || k);
-                    const data = Object.values(conteoCCP);
-                    if (chartInstance) chartInstance.destroy();
-                    chartInstance = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Inspecciones',
-                                data: data,
+                // Renderizar gráfico comparativo
+                const ctx = document.getElementById('ccpChart').getContext('2d');
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                     {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: formatoMes(anioBase, mesBase),
+                                 dataBase,
                                 backgroundColor: 'rgba(49, 130, 206, 0.8)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
                                 borderRadius: 6
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: { precision: 0 }
-                                }
+                            },
+                            {
+                                label: formatoMes(anioComp, mesComp),
+                                 dataComp,
+                                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                                borderColor: 'rgba(220, 38, 38, 1)',
+                                borderWidth: 1,
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top' } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { precision: 0, callback: v => v + '%' }
                             }
                         }
-                    });
-                }
+                    }
+                });
+
             } catch (error) {
-                console.error('Error al cargar resumen mensual:', error);
-                container.innerHTML = `<div class="error">Error al cargar el resumen: ${error.message || ''}</div>`;
+                console.error('Error al cargar resumen:', error);
+                container.innerHTML = `<div class="error">Error al cargar el resumen: ${error.message || 'Ver consola para más detalles'}</div>`;
             }
         }
 
@@ -489,11 +492,11 @@
 
         // Inicializar
         llenarSelectores();
-        document.getElementById('mesBase').addEventListener('change', cargarResumenMensual);
-        document.getElementById('anioBase').addEventListener('change', cargarResumenMensual);
-        document.getElementById('mesComparar').addEventListener('change', cargarResumenMensual);
-        document.getElementById('anioComparar').addEventListener('change', cargarResumenMensual);
-        cargarResumenMensual();
+        document.getElementById('mesBase').addEventListener('change', cargarResumen);
+        document.getElementById('anioBase').addEventListener('change', cargarResumen);
+        document.getElementById('mesComparar').addEventListener('change', cargarResumen);
+        document.getElementById('anioComparar').addEventListener('change', cargarResumen);
+        cargarResumen();
     </script>
 </body>
 </html>
