@@ -80,13 +80,6 @@
             font-weight: 600;
             color: #0c2440;
             margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .section-title::before {
-            content: "📊";
-            font-size: 20px;
         }
         .controls {
             display: grid;
@@ -110,12 +103,6 @@
             border-radius: 10px;
             font-size: 15px;
             background: white;
-            transition: border-color 0.2s;
-        }
-        .input-group select:focus {
-            outline: none;
-            border-color: #3182ce;
-            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
         }
         .action-buttons {
             display: flex;
@@ -134,7 +121,6 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s ease;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282, #1a365d);
@@ -145,8 +131,7 @@
             color: white;
         }
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0.9;
         }
         .resumen-cards {
             display: grid;
@@ -161,11 +146,6 @@
             text-align: center;
             border: 1px solid #e2e8f0;
             box-shadow: 0 3px 8px rgba(0,0,0,0.04);
-            transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         .card-label {
             font-size: 14px;
@@ -342,28 +322,28 @@
 
         async function cargarDatosPorCCP(anio, mes) {
             const rango = rangoMes(anio, mes);
-            const {  estaciones, error: estError } = await supabase
+            const { data: estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id, ccp_id')
                 .in('ccp_id', ccpOcidental);
             if (estError) throw estError;
-            if (estaciones.length === 0) return {};
+            if (!estaciones || estaciones.length === 0) return {};
 
             const idsEstaciones = estaciones.map(e => e.id);
             const estacionCCPMap = {};
             estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
 
-            const {  inspecciones, error: inspError } = await supabase
+            const { data: inspecciones, error: inspError } = await supabase
                 .from('inspecciones')
                 .select('id, estacion_id')
                 .in('estacion_id', idsEstaciones)
                 .gte('created_at', rango.desde)
                 .lte('created_at', rango.hasta + 'T23:59:59.999Z');
             if (inspError) throw inspError;
-            if (inspecciones.length === 0) return {};
+            if (!inspecciones || inspecciones.length === 0) return {};
 
             const idsInspecciones = inspecciones.map(i => i.id);
-            const {  items, error: itemsError } = await supabase
+            const { data: items, error: itemsError } = await supabase
                 .from('items_inspeccion')
                 .select('inspeccion_id, cumple')
                 .in('inspeccion_id', idsInspecciones);
@@ -457,12 +437,12 @@
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
                     type: 'bar',
-                     {
+                    data: {
                         labels: labels,
                         datasets: [
                             {
                                 label: formatoMes(anioBase, mesBase),
-                                 dataBase,
+                                data: dataBase,
                                 backgroundColor: 'rgba(49, 130, 206, 0.85)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
@@ -471,7 +451,7 @@
                             },
                             {
                                 label: formatoMes(anioComp, mesComp),
-                                 dataComp,
+                                data: dataComp,
                                 backgroundColor: 'rgba(239, 68, 68, 0.75)',
                                 borderColor: 'rgba(220, 38, 38, 1)',
                                 borderWidth: 1,
@@ -484,11 +464,8 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { position: 'top', labels: { font: { size: 13 } } },
+                            legend: { position: 'top' },
                             tooltip: {
-                                backgroundColor: 'rgba(12, 36, 64, 0.9)',
-                                titleFont: { size: 14 },
-                                bodyFont: { size: 13 },
                                 callbacks: {
                                     label: function(context) {
                                         return `${context.dataset.label}: ${context.parsed.y}%`;
@@ -501,31 +478,24 @@
                                 beginAtZero: true,
                                 max: 100,
                                 ticks: {
-                                    precision: 0,
-                                    callback: v => v + '%',
-                                    font: { size: 12 }
-                                },
-                                grid: { color: 'rgba(0,0,0,0.05)' }
-                            },
-                            x: {
-                                ticks: { font: { size: 12 } },
-                                grid: { display: false }
+                                    callback: v => v + '%'
+                                }
                             }
                         },
                         animation: {
-                            duration: 0 // Desactivar animación para PDF
+                            duration: 0
                         }
                     }
                 });
 
             } catch (error) {
                 console.error('Error al cargar resumen:', error);
-                container.innerHTML = `<div class="error">❌ Error al cargar el resumen: ${error.message || 'Ver consola para más detalles'}</div>`;
+                container.innerHTML = `<div class="error">❌ Error: ${error.message || 'No se pudieron cargar los datos.'}</div>`;
             }
         }
 
         async function exportarResumenAPDF() {
-            // ✅ Solución definitiva: convertir el canvas a imagen estática
+            // ✅ Convertir el gráfico a imagen estática
             let chartImage = null;
             if (chartInstance) {
                 const canvas = document.getElementById('ccpChart');
@@ -535,7 +505,7 @@
             const printContent = document.createElement('div');
             let htmlContent = document.getElementById('resumenContainer').innerHTML;
 
-            // Reemplazar el canvas por una imagen estática
+            // Reemplazar el canvas por una imagen
             if (chartImage) {
                 htmlContent = htmlContent.replace(
                     '<canvas id="ccpChart"></canvas>',
@@ -544,10 +514,10 @@
             }
 
             printContent.innerHTML = `
-                <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
                     <div style="text-align: center; margin-bottom: 25px;">
                         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                             alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                             style="width: 100px; height: 100px; object-fit: contain;">
                         <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: bold;">
                             RESUMEN MENSUAL DE INSPECCIONES
                         </h1>
@@ -555,7 +525,7 @@
                     </div>
                     ${htmlContent}
                     <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        Fecha: ${new Date().toLocaleString('es-ES')}
                     </div>
                 </div>
             `;
@@ -564,13 +534,7 @@
             printContent.style.left = '-9999px';
 
             try {
-                const canvas = await html2canvas(printContent, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    allowTaint: true
-                });
-
+                const canvas = await html2canvas(printContent, { scale: 2, useCORS: true });
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
@@ -587,10 +551,10 @@
                     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
-                pdf.save(`resumen_comparativo_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
+                pdf.save(`resumen_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
             } catch (error) {
-                console.error('Error PDF:', error);
-                alert('Error al generar el PDF.');
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF. Intente nuevamente.');
             } finally {
                 document.body.removeChild(printContent);
             }
@@ -598,10 +562,9 @@
 
         // Inicializar
         llenarSelectores();
-        document.getElementById('mesBase').addEventListener('change', cargarResumen);
-        document.getElementById('anioBase').addEventListener('change', cargarResumen);
-        document.getElementById('mesComparar').addEventListener('change', cargarResumen);
-        document.getElementById('anioComparar').addEventListener('change', cargarResumen);
+        ['mesBase', 'anioBase', 'mesComparar', 'anioComparar'].forEach(id => {
+            document.getElementById(id).addEventListener('change', cargarResumen);
+        });
         cargarResumen();
     </script>
 </body>
