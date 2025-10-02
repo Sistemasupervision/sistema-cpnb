@@ -80,6 +80,13 @@
             font-weight: 600;
             color: #0c2440;
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::before {
+            content: "📊";
+            font-size: 20px;
         }
         .controls {
             display: grid;
@@ -103,6 +110,12 @@
             border-radius: 10px;
             font-size: 15px;
             background: white;
+            transition: border-color 0.2s;
+        }
+        .input-group select:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
         }
         .action-buttons {
             display: flex;
@@ -121,6 +134,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            transition: all 0.2s ease;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282, #1a365d);
@@ -131,7 +145,8 @@
             color: white;
         }
         .btn:hover {
-            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .resumen-cards {
             display: grid;
@@ -146,6 +161,11 @@
             text-align: center;
             border: 1px solid #e2e8f0;
             box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         .card-label {
             font-size: 14px;
@@ -212,7 +232,6 @@
             <h1 class="title">Resumen Mensual - REDIP OCCIDENTAL</h1>
             <p class="subtitle">Comparación de cumplimiento por Centro de Coordinación Policial (CCP)</p>
         </div>
-
         <div class="action-buttons">
             <button class="btn back-btn" onclick="window.location.href='index.html'">
                 ← Volver a REDIP OCCIDENTAL
@@ -221,7 +240,6 @@
                 📄 Exportar a PDF
             </button>
         </div>
-
         <div class="section">
             <h2 class="section-title">Seleccionar Meses para Comparar</h2>
             <div class="controls">
@@ -243,7 +261,6 @@
                 </div>
             </div>
         </div>
-
         <div class="section">
             <h2 class="section-title">Resultados de la Comparación</h2>
             <div id="resumenContainer">
@@ -282,89 +299,99 @@
 
         function llenarSelectores() {
             const hoy = new Date();
-            const anios = [hoy.getFullYear(), hoy.getFullYear() - 1, hoy.getFullYear() - 2];
+            const aniosBase = document.getElementById('anioBase');
+            const aniosComp = document.getElementById('anioComparar');
+            const anios = [];
+            for (let i = 0; i < 3; i++) {
+                anios.push(hoy.getFullYear() - i);
+            }
             anios.forEach(anio => {
-                document.getElementById('anioBase').innerHTML += `<option value="${anio}">${anio}</option>`;
-                document.getElementById('anioComparar').innerHTML += `<option value="${anio}">${anio}</option>`;
+                const opt1 = document.createElement('option');
+                opt1.value = anio;
+                opt1.textContent = anio;
+                aniosBase.appendChild(opt1);
+                const opt2 = document.createElement('option');
+                opt2.value = anio;
+                opt2.textContent = anio;
+                aniosComp.appendChild(opt2);
             });
-            const meses = [];
+            const mesesBase = document.getElementById('mesBase');
+            const mesesComp = document.getElementById('mesComparar');
             for (let i = 0; i < 12; i++) {
                 const fecha = new Date(hoy.getFullYear(), 11 - i, 1);
                 const nombre = fecha.toLocaleString('es-ES', { month: 'long' });
-                meses.push({ value: 11 - i, nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1) });
+                const opt1 = document.createElement('option');
+                opt1.value = 11 - i;
+                opt1.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+                mesesBase.appendChild(opt1);
+                const opt2 = document.createElement('option');
+                opt2.value = 11 - i;
+                opt2.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+                mesesComp.appendChild(opt2);
             }
-            meses.forEach(m => {
-                document.getElementById('mesBase').innerHTML += `<option value="${m.value}">${m.nombre}</option>`;
-                document.getElementById('mesComparar').innerHTML += `<option value="${m.value}">${m.nombre}</option>`;
-            });
-            document.getElementById('mesBase').value = hoy.getMonth();
-            document.getElementById('mesComparar').value = hoy.getMonth() === 0 ? 11 : hoy.getMonth() - 1;
-            document.getElementById('anioComparar').value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
+            mesesBase.value = hoy.getMonth();
+            mesesComp.value = hoy.getMonth() === 0 ? 11 : hoy.getMonth() - 1;
+            aniosComp.value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
         }
 
         async function cargarDatosPorCCP(anio, mes) {
-            try {
-                const rango = rangoMes(anio, mes);
-                const { data: estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, ccp_id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw estError;
-                if (!estaciones || estaciones.length === 0) return {};
+            const rango = rangoMes(anio, mes);
+            const { data: estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id, ccp_id')
+                .in('ccp_id', ccpOcidental);
+            if (estError) throw estError;
+            if (estaciones.length === 0) return {};
 
-                const idsEstaciones = estaciones.map(e => e.id);
-                const estacionCCPMap = {};
-                estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
+            const idsEstaciones = estaciones.map(e => e.id);
+            const estacionCCPMap = {};
+            estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
 
-                const { data: inspecciones, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .select('id, estacion_id')
-                    .in('estacion_id', idsEstaciones)
-                    .gte('created_at', rango.desde)
-                    .lte('created_at', rango.hasta + 'T23:59:59.999Z');
-                if (inspError) throw inspError;
-                if (!inspecciones || inspecciones.length === 0) return {};
+            const { data: inspecciones, error: inspError } = await supabase
+                .from('inspecciones')
+                .select('id, estacion_id')
+                .in('estacion_id', idsEstaciones)
+                .gte('created_at', rango.desde)
+                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+            if (inspError) throw inspError;
+            if (inspecciones.length === 0) return {};
 
-                const idsInspecciones = inspecciones.map(i => i.id);
-                const { data: items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('inspeccion_id, cumple')
-                    .in('inspeccion_id', idsInspecciones);
-                if (itemsError) throw itemsError;
+            const idsInspecciones = inspecciones.map(i => i.id);
+            const { data: items, error: itemsError } = await supabase
+                .from('items_inspeccion')
+                .select('inspeccion_id, cumple')
+                .in('inspeccion_id', idsInspecciones);
+            if (itemsError) throw itemsError;
 
-                const itemsPorInspeccion = {};
-                items.forEach(item => {
-                    if (!itemsPorInspeccion[item.inspeccion_id]) {
-                        itemsPorInspeccion[item.inspeccion_id] = [];
-                    }
-                    itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
-                });
+            const itemsPorInspeccion = {};
+            items.forEach(item => {
+                if (!itemsPorInspeccion[item.inspeccion_id]) {
+                    itemsPorInspeccion[item.inspeccion_id] = [];
+                }
+                itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
+            });
 
-                const metricasPorCCP = {};
-                inspecciones.forEach(insp => {
-                    const ccp = estacionCCPMap[insp.estacion_id];
-                    if (!metricasPorCCP[ccp]) {
-                        metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
-                    }
-                    metricasPorCCP[ccp].totalInspecciones++;
-                    const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
-                    metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
-                    metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
-                });
+            const metricasPorCCP = {};
+            inspecciones.forEach(insp => {
+                const ccp = estacionCCPMap[insp.estacion_id];
+                if (!metricasPorCCP[ccp]) {
+                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
+                }
+                metricasPorCCP[ccp].totalInspecciones++;
+                const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
+                metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
+                metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
+            });
 
-                const resultado = {};
-                Object.keys(metricasPorCCP).forEach(ccp => {
-                    const m = metricasPorCCP[ccp];
-                    resultado[ccp] = {
-                        inspecciones: m.totalInspecciones,
-                        porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
-                    };
-                });
-                return resultado;
-            } catch (error) {
-                console.error('Error en cargarDatosPorCCP:', error);
-                throw error;
-            }
+            const resultado = {};
+            Object.keys(metricasPorCCP).forEach(ccp => {
+                const m = metricasPorCCP[ccp];
+                resultado[ccp] = {
+                    inspecciones: m.totalInspecciones,
+                    porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
+                };
+            });
+            return resultado;
         }
 
         async function cargarResumen() {
@@ -376,20 +403,19 @@
                 const mesComp = parseInt(document.getElementById('mesComparar').value);
 
                 const metricasBase = await cargarDatosPorCCP(anioBase, mesBase);
+                const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
+
                 const metricasComp = await cargarDatosPorCCP(anioComp, mesComp);
+                const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
 
-                const totalInspeccionesBase = metricasBase ? Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0) : 0;
-                const totalPorcentajeBase = metricasBase ? Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0) : 0;
-                const promedioBase = metricasBase && Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
-
-                const totalInspeccionesComp = metricasComp ? Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0) : 0;
-                const totalPorcentajeComp = metricasComp ? Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0) : 0;
-                const promedioComp = metricasComp && Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
-
-                const todosCCP = [...new Set([...(metricasBase ? Object.keys(metricasBase) : []), ...(metricasComp ? Object.keys(metricasComp) : [])])];
+                const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
                 const labels = todosCCP.map(k => ccpNombres[k] || k);
-                const dataBase = todosCCP.map(k => metricasBase && metricasBase[k] ? metricasBase[k].porcentaje : 0);
-                const dataComp = todosCCP.map(k => metricasComp && metricasComp[k] ? metricasComp[k].porcentaje : 0);
+                const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
+                const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
 
                 let html = `
                     <div class="resumen-cards">
@@ -434,7 +460,8 @@
                                 backgroundColor: 'rgba(49, 130, 206, 0.85)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
-                                borderRadius: 6
+                                borderRadius: 6,
+                                barPercentage: 0.9
                             },
                             {
                                 label: formatoMes(anioComp, mesComp),
@@ -442,91 +469,128 @@
                                 backgroundColor: 'rgba(239, 68, 68, 0.75)',
                                 borderColor: 'rgba(220, 38, 38, 1)',
                                 borderWidth: 1,
-                                borderRadius: 6
+                                borderRadius: 6,
+                                barPercentage: 0.9
                             }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'top' } },
+                        plugins: {
+                            legend: { position: 'top', labels: { font: { size: 13 } } },
+                            tooltip: {
+                                backgroundColor: 'rgba(12, 36, 64, 0.9)',
+                                titleFont: { size: 14 },
+                                bodyFont: { size: 13 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y}%`;
+                                    }
+                                }
+                            }
+                        },
                         scales: {
                             y: {
                                 beginAtZero: true,
                                 max: 100,
-                                ticks: { callback: v => v + '%' }
+                                ticks: {
+                                    precision: 0,
+                                    callback: v => v + '%',
+                                    font: { size: 12 }
+                                },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            x: {
+                                ticks: { font: { size: 12 } },
+                                grid: { display: false }
                             }
                         },
-                        animation: { duration: 0 }
+                        animation: {
+                            duration: 0 // 👈 Desactivado para exportación más fiable
+                        }
                     }
                 });
-
             } catch (error) {
                 console.error('Error al cargar resumen:', error);
-                container.innerHTML = `<div class="error">❌ Error: ${error.message || 'No se pudieron cargar los datos.'}</div>`;
+                container.innerHTML = `<div class="error">❌ Error al cargar el resumen: ${error.message || 'Ver consola para más detalles'}</div>`;
             }
         }
 
+        // ✅ FUNCIÓN CORREGIDA PARA EXPORTAR CON GRÁFICOS
         async function exportarResumenAPDF() {
-            // ✅ Convertir el gráfico a imagen estática usando Chart.js
-            let chartImage = null;
-            if (chartInstance) {
-                chartImage = chartInstance.toBase64Image('image/png', 1.0);
+            const canvas = document.getElementById('ccpChart');
+            if (!canvas) {
+                alert('Gráfico no encontrado');
+                return;
+            }
+
+            const imgDataUrl = canvas.toDataURL('image/png');
+
+            const clone = document.getElementById('resumenContainer').cloneNode(true);
+            const chartImg = document.createElement('img');
+            chartImg.src = imgDataUrl;
+            chartImg.style.width = '100%';
+            chartImg.style.height = 'auto';
+            chartImg.style.marginTop = '15px';
+
+            const canvasInClone = clone.querySelector('canvas');
+            if (canvasInClone && canvasInClone.parentElement) {
+                canvasInClone.parentElement.replaceWith(chartImg);
             }
 
             const printContent = document.createElement('div');
-            let htmlContent = document.getElementById('resumenContainer').innerHTML;
-
-            // Reemplazar el canvas por una imagen estática
-            if (chartImage) {
-                htmlContent = htmlContent.replace(
-                    '<canvas id="ccpChart"></canvas>',
-                    `<img src="${chartImage}" style="width:100%; height:auto; max-height:350px;">`
-                );
-            }
-
             printContent.innerHTML = `
-                <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
+                <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
                     <div style="text-align: center; margin-bottom: 25px;">
                         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                             style="width: 100px; height: 100px; object-fit: contain;">
+                             alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
                         <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: bold;">
                             RESUMEN MENSUAL DE INSPECCIONES
                         </h1>
                         <p style="color: #4a5568; font-size: 15px;">REDIP OCCIDENTAL - Comparación de Meses</p>
                     </div>
-                    ${htmlContent}
+                    ${clone.innerHTML}
                     <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                        Fecha: ${new Date().toLocaleString('es-ES')}
+                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
                     </div>
                 </div>
             `;
+
             document.body.appendChild(printContent);
             printContent.style.position = 'fixed';
             printContent.style.left = '-9999px';
 
             try {
-                const canvas = await html2canvas(printContent, { scale: 2, useCORS: true });
+                const canvasPDF = await html2canvas(printContent, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    allowTaint: true
+                });
+
                 const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
                 const imgWidth = 210;
                 const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const imgHeight = (canvasPDF.height * imgWidth) / canvasPDF.width;
                 let heightLeft = imgHeight;
                 let position = 0;
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
+
                 while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
+                    position = heightLeft - imgHeight + 10;
                     pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
-                pdf.save(`resumen_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+                pdf.save(`resumen_comparativo_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
             } catch (error) {
                 console.error('Error al generar PDF:', error);
-                alert('Error al generar el PDF. Intente nuevamente.');
+                alert('Error al generar el PDF. Revisa la consola.');
             } finally {
                 document.body.removeChild(printContent);
             }
@@ -534,10 +598,12 @@
 
         // Inicializar
         llenarSelectores();
-        ['mesBase', 'anioBase', 'mesComparar', 'anioComparar'].forEach(id => {
-            document.getElementById(id).addEventListener('change', cargarResumen);
-        });
+        document.getElementById('mesBase').addEventListener('change', cargarResumen);
+        document.getElementById('anioBase').addEventListener('change', cargarResumen);
+        document.getElementById('mesComparar').addEventListener('change', cargarResumen);
+        document.getElementById('anioComparar').addEventListener('change', cargarResumen);
         cargarResumen();
     </script>
 </body>
 </html>
+
