@@ -455,11 +455,10 @@
             </div>
         </div>
     </div>
-    <script>
+        <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        // ✅ CORREGIDO: se agregaron "lara" y "falcon"
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
@@ -479,8 +478,28 @@
         let inspeccionIdActual = null;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
+        // ✅ Función para generar número de reporte único
+        async function generarNumeroReporte(tipo, inspeccionId = null) {
+            try {
+                const { data, error } = await supabase
+                    .from('reportes')
+                    .insert({ tipo_reporte: tipo, inspeccion_id: inspeccionId })
+                    .select('id')
+                    .single();
+                if (error) throw error;
+                const secuencia = String(data.id).padStart(6, '0');
+                const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                return `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${secuencia}`;
+            } catch (err) {
+                console.error('Error al generar número de reporte:', err);
+                const fallback = String(Date.now()).slice(-6);
+                const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                return `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${fallback}`;
+            }
+        }
+
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión para acceder a esta página.');
                 window.location.href = 'index.html';
@@ -510,7 +529,7 @@
             estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
             if (!ccpId) return;
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -571,7 +590,7 @@
                     query = query.in('estacion_id', idsPermitidos);
                 }
 
-                const { data: inspecciones, error } = await query;
+                const {  inspecciones, error } = await query;
                 if (error) throw error;
 
                 const idsInspecciones = inspecciones.map(i => i.id);
@@ -762,13 +781,13 @@
 
         async function mostrarDetalle(inspeccionId) {
             try {
-                const { data: items, error: itemsError } = await supabase
+                const {  items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
                     .eq('inspeccion_id', inspeccionId)
                     .order('item_nombre', { ascending: true });
 
-                const { data: inspeccion, error: inspError } = await supabase
+                const {  inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
@@ -777,7 +796,7 @@
                 if (itemsError || inspError) throw itemsError || inspError;
 
                 let nombreEstacion = 'Estación no disponible';
-                const { data: estacionData, error: estError } = await supabase
+                const {  estacionData, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('nombre')
                     .eq('id', inspeccion.estacion_id)
@@ -826,7 +845,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
                         <div style="display: flex; gap: 8px;">
-                            <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
+                            <button onclick="exportarInspeccionAPDF(${inspeccionId})" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
                             <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
                         </div>
                     </div>
@@ -898,97 +917,218 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        async function exportarInspeccionAPDF() {
-    const content = document.getElementById('detalleContenido');
-    if (!content || !content.innerHTML.trim()) {
-        alert('No hay contenido para exportar.');
-        return;
-    }
-    try {
-        const htmlContent = `
-            <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                    <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                </div>
-                ${content.innerHTML}
+        async function exportarInspeccionAPDF(inspeccionId) {
+            const content = document.getElementById('detalleContenido');
+            if (!content || !content.innerHTML.trim()) {
+                alert('No hay contenido para exportar.');
+                return;
+            }
 
-                <!-- ✅ Sección de firmas con buen espaciado y separación -->
-                <div style="margin-top: 50px; page-break-inside: avoid;">
-                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
-                        Firmas de conformidad
-                    </h3>
-                    <!-- Primer nivel: operativo -->
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+            try {
+                const numeroReporte = await generarNumeroReporte('inspeccion', inspeccionId);
+
+                const htmlContent = `
+                    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                            <p style="color: #2d3748; font-size: 14px; margin-top: 8px; font-weight: 600;">
+                                N° de Reporte: <strong>${numeroReporte}</strong>
+                            </p>
                         </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
+                        ${content.innerHTML}
+
+                        <!-- ✅ Firmas -->
+                        <div style="margin-top: 50px; page-break-inside: avoid;">
+                            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+                                Firmas de conformidad
+                            </h3>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
                         </div>
                     </div>
-                    <!-- Segundo nivel: directivo -->
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
-                        </div>
-                    </div>
-                </div>
+                `;
 
-                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
-                </div>
-            </div>
-        `;
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
 
-        const printDiv = document.createElement('div');
-        printDiv.innerHTML = htmlContent;
-        document.body.appendChild(printDiv);
-        printDiv.style.position = 'fixed';
-        printDiv.style.left = '-9999px';
+                const canvas = await html2canvas(printDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
 
-        const canvas = await html2canvas(printDiv, {
-            scale: 2,
-            useCORS: true,
-            logging: false
-        });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
 
-        const { jsPDF } = window.jspdf;
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
 
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+                const fecha = new Date().toISOString().slice(0, 10);
+                pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
+                document.body.removeChild(printDiv);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF. Intente nuevamente.');
+            }
         }
 
-        const fecha = new Date().toISOString().slice(0, 10);
-        pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
-        document.body.removeChild(printDiv);
-    } catch (error) {
-        console.error('Error al generar PDF:', error);
-        alert('Error al generar el PDF. Intente nuevamente.');
-    }
-}
+        async function exportarHistorialAPDF() {
+            if (inspeccionesCache.length === 0) {
+                alert('No hay inspecciones para exportar.');
+                return;
+            }
+
+            try {
+                const numeroReporte = await generarNumeroReporte('historial');
+
+                let htmlContent = `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
+                            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                            <p style="color: #2d3748; font-size: 14px; margin-top: 8px; font-weight: 600;">
+                                N° de Reporte: <strong>${numeroReporte}</strong>
+                            </p>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+                            <thead>
+                                <tr style="background-color: #0c2440; color: white;">
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Fecha</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Estación</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Inspector</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Próxima</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">CCP</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Cumplimiento</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                inspeccionesCache.forEach(insp => {
+                    const fecha = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const proxima = insp.proxima_inspeccion 
+                        ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
+                        : 'No programada';
+                    const ccpNombre = ccpNombres[insp.ccp_id] || insp.ccp_id;
+                    let estadoTexto = 'En orden';
+                    let estadoColor = '#38a169';
+                    const hoy = new Date();
+                    hoy.setHours(0,0,0,0);
+                    if (insp.proxima_inspeccion) {
+                        const fechaProxima = new Date(insp.proxima_inspeccion);
+                        fechaProxima.setHours(0,0,0,0);
+                        if (fechaProxima <= hoy) {
+                            estadoTexto = 'Vencida';
+                            estadoColor = '#e53e3e';
+                        } else if ((fechaProxima - hoy) <= 7 * 24 * 60 * 60 * 1000) {
+                            estadoTexto = 'Próxima';
+                            estadoColor = '#d69e2e';
+                        }
+                    }
+                    htmlContent += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #eee;">${fecha}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${insp.estacion_nombre}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${insp.inspector_email}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${proxima}</td>
+                            <td style="padding: 8px; border: 1px solid #eee;">${ccpNombre}</td>
+                            <td style="padding: 8px; border: 1px solid #eee; font-weight: bold;">${insp.porcentaje_cumplimiento}%</td>
+                            <td style="padding: 8px; border: 1px solid #eee; color: ${estadoColor}; font-weight: bold;">${estadoTexto}</td>
+                        </tr>
+                    `;
+                });
+                htmlContent += `
+                            </tbody>
+                        </table>
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Total de inspecciones: ${inspeccionesCache.length}<br>
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        </div>
+                    </div>
+                `;
+
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+
+                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`historial_cpnb_${new Date().toISOString().slice(0, 10)}.pdf`);
+                document.body.removeChild(printDiv);
+            } catch (error) {
+                console.error('Error PDF historial:', error);
+                alert('Error al generar el PDF del historial.');
+            }
+        }
 
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
