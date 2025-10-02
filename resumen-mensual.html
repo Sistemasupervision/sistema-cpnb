@@ -67,7 +67,6 @@
             gap: 12px;
             margin-bottom: 25px;
             flex-wrap: wrap;
-            justify-content: center;
         }
         .back-btn,
         .pdf-btn {
@@ -116,6 +115,20 @@
             font-size: 28px;
             font-weight: bold;
             color: #0c2440;
+        }
+        .comparacion {
+            font-size: 14px;
+            margin-top: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+        .comparacion.positiva {
+            color: #38a169;
+        }
+        .comparacion.negativa {
+            color: #e53e3e;
         }
         .chart-container {
             background: #f8fafc;
@@ -183,8 +196,8 @@
         };
         let chartInstance = null;
 
-        function formatoMes(anio, mes) {
-            return new Date(anio, mes).toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
+        function formatoMes(fecha) {
+            return fecha.toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
         }
 
         function rangoMes(anio, mes) {
@@ -196,8 +209,8 @@
             };
         }
 
-        async function cargarDatosPorCCP(anio, mes) {
-            const rango = rangoMes(anio, mes);
+        async function cargarInspeccionesPorCCP(desde, hasta) {
+            // Obtener estaciones de REDIP OCCIDENTAL
             const { data: estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id, ccp_id')
@@ -207,53 +220,74 @@
 
             const idsEstaciones = estaciones.map(e => e.id);
             const estacionCCPMap = {};
-            estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
+            estaciones.forEach(e => {
+                estacionCCPMap[e.id] = e.ccp_id;
+            });
+
+            // Obtener inspecciones en el rango
+            const { data: inspecciones, error: inspError } = await supabase
+                .from('inspecciones')
+                .select('estacion_id')
+                .in('estacion_id', idsEstaciones)
+                .gte('created_at', desde)
+                .lte('created_at', hasta + 'T23:59:59.999Z');
+            if (inspError) throw inspError;
+
+            // Contar por CCP
+            const conteo = {};
+            inspecciones.forEach(insp => {
+                const ccp = estacionCCPMap[insp.estacion_id];
+                if (ccp) {
+                    conteo[ccp] = (conteo[ccp] || 0) + 1;
+                }
+            });
+            return conteo;
+        }
+
+        async function cargarDatosMes(desde, hasta) {
+            const { data: estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id')
+                .in('ccp_id', ccpOcidental);
+            if (estError) throw estError;
+            const idsEstaciones = estaciones.map(e => e.id);
+            if (idsEstaciones.length === 0) return { inspecciones: [], items: [] };
 
             const { data: inspecciones, error: inspError } = await supabase
                 .from('inspecciones')
                 .select('id, estacion_id')
                 .in('estacion_id', idsEstaciones)
-                .gte('created_at', rango.desde)
-                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+                .gte('created_at', desde)
+                .lte('created_at', hasta + 'T23:59:59.999Z');
             if (inspError) throw inspError;
-            if (inspecciones.length === 0) return {};
+
+            if (inspecciones.length === 0) return { inspecciones: [], items: [] };
 
             const idsInspecciones = inspecciones.map(i => i.id);
             const { data: items, error: itemsError } = await supabase
                 .from('items_inspeccion')
-                .select('inspeccion_id, cumple')
+                .select('cumple')
                 .in('inspeccion_id', idsInspecciones);
             if (itemsError) throw itemsError;
 
-            const itemsPorInspeccion = {};
-            items.forEach(item => {
-                if (!itemsPorInspeccion[item.inspeccion_id]) {
-                    itemsPorInspeccion[item.inspeccion_id] = [];
-                }
-                itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
-            });
+            return { inspecciones, items };
+        }
 
-            const metricasPorCCP = {};
-            inspecciones.forEach(insp => {
-                const ccp = estacionCCPMap[insp.estacion_id];
-                if (!metricasPorCCP[ccp]) {
-                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
-                }
-                metricasPorCCP[ccp].totalInspecciones++;
-                const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
-                metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
-                metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
-            });
+        function calcularMetricas(inspecciones, items) {
+            const totalInspecciones = inspecciones.length;
+            const totalItems = items.length;
+            const cumplidos = items.filter(i => i.cumple === true).length;
+            const porcentaje = totalItems > 0 ? Math.round((cumplidos / totalItems) * 100) : 0;
+            return { totalInspecciones, porcentaje };
+        }
 
-            const resultado = {};
-            Object.keys(metricasPorCCP).forEach(ccp => {
-                const m = metricasPorCCP[ccp];
-                resultado[ccp] = {
-                    inspecciones: m.totalInspecciones,
-                    porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
-                };
-            });
-            return resultado;
+        function formatoComparacion(actual, anterior, esPorcentaje = false) {
+            if (anterior === 0 && actual === 0) return '';
+            const diff = actual - anterior;
+            const simbolo = diff >= 0 ? '+' : '';
+            const clase = diff > 0 ? 'positiva' : diff < 0 ? 'negativa' : '';
+            const valor = esPorcentaje ? `${simbolo}${diff}%` : `${simbolo}${diff}`;
+            return `<span class="comparacion ${clase}">${valor} vs mes anterior</span>`;
         }
 
         async function cargarResumenMensual() {
@@ -264,10 +298,10 @@
                 const anioActual = hoy.getFullYear();
 
                 // Mes actual
-                const metricasActual = await cargarDatosPorCCP(anioActual, mesActual);
-                const totalInspeccionesActual = Object.values(metricasActual).reduce((sum, m) => sum + m.inspecciones, 0);
-                const totalPorcentajeActual = Object.values(metricasActual).reduce((sum, m) => sum + m.porcentaje, 0);
-                const promedioActual = Object.keys(metricasActual).length > 0 ? Math.round(totalPorcentajeActual / Object.keys(metricasActual).length) : 0;
+                const rangoActual = rangoMes(anioActual, mesActual);
+                const datosActual = await cargarDatosMes(rangoActual.desde, rangoActual.hasta);
+                const metricasActual = calcularMetricas(datosActual.inspecciones, datosActual.items);
+                const conteoActual = await cargarInspeccionesPorCCP(rangoActual.desde, rangoActual.hasta);
 
                 // Mes anterior
                 let mesAnterior = mesActual - 1;
@@ -276,37 +310,38 @@
                     mesAnterior = 11;
                     anioAnterior -= 1;
                 }
-                const metricasAnterior = await cargarDatosPorCCP(anioAnterior, mesAnterior);
-                const totalInspeccionesAnterior = Object.values(metricasAnterior).reduce((sum, m) => sum + m.inspecciones, 0);
-                const totalPorcentajeAnterior = Object.values(metricasAnterior).reduce((sum, m) => sum + m.porcentaje, 0);
-                const promedioAnterior = Object.keys(metricasAnterior).length > 0 ? Math.round(totalPorcentajeAnterior / Object.keys(metricasAnterior).length) : 0;
+                const rangoAnterior = rangoMes(anioAnterior, mesAnterior);
+                const datosAnterior = await cargarDatosMes(rangoAnterior.desde, rangoAnterior.hasta);
+                const metricasAnterior = calcularMetricas(datosAnterior.inspecciones, datosAnterior.items);
+                const conteoAnterior = await cargarInspeccionesPorCCP(rangoAnterior.desde, rangoAnterior.hasta);
 
-                // Preparar datos para gráfico (solo mes actual)
-                const labels = ccpOcidental.map(k => ccpNombres[k]);
-                const dataActual = ccpOcidental.map(k => metricasActual[k] ? metricasActual[k].porcentaje : 0);
+                // Preparar datos para el gráfico
+                const todosCCP = [...new Set([...Object.keys(conteoActual), ...Object.keys(conteoAnterior)])];
+                const labels = todosCCP.map(k => ccpNombres[k] || k);
+                const dataActual = todosCCP.map(k => conteoActual[k] || 0);
+                const dataAnterior = todosCCP.map(k => conteoAnterior[k] || 0);
 
+                // Renderizar
                 let html = `
                     <div class="resumen-cards">
                         <div class="card">
-                            <div class="card-label">Inspecciones (${formatoMes(anioActual, mesActual)})</div>
-                            <div class="card-value">${totalInspeccionesActual}</div>
+                            <div class="card-label">Inspecciones este mes<br>(${formatoMes(hoy)})</div>
+                            <div class="card-value">${metricasActual.totalInspecciones}</div>
+                            ${formatoComparacion(metricasActual.totalInspecciones, metricasAnterior.totalInspecciones)}
                         </div>
                         <div class="card">
                             <div class="card-label">Cumplimiento promedio</div>
-                            <div class="card-value">${promedioActual}%</div>
+                            <div class="card-value">${metricasActual.porcentaje}%</div>
+                            ${formatoComparacion(metricasActual.porcentaje, metricasAnterior.porcentaje, true)}
                         </div>
                         <div class="card">
-                            <div class="card-label">Inspecciones (${formatoMes(anioAnterior, mesAnterior)})</div>
-                            <div class="card-value">${totalInspeccionesAnterior}</div>
-                        </div>
-                        <div class="card">
-                            <div class="card-label">Cumplimiento promedio</div>
-                            <div class="card-value">${promedioAnterior}%</div>
+                            <div class="card-label">Ítems evaluados</div>
+                            <div class="card-value">${datosActual.items.length}</div>
                         </div>
                     </div>
                     <div class="chart-container">
                         <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440;">
-                            Cumplimiento por CCP (${formatoMes(anioActual, mesActual)})
+                            Inspecciones por CCP: ${formatoMes(hoy)} vs ${formatoMes(new Date(anioAnterior, mesAnterior))}
                         </h3>
                         <div class="chart-wrapper">
                             <canvas id="ccpChart"></canvas>
@@ -315,31 +350,42 @@
                 `;
                 container.innerHTML = html;
 
-                // Renderizar gráfico
+                // Gráfico comparativo
                 const ctx = document.getElementById('ccpChart').getContext('2d');
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: labels,
-                        datasets: [{
-                            label: 'Porcentaje de cumplimiento',
-                            data: dataActual,
-                            backgroundColor: 'rgba(49, 130, 206, 0.8)',
-                            borderColor: 'rgba(49, 130, 206, 1)',
-                            borderWidth: 1,
-                            borderRadius: 6
-                        }]
+                        datasets: [
+                            {
+                                label: formatoMes(hoy),
+                                data: dataActual,
+                                backgroundColor: 'rgba(49, 130, 206, 0.8)',
+                                borderColor: 'rgba(49, 130, 206, 1)',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            },
+                            {
+                                label: formatoMes(new Date(anioAnterior, mesAnterior)),
+                                data: dataAnterior,
+                                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                                borderColor: 'rgba(220, 38, 38, 1)',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'top' } },
+                        plugins: {
+                            legend: { position: 'top' }
+                        },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                max: 100,
-                                ticks: { precision: 0, callback: v => v + '%' }
+                                ticks: { precision: 0 }
                             }
                         }
                     }
@@ -347,7 +393,7 @@
 
             } catch (error) {
                 console.error('Error al cargar resumen mensual:', error);
-                container.innerHTML = `<div class="error">Error al cargar el resumen: ${error.message || 'Ver consola para más detalles'}</div>`;
+                container.innerHTML = `<div class="error">Error al cargar el resumen: ${error.message || ''}</div>`;
             }
         }
 
