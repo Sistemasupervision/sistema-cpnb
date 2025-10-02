@@ -866,7 +866,7 @@
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-        async function exportarInspeccionAPDF() {
+     async function exportarInspeccionAPDF() {
     const content = document.getElementById('detalleContenido');
     if (!content || !content.innerHTML.trim()) {
         alert('No hay contenido para exportar.');
@@ -877,7 +877,6 @@
         return;
     }
     try {
-        // ✅ Insertar en 'reportes' para obtener ID único
         const { data: nuevoReporte, error: insertError } = await supabase
             .from('reportes')
             .insert({ inspeccion_id: inspeccionIdActual })
@@ -890,19 +889,16 @@
             return;
         }
 
-        // ✅ Generar número de reporte
         const fechaGen = new Date(nuevoReporte.fecha_generacion);
-        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
         const consecutivo = String(nuevoReporte.id).padStart(6, '0');
         const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
 
-        // ✅ Actualizar con el número (opcional pero recomendado)
         await supabase
             .from('reportes')
             .update({ numero_reporte: numeroReporte })
             .eq('id', nuevoReporte.id);
 
-        // ✅ Generar PDF
         const htmlContent = `
             <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
                 <div style="text-align: center; margin-bottom: 20px;">
