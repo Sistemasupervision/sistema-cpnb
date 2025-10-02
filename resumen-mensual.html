@@ -117,7 +117,6 @@
             border-color: #3182ce;
             box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
         }
-        /* ✅ Botones alineados a la derecha */
         .action-buttons {
             display: flex;
             justify-content: flex-end;
@@ -234,7 +233,7 @@
             <p class="subtitle">Comparación de cumplimiento por Centro de Coordinación Policial (CCP)</p>
         </div>
 
-        <!-- ✅ Botones alineados a la derecha -->
+        <!-- Botones alineados a la derecha -->
         <div class="action-buttons">
             <button class="btn back-btn" onclick="window.location.href='index.html'">
                 ← Volver a REDIP OCCIDENTAL
@@ -343,7 +342,7 @@
 
         async function cargarDatosPorCCP(anio, mes) {
             const rango = rangoMes(anio, mes);
-            const { data: estaciones, error: estError } = await supabase
+            const {  estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id, ccp_id')
                 .in('ccp_id', ccpOcidental);
@@ -354,7 +353,7 @@
             const estacionCCPMap = {};
             estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
 
-            const { data: inspecciones, error: inspError } = await supabase
+            const {  inspecciones, error: inspError } = await supabase
                 .from('inspecciones')
                 .select('id, estacion_id')
                 .in('estacion_id', idsEstaciones)
@@ -364,7 +363,7 @@
             if (inspecciones.length === 0) return {};
 
             const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
+            const {  items, error: itemsError } = await supabase
                 .from('items_inspeccion')
                 .select('inspeccion_id, cumple')
                 .in('inspeccion_id', idsInspecciones);
@@ -458,12 +457,12 @@
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
                     type: 'bar',
-                    data: {
+                     {
                         labels: labels,
                         datasets: [
                             {
                                 label: formatoMes(anioBase, mesBase),
-                                data: dataBase,
+                                 dataBase,
                                 backgroundColor: 'rgba(49, 130, 206, 0.85)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
@@ -472,7 +471,7 @@
                             },
                             {
                                 label: formatoMes(anioComp, mesComp),
-                                data: dataComp,
+                                 dataComp,
                                 backgroundColor: 'rgba(239, 68, 68, 0.75)',
                                 borderColor: 'rgba(220, 38, 38, 1)',
                                 borderWidth: 1,
@@ -514,8 +513,7 @@
                             }
                         },
                         animation: {
-                            duration: 800,
-                            easing: 'easeOutQuart'
+                            duration: 0 // Desactivar animación para PDF
                         }
                     }
                 });
@@ -527,7 +525,24 @@
         }
 
         async function exportarResumenAPDF() {
+            // ✅ Solución definitiva: convertir el canvas a imagen estática
+            let chartImage = null;
+            if (chartInstance) {
+                const canvas = document.getElementById('ccpChart');
+                chartImage = canvas.toDataURL('image/png');
+            }
+
             const printContent = document.createElement('div');
+            let htmlContent = document.getElementById('resumenContainer').innerHTML;
+
+            // Reemplazar el canvas por una imagen estática
+            if (chartImage) {
+                htmlContent = htmlContent.replace(
+                    '<canvas id="ccpChart"></canvas>',
+                    `<img src="${chartImage}" style="width:100%; height:auto; max-height:350px;">`
+                );
+            }
+
             printContent.innerHTML = `
                 <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
                     <div style="text-align: center; margin-bottom: 25px;">
@@ -538,7 +553,7 @@
                         </h1>
                         <p style="color: #4a5568; font-size: 15px;">REDIP OCCIDENTAL - Comparación de Meses</p>
                     </div>
-                    ${document.getElementById('resumenContainer').innerHTML}
+                    ${htmlContent}
                     <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
                         Fecha de generación: ${new Date().toLocaleString('es-ES')}
                     </div>
@@ -547,12 +562,15 @@
             document.body.appendChild(printContent);
             printContent.style.position = 'fixed';
             printContent.style.left = '-9999px';
+
             try {
                 const canvas = await html2canvas(printContent, {
                     scale: 2,
                     useCORS: true,
-                    logging: false
+                    logging: false,
+                    allowTaint: true
                 });
+
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
