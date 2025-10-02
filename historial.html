@@ -898,13 +898,51 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        async function exportarInspeccionAPDF() {
+async function exportarInspeccionAPDF() {
     const content = document.getElementById('detalleContenido');
     if (!content || !content.innerHTML.trim()) {
         alert('No hay contenido para exportar.');
         return;
     }
+
     try {
+        // ✅ Paso 1: Insertar un nuevo registro vacío para obtener un ID único
+        const { data: nuevoReporte, error: insertError } = await supabase
+            .from('reportes')
+            .insert({
+                inspeccion_id: inspeccionIdActual,
+                fecha_generacion: new Date().toISOString()
+            })
+            .select('id, fecha_generacion')
+            .single();
+
+        if (insertError) {
+            console.error('Error al crear reporte:', insertError);
+            alert('⚠️ No se pudo generar el número de reporte.');
+            return;
+        }
+
+        // ✅ Paso 2: Formatear el número de reporte
+        const fecha = new Date(nuevoReporte.fecha_generacion);
+        const fechaStr = fecha.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const consecutivo = String(nuevoReporte.id).padStart(6, '0'); // 000123
+        const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
+        // ✅ Paso 3: Actualizar el registro con el número de reporte
+        const { error: updateError } = await supabase
+            .from('reportes')
+            .update({ numero_reporte: numeroReporte })
+            .eq('id', nuevoReporte.id);
+
+        if (updateError) {
+            console.warn('No se pudo actualizar el número de reporte (pero el PDF se generará):', updateError);
+        }
+
+        // ✅ Paso 4: Obtener datos para el PDF
+        const nombreEstacion = content.querySelector('strong')?.nextElementSibling?.textContent?.trim() || 'Desconocida';
+        const fechaInspeccion = content.querySelector('div[style*="Fecha de inspección"]')?.querySelector('span')?.textContent || '';
+
+        // ✅ Paso 5: Generar HTML del PDF
         const htmlContent = `
             <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -912,15 +950,14 @@
                          alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
                     <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
                     <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                    <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
                 </div>
                 ${content.innerHTML}
-
-                <!-- ✅ Sección de firmas con buen espaciado y separación -->
+                <!-- Firmas -->
                 <div style="margin-top: 50px; page-break-inside: avoid;">
                     <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
                         Firmas de conformidad
                     </h3>
-                    <!-- Primer nivel: operativo -->
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
                         <div style="text-align: center;">
                             <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
@@ -931,7 +968,6 @@
                             <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
                         </div>
                     </div>
-                    <!-- Segundo nivel: directivo -->
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
                         <div style="text-align: center;">
                             <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
@@ -943,7 +979,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
                     Fecha de generación: ${new Date().toLocaleString('es-ES')}
                 </div>
@@ -981,12 +1016,13 @@
             heightLeft -= pageHeight;
         }
 
-        const fecha = new Date().toISOString().slice(0, 10);
-        pdf.save(`inspeccion_cpnb_${fecha}.pdf`);
+        pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
         document.body.removeChild(printDiv);
+
+        alert(`✅ Reporte generado con éxito.\nN°: ${numeroReporte}`);
     } catch (error) {
         console.error('Error al generar PDF:', error);
-        alert('Error al generar el PDF. Intente nuevamente.');
+        alert('❌ Error al generar el reporte.');
     }
 }
 
