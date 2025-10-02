@@ -900,34 +900,30 @@
                 ${content.innerHTML}
 
                 <!-- ✅ Sección de firmas con más espacio -->
-                <div style="margin-top: 50px; page-break-inside: avoid;">
-                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
-                        Firmas de conformidad
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 20px;">
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; padding-top: 60px; margin-bottom: 10px; font-weight: bold; color: #2d3748; font-size: 14px;">
-                                Inspector
-                            </div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; padding-top: 60px; margin-bottom: 10px; font-weight: bold; color: #2d3748; font-size: 14px;">
-                                Jefe de la Estación Policial
-                            </div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; padding-top: 60px; margin-bottom: 10px; font-weight: bold; color: #2d3748; font-size: 14px;">
-                                Jefe de CCP
-                            </div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; padding-top: 60px; margin-bottom: 10px; font-weight: bold; color: #2d3748; font-size: 14px;">
-                                Jefe de REDIP
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+             <!-- ✅ Sección de firmas con texto pegado a la línea -->
+<div style="margin-top: 50px; page-break-inside: avoid;">
+    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+        Firmas de conformidad
+    </h3>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 20px;">
+        <div style="text-align: center;">
+            <div style="border-top: 1px solid #000; margin: 0 auto 5px; width: 90%;"></div>
+            <div style="font-weight: bold; color: #2d3748; font-size: 14px; margin-top: 2px;">Inspector</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="border-top: 1px solid #000; margin: 0 auto 5px; width: 90%;"></div>
+            <div style="font-weight: bold; color: #2d3748; font-size: 14px; margin-top: 2px;">Jefe de la Estación Policial</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="border-top: 1px solid #000; margin: 0 auto 5px; width: 90%;"></div>
+            <div style="font-weight: bold; color: #2d3748; font-size: 14px; margin-top: 2px;">Jefe de CCP</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="border-top: 1px solid #000; margin: 0 auto 5px; width: 90%;"></div>
+            <div style="font-weight: bold; color: #2d3748; font-size: 14px; margin-top: 2px;">Jefe de REDIP</div>
+        </div>
+    </div>
+</div>
                 <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
                     Fecha de generación: ${new Date().toLocaleString('es-ES')}
                 </div>
