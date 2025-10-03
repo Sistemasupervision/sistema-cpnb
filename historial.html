@@ -899,44 +899,60 @@
             .update({ numero_reporte: numeroReporte })
             .eq('id', nuevoReporte.id);
 
-        const htmlContent = `
-            <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                    <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                    <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                    <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+      const htmlContent = `
+    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+        </div>
+
+        <!-- ✅ PÁRRAFO INSTITUCIONAL AGREGADO AQUÍ -->
+        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación</strong>: Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica</strong>: Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación</strong>: Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
+        </div>
+
+        ${content.innerHTML}
+
+        <!-- Firmas -->
+        <div style="margin-top: 50px; page-break-inside: avoid;">
+            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+                Firmas de conformidad
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
                 </div>
-                ${content.innerHTML}
-                <div style="margin-top: 50px; page-break-inside: avoid;">
-                    <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
-                        </div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                            <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
-                        </div>
-                    </div>
-                </div>
-                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
                 </div>
             </div>
-        `;
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+        </div>
+    </div>
+`;
 
         const printDiv = document.createElement('div');
         printDiv.innerHTML = htmlContent;
