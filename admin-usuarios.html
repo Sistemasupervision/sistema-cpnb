@@ -1,4 +1,4 @@
-<!-- admin-usuarios.html -->
+<!-- admin-usuarios.html (CORREGIDO Y FUNCIONAL) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -104,7 +104,6 @@
     <div class="container">
         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Crear Usuario con REDIP</h1>
-
         <form id="createForm">
             <div class="input-group">
                 <label for="email">Email del usuario</label>
@@ -130,57 +129,59 @@
             </div>
             <button type="submit" class="btn">Crear Usuario</button>
         </form>
-
         <div id="mensaje" class="mensaje" style="display: none;"></div>
-
         <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
-
     <script>
-    
-    async function verificarAdmin() {
-        const {  { user } } = await supabase.auth.getUser();
-        if (!user || user.email !== 'admin@cpnb.gob.ve') {
-            alert('Acceso denegado. Solo el administrador puede crear usuarios.');
-            window.location.href = 'index.html';
-            return;
-        }
-    }
-
-    verificarAdmin();
-
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        async function verificarAdmin() {
+            // ✅ Corrección de sintaxis: desestructuración válida
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || user.email !== 'admin@cpnb.gob.ve') {
+                alert('Acceso denegado. Solo el administrador puede crear usuarios.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
         async function crearUsuario(email, password, redip) {
-            // 1. Crear usuario en Auth
-            const { data, error } = await supabase.auth.admin.createUser({
+            // Paso 1: Crear usuario con signUp (frontend permitido)
+            const { error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
-                email_confirm: true
+                options: {
+                    emailRedirectTo: 'https://ksczzvtgncvxfrmtvmll.supabase.co/auth/v1/verify',
+                    data: { role: 'inspector' }
+                }
             });
 
-            if (error) throw error;
+            if (signUpError) throw signUpError;
 
-            const userId = data.user.id;
-
-            // 2. Guardar asignación en tabla `usuarios_redip`
+            // Paso 2: Registrar asignación pendiente en `usuarios_redip` usando el email
             const { error: insertError } = await supabase
                 .from('usuarios_redip')
-                .insert({ user_id: userId, redip });
+                .insert({ 
+                    email_pendiente: email, 
+                    redip,
+                    creado_por: 'admin@cpnb.gob.ve'
+                });
 
             if (insertError) {
-                // Opcional: borrar usuario si falla la asignación
-                await supabase.auth.admin.deleteUser(userId);
-                throw insertError;
+                console.error('Error al registrar asignación:', insertError);
+                throw new Error('Usuario creado, pero falló la asignación de REDIP.');
             }
-
-            return userId;
         }
 
         document.getElementById('createForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const isAdmin = await verificarAdmin();
+            if (!isAdmin) return;
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
@@ -189,7 +190,7 @@
             try {
                 await crearUsuario(email, password, redip);
                 msgDiv.className = 'mensaje exito';
-                msgDiv.textContent = '✅ Usuario creado y asignado correctamente.';
+                msgDiv.textContent = '✅ Usuario creado. Se enviará un enlace de confirmación.';
                 msgDiv.style.display = 'block';
                 document.getElementById('createForm').reset();
             } catch (err) {
