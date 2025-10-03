@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Inspecciones - CPNB</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -866,7 +864,7 @@
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-    async function exportarInspeccionAPDF() {
+async function exportarInspeccionAPDF() {
     const content = document.getElementById('detalleContenido');
     if (!content || !content.innerHTML.trim()) {
         alert('No hay contenido para exportar.');
@@ -921,7 +919,7 @@
 
                 ${content.innerHTML}
 
-                <!-- Firmas -->
+                <!-- Firmas (con protección contra cortes) -->
                 <div style="margin-top: 50px; page-break-inside: avoid;">
                     <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
                         Firmas de conformidad
@@ -953,62 +951,26 @@
             </div>
         `;
 
-        // ✅ Crear un contenedor temporal para el contenido
+        // ✅ Crear contenedor temporal
         const printDiv = document.createElement('div');
         printDiv.innerHTML = htmlContent;
         document.body.appendChild(printDiv);
         printDiv.style.position = 'fixed';
         printDiv.style.left = '-9999px';
 
-        // ✅ Configuración del PDF
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210;
-        const pageHeight = 297;
-        let position = 0;
-        let heightLeft = 0;
+        // ✅ Configuración de html2pdf
+        const opt = {
+            margin: 10,
+            filename: `reporte_cpnb_${numeroReporte}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
 
-        // ✅ Función recursiva para dividir el contenido en páginas
-        async function addPageToPDF(canvasElement) {
-            const imgData = canvasElement.toDataURL('image/png');
-            const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
-
-            if (position > 0) {
-                pdf.addPage();
-            }
-
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            position += imgHeight;
-            heightLeft -= imgHeight;
-
-            if (heightLeft >= 0) {
-                // Si queda más contenido, renderizar la siguiente página
-                const nextCanvas = await html2canvas(printDiv, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    windowHeight: imgHeight * 2, // Ajusta según sea necesario
-                    y: position
-                });
-                await addPageToPDF(nextCanvas);
-            }
-        }
-
-        // ✅ Renderizar la primera página
-        const firstCanvas = await html2canvas(printDiv, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            windowHeight: pageHeight * 2
+        // ✅ Generar PDF
+        html2pdf().from(printDiv).set(opt).save().finally(() => {
+            document.body.removeChild(printDiv);
         });
-
-        heightLeft = firstCanvas.height * (imgWidth / firstCanvas.width);
-
-        await addPageToPDF(firstCanvas);
-
-        // ✅ Guardar y limpiar
-        pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
-        document.body.removeChild(printDiv);
 
         alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
 
