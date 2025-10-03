@@ -870,7 +870,10 @@ async function exportarInspeccionAPDF() {
         alert('No hay contenido para exportar.');
         return;
     }
-
+    if (!inspeccionIdActual) {
+        alert('⚠️ Error: No se ha cargado una inspección válida.');
+        return;
+    }
     try {
         // ✅ Generar número de reporte único
         const { data: nuevoReporte, error: insertError } = await supabase
@@ -881,7 +884,7 @@ async function exportarInspeccionAPDF() {
 
         if (insertError) {
             console.error('Error al crear reporte:', insertError);
-            alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
+            alert('⚠️ No se pudo generar el número de reporte. Detalles: ' + (insertError.message || 'Error desconocido'));
             return;
         }
 
@@ -895,7 +898,7 @@ async function exportarInspeccionAPDF() {
             .update({ numero_reporte: numeroReporte })
             .eq('id', nuevoReporte.id);
 
-        // ✅ Construir el HTML del PDF
+        // ✅ Construir HTML del PDF con el párrafo institucional
         const htmlContent = `
             <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -906,7 +909,7 @@ async function exportarInspeccionAPDF() {
                     <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
                 </div>
 
-                <!-- PÁRRAFO INSTITUCIONAL -->
+                <!-- ✅ PÁRRAFO INSTITUCIONAL -->
                 <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
                     La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
                     La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
@@ -919,7 +922,7 @@ async function exportarInspeccionAPDF() {
 
                 ${content.innerHTML}
 
-                <!-- Firmas (con protección contra cortes) -->
+                <!-- Firmas (protegidas contra cortes) -->
                 <div style="margin-top: 50px; page-break-inside: avoid;">
                     <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
                         Firmas de conformidad
@@ -958,7 +961,7 @@ async function exportarInspeccionAPDF() {
         printDiv.style.position = 'fixed';
         printDiv.style.left = '-9999px';
 
-        // ✅ Configuración de html2pdf
+        // ✅ Configurar html2pdf
         const opt = {
             margin: 10,
             filename: `reporte_cpnb_${numeroReporte}.pdf`,
@@ -967,7 +970,7 @@ async function exportarInspeccionAPDF() {
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // ✅ Generar PDF
+        // ✅ Generar y guardar PDF
         html2pdf().from(printDiv).set(opt).save().finally(() => {
             document.body.removeChild(printDiv);
         });
@@ -979,38 +982,6 @@ async function exportarInspeccionAPDF() {
         alert('❌ Error al generar el reporte.');
     }
 }
-        function abrirModalFecha(inspeccionId) {
-            inspeccionIdActual = inspeccionId;
-            document.getElementById('modalFecha').style.display = 'flex';
-        }
-        function cerrarModalFecha() {
-            document.getElementById('modalFecha').style.display = 'none';
-            document.getElementById('nuevaFechaInput').value = '';
-        }
-        async function confirmarNuevaFecha() {
-            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
-            if (!nuevaFecha) {
-                alert("Por favor seleccione una fecha.");
-                return;
-            }
-            try {
-                const { error } = await supabase
-                    .from('inspecciones')
-                    .update({ proxima_inspeccion: nuevaFecha })
-                    .eq('id', inspeccionIdActual);
-                if (error) throw error;
-                alert("✅ Reinspección actualizada correctamente.");
-                cerrarModalFecha();
-                const desde = document.getElementById('fechaDesde').value;
-                const hasta = document.getElementById('fechaHasta').value;
-                const ccpId = document.getElementById('ccpFilter').value;
-                const estacionId = document.getElementById('estacionFilter').value;
-                cargarHistorial(desde || null, hasta || null, ccpId || null, estacionId || null);
-            } catch (error) {
-                console.error("Error al actualizar:", error);
-                alert("❌ Error al actualizar la reinspección.");
-            }
-        }
         verificarAcceso().then(() => {
             cargarHistorial(hace30Dias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]);
         });
