@@ -346,6 +346,10 @@
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
             <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
         </div>
+        <!-- ✅ Botón de Administrar Usuarios (solo visible para admin) -->
+        <button id="adminUsuariosBtn" class="action-btn" style="display:none; background: linear-gradient(135deg, #d97706, #b45309);">
+            👤 Administrar Usuarios
+        </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <!-- Vista específica: REDI OCCIDENTAL -->
@@ -457,10 +461,17 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
+        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE ADMIN
         async function showRediOccidental() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+            // ✅ Si es admin, permitir acceso inmediato
+            if (user.email === 'admin@cpnb.gob.ve') {
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+                contarYMostrarNotificaciones();
+                return;
+            }
             try {
                 const { data, error } = await supabase
                     .from('usuarios_redip')
@@ -551,6 +562,16 @@
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
+
+                // ✅ Detectar si es administrador
+                const isAdmin = user.email === 'admin@cpnb.gob.ve';
+                if (isAdmin) {
+                    document.getElementById('adminUsuariosBtn').style.display = 'block';
+                    document.getElementById('adminUsuariosBtn').onclick = () => {
+                        window.location.href = 'admin-usuarios.html';
+                    };
+                }
+
                 await cargarNotificacionesAlIniciar();
             }
         }
@@ -703,7 +724,6 @@
             dynamicView.style.display = 'block';
             dynamicView.style.maxWidth = '950px';
             dynamicView.style.padding = '40px';
-            
             // 👇 NUEVO: Manejar cambios en "Sí/No" con deshabilitar fotos e indicador
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
@@ -712,7 +732,6 @@
                     const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
                     const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
                     const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
-
                     if (this.value === 'null') {
                         textarea.style.display = 'none';
                         porcentajeContainer.style.display = 'none';
@@ -743,7 +762,6 @@
                     }
                 });
             });
-
             // 👇 NUEVO: Manejar cambios en el input de fotos
             document.querySelectorAll('.foto-input').forEach(input => {
                 input.addEventListener('change', function () {
@@ -751,7 +769,6 @@
                     const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                     const estaHabilitado = !this.disabled && select && select.value === 'true';
-
                     if (estaHabilitado && this.files && this.files.length > 0) {
                         indicador.style.display = 'block';
                     } else if (indicador) {
@@ -759,18 +776,15 @@
                     }
                 });
             });
-
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
-                
                 // ✅ Prevenir doble envío
                 const submitBtn = document.querySelector('#inspectionForm .form-btn');
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Guardando...';
-
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
                     alert('Debe estar autenticado para guardar.');
@@ -778,7 +792,6 @@
                     submitBtn.textContent = 'Guardar Inspección';
                     return;
                 }
-
                 try {
                     // Crear la inspección primero
                     const proximaFecha = document.getElementById('proximaInspeccion').value || null;
@@ -795,7 +808,6 @@
                     if (inspError) {
                         throw new Error(inspError.message || 'Error al crear la inspección');
                     }
-
                     // Procesar ítems y subir fotos
                     const itemsToInsert = [];
                     for (const item of items) {
@@ -829,14 +841,12 @@
                             fotos_urls: fotosUrls.length > 0 ? fotosUrls : null
                         });
                     }
-
                     if (itemsToInsert.length === 0) {
                         alert('Debe responder al menos un ítem.');
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Guardar Inspección';
                         return;
                     }
-
                     // Guardar ítems
                     const { error: itemsError } = await supabase
                         .from('items_inspeccion')
@@ -844,11 +854,9 @@
                     if (itemsError) {
                         throw new Error(itemsError.message || 'Error al guardar los ítems');
                     }
-
                     // ✅ Éxito: no reactivamos el botón porque redirigimos
                     alert('✅ Inspección guardada exitosamente.');
                     handleOccidentalForm({ preventDefault: () => {} });
-
                 } catch (error) {
                     console.error('Error al guardar inspección:', error);
                     alert('Error al guardar la inspección: ' + (error.message || ''));
