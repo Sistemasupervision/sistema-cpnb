@@ -1,4 +1,3 @@
-<!-- index.html (CORREGIDO) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -347,6 +346,12 @@
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
             <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
         </div>
+
+        <!-- ✅ BOTÓN DE ADMINISTRACIÓN (solo visible para admin@cpnb.gob.ve) -->
+        <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #d97706, #b45309);">
+            👤 Administrar Usuarios
+        </button>
+
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <!-- Vista específica: REDI OCCIDENTAL -->
@@ -421,8 +426,8 @@
             console.error('Error al subir imagen:', error);
             throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
         }
-        // ✅ Corrección: getPublicUrl devuelve { data: { publicUrl: ... } }
-        const { data: { publicUrl } } = supabase.storage
+        // ✅ Corrección: getPublicUrl devuelve {  { publicUrl: ... } }
+        const {  { publicUrl } } = supabase.storage
             .from('inspecciones-fotos')
             .getPublicUrl(filePath);
         uploadedUrls.push(publicUrl);
@@ -460,7 +465,7 @@
         }
         // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
         async function showRediOccidental() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) return;
             try {
                 const { data, error } = await supabase
@@ -492,7 +497,7 @@
                 return;
             }
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpValue)
@@ -547,41 +552,22 @@
             }
         }
 
-        // ✅ FUNCIÓN CORREGIDA: Vincula user_id si hay asignación pendiente
+        // ✅ FUNCIÓN CORREGIDA: Verifica si es admin y muestra el botón
         async function checkAuthState() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (user) {
-                // ✅ Paso clave: vincular user_id si hay asignación pendiente
-                try {
-                    const { data: pendiente } = await supabase
-                        .from('usuarios_redip')
-                        .select('*')
-                        .eq('email_pendiente', user.email)
-                        .single();
-
-                    if (pendiente) {
-                        const { error: updateError } = await supabase
-                            .from('usuarios_redip')
-                            .update({ 
-                                user_id: user.id, 
-                                email_pendiente: null 
-                            })
-                            .eq('id', pendiente.id);
-
-                        if (updateError) {
-                            console.error('Error al vincular user_id:', updateError);
-                        }
-                    }
-                } catch (err) {
-                    // Si no hay asignación pendiente (error 404), no hay problema
-                    if (err.code !== 'PGRST116') {
-                        console.error('Error inesperado al verificar asignación:', err);
-                    }
-                }
-
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
+
+                // ✅ Mostrar botón de administración SOLO si es el admin
+                const adminBtn = document.getElementById('adminUsuariosBtn');
+                if (user.email === 'admin@cpnb.gob.ve') {
+                    adminBtn.style.display = 'block';
+                } else {
+                    adminBtn.style.display = 'none';
+                }
+
                 await cargarNotificacionesAlIniciar();
             }
         }
@@ -590,7 +576,7 @@
             try {
                 const hoy = new Date().toISOString().split('T')[0];
                 const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const { data: estaciones, error: estError } = await supabase
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpOcidental);
@@ -796,7 +782,7 @@
                 const submitBtn = document.querySelector('#inspectionForm .form-btn');
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Guardando...';
-                const { data: { user } } = await supabase.auth.getUser();
+                const {  { user } } = await supabase.auth.getUser();
                 if (!user) {
                     alert('Debe estar autenticado para guardar.');
                     submitBtn.disabled = false;
@@ -877,6 +863,12 @@
                 }
             };
         }
+
+        // ✅ Event listener para el botón de administración
+        document.getElementById('adminUsuariosBtn').addEventListener('click', () => {
+            window.location.href = 'admin-usuarios.html';
+        });
+
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
