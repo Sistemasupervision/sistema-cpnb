@@ -139,7 +139,7 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         async function verificarAdmin() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser(); // ✅ Corregido
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
@@ -178,7 +178,7 @@
 
         document.getElementById('createForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!(await verificarAdmin())) return;
+            if (!(await verificarAdmin())) return; // ✅ Verifica antes de crear
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
