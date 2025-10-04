@@ -131,85 +131,77 @@
         <div id="mensaje" class="mensaje" style="display: none;"></div>
         <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
-    <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-      async function verificarAdmin() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('Debe iniciar sesión.');
-        window.location.href = 'index.html';
-        return false;
-    }
-    const { data, error } = await supabase
-        .from('usuarios_redip')
-        .select('redip')
-        .eq('user_id', user.id)
-        .single();
-    if (error || !data || data.redip !== 'admin') {
-        alert('Acceso denegado. Solo el administrador puede crear usuarios.');
-        window.location.href = 'index.html';
-        return false;
-    }
-    return true;
-}
-// Llamar al inicio
-verificarAdmin();
-
-        async function crearUsuario(email, password, redip) {
-            // Paso 1: Crear usuario con signUp (seguro desde frontend)
-            const { error: signUpError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    emailRedirectTo: 'https://ksczzvtgncvxfrmtvmll.supabase.co/auth/v1/verify',
-                     { role: 'inspector' }
-                }
-            });
-
-            if (signUpError) throw signUpError;
-
-            // Paso 2: Registrar asignación pendiente usando el email
-            const { error: insertError } = await supabase
-                .from('usuarios_redip')
-                .insert({ 
-                    email_pendiente: email, 
-                    redip,
-                    creado_por: 'admin@cpnb.gob.ve'
-                });
-
-            if (insertError) {
-                console.error('Error al registrar asignación:', insertError);
-                throw new Error('Usuario creado, pero falló la asignación de REDIP.');
-            }
+   <script>
+    async function verificarAdmin() {
+        const {  { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert('Debe iniciar sesión.');
+            window.location.href = 'index.html';
+            return false;
         }
+        const { data, error } = await supabase
+            .from('usuarios_redip')
+            .select('redip')
+            .eq('user_id', user.id)
+            .single();
+        if (error || !data || data.redip !== 'admin') {
+            alert('Acceso denegado. Solo el administrador puede crear usuarios.');
+            window.location.href = 'index.html';
+            return false;
+        }
+        return true;
+    }
 
-        document.getElementById('createForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+    if (!(await verificarAdmin())) {
+        // Si no es admin, no se ejecuta el resto del script
+        document.body.innerHTML = '<div style="text-align:center; padding:50px; color:red;">Acceso denegado.</div>';
+        throw new Error('No es administrador');
+    }
 
-            const isAdmin = await verificarAdmin();
-            if (!isAdmin) return;
+    const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const redip = document.getElementById('redip').value;
-            const msgDiv = document.getElementById('mensaje');
-
-            try {
-                await crearUsuario(email, password, redip);
-                msgDiv.className = 'mensaje exito';
-                msgDiv.textContent = '✅ Usuario creado. Se enviará un enlace de confirmación.';
-                msgDiv.style.display = 'block';
-                document.getElementById('createForm').reset();
-            } catch (err) {
-                console.error(err);
-                msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ Error: ' + (err.message || 'No se pudo crear el usuario.');
-                msgDiv.style.display = 'block';
-            }
+    async function crearUsuario(email, password, redip) {
+        // 1. Crear usuario en Auth
+        const { data, error } = await supabase.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true
         });
-    </script>
+        if (error) throw error;
+        const userId = data.user.id;
+        // 2. Guardar asignación en tabla `usuarios_redip`
+        const { error: insertError } = await supabase
+            .from('usuarios_redip')
+            .insert({ user_id: userId, redip });
+        if (insertError) {
+            // Opcional: borrar usuario si falla la asignación
+            await supabase.auth.admin.deleteUser(userId);
+            throw insertError;
+        }
+        return userId;
+    }
+
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const redip = document.getElementById('redip').value;
+        const msgDiv = document.getElementById('mensaje');
+        try {
+            await crearUsuario(email, password, redip);
+            msgDiv.className = 'mensaje exito';
+            msgDiv.textContent = '✅ Usuario creado y asignado correctamente.';
+            msgDiv.style.display = 'block';
+            document.getElementById('createForm').reset();
+        } catch (err) {
+            console.error(err);
+            msgDiv.className = 'mensaje error';
+            msgDiv.textContent = '❌ Error: ' + (err.message || 'No se pudo crear el usuario.');
+            msgDiv.style.display = 'block';
+        }
+    });
+</script>
 </body>
 </html>
