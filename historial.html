@@ -479,7 +479,7 @@
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
         
 async function verificarAcceso() {
-    const {  { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         alert('Debe iniciar sesión para acceder a esta página.');
         window.location.href = 'index.html';
