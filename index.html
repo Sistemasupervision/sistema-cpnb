@@ -457,41 +457,28 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-       async function showRediOccidental() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    try {
-        const { data, error } = await supabase
-            .from('usuarios_redip')
-            .select('redip, es_admin')
-            .eq('user_id', user.id)
-            .single();
-
-        if (error) throw error;
-
-        // ✅ Si es admin, permite acceso sin importar la REDIP
-        if (data.es_admin === true) {
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('rediOccidentalContainer').style.display = 'block';
-            contarYMostrarNotificaciones();
-            return;
+        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
+        async function showRediOccidental() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || data.redip !== 'occidental') {
+                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
+                    return;
+                }
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+                contarYMostrarNotificaciones();
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+            }
         }
-
-        // ✅ Si no es admin, valida como antes
-        if (!data || data.redip !== 'occidental') {
-            alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
-            return;
-        }
-
-        document.getElementById('dashboardContainer').style.display = 'none';
-        document.getElementById('rediOccidentalContainer').style.display = 'block';
-        contarYMostrarNotificaciones();
-    } catch (err) {
-        console.error('Error al verificar acceso:', err);
-        alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
-    }
-}
         function backToDashboard() {
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
