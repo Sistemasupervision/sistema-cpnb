@@ -1,3 +1,4 @@
+<!-- index.html (CORREGIDO) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -346,10 +347,6 @@
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
             <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
         </div>
-        <!-- ✅ Botón de Administrar Usuarios (solo visible para admin) -->
-        <button id="adminUsuariosBtn" class="action-btn" style="display:none; background: linear-gradient(135deg, #d97706, #b45309);">
-            👤 Administrar Usuarios
-        </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <!-- Vista específica: REDI OCCIDENTAL -->
@@ -461,17 +458,10 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE ADMIN
+        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
         async function showRediOccidental() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-            // ✅ Si es admin, permitir acceso inmediato
-            if (user.email === 'admin@cpnb.gob.ve') {
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-                contarYMostrarNotificaciones();
-                return;
-            }
             try {
                 const { data, error } = await supabase
                     .from('usuarios_redip')
@@ -556,46 +546,46 @@
                 alert('Error al cargar las estaciones policiales');
             }
         }
-       async function checkAuthState() {
-    const {  { user } } = await supabase.auth.getUser();
-    if (user) {
-        // ✅ Paso clave: vincular user_id si hay asignación pendiente
-        try {
-            const {  pendiente } = await supabase
-                .from('usuarios_redip')
-                .select('*')
-                .eq('email_pendiente', user.email)
-                .single();
 
-            if (pendiente) {
-                // Vincular el user_id real y limpiar email_pendiente
-                const { error: updateError } = await supabase
-                    .from('usuarios_redip')
-                    .update({ 
-                        user_id: user.id, 
-                        email_pendiente: null 
-                    })
-                    .eq('id', pendiente.id);
+        // ✅ FUNCIÓN CORREGIDA: Vincula user_id si hay asignación pendiente
+        async function checkAuthState() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // ✅ Paso clave: vincular user_id si hay asignación pendiente
+                try {
+                    const { data: pendiente } = await supabase
+                        .from('usuarios_redip')
+                        .select('*')
+                        .eq('email_pendiente', user.email)
+                        .single();
 
-                if (updateError) {
-                    console.error('Error al vincular user_id:', updateError);
-                    // No bloqueamos el acceso, pero registramos el error
+                    if (pendiente) {
+                        const { error: updateError } = await supabase
+                            .from('usuarios_redip')
+                            .update({ 
+                                user_id: user.id, 
+                                email_pendiente: null 
+                            })
+                            .eq('id', pendiente.id);
+
+                        if (updateError) {
+                            console.error('Error al vincular user_id:', updateError);
+                        }
+                    }
+                } catch (err) {
+                    // Si no hay asignación pendiente (error 404), no hay problema
+                    if (err.code !== 'PGRST116') {
+                        console.error('Error inesperado al verificar asignación:', err);
+                    }
                 }
-            }
-        } catch (err) {
-            // Si no hay asignación pendiente, no hay problema
-            if (err.code !== 'PGRST116') { // PGRST116 = "no rows returned"
-                console.error('Error inesperado al verificar asignación:', err);
+
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = user.email;
+                await cargarNotificacionesAlIniciar();
             }
         }
 
-        // Mostrar panel principal
-        document.getElementById('loginContainer').style.display = 'none';
-        document.getElementById('dashboardContainer').style.display = 'block';
-        document.getElementById('userNameDisplay').textContent = user.email;
-        await cargarNotificacionesAlIniciar();
-    }
-}
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
