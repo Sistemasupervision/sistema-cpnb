@@ -73,6 +73,12 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        .action-btn {
+            background: linear-gradient(135deg, #1a365d, #0c2440);
+            margin-top: 12px;
+            padding: 12px;
+            font-size: 15px;
+        }
         .back-btn {
             background: #2c5282;
             padding: 10px 20px;
@@ -82,12 +88,6 @@
             border-radius: 8px;
             margin-top: 20px;
             text-align: center;
-        }
-        .action-btn {
-            background: linear-gradient(135deg, #1a365d, #0c2440);
-            margin-top: 12px;
-            padding: 12px;
-            font-size: 15px;
         }
     </style>
 </head>
@@ -100,12 +100,9 @@
                 <label for="ccpSelect">Seleccione CCP:</label>
                 <select id="ccpSelect" required>
                     <option value="">-- Elija una opción --</option>
-                    <!-- ⚠️ REEMPLAZA ESTOS VALORES CON LOS REALES DE TU BASE DE DATOS -->
-                    <option value="capital-centro">CCP CAPITAL CENTRO</option>
-                    <option value="capital-norte">CCP CAPITAL NORTE</option>
-                    <option value="capital-sur">CCP CAPITAL SUR</option>
-                    <option value="capital-este">CCP CAPITAL ESTE</option>
-                    <option value="capital-oeste">CCP CAPITAL OESTE</option>
+                    <option value="ccp_1">CCP 1</option>
+                    <option value="ccp_2">CCP 2</option>
+                    <option value="ccp_3">CCP 3</option>
                 </select>
             </div>
             <button type="submit" class="btn">Continuar</button>
@@ -122,7 +119,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Verificar acceso a REDIP CAPITAL
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -148,10 +144,9 @@
             const ccp = document.getElementById('ccpSelect').value;
             if (!ccp) return alert('Seleccione un CCP.');
             alert('Funcionalidad de inspección aún por implementar. CCP: ' + ccp);
-            // Aquí iría la lógica para cargar estaciones y formulario (similar a OCCIDENTAL)
+            // Aquí iría la lógica para cargar estaciones (similar a OCCIDENTAL)
         }
 
-        // Al cargar
         verificarAcceso().then(permitido => {
             if (permitido) {
                 document.getElementById('capitalForm').addEventListener('submit', handleForm);
