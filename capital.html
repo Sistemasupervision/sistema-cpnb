@@ -152,6 +152,34 @@
                 document.getElementById('capitalForm').addEventListener('submit', handleForm);
             }
         });
+        // ✅ Permitir al admin acceder a cualquier REDIP
+document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const redi = btn.dataset.redi;
+        if (redi === 'occidental') {
+            showRediOccidental(); // Ya manejado arriba
+            return;
+        }
+        // Verificar si es admin
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data, error } = await supabase
+            .from('usuarios_redip')
+            .select('redip')
+            .eq('user_id', user.id)
+            .single();
+        if (error || !data || data.redip !== 'admin') {
+            alert(`⚠️ No tiene permisos para acceder a REDIP ${redi.toUpperCase()}.`);
+            return;
+        }
+        // Redirigir si existe el archivo
+        if (redi === 'capital') {
+            window.location.href = 'capital.html';
+        } else {
+            alert(`ℹ️ El acceso a ${redi.toUpperCase()} aún no está implementado.`);
+        }
+    });
+});
     </script>
 </body>
 </html>
