@@ -118,25 +118,31 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-            if (error || !data || data.redip !== 'capital') {
-                alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            return true;
-        }
+      async function verificarAcceso() {
+    const {  { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert('Debe iniciar sesión.');
+        window.location.href = 'index.html';
+        return false;
+    }
+    const { data, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip')
+        .eq('user_id', user.id)
+        .single();
+    if (error || !data) {
+        alert('Error al verificar sus permisos.');
+        window.location.href = 'index.html';
+        return false;
+    }
+    // ✅ Permitir acceso si es 'capital' O si es 'admin'
+    if (data.redip !== 'capital' && data.redip !== 'admin') {
+        alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
+        window.location.href = 'index.html';
+        return false;
+    }
+    return true;
+}
 
         async function handleForm(e) {
             e.preventDefault();
