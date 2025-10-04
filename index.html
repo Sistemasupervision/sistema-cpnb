@@ -336,17 +336,22 @@
             <h3>Usuario Conectado</h3>
             <p id="userNameDisplay">Nombre del Usuario</p>
         </div>
-        <div class="redi-buttons">
-            <button class="redi-btn" data-redi="andes">REDIP LOS ANDES</button>
-            <button class="redi-btn" onclick="window.location.href='capital.html'">REDIP CAPITAL</button>
-            <button class="redi-btn" data-redi="central">REDIP CENTRAL</button>
-            <button class="redi-btn" id="rediOccidentalBtn">REDIP OCCIDENTAL</button>
-            <button class="redi-btn" data-redi="oriental">REDIP ORIENTAL</button>
-            <button class="redi-btn" data-redi="llanos">REDIP LOS LLANOS</button>
-            <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
-            <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
-        </div>
-        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+     <div class="redi-buttons">
+    <button class="redi-btn" data-redi="andes">REDIP LOS ANDES</button>
+    <button class="redi-btn" data-redi="capital">REDIP CAPITAL</button>
+    <button class="redi-btn" data-redi="central">REDIP CENTRAL</button>
+    <button class="redi-btn" id="rediOccidentalBtn">REDIP OCCIDENTAL</button>
+    <button class="redi-btn" data-redi="oriental">REDIP ORIENTAL</button>
+    <button class="redi-btn" data-redi="llanos">REDIP LOS LLANOS</button>
+    <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
+    <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
+</div>
+<!-- ✅ Botón de administración (solo visible para admin) -->
+<button id="adminUsuariosBtn" class="action-btn" style="display:none; margin-top:15px;">
+    👤 Administrar Usuarios
+</button>
+
+<button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
@@ -864,6 +869,85 @@
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
         checkAuthState();
+        // Variables globales
+let usuarioRedipActual = null;
+let esAdmin = false;
+
+// ✅ Nueva función: verificar si es admin y mostrar botón
+async function verificarYMostrarAdmin() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip')
+        .eq('user_id', user.id)
+        .single();
+
+    if (error || !data) {
+        console.warn('No se encontró asignación de REDIP para el usuario');
+        return;
+    }
+
+    usuarioRedipActual = data.redip;
+    esAdmin = (data.redip === 'admin');
+
+    // Mostrar botón de administración si es admin
+    const adminBtn = document.getElementById('adminUsuariosBtn');
+    if (adminBtn) {
+        adminBtn.style.display = esAdmin ? 'block' : 'none';
+    }
+
+    // Si es admin, permitir acceso a cualquier REDIP
+    if (esAdmin) {
+        document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
+            btn.onclick = () => {
+                // Redirigir directamente al archivo correspondiente
+                const redi = btn.dataset.redi;
+                if (redi === 'occidental') {
+                    document.getElementById('dashboardContainer').style.display = 'none';
+                    document.getElementById('rediOccidentalContainer').style.display = 'block';
+                    contarYMostrarNotificaciones();
+                } else if (redi === 'capital') {
+                    window.location.href = 'capital.html';
+                } else {
+                    alert(`Acceso directo a ${redi.toUpperCase()} aún no implementado.\nPero como admin, podrías crear su archivo.`);
+                }
+            };
+        });
+    }
+}
+
+// ✅ Reemplazar el evento del botón OCCIDENTAL (solo si no es admin)
+document.getElementById('rediOccidentalBtn').onclick = async () => {
+    if (esAdmin) {
+        // Admin: acceso directo sin validación
+        document.getElementById('dashboardContainer').style.display = 'none';
+        document.getElementById('rediOccidentalContainer').style.display = 'block';
+        contarYMostrarNotificaciones();
+    } else {
+        // Usuario normal: validar acceso
+        await showRediOccidental();
+    }
+};
+
+// ✅ Agregar evento al botón de administración
+document.getElementById('adminUsuariosBtn').onclick = () => {
+    window.location.href = 'admin-usuarios.html';
+};
+
+// ✅ Al final de checkAuthState(), llama a verificarYMostrarAdmin()
+async function checkAuthState() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+        document.getElementById('userNameDisplay').textContent = user.email;
+        await verificarYMostrarAdmin(); // ✅ NUEVO
+        await cargarNotificacionesAlIniciar();
+    }
+}
+        
     </script>
 </body>
 </html>
