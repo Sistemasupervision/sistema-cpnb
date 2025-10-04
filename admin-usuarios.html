@@ -1,4 +1,3 @@
-<!-- admin-usuarios.html (CORREGIDO Y FUNCIONAL) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -149,19 +148,19 @@
         }
 
         async function crearUsuario(email, password, redip) {
-            // Paso 1: Crear usuario con signUp (frontend permitido)
+            // Paso 1: Crear usuario con signUp (seguro desde frontend)
             const { error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     emailRedirectTo: 'https://ksczzvtgncvxfrmtvmll.supabase.co/auth/v1/verify',
-                    data: { role: 'inspector' }
+                     { role: 'inspector' }
                 }
             });
 
             if (signUpError) throw signUpError;
 
-            // Paso 2: Registrar asignación pendiente en `usuarios_redip` usando el email
+            // Paso 2: Registrar asignación pendiente usando el email
             const { error: insertError } = await supabase
                 .from('usuarios_redip')
                 .insert({ 
