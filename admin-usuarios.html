@@ -133,7 +133,7 @@
     </div>
    <script>
     async function verificarAdmin() {
-        const {  { user } } = await supabase.auth.getUser();
+       const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             alert('Debe iniciar sesión.');
             window.location.href = 'index.html';
