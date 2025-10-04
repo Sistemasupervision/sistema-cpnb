@@ -556,25 +556,46 @@
                 alert('Error al cargar las estaciones policiales');
             }
         }
-        async function checkAuthState() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
+       async function checkAuthState() {
+    const {  { user } } = await supabase.auth.getUser();
+    if (user) {
+        // ✅ Paso clave: vincular user_id si hay asignación pendiente
+        try {
+            const {  pendiente } = await supabase
+                .from('usuarios_redip')
+                .select('*')
+                .eq('email_pendiente', user.email)
+                .single();
 
-                // ✅ Detectar si es administrador
-                const isAdmin = user.email === 'admin@cpnb.gob.ve';
-                if (isAdmin) {
-                    document.getElementById('adminUsuariosBtn').style.display = 'block';
-                    document.getElementById('adminUsuariosBtn').onclick = () => {
-                        window.location.href = 'admin-usuarios.html';
-                    };
+            if (pendiente) {
+                // Vincular el user_id real y limpiar email_pendiente
+                const { error: updateError } = await supabase
+                    .from('usuarios_redip')
+                    .update({ 
+                        user_id: user.id, 
+                        email_pendiente: null 
+                    })
+                    .eq('id', pendiente.id);
+
+                if (updateError) {
+                    console.error('Error al vincular user_id:', updateError);
+                    // No bloqueamos el acceso, pero registramos el error
                 }
-
-                await cargarNotificacionesAlIniciar();
+            }
+        } catch (err) {
+            // Si no hay asignación pendiente, no hay problema
+            if (err.code !== 'PGRST116') { // PGRST116 = "no rows returned"
+                console.error('Error inesperado al verificar asignación:', err);
             }
         }
+
+        // Mostrar panel principal
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+        document.getElementById('userNameDisplay').textContent = user.email;
+        await cargarNotificacionesAlIniciar();
+    }
+}
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
