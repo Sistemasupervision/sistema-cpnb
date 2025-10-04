@@ -477,30 +477,37 @@
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-        async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('Debe iniciar sesión para acceder a esta página.');
-                window.location.href = 'index.html';
-                return;
-            }
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || data.redip !== 'occidental') {
-                    alert('⚠️ No tiene permisos para acceder a esta sección.');
-                    window.location.href = 'index.html';
-                    return;
-                }
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('Error al verificar sus permisos.');
-                window.location.href = 'index.html';
-            }
+        
+async function verificarAcceso() {
+    const {  { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert('Debe iniciar sesión para acceder a esta página.');
+        window.location.href = 'index.html';
+        return;
+    }
+    try {
+        const { data, error } = await supabase
+            .from('usuarios_redip')
+            .select('redip')
+            .eq('user_id', user.id)
+            .single();
+        if (error || !data) {
+            alert('Error al verificar sus permisos.');
+            window.location.href = 'index.html';
+            return;
         }
+        // ✅ Permitir acceso si es 'occidental' O si es 'admin'
+        if (data.redip !== 'occidental' && data.redip !== 'admin') {
+            alert('⚠️ No tiene permisos para acceder a esta sección.');
+            window.location.href = 'index.html';
+            return;
+        }
+    } catch (err) {
+        console.error('Error al verificar acceso:', err);
+        alert('Error al verificar sus permisos.');
+        window.location.href = 'index.html';
+    }
+}
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
