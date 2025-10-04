@@ -392,562 +392,551 @@
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
     <div id="dynamicView" class="container" style="display:none; max-width:950px; padding:40px;"></div>
-    <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-        }
-       async function uploadImages(files, inspectionId, itemKey) {
-    if (!files || files.length === 0) return [];
-    const uploadedUrls = [];
-    const timestamp = Date.now();
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const ext = file.name.split('.').pop().toLowerCase();
-        // ✅ Normalizar el itemKey para evitar caracteres inválidos
-        const normalizedItemKey = itemKey
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-zA-Z0-9_]/g, '_');
-        const filePath = `inspecciones/${inspectionId}/${normalizedItemKey}_${timestamp}_${i}.${ext}`;
-        const { data, error } = await supabase.storage
-            .from('inspecciones-fotos')
-            .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
-        if (error) {
-            console.error('Error al subir imagen:', error);
-            throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
-        }
-        // ✅ Corrección: getPublicUrl devuelve { data: { publicUrl: ... } }
-        const { data: { publicUrl } } = supabase.storage
-            .from('inspecciones-fotos')
-            .getPublicUrl(filePath);
-        uploadedUrls.push(publicUrl);
+   <script>
+    const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+    let usuarioRedipActual = null;
+    let esAdmin = false;
+
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
     }
-    return uploadedUrls;
-}
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = email;
-                await cargarNotificacionesAlIniciar();
-            } catch (error) {
-                console.error('Error en login:', error);
-                showError('Credenciales incorrectas o usuario no existe');
-            }
-        }
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'none';
-                document.getElementById('dynamicView').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginForm').reset();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-            }
-        }
-        // ✅ FUNCIÓN ACTUALIZADA CON VALIDACIÓN DE REDIP
-        async function showRediOccidental() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || data.redip !== 'occidental') {
-                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
-                    return;
-                }
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-                contarYMostrarNotificaciones();
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
-            }
-        }
-        function backToDashboard() {
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
+            document.getElementById('userNameDisplay').textContent = email;
+            await verificarYMostrarAdmin(); // ✅ NUEVO: Verifica admin y muestra botón
+            await cargarNotificacionesAlIniciar();
+        } catch (error) {
+            console.error('Error en login:', error);
+            showError('Credenciales incorrectas o usuario no existe');
         }
-        async function handleOccidentalForm(e) {
-            e.preventDefault();
-            const ccpValue = document.getElementById('ccpSelect').value;
-            if (!ccpValue) {
-                alert('Por favor seleccione un CCP.');
+    }
+
+    async function handleLogout() {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            document.getElementById('dynamicView').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('loginForm').reset();
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+        }
+    }
+
+    // ✅ FUNCIÓN ACTUALIZADA PARA VERIFICAR ADMIN Y MOSTRAR BOTÓN
+    async function verificarYMostrarAdmin() {
+        const {  { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+            .from('usuarios_redip')
+            .select('redip')
+            .eq('user_id', user.id)
+            .single();
+
+        if (error || !data) {
+            console.warn('No se encontró asignación de REDIP para el usuario');
+            return;
+        }
+
+        usuarioRedipActual = data.redip;
+        esAdmin = (data.redip === 'admin');
+
+        // Mostrar botón de administración si es admin
+        const adminBtn = document.getElementById('adminUsuariosBtn');
+        if (adminBtn) {
+            adminBtn.style.display = esAdmin ? 'block' : 'none';
+        }
+
+        // Si es admin, permitir acceso a cualquier REDIP
+        if (esAdmin) {
+            document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
+                btn.onclick = () => {
+                    const redi = btn.dataset.redi;
+                    if (redi === 'occidental') {
+                        document.getElementById('dashboardContainer').style.display = 'none';
+                        document.getElementById('rediOccidentalContainer').style.display = 'block';
+                        contarYMostrarNotificaciones();
+                    } else if (redi === 'capital') {
+                        window.location.href = 'capital.html';
+                    } else {
+                        alert(`Acceso directo a ${redi.toUpperCase()} aún no implementado.\nPero como admin, podrías crear su archivo.`);
+                    }
+                };
+            });
+        }
+    }
+
+    // ✅ Reemplazar el evento del botón OCCIDENTAL (solo si no es admin)
+    document.getElementById('rediOccidentalBtn').onclick = async () => {
+        if (esAdmin) {
+            // Admin: acceso directo sin validación
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
+            contarYMostrarNotificaciones();
+        } else {
+            // Usuario normal: validar acceso
+            await showRediOccidental();
+        }
+    };
+
+    // ✅ Agregar evento al botón de administración
+    document.getElementById('adminUsuariosBtn').onclick = () => {
+        window.location.href = 'admin-usuarios.html';
+    };
+
+    async function showRediOccidental() {
+        const {  { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        try {
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (error || !data || data.redip !== 'occidental') {
+                alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.
+Por favor contacte al administrador.');
                 return;
             }
-            try {
-                const { data: estaciones, error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccpValue)
-                    .order('nombre', { ascending: true });
-                if (error) throw error;
-                if (!estaciones || estaciones.length === 0) {
-                    alert(`No hay estaciones registradas para ${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}.`);
-                    return;
-                }
-                let estacionesHtml = `
-                    <div class="logo-container">
-                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                        <h1 class="title">Selección de Estación Policial</h1>
-                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                            CCP: <strong>${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}</strong>
-                        </p>
-                    </div>
-                    <div class="input-group">
-                        <label for="estacionSelect">Seleccione Estación Policial:</label>
-                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
-                            <option value="">-- Elija una estación --</option>
-                `;
-                estaciones.forEach(est => {
-                    estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
-                });
-                estacionesHtml += `
-                        </select>
-                    </div>
-                    <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
-                    <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
-                `;
-                document.getElementById('rediOccidentalContainer').style.display = 'none';
-                const dynamicView = document.getElementById('dynamicView');
-                dynamicView.innerHTML = estacionesHtml;
-                dynamicView.style.display = 'block';
-                document.getElementById('loadInspectionBtn').onclick = () => {
-                    const estacionId = document.getElementById('estacionSelect').value;
-                    if (!estacionId) {
-                        alert('Por favor seleccione una estación');
-                        return;
-                    }
-                    const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-                    loadInspectionForm(estacionId, estacionNombre);
-                };
-                document.getElementById('backToCcpBtn').onclick = () => {
-                    dynamicView.style.display = 'none';
-                    document.getElementById('rediOccidentalContainer').style.display = 'block';
-                };
-            } catch (error) {
-                console.error('Error al cargar estaciones:', error);
-                alert('Error al cargar las estaciones policiales');
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
+            contarYMostrarNotificaciones();
+        } catch (err) {
+            console.error('Error al verificar acceso:', err);
+            alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+        }
+    }
+
+    function backToDashboard() {
+        document.getElementById('rediOccidentalContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+    }
+
+    async function handleOccidentalForm(e) {
+        e.preventDefault();
+        const ccpValue = document.getElementById('ccpSelect').value;
+        if (!ccpValue) {
+            alert('Por favor seleccione un CCP.');
+            return;
+        }
+        try {
+            const {  estaciones, error } = await supabase
+                .from('estaciones_policiales')
+                .select('id, nombre')
+                .eq('ccp_id', ccpValue)
+                .order('nombre', { ascending: true });
+            if (error) throw error;
+            if (!estaciones || estaciones.length === 0) {
+                alert(`No hay estaciones registradas para ${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}.`);
+                return;
             }
-        }
-        async function checkAuthState() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
-                await cargarNotificacionesAlIniciar();
-            }
-        }
-        async function contarReinspeccionesVencidas() {
-            try {
-                const hoy = new Date().toISOString().split('T')[0];
-                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const { data: estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw estError;
-                const idsEstaciones = estaciones.map(e => e.id);
-                if (idsEstaciones.length === 0) return 0;
-                const { count, error: countError } = await supabase
-                    .from('inspecciones')
-                    .select('*', { count: 'exact', head: true })
-                    .in('estacion_id', idsEstaciones)
-                    .lte('proxima_inspeccion', hoy);
-                if (countError) throw countError;
-                return count || 0;
-            } catch (error) {
-                console.error('Error al contar notificaciones:', error);
-                return 0;
-            }
-        }
-        async function contarYMostrarNotificaciones() {
-            const contador = await contarReinspeccionesVencidas();
-            const boton = document.getElementById('botonNotificaciones');
-            if (boton) {
-                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
-            }
-        }
-        async function cargarNotificacionesAlIniciar() {
-        }
-        function loadInspectionForm(estacionId, estacionNombre) {
-            const items = [
-                "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
-                "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
-                "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
-                "condiciones_generales", "vehiculos", "motos","botiquin_emergencia", "libros", "equipos_tecnologicos"
-            ];
-            const nombres = {
-                baño_dama: "Baño Dama",
-                baño_caballero: "Baño Caballero",
-                dormitorio_femenino: "Dormitorio Femenino",
-                dormitorio_masculino: "Dormitorio Masculino",
-                cocina: "Cocina",
-                comedor: "Comedor",
-                lavanderia: "Lavandería",
-                oficina_del_jefe: "Oficina del Jefe",
-                oficina_de_rrhh: "Oficina de RRHH",
-                condiciones_electricas: "Condiciones Eléctricas",
-                fachada: "Fachada",
-                condiciones_de_pintura: "Condiciones de Pintura",
-                jardines: "Jardines",
-                condiciones_generales: "Otros",
-                vehiculos: "Vehículos",
-                motos: "Motos",
-                botiquin_emergencia: "Servicio médico/implementos médicos",
-                libros: "Elementos de supervisión y control",
-                equipos_tecnologicos: "Equipos Tecnológicos" 
-            };
-            const hoy = new Date().toISOString().split('T')[0];
-            let formHtml = `
+            let estacionesHtml = `
                 <div class="logo-container">
                     <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Formulario de Inspección</h1>
+                    <h1 class="title">Selección de Estación Policial</h1>
                     <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                        Estación: <strong>${estacionNombre}</strong>
+                        CCP: <strong>${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}</strong>
                     </p>
                 </div>
-                <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
-                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
+                <div class="input-group">
+                    <label for="estacionSelect">Seleccione Estación Policial:</label>
+                    <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                        <option value="">-- Elija una estación --</option>
             `;
-            items.forEach(item => {
-                formHtml += `
-                    <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                        <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
-                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
-                            <option value="null">-- Seleccione --</option>
-                            <option value="true">Sí</option>
-                            <option value="false">No</option>
-                        </select>
-                        <textarea class="observacion-text" data-item="${item}" 
-                            placeholder="Observaciones" 
-                            style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
-                            rows="3"></textarea>
-                        <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
-                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
-                                Porcentaje de estatus
-                            </label>
-                            <div style="padding:10px 0;">
-                                <input type="range" class="porcentaje-slider" data-item="${item}" 
-                                    min="0" max="100" value="0"
-                                    style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
-                                    oninput="this.nextElementSibling.value = this.value + '%'"
-                                >
-                                <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
-                                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#718096;">
-                                    <span>0</span>
-                                    <span>10</span>
-                                    <span>20</span>
-                                    <span>30</span>
-                                    <span>40</span>
-                                    <span>50</span>
-                                    <span>60</span>
-                                    <span>70</span>
-                                    <span>80</span>
-                                    <span>90</span>
-                                    <span>100</span>
-                                </div>
+            estaciones.forEach(est => {
+                estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
+            });
+            estacionesHtml += `
+                    </select>
+                </div>
+                <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
+                <button id="backToCcpBtn" class="back-btn" style="margin-top:15px;">← Volver a CCP</button>
+            `;
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = estacionesHtml;
+            dynamicView.style.display = 'block';
+            document.getElementById('loadInspectionBtn').onclick = () => {
+                const estacionId = document.getElementById('estacionSelect').value;
+                if (!estacionId) {
+                    alert('Por favor seleccione una estación');
+                    return;
+                }
+                const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+                loadInspectionForm(estacionId, estacionNombre);
+            };
+            document.getElementById('backToCcpBtn').onclick = () => {
+                dynamicView.style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+            };
+        } catch (error) {
+            console.error('Error al cargar estaciones:', error);
+            alert('Error al cargar las estaciones policiales');
+        }
+    }
+
+    async function checkAuthState() {
+        const {  { user } } = await supabase.auth.getUser();
+        if (user) {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            document.getElementById('userNameDisplay').textContent = user.email;
+            await verificarYMostrarAdmin(); // ✅ NUEVO
+            await cargarNotificacionesAlIniciar();
+        }
+    }
+
+    async function contarReinspeccionesVencidas() {
+        try {
+            const hoy = new Date().toISOString().split('T')[0];
+            const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+            const {  estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id')
+                .in('ccp_id', ccpOcidental);
+            if (estError) throw estError;
+            const idsEstaciones = estaciones.map(e => e.id);
+            if (idsEstaciones.length === 0) return 0;
+            const { count, error: countError } = await supabase
+                .from('inspecciones')
+                .select('*', { count: 'exact', head: true })
+                .in('estacion_id', idsEstaciones)
+                .lte('proxima_inspeccion', hoy);
+            if (countError) throw countError;
+            return count || 0;
+        } catch (error) {
+            console.error('Error al contar notificaciones:', error);
+            return 0;
+        }
+    }
+
+    async function contarYMostrarNotificaciones() {
+        const contador = await contarReinspeccionesVencidas();
+        const boton = document.getElementById('botonNotificaciones');
+        if (boton) {
+            boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
+        }
+    }
+
+    async function cargarNotificacionesAlIniciar() {
+        // Puedes dejarlo vacío o llamar a contarYMostrarNotificaciones()
+    }
+
+    function loadInspectionForm(estacionId, estacionNombre) {
+        const items = [
+            "baño_dama", "baño_caballero", "dormitorio_femenino", "dormitorio_masculino",
+            "cocina", "comedor", "lavanderia", "oficina_del_jefe", "oficina_de_rrhh",
+            "condiciones_electricas", "fachada", "condiciones_de_pintura", "jardines",
+            "condiciones_generales", "vehiculos", "motos","botiquin_emergencia", "libros", "equipos_tecnologicos"
+        ];
+        const nombres = {
+            baño_dama: "Baño Dama",
+            baño_caballero: "Baño Caballero",
+            dormitorio_femenino: "Dormitorio Femenino",
+            dormitorio_masculino: "Dormitorio Masculino",
+            cocina: "Cocina",
+            comedor: "Comedor",
+            lavanderia: "Lavandería",
+            oficina_del_jefe: "Oficina del Jefe",
+            oficina_de_rrhh: "Oficina de RRHH",
+            condiciones_electricas: "Condiciones Eléctricas",
+            fachada: "Fachada",
+            condiciones_de_pintura: "Condiciones de Pintura",
+            jardines: "Jardines",
+            condiciones_generales: "Otros",
+            vehiculos: "Vehículos",
+            motos: "Motos",
+            botiquin_emergencia: "Servicio médico/implementos médicos",
+            libros: "Elementos de supervisión y control",
+            equipos_tecnologicos: "Equipos Tecnológicos" 
+        };
+        const hoy = new Date().toISOString().split('T')[0];
+        let formHtml = `
+            <div class="logo-container">
+                <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                <h1 class="title">Formulario de Inspección</h1>
+                <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                    Estación: <strong>${estacionNombre}</strong>
+                </p>
+            </div>
+            <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
+                <div class="items-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 30px;">
+        `;
+        items.forEach(item => {
+            formHtml += `
+                <div class="item-card" style="background:#f8fafc; padding:18px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <label style="font-weight: bold; color: #0c2440; font-size:14px;">${nombres[item]}</label>
+                    <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; margin-top:10px; font-size:14px;">
+                        <option value="null">-- Seleccione --</option>
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
+                    </select>
+                    <textarea class="observacion-text" data-item="${item}" 
+                        placeholder="Observaciones" 
+                        style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
+                        rows="3"></textarea>
+                    <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
+                        <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
+                            Porcentaje de estatus
+                        </label>
+                        <div style="padding:10px 0;">
+                            <input type="range" class="porcentaje-slider" data-item="${item}" 
+                                min="0" max="100" value="0"
+                                style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
+                                oninput="this.nextElementSibling.value = this.value + '%'"
+                            >
+                            <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
+                            <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#718096;">
+                                <span>0</span>
+                                <span>10</span>
+                                <span>20</span>
+                                <span>30</span>
+                                <span>40</span>
+                                <span>50</span>
+                                <span>60</span>
+                                <span>70</span>
+                                <span>80</span>
+                                <span>90</span>
+                                <span>100</span>
                             </div>
                         </div>
-                        <!-- ✅ INPUT DE FOTOS POR ÍTEM -->
-                        <input type="file" class="foto-input" data-item="${item}" 
-                               accept="image/*" multiple
-                               style="width:100%; margin-top:10px; font-size:13px;">
-                        <small style="color:#718096; display:block; margin-top:4px;">
-                            (Opcional) Suba fotos del área inspeccionada
-                        </small>
-                        <span class="foto-indicador" data-item="${item}" 
-                              style="display:none; color:#38a169; font-weight:bold; font-size:13px; margin-top:6px;">
-                            ✅ Fotos seleccionadas
-                        </span>
                     </div>
-                `;
-            });
-            formHtml += `
+                    <!-- ✅ INPUT DE FOTOS POR ÍTEM -->
+                    <input type="file" class="foto-input" data-item="${item}" 
+                           accept="image/*" multiple
+                           style="width:100%; margin-top:10px; font-size:13px;">
+                    <small style="color:#718096; display:block; margin-top:4px;">
+                        (Opcional) Suba fotos del área inspeccionada
+                    </small>
+                    <span class="foto-indicador" data-item="${item}" 
+                          style="display:none; color:#38a169; font-weight:bold; font-size:13px; margin-top:6px;">
+                        ✅ Fotos seleccionadas
+                    </span>
                 </div>
-                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
-                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
-                    <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
-                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
-                </div>
-                <div class="input-group" style="margin-top:20px; grid-column: span 3;">
-                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-                    <input type="date" id="proximaInspeccion" 
-                        min="${hoy}"
-                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
-                </div>
-                <div style="text-align:center; margin-top:30px; grid-column: span 3;">
-                    <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
-                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
-                </div>
-            </form>
-        `;
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = formHtml;
-            dynamicView.style.display = 'block';
-            dynamicView.style.maxWidth = '950px';
-            dynamicView.style.padding = '40px';
-            
-            // 👇 NUEVO: Manejar cambios en "Sí/No" con deshabilitar fotos e indicador
-            document.querySelectorAll('.cumple-select').forEach(select => {
-                select.addEventListener('change', function () {
-                    const item = this.dataset.item;
-                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-                    const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
-                    const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
-                    const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
-
-                    if (this.value === 'null') {
-                        textarea.style.display = 'none';
+            `;
+        });
+        formHtml += `
+            </div>
+            <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
+                <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
+                    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
+            </div>
+            <div class="input-group" style="margin-top:20px; grid-column: span 3;">
+                <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
+                <input type="date" id="proximaInspeccion" 
+                    min="${hoy}"
+                    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
+            </div>
+            <div style="text-align:center; margin-top:30px; grid-column: span 3;">
+                <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
+                <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
+            </div>
+        </form>
+    `;
+        const dynamicView = document.getElementById('dynamicView');
+        dynamicView.innerHTML = formHtml;
+        dynamicView.style.display = 'block';
+        dynamicView.style.maxWidth = '950px';
+        dynamicView.style.padding = '40px';
+        // 👇 NUEVO: Manejar cambios en "Sí/No" con deshabilitar fotos e indicador
+        document.querySelectorAll('.cumple-select').forEach(select => {
+            select.addEventListener('change', function () {
+                const item = this.dataset.item;
+                const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
+                const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
+                const fotoInput = document.querySelector(`.foto-input[data-item="${item}"]`);
+                const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
+                if (this.value === 'null') {
+                    textarea.style.display = 'none';
+                    porcentajeContainer.style.display = 'none';
+                    textarea.value = '';
+                    if (fotoInput) {
+                        fotoInput.disabled = true;
+                        fotoInput.value = '';
+                    }
+                    if (indicador) indicador.style.display = 'none';
+                } else {
+                    textarea.style.display = 'block';
+                    if (this.value === 'true') {
+                        porcentajeContainer.style.display = 'block';
+                        if (fotoInput) fotoInput.disabled = false;
+                    } else { // "No"
                         porcentajeContainer.style.display = 'none';
-                        textarea.value = '';
                         if (fotoInput) {
                             fotoInput.disabled = true;
                             fotoInput.value = '';
                         }
-                        if (indicador) indicador.style.display = 'none';
-                    } else {
-                        textarea.style.display = 'block';
-                        if (this.value === 'true') {
-                            porcentajeContainer.style.display = 'block';
-                            if (fotoInput) fotoInput.disabled = false;
-                        } else { // "No"
-                            porcentajeContainer.style.display = 'none';
-                            if (fotoInput) {
-                                fotoInput.disabled = true;
-                                fotoInput.value = '';
-                            }
-                        }
-                        // Actualizar indicador
-                        if (indicador && fotoInput && !fotoInput.disabled && fotoInput.files && fotoInput.files.length > 0) {
-                            indicador.style.display = 'block';
-                        } else if (indicador) {
-                            indicador.style.display = 'none';
-                        }
                     }
-                });
-            });
-
-            // 👇 NUEVO: Manejar cambios en el input de fotos
-            document.querySelectorAll('.foto-input').forEach(input => {
-                input.addEventListener('change', function () {
-                    const item = this.dataset.item;
-                    const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
-                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                    const estaHabilitado = !this.disabled && select && select.value === 'true';
-
-                    if (estaHabilitado && this.files && this.files.length > 0) {
+                    // Actualizar indicador
+                    if (indicador && fotoInput && !fotoInput.disabled && fotoInput.files && fotoInput.files.length > 0) {
                         indicador.style.display = 'block';
                     } else if (indicador) {
                         indicador.style.display = 'none';
                     }
-                });
+                }
             });
-
-            document.getElementById('backToEstacionesBtn').onclick = () => {
-                handleOccidentalForm({ preventDefault: () => {} });
-            };
-            document.getElementById('inspectionForm').onsubmit = async (e) => {
-                e.preventDefault();
-                
-                // ✅ Prevenir doble envío
-                const submitBtn = document.querySelector('#inspectionForm .form-btn');
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Guardando...';
-
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    alert('Debe estar autenticado para guardar.');
+        });
+        // 👇 NUEVO: Manejar cambios en el input de fotos
+        document.querySelectorAll('.foto-input').forEach(input => {
+            input.addEventListener('change', function () {
+                const item = this.dataset.item;
+                const indicador = document.querySelector(`.foto-indicador[data-item="${item}"]`);
+                const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                const estaHabilitado = !this.disabled && select && select.value === 'true';
+                if (estaHabilitado && this.files && this.files.length > 0) {
+                    indicador.style.display = 'block';
+                } else if (indicador) {
+                    indicador.style.display = 'none';
+                }
+            });
+        });
+        document.getElementById('backToEstacionesBtn').onclick = () => {
+            handleOccidentalForm({ preventDefault: () => {} });
+        };
+        document.getElementById('inspectionForm').onsubmit = async (e) => {
+            e.preventDefault();
+            // ✅ Prevenir doble envío
+            const submitBtn = document.querySelector('#inspectionForm .form-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Guardando...';
+            const {  { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe estar autenticado para guardar.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Guardar Inspección';
+                return;
+            }
+            try {
+                // Crear la inspección primero
+                const proximaFecha = document.getElementById('proximaInspeccion').value || null;
+                const { data: inspeccionData, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .insert({
+                        estacion_id: estacionId,
+                        inspector_email: user.email,
+                        observaciones_generales: document.getElementById('observacionesGenerales').value || null,
+                        proxima_inspeccion: proximaFecha
+                    })
+                    .select()
+                    .single();
+                if (inspError) {
+                    throw new Error(inspError.message || 'Error al crear la inspección');
+                }
+                // Procesar ítems y subir fotos
+                const itemsToInsert = [];
+                for (const item of items) {
+                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
+                    const cumpleValue = select.value;
+                    if (cumpleValue === 'null') continue;
+                    const cumple = cumpleValue === 'true';
+                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
+                    let porcentaje = 0;
+                    if (cumple) {
+                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                        porcentaje = parseInt(slider?.value) || 0;
+                    }
+                    // Subir fotos si existen
+                    let fotosUrls = [];
+                    const fileInput = document.querySelector(`.foto-input[data-item="${item}"]`);
+                    if (fileInput && fileInput.files.length > 0) {
+                        try {
+                            fotosUrls = await uploadImages(fileInput.files, inspeccionData.id, item);
+                        } catch (uploadErr) {
+                            alert(`⚠️ Error al subir fotos del ítem "${nombres[item]}". Inspección guardada sin imágenes.`);
+                            console.error(uploadErr);
+                        }
+                    }
+                    itemsToInsert.push({
+                        inspeccion_id: inspeccionData.id,
+                        item_nombre: item,
+                        cumple: cumple,
+                        observacion: observacion,
+                        porcentaje_cumplimiento: porcentaje,
+                        fotos_urls: fotosUrls.length > 0 ? fotosUrls : null
+                    });
+                }
+                if (itemsToInsert.length === 0) {
+                    alert('Debe responder al menos un ítem.');
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Guardar Inspección';
                     return;
                 }
-
-                try {
-                    // Crear la inspección primero
-                    const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-                    const { data: inspeccionData, error: inspError } = await supabase
-                        .from('inspecciones')
-                        .insert({
-                            estacion_id: estacionId,
-                            inspector_email: user.email,
-                            observaciones_generales: document.getElementById('observacionesGenerales').value || null,
-                            proxima_inspeccion: proximaFecha
-                        })
-                        .select()
-                        .single();
-                    if (inspError) {
-                        throw new Error(inspError.message || 'Error al crear la inspección');
-                    }
-
-                    // Procesar ítems y subir fotos
-                    const itemsToInsert = [];
-                    for (const item of items) {
-                        const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                        const cumpleValue = select.value;
-                        if (cumpleValue === 'null') continue;
-                        const cumple = cumpleValue === 'true';
-                        const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-                        let porcentaje = 0;
-                        if (cumple) {
-                            const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-                            porcentaje = parseInt(slider?.value) || 0;
-                        }
-                        // Subir fotos si existen
-                        let fotosUrls = [];
-                        const fileInput = document.querySelector(`.foto-input[data-item="${item}"]`);
-                        if (fileInput && fileInput.files.length > 0) {
-                            try {
-                                fotosUrls = await uploadImages(fileInput.files, inspeccionData.id, item);
-                            } catch (uploadErr) {
-                                alert(`⚠️ Error al subir fotos del ítem "${nombres[item]}". Inspección guardada sin imágenes.`);
-                                console.error(uploadErr);
-                            }
-                        }
-                        itemsToInsert.push({
-                            inspeccion_id: inspeccionData.id,
-                            item_nombre: item,
-                            cumple: cumple,
-                            observacion: observacion,
-                            porcentaje_cumplimiento: porcentaje,
-                            fotos_urls: fotosUrls.length > 0 ? fotosUrls : null
-                        });
-                    }
-
-                    if (itemsToInsert.length === 0) {
-                        alert('Debe responder al menos un ítem.');
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Guardar Inspección';
-                        return;
-                    }
-
-                    // Guardar ítems
-                    const { error: itemsError } = await supabase
-                        .from('items_inspeccion')
-                        .insert(itemsToInsert);
-                    if (itemsError) {
-                        throw new Error(itemsError.message || 'Error al guardar los ítems');
-                    }
-
-                    // ✅ Éxito: no reactivamos el botón porque redirigimos
-                    alert('✅ Inspección guardada exitosamente.');
-                    handleOccidentalForm({ preventDefault: () => {} });
-
-                } catch (error) {
-                    console.error('Error al guardar inspección:', error);
-                    alert('Error al guardar la inspección: ' + (error.message || ''));
-                    // ✅ Re-habilitar botón solo si hay error
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Guardar Inspección';
+                // Guardar ítems
+                const { error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .insert(itemsToInsert);
+                if (itemsError) {
+                    throw new Error(itemsError.message || 'Error al guardar los ítems');
                 }
-            };
+                // ✅ Éxito: no reactivamos el botón porque redirigimos
+                alert('✅ Inspección guardada exitosamente.');
+                handleOccidentalForm({ preventDefault: () => {} });
+            } catch (error) {
+                console.error('Error al guardar inspección:', error);
+                alert('Error al guardar la inspección: ' + (error.message || ''));
+                // ✅ Re-habilitar botón solo si hay error
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Guardar Inspección';
+            }
+        };
+    }
+
+    async function uploadImages(files, inspectionId, itemKey) {
+        if (!files || files.length === 0) return [];
+        const uploadedUrls = [];
+        const timestamp = Date.now();
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const ext = file.name.split('.').pop().toLowerCase();
+            // ✅ Normalizar el itemKey para evitar caracteres inválidos
+            const normalizedItemKey = itemKey
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9_]/g, '_');
+            const filePath = `inspecciones/${inspectionId}/${normalizedItemKey}_${timestamp}_${i}.${ext}`;
+            const { data, error } = await supabase.storage
+                .from('inspecciones-fotos')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+            if (error) {
+                console.error('Error al subir imagen:', error);
+                throw new Error(`Error al subir foto ${i + 1}: ${error.message}`);
+            }
+            // ✅ Corrección: getPublicUrl devuelve { data: { publicUrl: ... } }
+            const { data: { publicUrl } } = supabase.storage
+                .from('inspecciones-fotos')
+                .getPublicUrl(filePath);
+            uploadedUrls.push(publicUrl);
         }
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-        checkAuthState();
-        // Variables globales
-let usuarioRedipActual = null;
-let esAdmin = false;
-
-// ✅ Nueva función: verificar si es admin y mostrar botón
-async function verificarYMostrarAdmin() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-        .from('usuarios_redip')
-        .select('redip')
-        .eq('user_id', user.id)
-        .single();
-
-    if (error || !data) {
-        console.warn('No se encontró asignación de REDIP para el usuario');
-        return;
+        return uploadedUrls;
     }
 
-    usuarioRedipActual = data.redip;
-    esAdmin = (data.redip === 'admin');
-
-    // Mostrar botón de administración si es admin
-    const adminBtn = document.getElementById('adminUsuariosBtn');
-    if (adminBtn) {
-        adminBtn.style.display = esAdmin ? 'block' : 'none';
-    }
-
-    // Si es admin, permitir acceso a cualquier REDIP
-    if (esAdmin) {
-        document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
-            btn.onclick = () => {
-                // Redirigir directamente al archivo correspondiente
-                const redi = btn.dataset.redi;
-                if (redi === 'occidental') {
-                    document.getElementById('dashboardContainer').style.display = 'none';
-                    document.getElementById('rediOccidentalContainer').style.display = 'block';
-                    contarYMostrarNotificaciones();
-                } else if (redi === 'capital') {
-                    window.location.href = 'capital.html';
-                } else {
-                    alert(`Acceso directo a ${redi.toUpperCase()} aún no implementado.\nPero como admin, podrías crear su archivo.`);
-                }
-            };
-        });
-    }
-}
-
-// ✅ Reemplazar el evento del botón OCCIDENTAL (solo si no es admin)
-document.getElementById('rediOccidentalBtn').onclick = async () => {
-    if (esAdmin) {
-        // Admin: acceso directo sin validación
-        document.getElementById('dashboardContainer').style.display = 'none';
-        document.getElementById('rediOccidentalContainer').style.display = 'block';
-        contarYMostrarNotificaciones();
-    } else {
-        // Usuario normal: validar acceso
-        await showRediOccidental();
-    }
-};
-
-// ✅ Agregar evento al botón de administración
-document.getElementById('adminUsuariosBtn').onclick = () => {
-    window.location.href = 'admin-usuarios.html';
-};
-
-// ✅ Al final de checkAuthState(), llama a verificarYMostrarAdmin()
-async function checkAuthState() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-        document.getElementById('loginContainer').style.display = 'none';
-        document.getElementById('dashboardContainer').style.display = 'block';
-        document.getElementById('userNameDisplay').textContent = user.email;
-        await verificarYMostrarAdmin(); // ✅ NUEVO
-        await cargarNotificacionesAlIniciar();
-    }
-}
-        
-    </script>
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+    document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+    document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+    checkAuthState();
+</script>
 </body>
 </html>
