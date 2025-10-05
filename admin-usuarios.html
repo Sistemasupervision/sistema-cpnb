@@ -300,13 +300,10 @@
 // Función auxiliar para obtener el email de un usuario por ID
 async function getEmailFromAuthUser(userId) {
     try {
-        const { data, error } = await supabase
-            .from('auth.users')
-            .select('email')
-            .eq('id', userId)
-            .single();
+        // ✅ Usa la API de Supabase Auth para obtener el usuario por ID
+        const { data, error } = await supabase.auth.admin.getUserById(userId);
         if (error) throw error;
-        return data.email;
+        return data.user.email; // ✅ El email está en data.user.email
     } catch (err) {
         console.warn(`Error al obtener email para user_id=${userId}:`, err);
         return null;
