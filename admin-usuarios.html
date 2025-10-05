@@ -141,10 +141,9 @@
         .usuario-info {
             flex: 1;
         }
-        .usuario-id {
+        .usuario-email {
             font-weight: bold;
             color: #0c2440;
-            font-size: 14px;
         }
         .usuario-redip {
             font-size: 13px;
@@ -230,7 +229,7 @@
         let modoEdicion = false;
 
         async function verificarAdmin() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
@@ -249,48 +248,48 @@
             return true;
         }
 
-       async function cargarUsuarios() {
-    const contenedor = document.getElementById('usuariosContenedor');
-    try {
-        // ✅ Selecciona user_id, redip y email directamente
-        const { data: usuarios, error } = await supabase
-            .from('usuarios_redip')
-            .select('user_id, redip, email')
-            .order('redip', { ascending: true });
+        async function cargarUsuarios() {
+            const contenedor = document.getElementById('usuariosContenedor');
+            try {
+                // ✅ Selecciona email directamente desde usuarios_redip
+                const { data: usuarios, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('user_id, redip, email')
+                    .order('redip', { ascending: true });
 
-        if (error) throw error;
-        if (!usuarios || usuarios.length === 0) {
-            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-            return;
+                if (error) throw error;
+                if (!usuarios || usuarios.length === 0) {
+                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+                    return;
+                }
+
+                let html = '';
+                usuarios.forEach(u => {
+                    html += `
+                        <div class="usuario-item">
+                            <div class="usuario-info">
+                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                                <div class="usuario-redip">REDIP: ${u.redip}</div>
+                            </div>
+                            <div class="acciones">
+                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                contenedor.innerHTML = html;
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                contenedor.innerHTML = `<div class="error" style="padding:15px;">
+                    ❌ Error al cargar usuarios.<br>
+                    <small>${error.message}</small>
+                </div>`;
+            }
         }
 
-        let html = '';
-        usuarios.forEach(u => {
-            html += `
-                <div class="usuario-item">
-                    <div class="usuario-info">
-                        <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                        <div class="usuario-redip">REDIP: ${u.redip}</div>
-                    </div>
-                    <div class="acciones">
-                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-        contenedor.innerHTML = html;
-    } catch (error) {
-        console.error('Error al cargar usuarios:', error);
-        contenedor.innerHTML = `<div class="error" style="padding:15px;">
-            ❌ Error al cargar usuarios.<br>
-            <small>${error.message}</small>
-        </div>`;
-    }
-}
-
         async function crearUsuario(email, password, redip) {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {  { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Sesión no válida');
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
@@ -305,7 +304,7 @@
         }
 
         async function modificarUsuario(userId, redip) {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {  { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Sesión no válida');
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
@@ -320,7 +319,7 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {  { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Sesión no válida');
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
@@ -360,10 +359,10 @@
             modoEdicion = false;
         }
 
-        function editarUsuario(userId, redip) {
+        function editarUsuario(userId, email, redip) {
             document.getElementById('userId').value = userId;
+            document.getElementById('email').value = email;
             document.getElementById('email').disabled = true;
-            document.getElementById('email').value = ''; // No se muestra el email por seguridad
             document.getElementById('redip').value = redip;
             document.getElementById('passwordGroup').style.display = 'none';
             document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
@@ -371,8 +370,8 @@
             mostrarSeccion('formulario');
         }
 
-        async function eliminarUsuario(userId) {
-            if (!confirm(`¿Eliminar al usuario con ID ${userId.substring(0, 8)}...? Esta acción no se puede deshacer.`)) return;
+        async function eliminarUsuario(userId, email) {
+            if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return;
             try {
                 await eliminarUsuarioApi(userId);
                 alert('✅ Usuario eliminado correctamente.');
