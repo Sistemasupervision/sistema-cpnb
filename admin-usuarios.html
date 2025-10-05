@@ -254,9 +254,10 @@
             return true;
         }
 
-      async function cargarUsuarios() {
+    async function cargarUsuarios() {
     const contenedor = document.getElementById('usuariosContenedor');
     try {
+        // ✅ Consulta SIN .order()
         const {  usuarios, error } = await supabase
             .from('usuarios_redip')
             .select(`
@@ -272,7 +273,7 @@
             return;
         }
 
-        // ✅ Ordenar en el frontend
+        // ✅ Ordenar en el frontend (JavaScript)
         usuarios.sort((a, b) => {
             const emailA = a.user_details?.email || '';
             const emailB = b.user_details?.email || '';
