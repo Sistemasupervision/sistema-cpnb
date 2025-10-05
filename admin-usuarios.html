@@ -254,43 +254,51 @@
             return true;
         }
 
-        async function cargarUsuarios() {
-            const contenedor = document.getElementById('usuariosContenedor');
-            try {
-                const { data: usuarios, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('user_id, redip, auth.users!inner(email)')
-                    .order('auth.users.email');
+       async function cargarUsuarios() {
+    const contenedor = document.getElementById('usuariosContenedor');
+    try {
+        // Usa relación izquierda para evitar fallos
+        const {  usuarios, error } = await supabase
+            .from('usuarios_redip')
+            .select(`
+                user_id,
+                redip,
+                user_details:auth.users(email)
+            `)
+            .order('user_details.email', { nullsFirst: false });
 
-                if (error) throw error;
+        if (error) throw error;
 
-                if (usuarios.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-                    return;
-                }
-
-                let html = '';
-                usuarios.forEach(u => {
-                    html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.auth.users.email}</div>
-                                <div class="usuario-redip">REDIP: ${u.redip}</div>
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.auth.users.email}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.auth.users.email}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                contenedor.innerHTML = html;
-            } catch (error) {
-                console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = '<div class="error" style="padding:15px;">❌ Error al cargar usuarios.</div>';
-            }
+        if (usuarios.length === 0) {
+            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+            return;
         }
 
+        let html = '';
+        usuarios.forEach(u => {
+            const email = u.user_details?.email || '⚠️ Usuario no encontrado';
+            html += `
+                <div class="usuario-item">
+                    <div class="usuario-info">
+                        <div class="usuario-email">${email}</div>
+                        <div class="usuario-redip">REDIP: ${u.redip}</div>
+                    </div>
+                    <div class="acciones">
+                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${email}', '${u.redip}')">✏️</button>
+                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${email}')">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        contenedor.innerHTML = html;
+    } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+        contenedor.innerHTML = `<div class="error" style="padding:15px;">
+            ❌ Error al cargar usuarios.<br>
+            <small>${error.message}</small>
+        </div>`;
+    }
+}
         async function crearUsuario(email, password, redip) {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
