@@ -254,17 +254,14 @@
             return true;
         }
 
-    async function cargarUsuarios() {
+  async function cargarUsuarios() {
     const contenedor = document.getElementById('usuariosContenedor');
     try {
-        // ✅ Consulta SIN .order()
-        const {  usuarios, error } = await supabase
+        // ✅ Consulta solo a la tabla usuarios_redip
+        const { data: usuarios, error } = await supabase
             .from('usuarios_redip')
-            .select(`
-                user_id,
-                redip,
-                user_details:auth.users(email)
-            `);
+            .select('user_id, redip')
+            .order('user_id', { ascending: true });
 
         if (error) throw error;
 
@@ -273,29 +270,23 @@
             return;
         }
 
-        // ✅ Ordenar en el frontend (JavaScript)
-        usuarios.sort((a, b) => {
-            const emailA = a.user_details?.email || '';
-            const emailB = b.user_details?.email || '';
-            return emailA.localeCompare(emailB, 'es', { sensitivity: 'base' });
-        });
-
+        // ✅ Para cada usuario, obtener su email desde auth.users
         let html = '';
-        usuarios.forEach(u => {
-            const email = u.user_details?.email || '⚠️ Usuario no encontrado';
+        for (const u of usuarios) {
+            const email = await getEmailFromAuthUser(u.user_id);
             html += `
                 <div class="usuario-item">
                     <div class="usuario-info">
-                        <div class="usuario-email">${email}</div>
+                        <div class="usuario-email">${email || '⚠️ Usuario no encontrado'}</div>
                         <div class="usuario-redip">REDIP: ${u.redip}</div>
                     </div>
                     <div class="acciones">
-                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${email}', '${u.redip}')">✏️</button>
-                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${email}')">🗑️</button>
+                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${email || ''}', '${u.redip}')">✏️</button>
+                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${email || ''}')">🗑️</button>
                     </div>
                 </div>
             `;
-        });
+        }
         contenedor.innerHTML = html;
     } catch (error) {
         console.error('Error al cargar usuarios:', error);
@@ -303,6 +294,22 @@
             ❌ Error al cargar usuarios.<br>
             <small>${error.message}</small>
         </div>`;
+    }
+}
+
+// Función auxiliar para obtener el email de un usuario por ID
+async function getEmailFromAuthUser(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('auth.users')
+            .select('email')
+            .eq('id', userId)
+            .single();
+        if (error) throw error;
+        return data.email;
+    } catch (err) {
+        console.warn(`Error al obtener email para user_id=${userId}:`, err);
+        return null;
     }
 }
         async function crearUsuario(email, password, redip) {
