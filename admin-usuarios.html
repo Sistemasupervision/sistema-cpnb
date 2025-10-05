@@ -254,25 +254,30 @@
             return true;
         }
 
-       async function cargarUsuarios() {
+      async function cargarUsuarios() {
     const contenedor = document.getElementById('usuariosContenedor');
     try {
-        // Usa relación izquierda para evitar fallos
         const {  usuarios, error } = await supabase
             .from('usuarios_redip')
             .select(`
                 user_id,
                 redip,
                 user_details:auth.users(email)
-            `)
-            .order('user_details.email', { nullsFirst: false });
+            `);
 
         if (error) throw error;
 
-        if (usuarios.length === 0) {
+        if (!usuarios || usuarios.length === 0) {
             contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
             return;
         }
+
+        // ✅ Ordenar en el frontend
+        usuarios.sort((a, b) => {
+            const emailA = a.user_details?.email || '';
+            const emailB = b.user_details?.email || '';
+            return emailA.localeCompare(emailB, 'es', { sensitivity: 'base' });
+        });
 
         let html = '';
         usuarios.forEach(u => {
