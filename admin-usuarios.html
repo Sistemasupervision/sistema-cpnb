@@ -229,7 +229,7 @@
         let modoEdicion = false;
 
         async function verificarAdmin() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
@@ -251,7 +251,7 @@
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                // ✅ Selecciona email directamente desde usuarios_redip
+                // ✅ Selecciona user_id, redip y email directamente
                 const { data: usuarios, error } = await supabase
                     .from('usuarios_redip')
                     .select('user_id, redip, email')
@@ -289,8 +289,7 @@
         }
 
         async function crearUsuario(email, password, redip) {
-            const {  { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('Sesión no válida');
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
@@ -304,8 +303,7 @@
         }
 
         async function modificarUsuario(userId, redip) {
-            const {  { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('Sesión no válida');
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -319,8 +317,7 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const {  { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('Sesión no válida');
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
                 headers: {
