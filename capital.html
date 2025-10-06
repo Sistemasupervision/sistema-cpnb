@@ -112,79 +112,49 @@
         <button onclick="window.location.href='resumen-capital.html'" class="btn action-btn">📈 Resumen Mensual</button>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-      async function verificarAcceso() {
-    const {  { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('Debe iniciar sesión.');
-        window.location.href = 'index.html';
-        return false;
-    }
-    const { data, error } = await supabase
-        .from('usuarios_redip')
-        .select('redip')
-        .eq('user_id', user.id)
-        .single();
-    if (error || !data) {
-        alert('Error al verificar sus permisos.');
-        window.location.href = 'index.html';
-        return false;
-    }
-    // ✅ Permitir acceso si es 'capital' O si es 'admin'
-    if (data.redip !== 'capital' && data.redip !== 'admin') {
-        alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
-        window.location.href = 'index.html';
-        return false;
-    }
-    return true;
-}
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (error || !data) {
+                alert('Error al verificar sus permisos.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            if (data.redip !== 'capital' && data.redip !== 'admin') {
+                alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
 
         async function handleForm(e) {
             e.preventDefault();
             const ccp = document.getElementById('ccpSelect').value;
             if (!ccp) return alert('Seleccione un CCP.');
             alert('Funcionalidad de inspección aún por implementar. CCP: ' + ccp);
-            // Aquí iría la lógica para cargar estaciones (similar a OCCIDENTAL)
         }
 
+        // Inicializar
         verificarAcceso().then(permitido => {
             if (permitido) {
                 document.getElementById('capitalForm').addEventListener('submit', handleForm);
             }
         });
-        // ✅ Permitir al admin acceder a cualquier REDIP
-document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        const redi = btn.dataset.redi;
-        if (redi === 'occidental') {
-            showRediOccidental(); // Ya manejado arriba
-            return;
-        }
-        // Verificar si es admin
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data, error } = await supabase
-            .from('usuarios_redip')
-            .select('redip')
-            .eq('user_id', user.id)
-            .single();
-        if (error || !data || data.redip !== 'admin') {
-            alert(`⚠️ No tiene permisos para acceder a REDIP ${redi.toUpperCase()}.`);
-            return;
-        }
-        // Redirigir si existe el archivo
-        if (redi === 'capital') {
-            window.location.href = 'capital.html';
-        } else {
-            alert(`ℹ️ El acceso a ${redi.toUpperCase()} aún no está implementado.`);
-        }
-    });
-});
     </script>
 </body>
 </html>
