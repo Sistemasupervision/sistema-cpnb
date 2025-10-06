@@ -118,7 +118,8 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
+            // ✅ CORRECCIÓN CLAVE: desestructuración correcta
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
@@ -134,6 +135,7 @@
                 window.location.href = 'index.html';
                 return false;
             }
+            // ✅ Permitir acceso si es 'capital' O si es 'admin'
             if (data.redip !== 'capital' && data.redip !== 'admin') {
                 alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
                 window.location.href = 'index.html';
