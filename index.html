@@ -487,8 +487,6 @@
                 adminBtn.style.display = esAdmin ? 'block' : 'none';
             }
             if (esAdmin) {
-                document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
-                    btn.onclick = () => {
                         const redi = btn.dataset.redi;
                         if (redi === 'occidental') {
                             document.getElementById('dashboardContainer').style.display = 'none';
