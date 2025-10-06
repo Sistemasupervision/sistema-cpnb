@@ -486,23 +486,24 @@
             if (adminBtn) {
                 adminBtn.style.display = esAdmin ? 'block' : 'none';
             }
-            if (esAdmin) {
-                document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
-                    btn.onclick = () => {
-                        const redi = btn.dataset.redi;
-                        if (redi === 'occidental') {
-                            document.getElementById('dashboardContainer').style.display = 'none';
-                            document.getElementById('rediOccidentalContainer').style.display = 'block';
-                            contarYMostrarNotificaciones();
-                        } else if (redi === 'capital') {
-                            window.location.href = 'capital.html';
-                        } else {
-                            alert(`Acceso directo a ${redi.toUpperCase()} aún no implementado.`);
-                        }
-                    };
-                });
+           // ✅ Permitir acceso a REDIPs según el rol del usuario
+document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
+    btn.onclick = () => {
+        const redi = btn.dataset.redi;
+        if (redi === 'occidental') {
+            showRediOccidental();
+        } else if (redi === 'capital') {
+            // ✅ Permitir acceso si es admin o si su redip es 'capital'
+            if (esAdmin || usuarioRedipActual === 'capital') {
+                window.location.href = 'capital.html';
+            } else {
+                alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
             }
+        } else {
+            alert(`ℹ️ El acceso a ${redi.toUpperCase()} aún no está implementado.`);
         }
+    };
+});
 
    async function showRediOccidental() {
     const { data: { user } } = await supabase.auth.getUser();
