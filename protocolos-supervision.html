@@ -193,6 +193,7 @@
                 { value: 'ccp_2', text: 'CCP 2' },
                 { value: 'ccp_3', text: 'CCP 3' }
             ],
+            // Agrega más REDIPs aquí si lo deseas
         };
 
         // Configurar eventos de selección
@@ -268,31 +269,27 @@
                 return;
             }
 
-            // ✅ Validar que al menos un archivo esté seleccionado
-            const guiaInput = document.getElementById('guia');
-            const vademecumInput = document.getElementById('vademecum');
-            const fotogramaInput = document.getElementById('fotograma');
-            const planInput = document.getElementById('plan');
+            const archivos = {
+                guia_inspeccion: document.getElementById('guia').files[0],
+                vademecum: document.getElementById('vademecum').files[0],
+                fotograma: document.getElementById('fotograma').files[0],
+                plan_accion_reaccion: document.getElementById('plan').files[0]
+            };
 
-            const archivos = {};
-            if (guiaInput.files.length > 0) archivos.guia_inspeccion = guiaInput.files[0];
-            if (vademecumInput.files.length > 0) archivos.vademecum = vademecumInput.files[0];
-            if (fotogramaInput.files.length > 0) archivos.fotograma = fotogramaInput.files[0];
-            if (planInput.files.length > 0) archivos.plan_accion_reaccion = planInput.files[0];
+            let subidos = 0;
+            const total = Object.values(archivos).filter(f => f).length;
 
-            if (Object.keys(archivos).length === 0) {
+            if (total === 0) {
                 mostrarMensaje('⚠️ Seleccione al menos un archivo para subir.', 'error');
                 return;
             }
 
-            let subidos = 0;
-            const total = Object.values(archivos).length;
-
             try {
                 for (const [nombre, archivo] of Object.entries(archivos)) {
+                    if (!archivo) continue;
                     const ext = archivo.name.split('.').pop().toLowerCase();
                     const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}.${ext}`;
-
+                    
                     const { error } = await supabase.storage
                         .from('protocolos-supervision')
                         .upload(filePath, archivo, { upsert: true });
