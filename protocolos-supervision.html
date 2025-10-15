@@ -210,7 +210,7 @@
         
         <!-- Barra de progreso para descarga -->
         <div id="downloadProgress" class="progress-container">
-            <div class="progress-label">Descargando archivos...</div>
+            <div class="progress-label">Verificando archivos...</div>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="downloadBar"></div>
             </div>
@@ -340,7 +340,6 @@
                 return;
             }
 
-            // Mostrar barra de subida
             const uploadProgress = document.getElementById('uploadProgress');
             const uploadBar = document.getElementById('uploadBar');
             const uploadText = document.getElementById('uploadText');
@@ -375,7 +374,7 @@
                 mostrarMensaje(`✅ ${subidos} archivo(s) subido(s) correctamente.`, 'exito');
                 uploadProgress.style.display = 'none';
 
-                // Limpiar
+                // Limpiar inputs
                 Object.values(inputs).forEach(input => input.value = '');
 
             } catch (error) {
@@ -385,101 +384,99 @@
             }
         }
 
-    // === DESCARGAR ARCHIVOS ===
-async function descargarProtocolos() {
-    const redip = document.getElementById('redipSelect').value;
-    const ccp = document.getElementById('ccpSelect').value;
-    const estacionId = document.getElementById('estacionSelect').value;
-    if (!redip || !ccp || !estacionId) {
-        mostrarMensaje('⚠️ Seleccione REDIP, CCP y Estación.', 'error');
-        return;
-    }
-
-    const nombresArchivos = [
-        'guia_inspeccion.pdf',
-        'vademecum.pdf',
-        'fotograma.pdf',
-        'plan_accion_reaccion.pdf'
-    ];
-
-    // Mostrar barra de descarga
-    const downloadProgress = document.getElementById('downloadProgress');
-    const downloadBar = document.getElementById('downloadBar');
-    const downloadText = document.getElementById('downloadText');
-    downloadProgress.style.display = 'block';
-    downloadBar.style.width = '0%';
-    downloadText.textContent = '0%';
-
-    let descargados = 0;
-    let existentes = 0;
-    const total = nombresArchivos.length;
-
-    try {
-        // ✅ Primero, verificar qué archivos existen
-        const verificaciones = await Promise.all(
-            nombresArchivos.map(nombre => {
-                const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
-                return supabase.storage
-                    .from('protocolos-supervision')
-                    .download(filePath)
-                    .then(() => ({ nombre, existe: true }))
-                    .catch(() => ({ nombre, existe: false }));
-            })
-        );
-
-        // Contar cuántos existen
-        existentes = verificaciones.filter(v => v.existe).length;
-
-        if (existentes === 0) {
-            // ✅ Ningún archivo existe
-            downloadProgress.style.display = 'none';
-            mostrarMensaje('❌ La estación no tiene protocolos cargados.', 'error');
-            return;
-        }
-
-        // ✅ Descargar solo los que existen
-        for (const { nombre, existe } of verificaciones) {
-            if (!existe) continue;
-
-            const porcentaje = Math.round((descargados / existentes) * 100);
-            downloadBar.style.width = `${porcentaje}%`;
-            downloadText.textContent = `${porcentaje}%`;
-
-            const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
-            const { data, error } = await supabase.storage
-                .from('protocolos-supervision')
-                .download(filePath);
-
-            if (error) {
-                console.warn(`Archivo no encontrado: ${nombre}`);
-                continue;
+        // === DESCARGAR ARCHIVOS ===
+        async function descargarProtocolos() {
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
+            const estacionId = document.getElementById('estacionSelect').value;
+            if (!redip || !ccp || !estacionId) {
+                mostrarMensaje('⚠️ Seleccione REDIP, CCP y Estación.', 'error');
+                return;
             }
 
-            const url = URL.createObjectURL(data);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = nombre;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            descargados++;
+            const nombresArchivos = [
+                'guia_inspeccion.pdf',
+                'vademecum.pdf',
+                'fotograma.pdf',
+                'plan_accion_reaccion.pdf'
+            ];
+
+            const downloadProgress = document.getElementById('downloadProgress');
+            const downloadBar = document.getElementById('downloadBar');
+            const downloadText = document.getElementById('downloadText');
+            downloadProgress.style.display = 'block';
+            downloadBar.style.width = '0%';
+            downloadText.textContent = '0%';
+
+            try {
+                // Verificar qué archivos existen
+                const verificaciones = await Promise.all(
+                    nombresArchivos.map(nombre => {
+                        const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
+                        return supabase.storage
+                            .from('protocolos-supervision')
+                            .download(filePath)
+                            .then(() => ({ nombre, existe: true }))
+                            .catch(() => ({ nombre, existe: false }));
+                    })
+                );
+
+                const existentes = verificaciones.filter(v => v.existe).length;
+
+                if (existentes === 0) {
+                    downloadProgress.style.display = 'none';
+                    mostrarMensaje('❌ La estación no tiene protocolos cargados.', 'error');
+                    return;
+                }
+
+                let descargados = 0;
+                for (const { nombre, existe } of verificaciones) {
+                    if (!existe) continue;
+
+                    const porcentaje = Math.round((descargados / existentes) * 100);
+                    downloadBar.style.width = `${porcentaje}%`;
+                    downloadText.textContent = `${porcentaje}%`;
+
+                    const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
+                    const { data, error } = await supabase.storage
+                        .from('protocolos-supervision')
+                        .download(filePath);
+
+                    if (error) continue;
+
+                    const url = URL.createObjectURL(data);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = nombre;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    descargados++;
+                }
+
+                downloadBar.style.width = '100%';
+                downloadText.textContent = '100%';
+                await new Promise(r => setTimeout(r, 300));
+
+                mostrarMensaje(`✅ ${descargados} archivo(s) descargado(s).`, 'exito');
+                downloadProgress.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error al verificar/descargar:', error);
+                mostrarMensaje('❌ Error al acceder a los protocolos.', 'error');
+                downloadProgress.style.display = 'none';
+            }
         }
 
-        // Completar progreso
-        downloadBar.style.width = '100%';
-        downloadText.textContent = '100%';
-        await new Promise(r => setTimeout(r, 300));
+        function mostrarMensaje(texto, tipo) {
+            const msg = document.getElementById('mensaje');
+            msg.textContent = texto;
+            msg.className = `mensaje ${tipo}`;
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 5000);
+        }
 
-        mostrarMensaje(`✅ ${descargados} archivo(s) descargado(s).`, 'exito');
-        downloadProgress.style.display = 'none';
-
-    } catch (error) {
-        console.error('Error al verificar/descargar archivos:', error);
-        mostrarMensaje('❌ Error al acceder a los protocolos.', 'error');
-        downloadProgress.style.display = 'none';
-    }
-}
         verificarAutenticacion();
     </script>
 </body>
