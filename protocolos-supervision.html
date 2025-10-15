@@ -195,6 +195,17 @@
             ],
         };
 
+        // Verificar que el usuario esté autenticado
+        async function verificarAutenticacion() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
         // Configurar eventos de selección
         document.getElementById('redipSelect').addEventListener('change', async () => {
             const redip = document.getElementById('redipSelect').value;
@@ -225,7 +236,10 @@
             if (!redip || !ccp) return;
 
             try {
-                const {  estaciones, error } = await supabase
+                // ✅ Verificar autenticación antes de consultar
+                if (!(await verificarAutenticacion())) return;
+
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -268,7 +282,6 @@
                 return;
             }
 
-            // ✅ Validar que al menos un archivo esté seleccionado
             const guiaInput = document.getElementById('guia');
             const vademecumInput = document.getElementById('vademecum');
             const fotogramaInput = document.getElementById('fotograma');
@@ -285,23 +298,19 @@
                 return;
             }
 
-            let subidos = 0;
-            const total = Object.values(archivos).length;
-
             try {
                 for (const [nombre, archivo] of Object.entries(archivos)) {
                     const ext = archivo.name.split('.').pop().toLowerCase();
                     const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}.${ext}`;
-
+                    
                     const { error } = await supabase.storage
                         .from('protocolos-supervision')
                         .upload(filePath, archivo, { upsert: true });
 
                     if (error) throw error;
-                    subidos++;
                 }
 
-                mostrarMensaje(`✅ ${subidos} archivo(s) subido(s) correctamente.`, 'exito');
+                mostrarMensaje(`✅ ${Object.keys(archivos).length} archivo(s) subido(s) correctamente.`, 'exito');
             } catch (error) {
                 console.error('Error al subir:', error);
                 mostrarMensaje('❌ Error al subir los archivos.', 'error');
@@ -337,7 +346,6 @@
                     continue;
                 }
 
-                // Crear enlace de descarga
                 const url = URL.createObjectURL(data);
                 const a = document.createElement('a');
                 a.href = url;
@@ -363,6 +371,9 @@
             msg.style.display = 'block';
             setTimeout(() => msg.style.display = 'none', 5000);
         }
+
+        // Inicializar
+        verificarAutenticacion();
     </script>
 </body>
 </html>
