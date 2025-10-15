@@ -424,6 +424,7 @@
                 const existentes = verificaciones.filter(v => v.existe).length;
 
                 if (existentes === 0) {
+                    // ✅ Mensaje claro si NO hay archivos
                     downloadProgress.style.display = 'none';
                     mostrarMensaje('❌ La estación no tiene protocolos cargados.', 'error');
                     return;
@@ -459,6 +460,7 @@
                 downloadText.textContent = '100%';
                 await new Promise(r => setTimeout(r, 300));
 
+                // ✅ Mensaje de éxito solo si se descargó al menos uno
                 mostrarMensaje(`✅ ${descargados} archivo(s) descargado(s).`, 'exito');
                 downloadProgress.style.display = 'none';
 
