@@ -226,7 +226,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Mapeo de REDIP → CCPs
         const redipCcpMap = {
             occidental: [
                 { value: 'metropolitano', text: 'CCP METROPOLITANO' },
@@ -244,7 +243,7 @@
         };
 
         async function verificarAutenticacion() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
@@ -410,33 +409,28 @@
             downloadText.textContent = '0%';
 
             try {
-                // Verificar qué archivos existen (uno por uno)
-                let existentes = 0;
-                const resultados = [];
-
-                for (const nombre of nombresArchivos) {
-                    const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
-                    try {
-                        await supabase.storage
+                // Verificar qué archivos existen
+                const verificaciones = await Promise.all(
+                    nombresArchivos.map(nombre => {
+                        const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
+                        return supabase.storage
                             .from('protocolos-supervision')
-                            .download(filePath);
-                        existentes++;
-                        resultados.push({ nombre, existe: true });
-                    } catch (error) {
-                        resultados.push({ nombre, existe: false });
-                    }
-                }
+                            .download(filePath)
+                            .then(() => ({ nombre, existe: true }))
+                            .catch(() => ({ nombre, existe: false }));
+                    })
+                );
 
-                // ✅ Si ninguno existe, mostrar mensaje claro
+                const existentes = verificaciones.filter(v => v.existe).length;
+
                 if (existentes === 0) {
                     downloadProgress.style.display = 'none';
                     mostrarMensaje('❌ La estación no tiene protocolos cargados.', 'error');
                     return;
                 }
 
-                // Descargar solo los que existen
                 let descargados = 0;
-                for (const { nombre, existe } of resultados) {
+                for (const { nombre, existe } of verificaciones) {
                     if (!existe) continue;
 
                     const porcentaje = Math.round((descargados / existentes) * 100);
