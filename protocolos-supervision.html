@@ -108,11 +108,11 @@
             display: none;
         }
         /* Barra de progreso */
-        #progressContainer {
+        .progress-container {
             display: none;
             margin-top: 20px;
         }
-        #progressContainer .progress-label {
+        .progress-label {
             text-align: center;
             font-size: 14px;
             color: #0c2440;
@@ -125,13 +125,13 @@
             height: 12px;
             overflow: hidden;
         }
-        #progressBar {
+        .progress-bar {
             width: 0%;
             height: 100%;
             background: linear-gradient(90deg, #3182ce, #0c2440);
             transition: width 0.3s ease;
         }
-        #progressText {
+        .progress-text {
             text-align: center;
             font-size: 13px;
             color: #4a5568;
@@ -199,13 +199,22 @@
             </div>
         </form>
         
-        <!-- Barra de progreso -->
-        <div id="progressContainer">
+        <!-- Barra de progreso para subida -->
+        <div id="uploadProgress" class="progress-container">
             <div class="progress-label">Subiendo archivos...</div>
             <div class="progress-bar-container">
-                <div id="progressBar"></div>
+                <div class="progress-bar" id="uploadBar"></div>
             </div>
-            <div id="progressText">0%</div>
+            <div class="progress-text" id="uploadText">0%</div>
+        </div>
+        
+        <!-- Barra de progreso para descarga -->
+        <div id="downloadProgress" class="progress-container">
+            <div class="progress-label">Descargando archivos...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="downloadBar"></div>
+            </div>
+            <div class="progress-text" id="downloadText">0%</div>
         </div>
         
         <div id="mensaje" class="mensaje" style="display: none;"></div>
@@ -217,7 +226,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Mapeo de REDIP → CCPs
         const redipCcpMap = {
             occidental: [
                 { value: 'metropolitano', text: 'CCP METROPOLITANO' },
@@ -234,7 +242,6 @@
             ],
         };
 
-        // Verificar autenticación
         async function verificarAutenticacion() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -245,8 +252,7 @@
             return true;
         }
 
-        // Configurar eventos de selección
-        document.getElementById('redipSelect').addEventListener('change', async () => {
+        document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
             ccpSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
@@ -255,7 +261,6 @@
             document.getElementById('estacionSelect').disabled = true;
 
             if (!redip) return;
-
             const ccps = redipCcpMap[redip] || [];
             ccps.forEach(ccp => {
                 const opt = document.createElement('option');
@@ -273,10 +278,9 @@
             estacionSelect.disabled = true;
 
             if (!redip || !ccp) return;
+            if (!(await verificarAutenticacion())) return;
 
             try {
-                if (!(await verificarAutenticacion())) return;
-
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
@@ -302,15 +306,14 @@
             }
         });
 
-        // Mostrar indicadores al seleccionar archivos
         ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
-            document.getElementById(id).addEventListener('change', () => {
+            document.getElementById(id).addEventListener('change', function() {
                 const indicador = document.getElementById(`${id}-indicador`);
                 indicador.style.display = this.files.length > 0 ? 'block' : 'none';
             });
         });
 
-        // Subir protocolos con barra de progreso
+        // === SUBIR ARCHIVOS ===
         async function subirProtocolos() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -320,29 +323,30 @@
                 return;
             }
 
-            const guiaInput = document.getElementById('guia');
-            const vademecumInput = document.getElementById('vademecum');
-            const fotogramaInput = document.getElementById('fotograma');
-            const planInput = document.getElementById('plan');
+            const inputs = {
+                guia_inspeccion: document.getElementById('guia'),
+                vademecum: document.getElementById('vademecum'),
+                fotograma: document.getElementById('fotograma'),
+                plan_accion_reaccion: document.getElementById('plan')
+            };
 
             const archivos = {};
-            if (guiaInput.files.length > 0) archivos.guia_inspeccion = guiaInput.files[0];
-            if (vademecumInput.files.length > 0) archivos.vademecum = vademecumInput.files[0];
-            if (fotogramaInput.files.length > 0) archivos.fotograma = fotogramaInput.files[0];
-            if (planInput.files.length > 0) archivos.plan_accion_reaccion = planInput.files[0];
+            Object.entries(inputs).forEach(([key, input]) => {
+                if (input.files.length > 0) archivos[key] = input.files[0];
+            });
 
             if (Object.keys(archivos).length === 0) {
                 mostrarMensaje('⚠️ Seleccione al menos un archivo para subir.', 'error');
                 return;
             }
 
-            // Mostrar barra de progreso
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressText.textContent = '0%';
+            // Mostrar barra de subida
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadBar = document.getElementById('uploadBar');
+            const uploadText = document.getElementById('uploadText');
+            uploadProgress.style.display = 'block';
+            uploadBar.style.width = '0%';
+            uploadText.textContent = '0%';
 
             let subidos = 0;
             const total = Object.keys(archivos).length;
@@ -352,10 +356,9 @@
                     const ext = archivo.name.split('.').pop().toLowerCase();
                     const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}.${ext}`;
                     
-                    // Actualizar progreso
                     const porcentaje = Math.round((subidos / total) * 100);
-                    progressBar.style.width = `${porcentaje}%`;
-                    progressText.textContent = `${porcentaje}%`;
+                    uploadBar.style.width = `${porcentaje}%`;
+                    uploadText.textContent = `${porcentaje}%`;
 
                     const { error } = await supabase.storage
                         .from('protocolos-supervision')
@@ -365,28 +368,24 @@
                     subidos++;
                 }
 
-                // Completar progreso
-                progressBar.style.width = '100%';
-                progressText.textContent = '100%';
+                uploadBar.style.width = '100%';
+                uploadText.textContent = '100%';
                 await new Promise(r => setTimeout(r, 300));
 
                 mostrarMensaje(`✅ ${subidos} archivo(s) subido(s) correctamente.`, 'exito');
-                progressContainer.style.display = 'none';
+                uploadProgress.style.display = 'none';
 
-                // Limpiar inputs
-                guiaInput.value = '';
-                vademecumInput.value = '';
-                fotogramaInput.value = '';
-                planInput.value = '';
+                // Limpiar
+                Object.values(inputs).forEach(input => input.value = '');
 
             } catch (error) {
                 console.error('Error al subir:', error);
                 mostrarMensaje('❌ Error al subir los archivos.', 'error');
-                progressContainer.style.display = 'none';
+                uploadProgress.style.display = 'none';
             }
         }
 
-        // Descargar protocolos
+        // === DESCARGAR ARCHIVOS ===
         async function descargarProtocolos() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -403,33 +402,60 @@
                 'plan_accion_reaccion.pdf'
             ];
 
-            let descargados = 0;
-            for (const nombre of nombresArchivos) {
-                const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
-                const { data, error } = await supabase.storage
-                    .from('protocolos-supervision')
-                    .download(filePath);
+            // Mostrar barra de descarga
+            const downloadProgress = document.getElementById('downloadProgress');
+            const downloadBar = document.getElementById('downloadBar');
+            const downloadText = document.getElementById('downloadText');
+            downloadProgress.style.display = 'block';
+            downloadBar.style.width = '0%';
+            downloadText.textContent = '0%';
 
-                if (error) {
-                    console.warn(`Archivo no encontrado: ${nombre}`);
-                    continue;
+            let descargados = 0;
+            const total = nombresArchivos.length;
+
+            try {
+                for (const nombre of nombresArchivos) {
+                    const porcentaje = Math.round((descargados / total) * 100);
+                    downloadBar.style.width = `${porcentaje}%`;
+                    downloadText.textContent = `${porcentaje}%`;
+
+                    const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
+                    const { data, error } = await supabase.storage
+                        .from('protocolos-supervision')
+                        .download(filePath);
+
+                    if (error) {
+                        console.warn(`Archivo no encontrado: ${nombre}`);
+                        descargados++;
+                        continue;
+                    }
+
+                    const url = URL.createObjectURL(data);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = nombre;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    descargados++;
                 }
 
-                const url = URL.createObjectURL(data);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = nombre;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                descargados++;
-            }
+                downloadBar.style.width = '100%';
+                downloadText.textContent = '100%';
+                await new Promise(r => setTimeout(r, 300));
 
-            if (descargados === 0) {
-                mostrarMensaje('⚠️ No se encontraron archivos para esta estación.', 'error');
-            } else {
-                mostrarMensaje(`✅ ${descargados} archivo(s) descargado(s).`, 'exito');
+                if (descargados === 0) {
+                    mostrarMensaje('⚠️ No se encontraron archivos para esta estación.', 'error');
+                } else {
+                    mostrarMensaje(`✅ ${descargados} archivo(s) descargado(s).`, 'exito');
+                }
+                downloadProgress.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error al descargar:', error);
+                mostrarMensaje('❌ Error al descargar los archivos.', 'error');
+                downloadProgress.style.display = 'none';
             }
         }
 
@@ -441,7 +467,6 @@
             setTimeout(() => msg.style.display = 'none', 5000);
         }
 
-        // Inicializar
         verificarAutenticacion();
     </script>
 </body>
