@@ -107,6 +107,36 @@
             margin-top: 8px;
             display: none;
         }
+        /* Barra de progreso */
+        #progressContainer {
+            display: none;
+            margin-top: 20px;
+        }
+        #progressContainer .progress-label {
+            text-align: center;
+            font-size: 14px;
+            color: #0c2440;
+            margin-bottom: 8px;
+        }
+        .progress-bar-container {
+            width: 100%;
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+        }
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #3182ce, #0c2440);
+            transition: width 0.3s ease;
+        }
+        #progressText {
+            text-align: center;
+            font-size: 13px;
+            color: #4a5568;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -169,6 +199,15 @@
             </div>
         </form>
         
+        <!-- Barra de progreso -->
+        <div id="progressContainer">
+            <div class="progress-label">Subiendo archivos...</div>
+            <div class="progress-bar-container">
+                <div id="progressBar"></div>
+            </div>
+            <div id="progressText">0%</div>
+        </div>
+        
         <div id="mensaje" class="mensaje" style="display: none;"></div>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
     </div>
@@ -195,7 +234,7 @@
             ],
         };
 
-        // Verificar que el usuario esté autenticado
+        // Verificar autenticación
         async function verificarAutenticacion() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -236,7 +275,6 @@
             if (!redip || !ccp) return;
 
             try {
-                // ✅ Verificar autenticación antes de consultar
                 if (!(await verificarAutenticacion())) return;
 
                 const { data: estaciones, error } = await supabase
@@ -272,7 +310,7 @@
             });
         });
 
-        // Subir protocolos
+        // Subir protocolos con barra de progreso
         async function subirProtocolos() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -298,22 +336,53 @@
                 return;
             }
 
+            // Mostrar barra de progreso
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+
+            let subidos = 0;
+            const total = Object.keys(archivos).length;
+
             try {
                 for (const [nombre, archivo] of Object.entries(archivos)) {
                     const ext = archivo.name.split('.').pop().toLowerCase();
                     const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}.${ext}`;
                     
+                    // Actualizar progreso
+                    const porcentaje = Math.round((subidos / total) * 100);
+                    progressBar.style.width = `${porcentaje}%`;
+                    progressText.textContent = `${porcentaje}%`;
+
                     const { error } = await supabase.storage
                         .from('protocolos-supervision')
                         .upload(filePath, archivo, { upsert: true });
 
                     if (error) throw error;
+                    subidos++;
                 }
 
-                mostrarMensaje(`✅ ${Object.keys(archivos).length} archivo(s) subido(s) correctamente.`, 'exito');
+                // Completar progreso
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+                await new Promise(r => setTimeout(r, 300));
+
+                mostrarMensaje(`✅ ${subidos} archivo(s) subido(s) correctamente.`, 'exito');
+                progressContainer.style.display = 'none';
+
+                // Limpiar inputs
+                guiaInput.value = '';
+                vademecumInput.value = '';
+                fotogramaInput.value = '';
+                planInput.value = '';
+
             } catch (error) {
                 console.error('Error al subir:', error);
                 mostrarMensaje('❌ Error al subir los archivos.', 'error');
+                progressContainer.style.display = 'none';
             }
         }
 
