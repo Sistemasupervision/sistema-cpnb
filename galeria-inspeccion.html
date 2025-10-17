@@ -220,15 +220,22 @@
         .download-btn {
             margin-top: 8px;
             padding: 6px 12px;
-            background: #3182ce;
-            color: white;
             border: none;
             border-radius: 6px;
             font-size: 12px;
             cursor: pointer;
         }
         .download-btn:hover {
-            background: #2c5282;
+            opacity: 0.9;
+        }
+        .btn-foto {
+            background: #3182ce;
+            color: white;
+        }
+        .btn-archivo {
+            background: #805ad5;
+            color: white;
+            margin-top: 6px;
         }
     </style>
 </head>
@@ -458,10 +465,10 @@
                 }
                 todasLasFotos = [];
                 for (const insp of inspecciones) {
-                    // ✅ AHORA SELECCIONAMOS foto1_url y foto2_url
+                    // ✅ AHORA SELECCIONAMOS foto1_url, foto2_url y archivo_url
                     const { data: items, error: itemError } = await supabase
                         .from('items_inspeccion')
-                        .select('item_nombre, foto1_url, foto2_url')
+                        .select('item_nombre, foto1_url, foto2_url, archivo_url')
                         .eq('inspeccion_id', insp.id);
                     if (itemError) continue;
                     const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
@@ -477,7 +484,8 @@
                             todasLasFotos.push({
                                 url: item.foto1_url,
                                 item: item.item_nombre,
-                                fechaHora: fechaHora
+                                fechaHora: fechaHora,
+                                archivo_url: item.archivo_url // ← Incluimos el archivo aquí
                             });
                         }
                         // ✅ Agregar foto2 si existe
@@ -485,7 +493,17 @@
                             todasLasFotos.push({
                                 url: item.foto2_url,
                                 item: item.item_nombre,
-                                fechaHora: fechaHora
+                                fechaHora: fechaHora,
+                                archivo_url: item.archivo_url // ← Incluimos el archivo aquí
+                            });
+                        }
+                        // ✅ Si NO hay fotos pero SÍ hay archivo, lo mostramos igual
+                        if (!item.foto1_url && !item.foto2_url && item.archivo_url) {
+                            todasLasFotos.push({
+                                url: null, // No hay foto
+                                item: item.item_nombre,
+                                fechaHora: fechaHora,
+                                archivo_url: item.archivo_url
                             });
                         }
                     }
@@ -525,6 +543,26 @@
                 alert('⚠️ No se pudo descargar la imagen. Intente de nuevo.');
             }
         }
+        async function descargarArchivo(url, nombreItem) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Error al obtener el archivo');
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                // Extraer extensión del archivo desde la URL
+                const extension = url.split('.').pop().split('?')[0] || 'bin';
+                link.download = `archivo_${nombreItem.replace(/\s+/g, '_')}.${extension}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+                console.error('Error al descargar el archivo:', err);
+                alert('⚠️ No se pudo descargar el archivo. Intente de nuevo.');
+            }
+        }
         function mostrarPagina(pagina) {
             const galeriaContainer = document.getElementById('galeriaContainer');
             const inicio = (pagina - 1) * fotosPorPagina;
@@ -546,28 +584,50 @@
                 fotosPorFechaHora[fechaHora].forEach(foto => {
                     const card = document.createElement('div');
                     card.className = 'foto-card';
-                    const img = document.createElement('img');
-                    img.src = foto.url;
-                    img.alt = foto.item;
-                    img.className = 'foto-item';
+
+                    // ✅ Mostrar imagen SOLO si existe
+                    if (foto.url) {
+                        const img = document.createElement('img');
+                        img.src = foto.url;
+                        img.alt = foto.item;
+                        img.className = 'foto-item';
+                        card.appendChild(img);
+                        img.addEventListener('click', () => {
+                            document.getElementById('zoomImage').src = foto.url;
+                            document.getElementById('zoomModal').style.display = 'flex';
+                        });
+                    }
+
                     const label = document.createElement('div');
                     label.className = 'foto-label';
                     label.textContent = nombres[foto.item] || foto.item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    const downloadBtn = document.createElement('button');
-                    downloadBtn.className = 'download-btn';
-                    downloadBtn.textContent = '📥 Descargar';
-                    downloadBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        await descargarImagen(foto.url, foto.item);
-                    };
-                    card.appendChild(img);
                     card.appendChild(label);
-                    card.appendChild(downloadBtn);
+
+                    // ✅ Botón para descargar la foto (solo si hay foto)
+                    if (foto.url) {
+                        const downloadFotoBtn = document.createElement('button');
+                        downloadFotoBtn.className = 'download-btn btn-foto';
+                        downloadFotoBtn.textContent = '📥 Descargar Foto';
+                        downloadFotoBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            await descargarImagen(foto.url, foto.item);
+                        };
+                        card.appendChild(downloadFotoBtn);
+                    }
+
+                    // ✅ Botón para descargar el archivo adjunto (si existe)
+                    if (foto.archivo_url) {
+                        const downloadArchivoBtn = document.createElement('button');
+                        downloadArchivoBtn.className = 'download-btn btn-archivo';
+                        downloadArchivoBtn.textContent = '📎 Descargar Archivo';
+                        downloadArchivoBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            await descargarArchivo(foto.archivo_url, foto.item);
+                        };
+                        card.appendChild(downloadArchivoBtn);
+                    }
+
                     galeriaContainer.appendChild(card);
-                    img.addEventListener('click', () => {
-                        document.getElementById('zoomImage').src = foto.url;
-                        document.getElementById('zoomModal').style.display = 'flex';
-                    });
                 });
             });
         }
