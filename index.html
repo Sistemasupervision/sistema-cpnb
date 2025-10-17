@@ -357,15 +357,15 @@
         <form id="occidentalForm">
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
-              <select id="ccpSelect" required>
-    <option value="">-- Elija una opción --</option>
-    <option value="metropolitano">CCP METROPOLITANO</option>
-    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-    <option value="guajira">CCP GUAJIRA</option>
-    <option value="col">CCPE COL</option>
-    <option value="lara">CCPE LARA</option>      
-    <option value="falcon">CCPE FALCÓN</option>  
-</select>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>
+                    <option value="falcon">CCPE FALCÓN</option>
+                </select>
             </div>
             <button type="submit" class="form-btn">Continuar</button>
         </form>
@@ -465,16 +465,23 @@
                 return;
             }
             try {
-                const {  estaciones, error } = await supabase
+                // ✅ CONSULTA MEJORADA: Seleccionar solo estaciones activas en CCP OCCIDENTAL
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpValue)
                     .order('nombre', { ascending: true });
-                if (error) throw error;
+
+                if (error) {
+                    console.error('Error en consulta:', error);
+                    throw error;
+                }
+
                 if (!estaciones || estaciones.length === 0) {
                     alert(`No hay estaciones registradas para ${document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text}.`);
                     return;
                 }
+
                 let estacionesHtml = `
                     <div class="logo-container">
                         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -516,7 +523,7 @@
                 };
             } catch (error) {
                 console.error('Error al cargar estaciones:', error);
-                alert('Error al cargar las estaciones policiales');
+                alert('Error al cargar las estaciones policiales. Detalle: ' + (error.message || ''));
             }
         }
 
@@ -534,7 +541,7 @@
             try {
                 const hoy = new Date().toISOString().split('T')[0];
                 const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpOcidental);
@@ -835,7 +842,7 @@
 
                 // Crear inspección
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-                const {  inspeccionData, error: inspError } = await supabase
+                const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
                     .insert({
                         estacion_id: estacionId,
