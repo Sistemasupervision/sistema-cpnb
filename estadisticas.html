@@ -280,78 +280,77 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let chartInstance = null;
+        // ✅ NUEVO OBJETO CON 67 ÍTEMS
         const nombresItems = {
-    nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
-    acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
-    dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
-    conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
-    conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
-    conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
-    estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
-    manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
-    plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
-    infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
-    direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
-    oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
-    documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
-    uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
-    practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
-    entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
-    talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
-    conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
-    acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
-    conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
-    instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
-    talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
-    conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
-    cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
-    cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
-    dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
-    practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
-    numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
-    personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
-    servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
-    publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
-    libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
-    libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
-    libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
-    archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
-    libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
-    supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
-    cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
-    bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
-    resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
-    equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
-    equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
-    plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
-    calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
-    plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
-    servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
-    unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
-    areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
-    vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
-    placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
-    vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
-    vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
-    accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
-    necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
-    identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
-    informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
-    supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
-    vademecum_actualizado: "58. Verificar vademécum general actualizado.",
-    despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
-    supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
-    planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
-    conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
-    registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
-    rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
-    archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
-    informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
-    estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
-};
-const todosLosItems = Object.keys(nombresItems);
+            nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
+            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+            dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+            conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+            conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+            conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+            estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+            manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+            plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+            infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+            direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+            oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+            documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+            uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+            practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+            entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+            talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+            conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+            acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+            conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+            instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+            talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+            conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+            cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+            cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+            dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+            practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+            numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+            personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+            servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+            publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+            libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+            libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+            libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+            archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+            libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+            supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+            cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+            bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+            resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+            equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+            equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+            plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+            calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+            plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+            servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+            unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+            areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+            vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+            placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+            vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+            vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+            accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+            necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+            identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+            informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+            supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+            vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+            despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+            supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+            planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+            conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+            registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+            rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+            archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+            informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
+            estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
+        };
         const todosLosItems = Object.keys(nombresItems);
-
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -380,20 +379,17 @@ const todosLosItems = Object.keys(nombresItems);
                 alert('Error al cargar las estaciones');
             }
         });
-
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
             if (!estacionId) return;
             await cargarEstadisticas(estacionId);
         });
-
         async function cargarEstadisticas(estacionId) {
             const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
             document.getElementById('seleccionContainer').style.display = 'none';
             document.getElementById('resultadosContainer').style.display = 'none';
             document.getElementById('mensajeCarga').style.display = 'block';
             document.getElementById('mensajeSinDatos').style.display = 'none';
-
             try {
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
@@ -405,7 +401,6 @@ const todosLosItems = Object.keys(nombresItems);
                     document.getElementById('mensajeSinDatos').style.display = 'block';
                     return;
                 }
-
                 const idsInspecciones = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -417,7 +412,6 @@ const todosLosItems = Object.keys(nombresItems);
                     document.getElementById('mensajeSinDatos').style.display = 'block';
                     return;
                 }
-
                 const estadisticas = calcularEstadisticas(items);
                 renderizarGrafico(estadisticas, estacionNombre);
                 renderizarPorcentajes(estadisticas);
@@ -430,7 +424,6 @@ const todosLosItems = Object.keys(nombresItems);
                 document.getElementById('mensajeSinDatos').style.display = 'block';
             }
         }
-
         function calcularEstadisticas(items) {
             const resultado = {};
             todosLosItems.forEach(item => {
@@ -454,7 +447,6 @@ const todosLosItems = Object.keys(nombresItems);
             });
             return resultado;
         }
-
         function renderizarGrafico(estadisticas, nombreEstacion) {
             const ctx = document.getElementById('cumplimientoChart').getContext('2d');
             if (chartInstance) {
@@ -530,7 +522,6 @@ const todosLosItems = Object.keys(nombresItems);
             });
             document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
         }
-
         function renderizarPorcentajes(estadisticas) {
             const container = document.getElementById('porcentajesContainer');
             container.innerHTML = '';
@@ -546,7 +537,6 @@ const todosLosItems = Object.keys(nombresItems);
                 container.appendChild(itemDiv);
             });
         }
-
         function volverASeleccion() {
             document.getElementById('seleccionContainer').style.display = 'block';
             document.getElementById('resultadosContainer').style.display = 'none';
@@ -559,17 +549,14 @@ const todosLosItems = Object.keys(nombresItems);
             document.getElementById('porcentajesContainer').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
         }
-
         async function exportarEstadisticasAPDF() {
             const resultadosDiv = document.getElementById('resultadosContainer');
             if (resultadosDiv.style.display !== 'block') {
                 alert('No hay estadísticas para exportar.');
                 return;
             }
-
             const estacionNombre = document.getElementById('statsHeader').textContent.replace('Estadísticas para: ', '');
             const fechaActual = new Date().toLocaleString('es-ES');
-
             const printContent = document.createElement('div');
             printContent.innerHTML = `
                 <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
@@ -591,7 +578,6 @@ const todosLosItems = Object.keys(nombresItems);
                     </div>
                 </div>
             `;
-
             // Convertir el gráfico de Chart.js a imagen
             const canvas = document.getElementById('cumplimientoChart');
             if (canvas && chartInstance) {
@@ -604,11 +590,9 @@ const todosLosItems = Object.keys(nombresItems);
                     </div>
                 `;
             }
-
             document.body.appendChild(printContent);
             printContent.style.position = 'fixed';
             printContent.style.left = '-9999px';
-
             try {
                 const captureCanvas = await html2canvas(printContent, {
                     scale: 2,
@@ -616,7 +600,6 @@ const todosLosItems = Object.keys(nombresItems);
                     logging: false,
                     allowTaint: true
                 });
-
                 const { jsPDF } = window.jspdf;
                 const imgData = captureCanvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
@@ -625,17 +608,14 @@ const todosLosItems = Object.keys(nombresItems);
                 const imgHeight = (captureCanvas.height * imgWidth) / captureCanvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
-
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
-
                 while (heightLeft >= 0) {
                     position = heightLeft - imgHeight;
                     pdf.addPage();
                     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
-
                 pdf.save(`estadisticas_cpnb_${estacionNombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
             } catch (error) {
                 console.error('Error al generar PDF:', error);
