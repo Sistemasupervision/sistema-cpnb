@@ -485,6 +485,9 @@
                     <button id="btnServiciosAdmin" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #805ad5, #553c9a);">
                         📋 Servicios Administrativos
                     </button>
+                    <button id="btnUbicaciones" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #38a169, #2f855a);">
+                        📍 Ubicaciones
+                    </button>
                     <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
                 </div>
             `;
@@ -494,6 +497,9 @@
             document.getElementById('btnEstaciones').onclick = () => cargarEstacionesPoliciales(ccpValue, ccpNombre);
             document.getElementById('btnServiciosAdmin').onclick = () => {
                 window.location.href = 'servicios-administrativos.html';
+            };
+            document.getElementById('btnUbicaciones').onclick = () => {
+                window.location.href = 'ubicaciones.html';
             };
             document.getElementById('backToCcpBtn').onclick = () => {
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
