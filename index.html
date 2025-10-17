@@ -741,8 +741,7 @@
                             </label>
                             <input type="file" class="foto-input" data-item="${item}" data-index="0" accept="image/*" capture="environment" style="width:100%; margin-bottom:6px;">
                             <input type="file" class="foto-input" data-item="${item}" data-index="1" accept="image/*" capture="environment" style="width:100%;">
-                            <!-- ✅ INDICADOR DE CONFIRMACIÓN -->
-                            <div class="foto-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;">✅ Foto(s) seleccionada(s)</div>
+                            <div class="foto-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;"></div>
                         </div>
                         <!-- ✅ ARCHIVO ADJUNTO -->
                         <div class="archivo-container" data-item="${item}" style="margin-top:12px; display:none;">
@@ -750,6 +749,7 @@
                                 📎 Archivo adjunto (PDF, DOC, etc.)
                             </label>
                             <input type="file" class="archivo-input" data-item="${item}" accept=".pdf,.doc,.docx,.jpg,.png" style="width:100%;">
+                            <div class="archivo-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;">✅ Archivo seleccionado</div>
                         </div>
                     </div>
                 `;
@@ -787,48 +787,61 @@
                     const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
                     const fotosContainer = document.querySelector(`.fotos-container[data-item="${item}"]`);
                     const archivoContainer = document.querySelector(`.archivo-container[data-item="${item}"]`);
-                    const confirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
+                    const fotoConfirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
+                    const archivoConfirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
 
-                    if (this.value === 'null') {
-                        // Limpiar y ocultar todo
-                        textarea.style.display = 'none';
+                    // Siempre mostrar observación
+                    textarea.style.display = this.value !== 'null' ? 'block' : 'none';
+
+                    if (this.value === 'true') {
+                        // ✅ SOLO si es "Sí": habilitar todo
+                        porcentajeContainer.style.display = 'block';
+                        fotosContainer.style.display = 'block';
+                        archivoContainer.style.display = 'block';
+                    } else {
+                        // ❌ Si es "No", "No aplica" o vacío: deshabilitar y limpiar
                         porcentajeContainer.style.display = 'none';
                         fotosContainer.style.display = 'none';
-                        archivoContainer.style.display = 'block'; // Archivo siempre visible
-                        confirmacion.style.display = 'none';
-                        textarea.value = '';
-                        // Limpiar inputs de archivo
+                        archivoContainer.style.display = 'none';
+
+                        // Limpiar inputs
                         document.querySelectorAll(`.foto-input[data-item="${item}"]`).forEach(input => input.value = '');
                         document.querySelector(`.archivo-input[data-item="${item}"]`).value = '';
-                    } else {
-                        // Siempre mostrar observación y archivo
-                        textarea.style.display = 'block';
-                        archivoContainer.style.display = 'block';
 
-                        if (this.value === 'true') {
-                            // ✅ SOLO si es "Sí": habilitar porcentaje y fotos
-                            porcentajeContainer.style.display = 'block';
-                            fotosContainer.style.display = 'block';
-                        } else {
-                            // ❌ Si es "No" o "No aplica": deshabilitar porcentaje y fotos
-                            porcentajeContainer.style.display = 'none';
-                            fotosContainer.style.display = 'none';
-                            // Limpiar inputs de fotos
-                            document.querySelectorAll(`.foto-input[data-item="${item}"]`).forEach(input => input.value = '');
-                            confirmacion.style.display = 'none';
-                        }
+                        // Ocultar confirmaciones
+                        if (fotoConfirmacion) fotoConfirmacion.style.display = 'none';
+                        if (archivoConfirmacion) archivoConfirmacion.style.display = 'none';
                     }
                 });
             });
 
-            // ✅ CONFIRMACIÓN VISUAL AL SELECCIONAR FOTOS
+            // ✅ CONFIRMACIÓN DE FOTOS (dinámico: 1 o 2)
             document.querySelectorAll('.foto-input').forEach(input => {
                 input.addEventListener('change', function () {
                     const item = this.dataset.item;
                     const confirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
                     const fileInputs = document.querySelectorAll(`.foto-input[data-item="${item}"]`);
-                    const hasFile = Array.from(fileInputs).some(f => f.files.length > 0);
-                    confirmacion.style.display = hasFile ? 'block' : 'none';
+                    const count = Array.from(fileInputs).filter(f => f.files.length > 0).length;
+
+                    if (count > 0) {
+                        confirmacion.textContent = `✅ ${count} foto${count === 1 ? '' : 's'} seleccionada${count === 1 ? '' : 's'}`;
+                        confirmacion.style.display = 'block';
+                    } else {
+                        confirmacion.style.display = 'none';
+                    }
+                });
+            });
+
+            // ✅ CONFIRMACIÓN DE ARCHIVO
+            document.querySelectorAll('.archivo-input').forEach(input => {
+                input.addEventListener('change', function () {
+                    const item = this.dataset.item;
+                    const confirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
+                    if (this.files.length > 0) {
+                        confirmacion.style.display = 'block';
+                    } else {
+                        confirmacion.style.display = 'none';
+                    }
                 });
             });
 
