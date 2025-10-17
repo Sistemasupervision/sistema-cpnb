@@ -239,7 +239,6 @@
             <h1 class="title">Galería de Inspección</h1>
             <div id="estacionNombreDisplay"></div>
         </div>
-
         <!-- Formulario de selección (sin fechas) -->
         <div id="selectorForm">
             <div class="input-group">
@@ -263,7 +262,6 @@
             <button id="loadGaleriaBtn" class="form-btn" disabled>Cargar Galería</button>
             <button id="backToMenuBtn" class="back-btn" style="margin-top: 20px;">← Volver al Menú</button>
         </div>
-
         <!-- Filtro de fechas (oculto al inicio) -->
         <div id="filtroFechas">
             <h3 style="text-align:center; margin-bottom:15px; color:#0c2440;">Filtrar por Fecha</h3>
@@ -281,7 +279,6 @@
                 </div>
             </div>
         </div>
-
         <!-- Galería -->
         <div id="galeriaContainer" class="galeria-container" style="display:none;"></div>
         <div id="paginacionContainer">
@@ -289,48 +286,92 @@
         </div>
         <button id="backToSelectorBtn" class="back-btn" style="display: none; margin-top: 20px;">← Volver a Selección</button>
     </div>
-
     <!-- Modal de Zoom -->
     <div id="zoomModal">
         <span id="closeZoom">&times;</span>
         <img id="zoomImage" alt="Vista ampliada">
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // ✅ NUEVO OBJETO CON 67 ÍTEMS
         const nombres = {
-            baño_dama: "Baño Dama",
-            baño_caballero: "Baño Caballero",
-            dormitorio_femenino: "Dormitorio Femenino",
-            dormitorio_masculino: "Dormitorio Masculino",
-            cocina: "Cocina",
-            comedor: "Comedor",
-            lavanderia: "Lavandería",
-            oficina_del_jefe: "Oficina del Jefe",
-            oficina_de_rrhh: "Oficina de RRHH",
-            condiciones_electricas: "Condiciones Eléctricas",
-            fachada: "Fachada",
-            condiciones_de_pintura: "Condiciones de Pintura",
-            jardines: "Jardines",
-            condiciones_generales: "Otros",
-            vehiculos: "Vehículos",
-            motos: "Motos",
-            botiquin_emergencia: "Servicio médico/implementos médicos",
-            libros: "Elementos de supervisión y control",
-            equipos_tecnologicos: "Equipos Tecnológicos" 
+            nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
+            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+            dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+            conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+            conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+            conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+            estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+            manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+            plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+            infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+            direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+            oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+            documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+            uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+            practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+            entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+            talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+            conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+            acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+            conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+            instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+            talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+            conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+            cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+            cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+            dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+            practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+            numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+            personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+            servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+            publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+            libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+            libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+            libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+            archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+            libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+            supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+            cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+            bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+            resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+            equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+            equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+            plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+            calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+            plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+            servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+            unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+            areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+            vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+            placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+            vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+            vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+            accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+            necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+            identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+            informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+            supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+            vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+            despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+            supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+            planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+            conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+            registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+            rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+            archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+            informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
+            estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
-
         let todasLasFotos = [];
         let paginaActual = 1;
         const fotosPorPagina = 12;
         let estacionIdActual = null;
         let estacionNombreActual = '';
-
         // Establecer fecha actual en "Fecha hasta" al cargar
         document.getElementById('fechaHasta').valueAsDate = new Date();
-
         // Cargar estaciones al cambiar CCP
         document.getElementById('ccpSelect').addEventListener('change', async () => {
             const ccp = document.getElementById('ccpSelect').value;
@@ -363,41 +404,32 @@
                 alert('Error al cargar estaciones');
             }
         });
-
         document.getElementById('estacionSelect').addEventListener('change', () => {
             document.getElementById('loadGaleriaBtn').disabled = !document.getElementById('estacionSelect').value;
         });
-
         // Cargar galería inicial (sin filtro)
         document.getElementById('loadGaleriaBtn').addEventListener('click', async () => {
             estacionIdActual = document.getElementById('estacionSelect').value;
             if (!estacionIdActual) return;
-
             const estacionSelect = document.getElementById('estacionSelect');
             estacionNombreActual = estacionSelect.options[estacionSelect.selectedIndex].text;
-
             document.getElementById('estacionNombreDisplay').textContent = `Estación: ${estacionNombreActual}`;
             document.getElementById('estacionNombreDisplay').style.display = 'block';
-
             const selectorForm = document.getElementById('selectorForm');
             const galeriaContainer = document.getElementById('galeriaContainer');
             galeriaContainer.innerHTML = `<div class="loading">Cargando fotos de: <strong>${estacionNombreActual}</strong>...</div>`;
             galeriaContainer.style.display = 'grid';
             selectorForm.style.display = 'none';
-
             // Mostrar el filtro de fechas
             document.getElementById('filtroFechas').style.display = 'block';
-
             await cargarFotos(estacionIdActual, null, null);
         });
-
         // Aplicar filtro de fechas
         document.getElementById('aplicarFiltroBtn').addEventListener('click', async () => {
             const fechaDesde = document.getElementById('fechaDesde').value;
             const fechaHasta = document.getElementById('fechaHasta').value;
             await cargarFotos(estacionIdActual, fechaDesde, fechaHasta);
         });
-
         // Función reutilizable para cargar fotos con o sin filtro
         async function cargarFotos(estacionId, fechaDesde, fechaHasta) {
             const galeriaContainer = document.getElementById('galeriaContainer');
@@ -407,7 +439,6 @@
                     .select('id, created_at')
                     .eq('estacion_id', estacionId)
                     .order('created_at', { ascending: false });
-
                 if (fechaDesde) {
                     const desdeISO = new Date(fechaDesde).toISOString();
                     query = query.gte('created_at', desdeISO);
@@ -417,17 +448,14 @@
                     hastaISO.setUTCHours(23, 59, 59, 999);
                     query = query.lte('created_at', hastaISO.toISOString());
                 }
-
                 const { data: inspecciones, error: inspError } = await query;
                 if (inspError) throw inspError;
-
                 if (inspecciones.length === 0) {
                     galeriaContainer.innerHTML = '<div class="no-fotos">No hay inspecciones en este rango de fechas.</div>';
                     document.getElementById('paginacionContainer').style.display = 'none';
                     document.getElementById('backToSelectorBtn').style.display = 'block';
                     return;
                 }
-
                 todasLasFotos = [];
                 for (const insp of inspecciones) {
                     const { data: items, error: itemError } = await supabase
@@ -455,7 +483,6 @@
                         });
                     }
                 }
-
                 if (todasLasFotos.length === 0) {
                     galeriaContainer.innerHTML = '<div class="no-fotos">No hay fotos en este rango de fechas.</div>';
                     document.getElementById('paginacionContainer').style.display = 'none';
@@ -473,7 +500,6 @@
                 document.getElementById('backToSelectorBtn').style.display = 'block';
             }
         }
-
         async function descargarImagen(url, nombreItem) {
             try {
                 const response = await fetch(url);
@@ -492,13 +518,11 @@
                 alert('⚠️ No se pudo descargar la imagen. Intente de nuevo.');
             }
         }
-
         function mostrarPagina(pagina) {
             const galeriaContainer = document.getElementById('galeriaContainer');
             const inicio = (pagina - 1) * fotosPorPagina;
             const fin = inicio + fotosPorPagina;
             const fotosPagina = todasLasFotos.slice(inicio, fin);
-
             galeriaContainer.innerHTML = '';
             const fotosPorFechaHora = {};
             fotosPagina.forEach(foto => {
@@ -507,13 +531,11 @@
                 }
                 fotosPorFechaHora[foto.fechaHora].push(foto);
             });
-
             Object.keys(fotosPorFechaHora).forEach(fechaHora => {
                 const header = document.createElement('div');
                 header.className = 'inspeccion-header';
                 header.textContent = `Inspección del ${fechaHora}`;
                 galeriaContainer.appendChild(header);
-
                 fotosPorFechaHora[fechaHora].forEach(foto => {
                     const card = document.createElement('div');
                     card.className = 'foto-card';
@@ -523,7 +545,7 @@
                     img.className = 'foto-item';
                     const label = document.createElement('div');
                     label.className = 'foto-label';
-                    label.textContent = nombres[foto.item] || foto.item;
+                    label.textContent = nombres[foto.item] || foto.item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                     const downloadBtn = document.createElement('button');
                     downloadBtn.className = 'download-btn';
                     downloadBtn.textContent = '📥 Descargar';
@@ -535,7 +557,6 @@
                     card.appendChild(label);
                     card.appendChild(downloadBtn);
                     galeriaContainer.appendChild(card);
-
                     img.addEventListener('click', () => {
                         document.getElementById('zoomImage').src = foto.url;
                         document.getElementById('zoomModal').style.display = 'flex';
@@ -543,12 +564,10 @@
                 });
             });
         }
-
         function actualizarPaginacion() {
             const totalPaginas = Math.ceil(todasLasFotos.length / fotosPorPagina);
             const controles = document.getElementById('controlesPaginacion');
             controles.innerHTML = '';
-
             const btnAnterior = document.createElement('button');
             btnAnterior.textContent = '← Anterior';
             btnAnterior.className = 'back-btn';
@@ -560,14 +579,12 @@
                     actualizarPaginacion();
                 }
             };
-
             const infoPagina = document.createElement('span');
             infoPagina.textContent = `Página ${paginaActual} de ${totalPaginas}`;
             infoPagina.style.margin = '0 15px';
             infoPagina.style.alignSelf = 'center';
             infoPagina.style.fontWeight = 'bold';
             infoPagina.style.color = '#0c2440';
-
             const btnSiguiente = document.createElement('button');
             btnSiguiente.textContent = 'Siguiente →';
             btnSiguiente.className = 'back-btn';
@@ -579,12 +596,10 @@
                     actualizarPaginacion();
                 }
             };
-
             controles.appendChild(btnAnterior);
             controles.appendChild(infoPagina);
             controles.appendChild(btnSiguiente);
         }
-
         document.getElementById('closeZoom').addEventListener('click', () => {
             document.getElementById('zoomModal').style.display = 'none';
         });
