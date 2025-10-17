@@ -458,14 +458,12 @@
                 }
                 todasLasFotos = [];
                 for (const insp of inspecciones) {
+                    // ✅ AHORA SELECCIONAMOS foto1_url y foto2_url
                     const { data: items, error: itemError } = await supabase
                         .from('items_inspeccion')
-                        .select('item_nombre, fotos_urls')
+                        .select('item_nombre, foto1_url, foto2_url')
                         .eq('inspeccion_id', insp.id);
                     if (itemError) continue;
-                    const itemsConFotos = items.filter(item => 
-                        item.fotos_urls && Array.isArray(item.fotos_urls) && item.fotos_urls.length > 0
-                    );
                     const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
                         month: '2-digit',
@@ -473,14 +471,23 @@
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-                    for (const item of itemsConFotos) {
-                        item.fotos_urls.forEach(url => {
+                    for (const item of items) {
+                        // ✅ Agregar foto1 si existe
+                        if (item.foto1_url) {
                             todasLasFotos.push({
-                                url: url,
+                                url: item.foto1_url,
                                 item: item.item_nombre,
                                 fechaHora: fechaHora
                             });
-                        });
+                        }
+                        // ✅ Agregar foto2 si existe
+                        if (item.foto2_url) {
+                            todasLasFotos.push({
+                                url: item.foto2_url,
+                                item: item.item_nombre,
+                                fechaHora: fechaHora
+                            });
+                        }
                     }
                 }
                 if (todasLasFotos.length === 0) {
