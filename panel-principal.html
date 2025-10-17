@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Principal - CPNB</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 600px;
+            padding: 50px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .user-info h3 {
+            color: #0c2440;
+            margin-bottom: 8px;
+        }
+        .user-info p {
+            color: #4a5568;
+            font-weight: bold;
+        }
+        .redi-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        .redi-btn {
+            padding: 12px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .redi-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        /* ✅ BOTÓN DE ADMINISTRACIÓN CENTRADO */
+        #btnAdminUsuarios {
+            display: block;
+            margin: 25px auto 20px;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #805ad5, #553c9a);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(128, 90, 213, 0.3);
+        }
+        #btnAdminUsuarios:hover {
+            background: linear-gradient(135deg, #6b46c1, #44337a);
+            transform: translateY(-2px);
+        }
+        .logout-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Panel Principal</h1>
+        </div>
+        <div class="user-info">
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Cargando...</p>
+        </div>
+        <div class="redi-buttons">
+            <button class="redi-btn" data-redi="andes">REDIP LOS ANDES</button>
+            <button class="redi-btn" data-redi="capital">REDIP CAPITAL</button>
+            <button class="redi-btn" data-redi="central">REDIP CENTRAL</button>
+            <button class="redi-btn" id="rediOccidentalBtn">REDIP OCCIDENTAL</button>
+            <button class="redi-btn" data-redi="oriental">REDIP ORIENTAL</button>
+            <button class="redi-btn" data-redi="llanos">REDIP LOS LLANOS</button>
+            <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
+            <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
+        </div>
+        <!-- ✅ Botón de administración (solo visible para admin) -->
+        <button id="btnAdminUsuarios" style="display: none;">👤 Administrar Usuarios</button>
+        <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function checkAuthAndLoad() {
+            const {  { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('userNameDisplay').textContent = user.email;
+
+            // Verificar si es admin
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (!error && data && data.redip === 'admin') {
+                    document.getElementById('btnAdminUsuarios').style.display = 'block';
+                }
+            } catch (err) {
+                console.warn('No se pudo verificar rol de admin:', err);
+            }
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.href = 'index.html';
+        });
+
+        document.getElementById('btnAdminUsuarios').addEventListener('click', () => {
+            window.location.href = 'admin-usuarios.html';
+        });
+
+        document.getElementById('rediOccidentalBtn').addEventListener('click', () => {
+            window.location.href = 'redi-occidental.html';
+        });
+
+        // Redirección genérica para otras REDIP (puedes crear sus archivos luego)
+        document.querySelectorAll('.redi-btn[data-redi]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const redi = btn.dataset.redi;
+                if (redi !== 'occidental') {
+                    alert(`Acceso a ${redi.toUpperCase()} aún no implementado.`);
+                }
+            });
+        });
+
+        checkAuthAndLoad();
+    </script>
+</body>
+</html>
