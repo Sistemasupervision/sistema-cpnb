@@ -345,6 +345,8 @@
             <button class="redi-btn" data-redi="llanos">REDIP LOS LLANOS</button>
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
             <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
+            <!-- ✅ Botón de Administrar Usuarios (solo para admin) -->
+            <button class="redi-btn" id="btnAdminUsuarios" style="display: none;">👤 Administrar Usuarios</button>
         </div>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
@@ -375,18 +377,14 @@
         <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Estadísticas
         </button>
+        <button onclick="window.location.href='galeria.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🖼️ Galería de Inspección
+        </button>
         <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🔔 Notificaciones
         </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
             📊 Resumen Mensual (KPIs)
-        </button>
-        <!-- ✅ BOTONES SOLO PARA ADMIN (ocultos por defecto) -->
-        <button id="botonGaleria" onclick="window.location.href='galeria.html'" class="action-btn" style="display: none; margin-top: 12px; padding: 12px; font-size: 15px; background: linear-gradient(135deg, #38a169, #2f855a);">
-            🖼️ Galería de Inspección
-        </button>
-        <button id="botonAdminUsuarios" onclick="window.location.href='admin-usuarios.html'" class="action-btn" style="display: none; margin-top: 12px; padding: 12px; font-size: 15px; background: linear-gradient(135deg, #805ad5, #553c9a);">
-            👤 Administrar Usuarios
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
@@ -439,22 +437,12 @@
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-                if (error || !data) {
-                    alert('⚠️ Error al verificar sus permisos.');
-                    return;
-                }
-                // ✅ Permitir acceso si es 'occidental' O 'admin'
-                if (data.redip !== 'occidental' && data.redip !== 'admin') {
+                if (error || !data || data.redip !== 'occidental') {
                     alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
                     return;
                 }
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
-                // ✅ Mostrar botones extra si es admin
-                if (data.redip === 'admin') {
-                    document.getElementById('botonGaleria').style.display = 'block';
-                    document.getElementById('botonAdminUsuarios').style.display = 'block';
-                }
                 contarYMostrarNotificaciones();
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
@@ -473,7 +461,6 @@
                 return;
             }
             try {
-                // ✅ CONSULTA MEJORADA: Seleccionar solo estaciones activas en CCP OCCIDENTAL
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
@@ -538,6 +525,20 @@
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
                 await cargarNotificacionesAlIniciar();
+
+                // ✅ Verificar si es admin para mostrar botón de administración
+                try {
+                    const { data, error } = await supabase
+                        .from('usuarios_redip')
+                        .select('redip')
+                        .eq('user_id', user.id)
+                        .single();
+                    if (!error && data && data.redip === 'admin') {
+                        document.getElementById('btnAdminUsuarios').style.display = 'block';
+                    }
+                } catch (err) {
+                    console.warn('No se pudo verificar rol de administrador:', err);
+                }
             }
         }
         async function contarReinspeccionesVencidas() {
@@ -573,7 +574,6 @@
         async function cargarNotificacionesAlIniciar() {
         }
         function loadInspectionForm(estacionId, estacionNombre) {
-            // ✅ NUEVOS ÍTEMS (67)
             const items = [
                 "nombramiento_comandante",
                 "acta_entrega_recepcion",
@@ -796,7 +796,7 @@
             dynamicView.style.maxWidth = '1000px';
             dynamicView.style.padding = '40px';
 
-            // ✅ NUEVA LÓGICA: solo habilitar fotos y porcentaje si es "Sí"
+            // ✅ Lógica de habilitar/deshabilitar campos
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -807,39 +807,32 @@
                     const fotoConfirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
                     const archivoConfirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
 
-                    // Siempre mostrar observación
                     textarea.style.display = this.value !== 'null' ? 'block' : 'none';
 
                     if (this.value === 'true') {
-                        // ✅ SOLO si es "Sí": habilitar todo
                         porcentajeContainer.style.display = 'block';
                         fotosContainer.style.display = 'block';
                         archivoContainer.style.display = 'block';
                     } else {
-                        // ❌ Si es "No", "No aplica" o vacío: deshabilitar y limpiar
                         porcentajeContainer.style.display = 'none';
                         fotosContainer.style.display = 'none';
                         archivoContainer.style.display = 'none';
-
                         // Limpiar inputs
                         document.querySelectorAll(`.foto-input[data-item="${item}"]`).forEach(input => input.value = '');
                         document.querySelector(`.archivo-input[data-item="${item}"]`).value = '';
-
-                        // Ocultar confirmaciones
                         if (fotoConfirmacion) fotoConfirmacion.style.display = 'none';
                         if (archivoConfirmacion) archivoConfirmacion.style.display = 'none';
                     }
                 });
             });
 
-            // ✅ CONFIRMACIÓN DE FOTOS (dinámico: 1 o 2)
+            // ✅ Confirmación dinámica de fotos
             document.querySelectorAll('.foto-input').forEach(input => {
                 input.addEventListener('change', function () {
                     const item = this.dataset.item;
                     const confirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
                     const fileInputs = document.querySelectorAll(`.foto-input[data-item="${item}"]`);
                     const count = Array.from(fileInputs).filter(f => f.files.length > 0).length;
-
                     if (count > 0) {
                         confirmacion.textContent = `✅ ${count} foto${count === 1 ? '' : 's'} seleccionada${count === 1 ? '' : 's'}`;
                         confirmacion.style.display = 'block';
@@ -849,7 +842,7 @@
                 });
             });
 
-            // ✅ CONFIRMACIÓN DE ARCHIVO
+            // ✅ Confirmación de archivo
             document.querySelectorAll('.archivo-input').forEach(input => {
                 input.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -865,7 +858,8 @@
             document.getElementById('backToEstacionesBtn').onclick = () => {
                 handleOccidentalForm({ preventDefault: () => {} });
             };
-            // ✅ MANEJADOR DE ENVÍO
+
+            // ✅ Manejador de envío
             document.getElementById('inspectionForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const { data: { user } } = await supabase.auth.getUser();
@@ -873,7 +867,6 @@
                     alert('Debe estar autenticado.');
                     return;
                 }
-                // Crear inspección
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                 const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
@@ -898,14 +891,12 @@
                     let cumple = null;
                     if (valor === 'true') cumple = true;
                     if (valor === 'false') cumple = false;
-                    // 'na' → cumple = null
                     const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                     let porcentaje = 0;
                     if (cumple === true) {
                         const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                         porcentaje = parseInt(slider?.value) || 0;
                     }
-                    // ✅ Subir fotos
                     let foto1_url = null, foto2_url = null;
                     const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
                     const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
@@ -927,7 +918,6 @@
                             foto2_url = data.publicUrl;
                         }
                     }
-                    // ✅ Subir archivo adjunto
                     let archivo_url = null;
                     const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
                     if (archivoFile) {
@@ -966,11 +956,17 @@
                 }
             };
         }
+
+        // ✅ Listeners
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
         document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
         document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+        document.getElementById('btnAdminUsuarios').addEventListener('click', () => {
+            window.location.href = 'admin-usuarios.html';
+        });
+
         checkAuthState();
     </script>
 </body>
