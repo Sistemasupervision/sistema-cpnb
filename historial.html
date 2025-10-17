@@ -879,7 +879,7 @@ async function verificarAcceso() {
                 if (itemsArray.length > 0) {
                     html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
                     itemsArray.forEach(item => {
-                        const nombre = nombres[item.item_nombre] || item.item_nombre;
+                        const nombre = nombresAmigables[item.item_nombre] || item.item_nombre.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                         const clase = item.cumple ? 'si' : 'no';
                         const texto = item.cumple ? 'Sí' : 'No';
                         const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
