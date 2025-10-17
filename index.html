@@ -372,7 +372,7 @@
         <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Ver Historial de Inspecciones
         </button>
-          <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Estadísticas
         </button>
         <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
@@ -380,6 +380,13 @@
         </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
             📊 Resumen Mensual (KPIs)
+        </button>
+        <!-- ✅ BOTONES SOLO PARA ADMIN (ocultos por defecto) -->
+        <button id="botonGaleria" onclick="window.location.href='galeria.html'" class="action-btn" style="display: none; margin-top: 12px; padding: 12px; font-size: 15px; background: linear-gradient(135deg, #38a169, #2f855a);">
+            🖼️ Galería de Inspección
+        </button>
+        <button id="botonAdminUsuarios" onclick="window.location.href='admin-usuarios.html'" class="action-btn" style="display: none; margin-top: 12px; padding: 12px; font-size: 15px; background: linear-gradient(135deg, #805ad5, #553c9a);">
+            👤 Administrar Usuarios
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
@@ -432,12 +439,22 @@
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-                if (error || !data || data.redip !== 'occidental') {
+                if (error || !data) {
+                    alert('⚠️ Error al verificar sus permisos.');
+                    return;
+                }
+                // ✅ Permitir acceso si es 'occidental' O 'admin'
+                if (data.redip !== 'occidental' && data.redip !== 'admin') {
                     alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
                     return;
                 }
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
+                // ✅ Mostrar botones extra si es admin
+                if (data.redip === 'admin') {
+                    document.getElementById('botonGaleria').style.display = 'block';
+                    document.getElementById('botonAdminUsuarios').style.display = 'block';
+                }
                 contarYMostrarNotificaciones();
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
