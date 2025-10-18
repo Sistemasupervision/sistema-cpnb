@@ -520,15 +520,78 @@
             });
         });
 
-        // === ENVÍO CON BARRA DE PROGRESO ===
-        document.getElementById('inspectionForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const { data: { user } } = await supabase.auth.getUser(); // ✅ CORREGIDO
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = '../index.html';
-                return;
-            }
+      document.getElementById('inspectionForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert('Debe iniciar sesión.');
+        window.location.href = '../index.html';
+        return;
+    }
+
+    // ✅ VERIFICAR QUE LA ESTACIÓN EXISTA
+    const { data: estacionData, error: estacionError } = await supabase
+        .from('estaciones_policiales')
+        .select('id')
+        .eq('id', estacionId)
+        .single();
+
+    if (estacionError || !estacionData) {
+        alert('❌ Estación no válida. Por favor, seleccione una estación correcta.');
+        return;
+    }
+
+    const overlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    overlay.style.display = 'flex';
+    let progress = 0;
+
+    const updateProgress = (value, max) => {
+        progress = Math.min(99, Math.floor((value / max) * 100));
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `${progress}%`;
+    };
+
+    try {
+        // Paso 1: Crear inspección
+        const proximaFecha = document.getElementById('proximaInspeccion').value || null;
+        const { data: inspeccionData, error: inspError } = await supabase
+            .from('inspecciones')
+            .insert({
+                estacion_id: estacionId,
+                inspector_email: user.email,
+                observaciones_generales: document.getElementById('observacionesGenerales').value || null,
+                proxima_inspeccion: proximaFecha
+            })
+            .select()
+            .single();
+
+        if (inspError) {
+            console.error('Error al crear inspección:', inspError); // ✅ LOG EN CONSOLA
+            alert('❌ Error al guardar la inspección. Revise la consola para más detalles.');
+            overlay.style.display = 'none';
+            return;
+        }
+
+        // ✅ VERIFICAR QUE inspeccionData EXISTA
+        if (!inspeccionData) {
+            console.error('No se recibió datos de la inspección.');
+            alert('❌ Error: No se pudo crear la inspección. Por favor, inténtelo de nuevo.');
+            overlay.style.display = 'none';
+            return;
+        }
+
+        updateProgress(1, 10);
+
+        // ... resto del código ...
+
+    } catch (error) {
+        console.error('Error durante el guardado:', error);
+        overlay.style.display = 'none';
+        alert('❌ Error al guardar la inspección. Por favor, inténtelo de nuevo.');
+    }
+};
 
             const overlay = document.getElementById('loadingOverlay');
             const progressBar = document.getElementById('progressBar');
