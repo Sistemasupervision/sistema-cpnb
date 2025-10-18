@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Supervisión y Control</title>
+    <title>Login - Sistema CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -16,6 +16,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <div id="loginContainer" class="container">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -35,40 +36,16 @@
         </form>
         <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
-            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
+            <p>Todas las comunicaciones están cifradas...</p>
         </div>
         <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
-    <div id="dashboardContainer" class="container">
-        <div class="logo-container">
-            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title dashboard-title">Panel Principal</h1>
-        </div>
-        <div class="user-info">
-            <h3>Usuario Conectado</h3>
-            <p id="userNameDisplay">Nombre del Usuario</p>
-        </div>
-        <div class="redi-buttons">
-            <button class="redi-btn" data-redi="andes">REDIP LOS ANDES</button>
-            <button class="redi-btn" data-redi="capital">REDIP CAPITAL</button>
-            <button class="redi-btn" data-redi="central">REDIP CENTRAL</button>
-            <button class="redi-btn" onclick="window.location.href='redip-occidental/'">REDIP OCCIDENTAL</button>
-            <button class="redi-btn" data-redi="oriental">REDIP ORIENTAL</button>
-            <button class="redi-btn" data-redi="llanos">REDIP LOS LLANOS</button>
-            <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
-            <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
-        </div>
-        <button id="btnAdminUsuarios" class="redi-btn" style="display: none; margin: 20px auto; width: 80%; max-width: 300px;">
-            👤 Administrar Usuarios
-        </button>
-        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
-    </div>
 
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         function showError(message) {
@@ -85,58 +62,13 @@
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = email;
+                window.location.href = 'dashboard.html';
             } catch (error) {
-                console.error('Error en login:', error);
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
 
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginForm').reset();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-            }
-        }
-
-        async function checkAuthAndLoad() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('dashboardContainer').style.display = 'none';
-                return;
-            }
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = user.email;
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (!error && data && data.redip === 'admin') {
-                    document.getElementById('btnAdminUsuarios').style.display = 'block';
-                }
-            } catch (err) {
-                console.warn('No se pudo verificar rol de admin:', err);
-            }
-        }
-
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('btnAdminUsuarios').addEventListener('click', () => {
-            window.location.href = 'admin/admin-usuarios.html';
-        });
-
-        checkAuthAndLoad();
     </script>
 </body>
 </html>
