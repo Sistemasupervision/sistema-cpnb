@@ -520,95 +520,25 @@
             });
         });
 
-      document.getElementById('inspectionForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('Debe iniciar sesión.');
-        window.location.href = '../index.html';
-        return;
-    }
-
-    // ✅ VERIFICAR QUE LA ESTACIÓN EXISTA
-    const { data: estacionData, error: estacionError } = await supabase
-        .from('estaciones_policiales')
-        .select('id')
-        .eq('id', estacionId)
-        .single();
-
-    if (estacionError || !estacionData) {
-        alert('❌ Estación no válida. Por favor, seleccione una estación correcta.');
-        return;
-    }
-
-    const overlay = document.getElementById('loadingOverlay');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    overlay.style.display = 'flex';
-    let progress = 0;
-
-    const updateProgress = (value, max) => {
-        progress = Math.min(99, Math.floor((value / max) * 100));
-        progressBar.style.width = `${progress}%`;
-        progressText.textContent = `${progress}%`;
-    };
-
-    try {
-        // Paso 1: Crear inspección
-        const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-        const { data: inspeccionData, error: inspError } = await supabase
-            .from('inspecciones')
-            .insert({
-                estacion_id: estacionId,
-                inspector_email: user.email,
-                observaciones_generales: document.getElementById('observacionesGenerales').value || null,
-                proxima_inspeccion: proximaFecha
-            })
-            .select()
-            .single();
-
-        if (inspError) {
-            console.error('Error al crear inspección:', inspError); // ✅ LOG EN CONSOLA
-            alert('❌ Error al guardar la inspección. Revise la consola para más detalles.');
-            overlay.style.display = 'none';
-            return;
-        }
-
-        // ✅ VERIFICAR QUE inspeccionData EXISTA
-        if (!inspeccionData) {
-            console.error('No se recibió datos de la inspección.');
-            alert('❌ Error: No se pudo crear la inspección. Por favor, inténtelo de nuevo.');
-            overlay.style.display = 'none';
-            return;
-        }
-
-        updateProgress(1, 10);
-
-        // ... resto del código ...
-
-    } catch (error) {
-        console.error('Error durante el guardado:', error);
-        overlay.style.display = 'none';
-        alert('❌ Error al guardar la inspección. Por favor, inténtelo de nuevo.');
-    }
-};
+        // === ENVÍO CON BARRA DE PROGRESO ===
+        document.getElementById('inspectionForm').onsubmit = async function (e) { // ✅ async
+            e.preventDefault();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = '../index.html';
+                return;
+            }
 
             const overlay = document.getElementById('loadingOverlay');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
             overlay.style.display = 'flex';
-            let progress = 0;
-
-            const updateProgress = (value, max) => {
-                progress = Math.min(99, Math.floor((value / max) * 100));
-                progressBar.style.width = `${progress}%`;
-                progressText.textContent = `${progress}%`;
-            };
 
             try {
-                // Paso 1: Crear inspección
+                // Crear inspección
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-                const {  inspeccionData, error: inspError } = await supabase
+                const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
                     .insert({
                         estacion_id: estacionId,
@@ -616,39 +546,15 @@
                         observaciones_generales: document.getElementById('observacionesGenerales').value || null,
                         proxima_inspeccion: proximaFecha
                     })
-                    .select()
+                    .select('id') // ✅ Solo el id
                     .single();
 
-                if (inspError) throw new Error('Error al crear inspección.');
-
-                updateProgress(1, 10);
-
-                // Paso 2: Preparar ítems
-                const itemsToInsert = [];
-                let totalUploads = 0;
-                let completedUploads = 0;
-
-                // Contar cuántos archivos/fotos hay que subir
-                for (const item of items) {
-                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                    const valor = select.value;
-                    if (valor === 'null') continue;
-
-                    // Contar fotos
-                    const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
-                    const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
-                    const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
-
-                    if (file1) totalUploads++;
-                    if (file2) totalUploads++;
-                    if (archivoFile) totalUploads++;
+                if (inspError || !inspeccionData || !inspeccionData.id) {
+                    throw new Error('No se pudo crear la inspección.');
                 }
 
-                // Si no hay subidas, el progreso será más rápido
-                const totalSteps = totalUploads > 0 ? totalUploads + 2 : 3;
-                completedUploads = 1; // ya pasó la creación de inspección
-
-                // Paso 3: Procesar ítems y subir archivos
+                // Subir ítems
+                const itemsToInsert = [];
                 for (const item of items) {
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                     const valor = select.value;
@@ -665,48 +571,29 @@
                         porcentaje = parseInt(slider?.value) || 0;
                     }
 
+                    // Subir fotos y archivo
                     let foto1_url = null, foto2_url = null, archivo_url = null;
-
-                    // Subir foto 1
                     const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
-                    if (file1) {
-                        const cleanName = file1.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-                        const path = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${cleanName}`;
-                        const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file1, { upsert: true });
-                        if (!error) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
-                            foto1_url = data.publicUrl;
-                        }
-                        completedUploads++;
-                        updateProgress(completedUploads, totalSteps);
-                    }
-
-                    // Subir foto 2
                     const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
-                    if (file2) {
-                        const cleanName = file2.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-                        const path = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${cleanName}`;
-                        const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file2, { upsert: true });
-                        if (!error) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
-                            foto2_url = data.publicUrl;
-                        }
-                        completedUploads++;
-                        updateProgress(completedUploads, totalSteps);
-                    }
-
-                    // Subir archivo
                     const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
+
+                    if (file1) {
+                        const path = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${file1.name}`;
+                        await supabase.storage.from('inspecciones-fotos').upload(path, file1, { upsert: true });
+                        const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
+                        foto1_url = data.publicUrl;
+                    }
+                    if (file2) {
+                        const path = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${file2.name}`;
+                        await supabase.storage.from('inspecciones-fotos').upload(path, file2, { upsert: true });
+                        const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
+                        foto2_url = data.publicUrl;
+                    }
                     if (archivoFile) {
-                        const cleanName = archivoFile.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-                        const path = `inspecciones/${inspeccionData.id}/${item}_archivo_${Date.now()}_${cleanName}`;
-                        const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, archivoFile, { upsert: true });
-                        if (!error) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
-                            archivo_url = data.publicUrl;
-                        }
-                        completedUploads++;
-                        updateProgress(completedUploads, totalSteps);
+                        const path = `inspecciones/${inspeccionData.id}/${item}_archivo_${Date.now()}_${archivoFile.name}`;
+                        await supabase.storage.from('inspecciones-fotos').upload(path, archivoFile, { upsert: true });
+                        const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
+                        archivo_url = data.publicUrl;
                     }
 
                     itemsToInsert.push({
@@ -721,30 +608,25 @@
                     });
                 }
 
-                // Paso 4: Guardar ítems en base de datos (último paso)
                 if (itemsToInsert.length === 0) {
-                    overlay.style.display = 'none';
                     alert('Debe responder al menos un ítem.');
+                    overlay.style.display = 'none';
                     return;
                 }
 
                 const { error: itemsError } = await supabase.from('items_inspeccion').insert(itemsToInsert);
-                if (itemsError) throw new Error('Error al guardar los ítems.');
+                if (itemsError) throw itemsError;
 
-                // Completar progreso
+                // Mostrar 100% y redirigir
                 progressBar.style.width = '100%';
                 progressText.textContent = '100%';
-
-                // Esperar un momento para mostrar el 100%
                 await new Promise(r => setTimeout(r, 500));
-
-                // Ocultar y redirigir
                 overlay.style.display = 'none';
                 alert('✅ Inspección guardada con éxito.');
                 window.location.href = '../index.html';
 
             } catch (error) {
-                console.error('Error durante el guardado:', error);
+                console.error('Error:', error);
                 overlay.style.display = 'none';
                 alert('❌ Error al guardar la inspección. Por favor, inténtelo de nuevo.');
             }
