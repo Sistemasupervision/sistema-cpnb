@@ -1,1 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Principal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="vector-bg">...</div> <!-- igual que en index.txt -->
 
+    <div id="dashboardContainer" class="container">
+        <div class="logo-container">
+            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Panel Principal</h1>
+        </div>
+        <div class="user-info">
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">...</p>
+        </div>
+        <div class="redi-buttons">
+            <!-- Solo OCCIDENTAL funciona por ahora -->
+            <button class="redi-btn" onclick="window.location.href='redip-occidental/'">REDIP OCCIDENTAL</button>
+            <button class="redi-btn" disabled>REDIP CAPITAL</button>
+            <!-- ... otros botones deshabilitados -->
+        </div>
+        <button id="btnAdminUsuarios" class="redi-btn" style="display:none;">👤 Administrar Usuarios</button>
+        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function checkAuth() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = './';
+                return;
+            }
+            document.getElementById('userNameDisplay').textContent = user.email;
+            // Verificar admin
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (!error && data && data.redip === 'admin') {
+                document.getElementById('btnAdminUsuarios').style.display = 'block';
+            }
+        }
+
+        document.getElementById('logoutBtn').onclick = async () => {
+            await supabase.auth.signOut();
+            window.location.href = './';
+        };
+
+        document.getElementById('btnAdminUsuarios').onclick = () => {
+            window.location.href = 'admin/admin-usuarios.html';
+        };
+
+        checkAuth();
+    </script>
+</body>
+</html>
