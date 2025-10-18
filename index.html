@@ -6,7 +6,6 @@
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        /* ... (todo tu CSS igual, no cambia) ... */
         * {
             margin: 0;
             padding: 0;
@@ -349,6 +348,7 @@
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
             <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
         </div>
+        <!-- ✅ Botón de administración (mismo estilo, centrado, solo para admin) -->
         <button id="btnAdminUsuarios" class="redi-btn" style="display: none; margin: 20px auto; width: 80%; max-width: 300px;">
             👤 Administrar Usuarios
         </button>
@@ -400,14 +400,82 @@
     <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
 
     <script>
-        // ... (todo tu JS igual, pero con dos cambios clave en las funciones que generan HTML dinámico)
-
+        // === CONFIGURACIÓN DE SUPABASE ===
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ... (todas las funciones anteriores: showError, handleLogin, etc.)
+        // === FUNCIONES AUXILIARES ===
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
 
+        // === FUNCIÓN DE LOGIN ===
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = email;
+                await cargarNotificacionesAlIniciar();
+            } catch (error) {
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
+            }
+        }
+
+        // === FUNCIÓN DE LOGOUT ===
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'none';
+                document.getElementById('dynamicView').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        }
+
+        // === FUNCIÓN PARA MOSTRAR REDIP OCCIDENTAL ===
+        async function showRediOccidental() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || data.redip !== 'occidental') {
+                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
+                    return;
+                }
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+                contarYMostrarNotificaciones();
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+            }
+        }
+
+        // === FUNCIÓN PARA VOLVER AL PANEL PRINCIPAL ===
+        function backToDashboard() {
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+        }
+
+        // === FUNCIÓN PARA MANEJAR LA SELECCIÓN DE CCP ===
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -451,6 +519,7 @@
             };
         }
 
+        // === FUNCIÓN PARA CARGAR ESTACIONES POLICIALES ===
         async function cargarEstacionesPoliciales(ccpValue, ccpNombre) {
             try {
                 const { data: estaciones, error } = await supabase
@@ -510,10 +579,73 @@
             }
         }
 
-        // ... (resto de funciones: checkAuthAndLoad, etc.)
+        // === FUNCIÓN PARA VERIFICAR ROL Y MOSTRAR BOTÓN DE ADMINISTRACIÓN ===
+        async function checkAuthAndLoad() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('dashboardContainer').style.display = 'none';
+                return;
+            }
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            document.getElementById('userNameDisplay').textContent = user.email;
+            // Verificar si es admin
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (!error && data && data.redip === 'admin') {
+                    document.getElementById('btnAdminUsuarios').style.display = 'block';
+                } else {
+                    document.getElementById('btnAdminUsuarios').style.display = 'none';
+                }
+            } catch (err) {
+                console.warn('No se pudo verificar rol de admin:', err);
+                document.getElementById('btnAdminUsuarios').style.display = 'none';
+            }
+        }
 
-        // ❌ ELIMINADA: loadInspectionForm
+        // === FUNCIONES DE NOTIFICACIONES ===
+        async function contarReinspeccionesVencidas() {
+            try {
+                const hoy = new Date().toISOString().split('T')[0];
+                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                const { data: estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id')
+                    .in('ccp_id', ccpOcidental);
+                if (estError) throw estError;
+                const idsEstaciones = estaciones.map(e => e.id);
+                if (idsEstaciones.length === 0) return 0;
+                const { count, error: countError } = await supabase
+                    .from('inspecciones')
+                    .select('*', { count: 'exact', head: true })
+                    .in('estacion_id', idsEstaciones)
+                    .lte('proxima_inspeccion', hoy);
+                if (countError) throw countError;
+                return count || 0;
+            } catch (error) {
+                console.error('Error al contar notificaciones:', error);
+                return 0;
+            }
+        }
 
+        async function contarYMostrarNotificaciones() {
+            const contador = await contarReinspeccionesVencidas();
+            const boton = document.getElementById('botonNotificaciones');
+            if (boton) {
+                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
+            }
+        }
+
+        async function cargarNotificacionesAlIniciar() {
+            // Puedes agregar lógica adicional aquí si necesitas cargar notificaciones al iniciar
+        }
+
+        // === EVENT LISTENERS ===
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
@@ -522,6 +654,8 @@
         document.getElementById('btnAdminUsuarios').addEventListener('click', () => {
             window.location.href = 'admin-usuarios.html';
         });
+
+        // === INICIAR ===
         checkAuthAndLoad();
     </script>
 </body>
