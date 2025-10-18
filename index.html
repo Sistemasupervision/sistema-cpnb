@@ -1,4 +1,3 @@
-<!-- index.html (raíz) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -9,7 +8,14 @@
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-    <div class="vector-bg">...</div>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
 
     <!-- Login Form -->
     <div id="loginContainer" class="container">
@@ -18,22 +24,35 @@
             <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
         </div>
         <form id="loginForm">
-            <input type="email" id="username" required>
-            <input type="password" id="password" required>
+            <div class="input-group">
+                <label for="username">Email</label>
+                <input type="email" id="username" placeholder="Ingrese su email" autocomplete="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
+            </div>
             <button type="submit" class="login-btn">Iniciar Sesión</button>
+            <div id="errorMessage" class="error-message"></div>
         </form>
-        <div class="security-info">...</div>
-        <p>© OTIC-ZULIA. Todos los derechos reservados.</p>
+        <div class="security-info">
+            <strong>Seguridad de extremo a extremo</strong>
+            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
+        </div>
+        <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
+            © OTIC-ZULIA. Todos los derechos reservados.
+        </p>
     </div>
 
     <!-- Panel Principal -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Panel Principal</h1>
+            <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         <div class="user-info">
-            <p id="userNameDisplay">Usuario</p>
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Nombre del Usuario</p>
         </div>
         <div class="redi-buttons">
             <button class="redi-btn" onclick="irARedip('andes')">REDIP LOS ANDES</button>
@@ -50,16 +69,49 @@
 
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = '...';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        async function handleLogin(e) { ... }
-        async function handleLogout() { ... }
-
-        function irARedip(nombreRedip) {
-            window.location.href = `redip/${nombreRedip}/index.html`;
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = email;
+            } catch (error) {
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
+            }
         }
 
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+        }
+
+        function irARedip(nombreRedip) {
+            alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        // Verificar si ya hay sesión activa
         async function checkAuth() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
