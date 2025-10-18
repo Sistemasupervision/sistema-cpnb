@@ -1,1 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumen Mensual - REDIP OCCIDENTAL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #4a5568;
+            font-size: 15px;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fbfd;
+            border-radius: 16px;
+            border: 1px solid #eef2f7;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0c2440;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::before {
+            content: "📊";
+            font-size: 20px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .input-group label {
+            font-size: 14px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+        .input-group select {
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            font-size: 15px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        .input-group select:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282, #1a365d);
+            color: white;
+        }
+        .pdf-btn {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .resumen-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .card {
+            background: white;
+            padding: 22px 15px;
+            border-radius: 14px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .card-label {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0c2440;
+        }
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            margin-top: 10px;
+            border: 1px solid #eef2f7;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.03);
+        }
+        .chart-wrapper {
+            height: 380px;
+            position: relative;
+            margin-top: 15px;
+        }
+        .loading, .error {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 18px;
+            color: #666;
+            background: #f8fafc;
+            border-radius: 14px;
+            border: 1px dashed #cbd5e0;
+        }
+        .error {
+            color: #e53e3e;
+            border-color: #fed7d7;
+            background: #fef7f7;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            .action-buttons {
+                justify-content: center;
+            }
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .chart-wrapper {
+                height: 320px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Resumen Mensual - REDIP OCCIDENTAL</h1>
+            <p class="subtitle">Comparación de cumplimiento por Centro de Coordinación Policial (CCP)</p>
+        </div>
+        <div class="action-buttons">
+            <button class="btn back-btn" onclick="window.location.href='index.html'">
+                ← Volver a REDIP OCCIDENTAL
+            </button>
+            <button class="btn pdf-btn" onclick="exportarResumenAPDF()">
+                📄 Exportar a PDF
+            </button>
+        </div>
+        <div class="section">
+            <h2 class="section-title">Seleccionar Meses para Comparar</h2>
+            <div class="controls">
+                <div class="input-group">
+                    <label for="mesBase">Mes Base</label>
+                    <select id="mesBase"></select>
+                </div>
+                <div class="input-group">
+                    <label for="anioBase">Año Base</label>
+                    <select id="anioBase"></select>
+                </div>
+                <div class="input-group">
+                    <label for="mesComparar">Mes Comparación</label>
+                    <select id="mesComparar"></select>
+                </div>
+                <div class="input-group">
+                    <label for="anioComparar">Año Comparación</label>
+                    <select id="anioComparar"></select>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <h2 class="section-title">Resultados de la Comparación</h2>
+            <div id="resumenContainer">
+                <div class="loading">Cargando resumen mensual...</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
+        const ccpNombres = {
+            "metropolitano": "CCP METROPOLITANO",
+            "sur-del-lago": "CCP SUR DEL LAGO",
+            "guajira": "CCP GUAJIRA",
+            "col": "CCPE COL",
+            "lara": "CCPE LARA",
+            "falcon": "CCPE FALCÓN"
+        };
+        let chartInstance = null;
 
+        function formatoMes(anio, mes) {
+            return new Date(anio, mes).toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
+        }
+        function rangoMes(anio, mes) {
+            const inicio = new Date(anio, mes, 1);
+            const fin = new Date(anio, mes + 1, 0);
+            return {
+                desde: inicio.toISOString().split('T')[0],
+                hasta: fin.toISOString().split('T')[0]
+            };
+        }
+        function llenarSelectores() {
+            const hoy = new Date();
+            const aniosBase = document.getElementById('anioBase');
+            const aniosComp = document.getElementById('anioComparar');
+            const anios = [];
+            for (let i = 0; i < 3; i++) {
+                anios.push(hoy.getFullYear() - i);
+            }
+            anios.forEach(anio => {
+                const opt1 = document.createElement('option');
+                opt1.value = anio;
+                opt1.textContent = anio;
+                aniosBase.appendChild(opt1);
+                const opt2 = document.createElement('option');
+                opt2.value = anio;
+                opt2.textContent = anio;
+                aniosComp.appendChild(opt2);
+            });
+            const mesesBase = document.getElementById('mesBase');
+            const mesesComp = document.getElementById('mesComparar');
+            for (let i = 0; i < 12; i++) {
+                const fecha = new Date(hoy.getFullYear(), 11 - i, 1);
+                const nombre = fecha.toLocaleString('es-ES', { month: 'long' });
+                const opt1 = document.createElement('option');
+                opt1.value = 11 - i;
+                opt1.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+                mesesBase.appendChild(opt1);
+                const opt2 = document.createElement('option');
+                opt2.value = 11 - i;
+                opt2.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+                mesesComp.appendChild(opt2);
+            }
+            mesesBase.value = hoy.getMonth();
+            mesesComp.value = hoy.getMonth() === 0 ? 11 : hoy.getMonth() - 1;
+            aniosComp.value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
+        }
+        async function cargarDatosPorCCP(anio, mes) {
+            const rango = rangoMes(anio, mes);
+            const { data: estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('id, ccp_id')
+                .in('ccp_id', ccpOcidental);
+            if (estError) throw estError;
+            if (estaciones.length === 0) return {};
+            const idsEstaciones = estaciones.map(e => e.id);
+            const estacionCCPMap = {};
+            estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
+            const { data: inspecciones, error: inspError } = await supabase
+                .from('inspecciones')
+                .select('id, estacion_id')
+                .in('estacion_id', idsEstaciones)
+                .gte('created_at', rango.desde)
+                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+            if (inspError) throw inspError;
+            if (inspecciones.length === 0) return {};
+            const idsInspecciones = inspecciones.map(i => i.id);
+            const { data: items, error: itemsError } = await supabase
+                .from('items_inspeccion')
+                .select('inspeccion_id, cumple')
+                .in('inspeccion_id', idsInspecciones);
+            if (itemsError) throw itemsError;
+            const itemsPorInspeccion = {};
+            items.forEach(item => {
+                if (!itemsPorInspeccion[item.inspeccion_id]) {
+                    itemsPorInspeccion[item.inspeccion_id] = [];
+                }
+                itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
+            });
+            const metricasPorCCP = {};
+            inspecciones.forEach(insp => {
+                const ccp = estacionCCPMap[insp.estacion_id];
+                if (!metricasPorCCP[ccp]) {
+                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
+                }
+                metricasPorCCP[ccp].totalInspecciones++;
+                const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
+                metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
+                metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
+            });
+            const resultado = {};
+            Object.keys(metricasPorCCP).forEach(ccp => {
+                const m = metricasPorCCP[ccp];
+                resultado[ccp] = {
+                    inspecciones: m.totalInspecciones,
+                    porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
+                };
+            });
+            return resultado;
+        }
+        async function cargarResumen() {
+            const container = document.getElementById('resumenContainer');
+            try {
+                const anioBase = parseInt(document.getElementById('anioBase').value);
+                const mesBase = parseInt(document.getElementById('mesBase').value);
+                const anioComp = parseInt(document.getElementById('anioComparar').value);
+                const mesComp = parseInt(document.getElementById('mesComparar').value);
+                const metricasBase = await cargarDatosPorCCP(anioBase, mesBase);
+                const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
+                const metricasComp = await cargarDatosPorCCP(anioComp, mesComp);
+                const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
+                const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
+                const labels = todosCCP.map(k => ccpNombres[k] || k);
+                const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
+                const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
+                let html = `
+                    <div class="resumen-cards">
+                        <div class="card">
+                            <div class="card-label">Inspecciones<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
+                            <div class="card-value">${totalInspeccionesBase}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
+                            <div class="card-value">${promedioBase}%</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-label">Inspecciones<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
+                            <div class="card-value">${totalInspeccionesComp}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
+                            <div class="card-value">${promedioComp}%</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440; font-weight: 600;">
+                            Comparación de Cumplimiento por CCP
+                        </h3>
+                        <div class="chart-wrapper">
+                            <canvas id="ccpChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+                const ctx = document.getElementById('ccpChart').getContext('2d');
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: formatoMes(anioBase, mesBase),
+                                data: dataBase,
+                                backgroundColor: 'rgba(49, 130, 206, 0.85)',
+                                borderColor: 'rgba(49, 130, 206, 1)',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                barPercentage: 0.9
+                            },
+                            {
+                                label: formatoMes(anioComp, mesComp),
+                                data: dataComp,
+                                backgroundColor: 'rgba(239, 68, 68, 0.75)',
+                                borderColor: 'rgba(220, 38, 38, 1)',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                barPercentage: 0.9
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top', labels: { font: { size: 13 } } },
+                            tooltip: {
+                                backgroundColor: 'rgba(12, 36, 64, 0.9)',
+                                titleFont: { size: 14 },
+                                bodyFont: { size: 13 },
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    precision: 0,
+                                    callback: v => v + '%',
+                                    font: { size: 12 }
+                                },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            x: {
+                                ticks: { font: { size: 12 } },
+                                grid: { display: false }
+                            }
+                        },
+                        animation: {
+                            duration: 0
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error al cargar resumen:', error);
+                container.innerHTML = `<div class="error">❌ Error al cargar el resumen: ${error.message || 'Ver consola para más detalles'}</div>`;
+            }
+        }
+
+      async function exportarResumenAPDF() {
+    const canvas = document.getElementById('ccpChart');
+    if (!canvas) {
+        alert('Gráfico no encontrado');
+        return;
+    }
+
+    try {
+        // ✅ Paso 1: Insertar en 'reportes' para obtener ID único
+        const { data: nuevoReporte, error: insertError } = await supabase
+            .from('reportes')
+            .insert({ tipo_reporte: 'RESUMEN_MENSUAL' })
+            .select('id, fecha_generacion')
+            .single();
+
+        // ✅ Verificar si hubo error en la inserción
+        if (insertError) {
+            console.error('Error al crear reporte:', insertError);
+            alert(`⚠️ No se pudo generar el número de reporte.\nDetalles: ${insertError.message || 'Error desconocido'}`);
+            return;
+        }
+
+        // ✅ Verificar que nuevoReporte no sea undefined
+        if (!nuevoReporte) {
+            console.error('La inserción devolvió undefined.');
+            alert('⚠️ Error: La inserción no devolvió datos. Verifique la tabla "reportes" en Supabase.');
+            return;
+        }
+
+        // ✅ Generar número de reporte
+        const fechaGen = new Date(nuevoReporte.fecha_generacion);
+        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+        const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+        const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
+        // ✅ Actualizar con el número (opcional pero recomendado)
+        await supabase
+            .from('reportes')
+            .update({ numero_reporte: numeroReporte })
+            .eq('id', nuevoReporte.id);
+
+        // ✅ Continuar con la exportación del PDF
+        const imgDataUrl = canvas.toDataURL('image/png');
+        const clone = document.getElementById('resumenContainer').cloneNode(true);
+        const chartImg = document.createElement('img');
+        chartImg.src = imgDataUrl;
+        chartImg.style.width = '100%';
+        chartImg.style.height = 'auto';
+        chartImg.style.marginTop = '15px';
+        const canvasInClone = clone.querySelector('canvas');
+        if (canvasInClone && canvasInClone.parentElement) {
+            canvasInClone.parentElement.replaceWith(chartImg);
+        }
+
+        const printContent = document.createElement('div');
+        printContent.innerHTML = `
+            <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                    <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: bold;">
+                        RESUMEN MENSUAL DE INSPECCIONES
+                    </h1>
+                    <p style="color: #4a5568; font-size: 15px;">REDIP OCCIDENTAL - Comparación de Meses</p>
+                    <p style="color: #2d3748; font-size: 16px; margin-top: 10px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+                </div>
+                ${clone.innerHTML}
+                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(printContent);
+        printContent.style.position = 'fixed';
+        printContent.style.left = '-9999px';
+
+        const canvasPDF = await html2canvas(printContent, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true
+        });
+
+        const { jsPDF } = window.jspdf;
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvasPDF.height * imgWidth) / canvasPDF.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+
+        pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight + 10;
+            pdf.addPage();
+            pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        pdf.save(`resumen_comparativo_cpnb_${numeroReporte}.pdf`);
+        document.body.removeChild(printContent);
+        alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('❌ Error al generar el reporte.');
+    }
+}
+
+        // Inicializar
+        llenarSelectores();
+        document.getElementById('mesBase').addEventListener('change', cargarResumen);
+        document.getElementById('anioBase').addEventListener('change', cargarResumen);
+        document.getElementById('mesComparar').addEventListener('change', cargarResumen);
+        document.getElementById('anioComparar').addEventListener('change', cargarResumen);
+        cargarResumen();
+    </script>
+</body>
+</html>
