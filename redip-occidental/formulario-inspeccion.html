@@ -240,15 +240,15 @@
             <div style="text-align:center; margin-top:30px;">
                 <button type="submit" class="form-btn">Guardar Inspección</button>
                 <br>
-                <a href="../index.html" class="back-btn">← Volver al Panel Principal</a>
+                <button type="button" id="backToEstacionesBtn" class="back-btn">← Volver a Estaciones</button>
             </div>
         </form>
     </div>
 
-    <!-- Barra de progreso de carga -->
+    <!-- Barra de progreso -->
     <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; color: white; font-size: 18px;">
         <div style="background: white; padding: 20px; border-radius: 10px; width: 80%; max-width: 500px; text-align: center;">
-            <p id="progressTitle">Guardando inspección...</p>
+            <p id="progressTitle">Guardando...</p>
             <div style="width: 100%; background: #e0e0e0; height: 20px; border-radius: 10px; margin-top: 10px; overflow: hidden;">
                 <div id="progressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #ffcc00, #ff6b00); transition: width 0.3s;"></div>
             </div>
@@ -264,7 +264,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const estacionId = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre') || 'Estación no especificada';
-        const ccpValue = urlParams.get('ccpValue') || 'metropolitano'; // por defecto
+        const ccpValue = urlParams.get('ccpValue') || 'metropolitano';
         const ccpNombre = urlParams.get('ccpNombre') || 'CCP METROPOLITANO';
 
         if (!estacionId) {
@@ -275,10 +275,74 @@
         document.getElementById('estacionNombreDisplay').textContent = `Estación: ${estacionNombre}`;
         document.getElementById('proximaInspeccion').min = new Date().toISOString().split('T')[0];
 
+        // === COPIA EXACTA DE TU index.txt ===
         const items = [
             "nombramiento_comandante",
             "acta_entrega_recepcion",
-            // ... (los 67 ítems completos, igual que en tu index.txt)
+            "dossier_comandante",
+            "conocimiento_ley_organica",
+            "conocimiento_estatuto_personal",
+            "conocimiento_reglamento_disciplinario",
+            "estructura_organizativa",
+            "manuales_normas_procedimientos",
+            "plan_trabajo_anual",
+            "infraestructura_identificacion",
+            "direccion_atencion_victima",
+            "oficina_gestion_humana",
+            "documentacion_personal",
+            "uniforme_presentacion",
+            "practica_induccion_orden_publico",
+            "entrenamiento_armamento",
+            "talleres_manejo_defensivo",
+            "conocimientos_primeros_auxilios",
+            "acciones_moral_disciplina",
+            "conocimiento_pensamiento_bolivariano",
+            "instruccion_etica_moral",
+            "talleres_ministerio_publico",
+            "conocimiento_lineamientos_cpnb",
+            "cursos_sustanciacion_expedientes",
+            "cumplimiento_entrenamiento_fisico",
+            "dotacion_trajes_antimotines",
+            "practica_tecnicas_policiales",
+            "numero_funcionarios_suficiente",
+            "personal_empleado_servicios",
+            "servicios_autorizados_mpprijp",
+            "publicaciones_procedimientos",
+            "libros_novedades",
+            "libro_actas_reuniones",
+            "libro_reuniones_personal",
+            "archivo_general_expedientes",
+            "libro_entrevistas_funcionarios",
+            "supervision_libros",
+            "cumplimiento_normativa_instalaciones",
+            "bienes_publicos_registrados",
+            "resguardo_detenido",
+            "equipos_control_incendios",
+            "equipos_comunicacion",
+            "plan_hospedaje_personal",
+            "calidad_vida_personal",
+            "plan_visita_estaciones",
+            "servicio_medico",
+            "unidad_recepcion_denuncias",
+            "areas_esparcimiento",
+            "vehiculos_operativos",
+            "placa_policial_vehiculos",
+            "vehiculos_suficientes",
+            "vehiculos_donados_inventario",
+            "accesorios_seguridad_vehiculos",
+            "necesidades_repuestos_vehiculos",
+            "identificacion_vehiculos_policiales",
+            "informes_parques_armas",
+            "supervision_pac",
+            "vademecum_actualizado",
+            "despliegues_policiales",
+            "supervision_personal_mando",
+            "planes_contra_trafico_ilicito",
+            "conocimiento_lineamientos_derechos_humanos",
+            "registro_actuaciones_cop",
+            "rendicion_procedimientos_cop",
+            "archivos_informes_rendicion",
+            "informes_preliminares_actuacion",
             "estatus_procesos_administrativos"
         ];
 
@@ -378,6 +442,7 @@
                         <input type="range" class="porcentaje-slider" data-item="${item}" 
                             min="0" max="100" value="0"
                             style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
+                            oninput="this.nextElementSibling.value = this.value + '%'"
                         >
                         <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
                     </div>
@@ -401,7 +466,7 @@
             itemsContainer.appendChild(card);
         });
 
-        // === LÓGICA DINÁMICA ===
+        // Lógica dinámica (igual que en index.txt)
         document.querySelectorAll('.cumple-select').forEach(select => {
             select.addEventListener('change', function () {
                 const item = this.dataset.item;
@@ -409,9 +474,7 @@
                 const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
                 const fotosContainer = document.querySelector(`.fotos-container[data-item="${item}"]`);
                 const archivoContainer = document.querySelector(`.archivo-container[data-item="${item}"]`);
-
                 textarea.style.display = this.value !== 'null' ? 'block' : 'none';
-
                 if (this.value === 'true') {
                     porcentajeContainer.style.display = 'block';
                     fotosContainer.style.display = 'block';
@@ -427,12 +490,6 @@
                     if (fc) fc.style.display = 'none';
                     if (ac) ac.style.display = 'none';
                 }
-            });
-        });
-
-        document.querySelectorAll('.porcentaje-slider').forEach(slider => {
-            slider.addEventListener('input', function () {
-                this.nextElementSibling.textContent = this.value + '%';
             });
         });
 
@@ -464,25 +521,18 @@
             e.preventDefault();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = '../index.html';
+                alert('Debe estar autenticado.');
                 return;
             }
 
+            // Mostrar barra
             const overlay = document.getElementById('loadingOverlay');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
             const progressTitle = document.getElementById('progressTitle');
             overlay.style.display = 'flex';
 
-            const updateProgress = (value, max) => {
-                const p = Math.min(99, Math.floor((value / max) * 100));
-                progressBar.style.width = `${p}%`;
-                progressText.textContent = `${p}%`;
-            };
-
             try {
-                // Paso 1: Crear inspección
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                 const { data: inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
@@ -492,52 +542,33 @@
                         observaciones_generales: document.getElementById('observacionesGenerales').value || null,
                         proxima_inspeccion: proximaFecha
                     })
-                    .select('id')
+                    .select()
                     .single();
 
-                if (inspError || !inspeccionData || !inspeccionData.id) {
-                    throw new Error('No se pudo crear la inspección.');
-                }
+                if (inspError) throw inspError;
 
-                updateProgress(1, 10);
+                // Simular progreso (puedes mejorar esto si quieres)
+                progressBar.style.width = '50%';
+                progressText.textContent = '50%';
 
-                // Paso 2: Contar subidas
-                let totalUploads = 0;
-                for (const item of items) {
-                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                    if (select.value !== 'true') continue;
-                    const f1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
-                    const f2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
-                    const af = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
-                    if (f1) totalUploads++;
-                    if (f2) totalUploads++;
-                    if (af) totalUploads++;
-                }
-
-                const totalSteps = totalUploads > 0 ? totalUploads + 2 : 3;
-                let currentStep = 1;
-
-                // Paso 3: Procesar ítems
                 const itemsToInsert = [];
                 for (const item of items) {
                     const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                     const valor = select.value;
                     if (valor === 'null') continue;
-
                     let cumple = null;
                     if (valor === 'true') cumple = true;
                     if (valor === 'false') cumple = false;
-
                     const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                     let porcentaje = 0;
                     if (cumple === true) {
                         const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                         porcentaje = parseInt(slider?.value) || 0;
                     }
-
                     let foto1_url = null, foto2_url = null, archivo_url = null;
-
                     const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
+                    const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
+                    const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
                     if (file1) {
                         const cleanName = file1.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
                         const path = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${cleanName}`;
@@ -546,11 +577,7 @@
                             const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
                             foto1_url = data.publicUrl;
                         }
-                        currentStep++;
-                        updateProgress(currentStep, totalSteps);
                     }
-
-                    const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
                     if (file2) {
                         const cleanName = file2.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
                         const path = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${cleanName}`;
@@ -559,11 +586,7 @@
                             const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
                             foto2_url = data.publicUrl;
                         }
-                        currentStep++;
-                        updateProgress(currentStep, totalSteps);
                     }
-
-                    const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
                     if (archivoFile) {
                         const cleanName = archivoFile.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
                         const path = `inspecciones/${inspeccionData.id}/${item}_archivo_${Date.now()}_${cleanName}`;
@@ -572,10 +595,7 @@
                             const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
                             archivo_url = data.publicUrl;
                         }
-                        currentStep++;
-                        updateProgress(currentStep, totalSteps);
                     }
-
                     itemsToInsert.push({
                         inspeccion_id: inspeccionData.id,
                         item_nombre: item,
@@ -597,19 +617,24 @@
                 const { error: itemsError } = await supabase.from('items_inspeccion').insert(itemsToInsert);
                 if (itemsError) throw itemsError;
 
-                // Mostrar 100%
+                // Completar
                 progressBar.style.width = '100%';
                 progressText.textContent = '100%';
-                progressTitle.textContent = '¡Guardado con éxito!';
+                progressTitle.textContent = '¡Guardado!';
                 await new Promise(r => setTimeout(r, 500));
+                overlay.style.display = 'none';
 
-                // Redirigir a "Opciones para CCP METROPOLITANO"
+                alert('✅ Inspección guardada con éxito.');
                 window.location.href = `../index.html?ccpValue=${encodeURIComponent(ccpValue)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             } catch (error) {
                 console.error('Error:', error);
                 overlay.style.display = 'none';
-                alert('❌ Error al guardar la inspección. Por favor, inténtelo de nuevo.');
+                alert('❌ Error al guardar la inspección.');
             }
+        };
+
+        document.getElementById('backToEstacionesBtn').onclick = () => {
+            window.location.href = `../index.html?ccpValue=${encodeURIComponent(ccpValue)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         };
     </script>
 </body>
