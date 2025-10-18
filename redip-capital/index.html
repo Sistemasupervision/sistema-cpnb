@@ -1,1 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REDIP CAPITAL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 600px;
+            padding: 40px;
+            position: relative;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 20px;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #0c2440, #1a365d);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .action-btn {
+            background: linear-gradient(135deg, #1a365d, #0c2440);
+            margin-top: 12px;
+            padding: 12px;
+            font-size: 15px;
+        }
+        .back-btn {
+            background: #2c5282;
+            padding: 10px 20px;
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <h1 class="title">REDIP CAPITAL</h1>
+        <form id="capitalForm">
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="ccp_1">CCP 1</option>
+                    <option value="ccp_2">CCP 2</option>
+                    <option value="ccp_3">CCP 3</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">Continuar</button>
+        </form>
+        <button onclick="window.location.href='estadisticas-capital.html'" class="btn action-btn">📊 Estadísticas</button>
+        <button onclick="window.location.href='galeria-capital.html'" class="btn action-btn">🖼️ Galería</button>
+        <button onclick="window.location.href='notificaciones-capital.html'" class="btn action-btn">🔔 Notificaciones</button>
+        <button onclick="window.location.href='resumen-capital.html'" class="btn action-btn">📈 Resumen Mensual</button>
+        <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        async function verificarAcceso() {
+            // ✅ CORRECCIÓN CLAVE: desestructuración correcta
+            const {  { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (error || !data) {
+                alert('Error al verificar sus permisos.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            // ✅ Permitir acceso si es 'capital' O si es 'admin'
+            if (data.redip !== 'capital' && data.redip !== 'admin') {
+                alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        async function handleForm(e) {
+            e.preventDefault();
+            const ccp = document.getElementById('ccpSelect').value;
+            if (!ccp) return alert('Seleccione un CCP.');
+            alert('Funcionalidad de inspección aún por implementar. CCP: ' + ccp);
+        }
+
+        // Inicializar
+        verificarAcceso().then(permitido => {
+            if (permitido) {
+                document.getElementById('capitalForm').addEventListener('submit', handleForm);
+            }
+        });
+    </script>
+</body>
+</html>
