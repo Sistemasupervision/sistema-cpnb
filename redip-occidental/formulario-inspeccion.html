@@ -23,6 +23,64 @@
             overflow-x: hidden;
             overflow-y: auto;
         }
+        .vector-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        .vector-circle {
+            position: absolute;
+            border: 2px solid rgba(255, 204, 0, 0.3);
+            border-radius: 50%;
+        }
+        .vector-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            left: -100px;
+        }
+        .vector-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            right: -50px;
+            border-color: rgba(255, 107, 0, 0.3);
+        }
+        .vector-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            top: 30%;
+            right: 10%;
+            border-color: rgba(255, 204, 0, 0.4);
+        }
+        .vector-circle:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            bottom: 20%;
+            left: 5%;
+            border-color: rgba(44, 82, 130, 0.4);
+        }
+        .vector-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.5), transparent);
+        }
+        .vector-line:nth-child(5) {
+            width: 200px;
+            top: 15%;
+            left: 20%;
+            transform: rotate(30deg);
+        }
+        .vector-line:nth-child(6) {
+            width: 150px;
+            bottom: 25%;
+            right: 25%;
+            transform: rotate(-45deg);
+        }
         .container {
             background: white;
             border-radius: 20px;
@@ -94,7 +152,6 @@
             border-radius: 12px;
             font-size: 16px;
         }
-        /* ✅ Estilo del botón IGUAL que en index.html */
         .form-btn {
             width: 100%;
             padding: 16px;
@@ -127,23 +184,66 @@
             display: inline-block;
             margin-top: 15px;
         }
+        /* ✅ Scroll interno SOLO en el formulario, como en index.txt */
+        #inspectionForm {
+            max-height: 65vh;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
         @media (max-width: 768px) {
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
             .container {
                 padding: 20px;
-            }
-            .title {
-                font-size: 22px;
-            }
-            .logo-img {
-                width: 100px;
-                height: 100px;
             }
         }
     </style>
 </head>
 <body>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+
     <div class="container">
-        <!-- Contenido dinámico -->
+        <div class="logo-container">
+            <img src="../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Formulario de Inspección - REDIP OCCIDENTAL</h1>
+            <p id="estacionNombreDisplay" style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;"></p>
+        </div>
+
+        <form id="inspectionForm">
+            <div class="items-grid" id="itemsContainer">
+                <!-- Los 67 ítems se generarán aquí -->
+            </div>
+
+            <div class="input-group">
+                <label>Observaciones Generales</label>
+                <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." rows="4"></textarea>
+            </div>
+
+            <div class="input-group">
+                <label>Próxima inspección (opcional):</label>
+                <input type="date" id="proximaInspeccion">
+            </div>
+
+            <div style="text-align:center; margin-top:30px;">
+                <button type="submit" class="form-btn">Guardar Inspección</button>
+                <br>
+                <a href="../index.html" class="back-btn">← Volver al Panel Principal</a>
+            </div>
+        </form>
     </div>
 
     <script>
@@ -160,10 +260,76 @@
             window.location.href = "../index.html";
         }
 
+        document.getElementById('estacionNombreDisplay').textContent = `Estación: ${estacionNombre}`;
+        document.getElementById('proximaInspeccion').min = new Date().toISOString().split('T')[0];
+
         const items = [
             "nombramiento_comandante",
             "acta_entrega_recepcion",
-            // ... (todos los 67 ítems, igual que en tu index.txt)
+            "dossier_comandante",
+            "conocimiento_ley_organica",
+            "conocimiento_estatuto_personal",
+            "conocimiento_reglamento_disciplinario",
+            "estructura_organizativa",
+            "manuales_normas_procedimientos",
+            "plan_trabajo_anual",
+            "infraestructura_identificacion",
+            "direccion_atencion_victima",
+            "oficina_gestion_humana",
+            "documentacion_personal",
+            "uniforme_presentacion",
+            "practica_induccion_orden_publico",
+            "entrenamiento_armamento",
+            "talleres_manejo_defensivo",
+            "conocimientos_primeros_auxilios",
+            "acciones_moral_disciplina",
+            "conocimiento_pensamiento_bolivariano",
+            "instruccion_etica_moral",
+            "talleres_ministerio_publico",
+            "conocimiento_lineamientos_cpnb",
+            "cursos_sustanciacion_expedientes",
+            "cumplimiento_entrenamiento_fisico",
+            "dotacion_trajes_antimotines",
+            "practica_tecnicas_policiales",
+            "numero_funcionarios_suficiente",
+            "personal_empleado_servicios",
+            "servicios_autorizados_mpprijp",
+            "publicaciones_procedimientos",
+            "libros_novedades",
+            "libro_actas_reuniones",
+            "libro_reuniones_personal",
+            "archivo_general_expedientes",
+            "libro_entrevistas_funcionarios",
+            "supervision_libros",
+            "cumplimiento_normativa_instalaciones",
+            "bienes_publicos_registrados",
+            "resguardo_detenido",
+            "equipos_control_incendios",
+            "equipos_comunicacion",
+            "plan_hospedaje_personal",
+            "calidad_vida_personal",
+            "plan_visita_estaciones",
+            "servicio_medico",
+            "unidad_recepcion_denuncias",
+            "areas_esparcimiento",
+            "vehiculos_operativos",
+            "placa_policial_vehiculos",
+            "vehiculos_suficientes",
+            "vehiculos_donados_inventario",
+            "accesorios_seguridad_vehiculos",
+            "necesidades_repuestos_vehiculos",
+            "identificacion_vehiculos_policiales",
+            "informes_parques_armas",
+            "supervision_pac",
+            "vademecum_actualizado",
+            "despliegues_policiales",
+            "supervision_personal_mando",
+            "planes_contra_trafico_ilicito",
+            "conocimiento_lineamientos_derechos_humanos",
+            "registro_actuaciones_cop",
+            "rendicion_procedimientos_cop",
+            "archivos_informes_rendicion",
+            "informes_preliminares_actuacion",
             "estatus_procesos_administrativos"
         ];
 
@@ -237,86 +403,54 @@
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
 
-        const hoy = new Date().toISOString().split('T')[0];
-        let formHtml = `
-            <div class="logo-container">
-                <img src="../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                <h1 class="title">Formulario de Inspección - REDIP OCCIDENTAL</h1>
-                <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                    Estación: <strong>${estacionNombre}</strong>
-                </p>
-            </div>
-            <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
-                <div class="items-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
-        `;
-
+        // ✅ Renderizar los 67 ítems
+        const itemsContainer = document.getElementById('itemsContainer');
         items.forEach(item => {
-            formHtml += `
-                <div class="item-card" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                    <label style="font-weight: bold; color: #0c2440; font-size:13px; margin-bottom:10px; display:block;">${nombres[item]}</label>
-                    <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; font-size:14px;">
-                        <option value="null">-- Seleccione --</option>
-                        <option value="true">Sí</option>
-                        <option value="false">No</option>
-                        <option value="na">No Aplica</option>
-                    </select>
-                    <textarea class="observacion-text" data-item="${item}" 
-                        placeholder="Observaciones" 
-                        style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
-                        rows="3"></textarea>
-                    <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
-                        <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
-                            Porcentaje de cumplimiento
-                        </label>
-                        <div style="padding:10px 0;">
-                            <input type="range" class="porcentaje-slider" data-item="${item}" 
-                                min="0" max="100" value="0"
-                                style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
-                            >
-                            <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
-                        </div>
-                    </div>
-                    <div class="fotos-container" data-item="${item}" style="margin-top:12px; display:none;">
-                        <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
-                            📸 Fotos (máx. 2)
-                        </label>
-                        <input type="file" class="foto-input" data-item="${item}" data-index="0" accept="image/*" capture="environment" style="width:100%; margin-bottom:6px;">
-                        <input type="file" class="foto-input" data-item="${item}" data-index="1" accept="image/*" capture="environment" style="width:100%;">
-                        <div class="foto-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;"></div>
-                    </div>
-                    <div class="archivo-container" data-item="${item}" style="margin-top:12px; display:none;">
-                        <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
-                            📎 Archivo adjunto (PDF, DOC, etc.)
-                        </label>
-                        <input type="file" class="archivo-input" data-item="${item}" accept=".pdf,.doc,.docx,.jpg,.png" style="width:100%;">
-                        <div class="archivo-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;">✅ Archivo seleccionado</div>
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.style = "background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);";
+            card.innerHTML = `
+                <label style="font-weight: bold; color: #0c2440; font-size:13px; margin-bottom:10px; display:block;">${nombres[item]}</label>
+                <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; font-size:14px;">
+                    <option value="null">-- Seleccione --</option>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                    <option value="na">No Aplica</option>
+                </select>
+                <textarea class="observacion-text" data-item="${item}" 
+                    placeholder="Observaciones" 
+                    style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
+                    rows="3"></textarea>
+                <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
+                        Porcentaje de cumplimiento
+                    </label>
+                    <div style="padding:10px 0;">
+                        <input type="range" class="porcentaje-slider" data-item="${item}" 
+                            min="0" max="100" value="0"
+                            style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
+                        >
+                        <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
                     </div>
                 </div>
+                <div class="fotos-container" data-item="${item}" style="margin-top:12px; display:none;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
+                        📸 Fotos (máx. 2)
+                    </label>
+                    <input type="file" class="foto-input" data-item="${item}" data-index="0" accept="image/*" capture="environment" style="width:100%; margin-bottom:6px;">
+                    <input type="file" class="foto-input" data-item="${item}" data-index="1" accept="image/*" capture="environment" style="width:100%;">
+                    <div class="foto-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;"></div>
+                </div>
+                <div class="archivo-container" data-item="${item}" style="margin-top:12px; display:none;">
+                    <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
+                        📎 Archivo adjunto (PDF, DOC, etc.)
+                    </label>
+                    <input type="file" class="archivo-input" data-item="${item}" accept=".pdf,.doc,.docx,.jpg,.png" style="width:100%;">
+                    <div class="archivo-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;">✅ Archivo seleccionado</div>
+                </div>
             `;
+            itemsContainer.appendChild(card);
         });
-
-        formHtml += `
-            </div>
-            <div class="input-group" style="margin-top:20px;">
-                <label>Observaciones Generales</label>
-                <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
-                    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
-            </div>
-            <div class="input-group" style="margin-top:20px;">
-                <label>Próxima inspección (opcional):</label>
-                <input type="date" id="proximaInspeccion" 
-                    min="${hoy}"
-                    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
-            </div>
-            <div style="text-align:center; margin-top:30px;">
-                <button type="submit" class="form-btn">Guardar Inspección</button>
-                <br>
-                <a href="../index.html" class="back-btn">← Volver al Panel Principal</a>
-            </div>
-        </form>
-        `;
-
-        document.querySelector('.container').innerHTML = formHtml;
 
         // === LÓGICA DINÁMICA ===
         document.querySelectorAll('.cumple-select').forEach(select => {
@@ -387,7 +521,7 @@
             }
 
             const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-            const { data: inspeccionData, error: inspError } = await supabase
+            const {  inspeccionData, error: inspError } = await supabase
                 .from('inspecciones')
                 .insert({
                     estacion_id: estacionId,
@@ -400,7 +534,7 @@
 
             if (inspError) {
                 console.error('Error inspección:', inspError);
-                alert('❌ Error al crear inspección. Revise la consola.');
+                alert('❌ Error al crear inspección.');
                 return;
             }
 
