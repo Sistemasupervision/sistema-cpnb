@@ -2,68 +2,235 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
-    <style>
-        /* Estilos adicionales si son necesarios */
-    </style>
 </head>
 <body>
-    <div class="vector-bg">...</div>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
 
+    <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">REDIP OCCIDENTAL</h1>
         </div>
         <form id="occidentalForm">
-            <select id="ccpSelect">...</select>
-            <button type="submit">Continuar</button>
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija una opción --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>
+                    <option value="falcon">CCPE FALCÓN</option>
+                </select>
+            </div>
+            <button type="submit" class="form-btn">Continuar</button>
         </form>
-        <button onclick="window.location.href='historial.html'">Ver Historial</button>
-        <button onclick="window.location.href='estadisticas.html'">Estadísticas</button>
-        <button onclick="window.location.href='galeria-inspeccion.html'">Galería</button>
-        <button onclick="window.location.href='notificaciones.html'">Notificaciones</button>
-        <button onclick="window.location.href='resumen-mensual.html'">Resumen Mensual</button>
-        <button onclick="window.location.href='protocolos-supervision.html'">Protocolos</button>
-        <button onclick="window.location.href='../index.html'">← Volver al Panel Principal</button>
+        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Ver Historial de Inspecciones
+        </button>
+        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Estadísticas
+        </button>
+        <button onclick="window.location.href='galeria-inspeccion.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🖼️ Galería de Inspección
+        </button>
+        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🔔 Notificaciones
+        </button>
+        <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
+            📊 Resumen Mensual (KPIs)
+        </button>
+        <button onclick="window.location.href='protocolos-supervision.html'" class="action-btn">
+            📑 Protocolos de Supervisión
+        </button>
+        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
 
-    <div id="dynamicView" class="container" style="display:none;"></div>
+    <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
 
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = '...';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Verificar acceso (solo 'occidental' o 'admin')
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { window.location.href = '../../index.html'; return; }
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-            if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
-                alert('Acceso denegado a REDIP OCCIDENTAL');
+            const {  { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
+                    window.location.href = '../../index.html';
+                }
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
                 window.location.href = '../../index.html';
             }
         }
 
-        // Funciones: handleOccidentalForm, cargarEstacionesPoliciales, loadInspectionForm
-        // (Copia EXACTAMENTE estas funciones de tu index.txt original)
-
-        verificarAcceso();
-        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
-
-        // Redefinir loadInspectionForm para redirigir al formulario externo
-        function loadInspectionForm(estacionId, estacionNombre) {
-            const ccpValue = window.ccpSeleccionado;
+        async function handleOccidentalForm(e) {
+            e.preventDefault();
+            const ccpValue = document.getElementById('ccpSelect').value;
+            if (!ccpValue) {
+                alert('Por favor seleccione un CCP.');
+                return;
+            }
             const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
-            window.location.href = `formulario-inspeccion.html?estacionId=${estacionId}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpValue=${ccpValue}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            window.ccpSeleccionado = ccpValue;
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = `
+                <div class="logo-container">
+                    <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Opciones para ${ccpNombre}</h1>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
+                    <button id="btnEstaciones" class="form-btn" style="padding:16px; font-size:18px;">
+                        🏢 Estaciones Policiales
+                    </button>
+                    <button id="btnServiciosAdmin" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #805ad5, #553c9a);">
+                        📋 Servicios Administrativos
+                    </button>
+                    <button id="btnUbicaciones" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #38a169, #2f855a);">
+                        📍 Ubicaciones
+                    </button>
+                    <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
+                </div>
+            `;
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            dynamicView.style.display = 'block';
+            document.getElementById('btnEstaciones').onclick = () => cargarEstacionesPoliciales(ccpValue, ccpNombre);
+            document.getElementById('btnServiciosAdmin').onclick = () => {
+                window.location.href = 'servicios-administrativos.html';
+            };
+            document.getElementById('btnUbicaciones').onclick = () => {
+                window.location.href = 'ubicaciones.html';
+            };
+            document.getElementById('backToCcpBtn').onclick = () => {
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+                dynamicView.style.display = 'none';
+            };
         }
+
+        async function cargarEstacionesPoliciales(ccpValue, ccpNombre) {
+            try {
+                const {  estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpValue)
+                    .order('nombre', { ascending: true });
+                if (error) {
+                    console.error('Error en consulta:', error);
+                    throw error;
+                }
+                if (!estaciones || estaciones.length === 0) {
+                    alert(`No hay estaciones registradas para ${ccpNombre}.`);
+                    return;
+                }
+                let estacionesHtml = `
+                    <div class="logo-container">
+                        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                        <h1 class="title">Selección de Estación Policial</h1>
+                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
+                            CCP: <strong>${ccpNombre}</strong>
+                        </p>
+                    </div>
+                    <div class="input-group">
+                        <label for="estacionSelect">Seleccione Estación Policial:</label>
+                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
+                            <option value="">-- Elija una estación --</option>
+                `;
+                estaciones.forEach(est => {
+                    estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
+                });
+                estacionesHtml += `
+                        </select>
+                    </div>
+                    <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
+                    <button id="backToOpcionesBtn" class="back-btn" style="margin-top:15px;">← Volver a Opciones</button>
+                `;
+                const dynamicView = document.getElementById('dynamicView');
+                dynamicView.innerHTML = estacionesHtml;
+                dynamicView.style.display = 'block';
+                document.getElementById('loadInspectionBtn').onclick = () => {
+                    const estacionId = document.getElementById('estacionSelect').value;
+                    if (!estacionId) {
+                        alert('Por favor seleccione una estación');
+                        return;
+                    }
+                    const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+                    // ✅ REDIRECCIÓN AL FORMULARIO EXTERNO
+                    window.location.href = `formulario-inspeccion.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpValue=${encodeURIComponent(ccpValue)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+                };
+                document.getElementById('backToOpcionesBtn').onclick = () => {
+                    handleOccidentalForm({ preventDefault: () => {} });
+                };
+            } catch (error) {
+                console.error('Error al cargar estaciones:', error);
+                alert('Error al cargar las estaciones policiales. Detalle: ' + (error.message || ''));
+            }
+        }
+
+        // Funciones auxiliares
+        async function contarReinspeccionesVencidas() {
+            try {
+                const hoy = new Date().toISOString().split('T')[0];
+                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                const {  estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id')
+                    .in('ccp_id', ccpOcidental);
+                if (estError) throw estError;
+                const idsEstaciones = estaciones.map(e => e.id);
+                if (idsEstaciones.length === 0) return 0;
+                const { count, error: countError } = await supabase
+                    .from('inspecciones')
+                    .select('*', { count: 'exact', head: true })
+                    .in('estacion_id', idsEstaciones)
+                    .lte('proxima_inspeccion', hoy);
+                if (countError) throw countError;
+                return count || 0;
+            } catch (error) {
+                console.error('Error al contar notificaciones:', error);
+                return 0;
+            }
+        }
+
+        async function contarYMostrarNotificaciones() {
+            const contador = await contarReinspeccionesVencidas();
+            const boton = document.getElementById('botonNotificaciones');
+            if (boton) {
+                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
+            }
+        }
+
+        // Inicialización
+        verificarAcceso().then(() => {
+            document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
+            document.getElementById('backToDashboardBtn').onclick = () => {
+                window.location.href = '../../index.html';
+            };
+        });
     </script>
 </body>
 </html>
