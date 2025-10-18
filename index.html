@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <link rel="stylesheet" href="/assets/css/styles.css">
     <style>
         * {
             margin: 0;
@@ -209,8 +208,7 @@
             display: block;
             margin-bottom: 8px;
         }
-        #dashboardContainer,
-        #rediOccidentalContainer {
+        #dashboardContainer {
             max-width: 600px;
             padding: 50px;
             display: none;
@@ -262,8 +260,7 @@
             .container {
                 padding: 30px 20px;
             }
-            #dashboardContainer,
-            #rediOccidentalContainer {
+            #dashboardContainer {
                 padding: 30px 20px;
             }
             .title {
@@ -301,6 +298,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -327,6 +325,7 @@
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
+
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -347,54 +346,13 @@
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
             <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
         </div>
-        <!-- ✅ Botón de administración (mismo estilo, centrado, solo para admin) -->
+        <!-- Botón de administración (solo para admin) -->
         <button id="btnAdminUsuarios" class="redi-btn" style="display: none; margin: 20px auto; width: 80%; max-width: 300px;">
             👤 Administrar Usuarios
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-    <!-- Vista específica: REDI OCCIDENTAL -->
-    <div id="rediOccidentalContainer" class="container">
-        <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">REDIP OCCIDENTAL</h1>
-        </div>
-        <form id="occidentalForm">
-            <div class="input-group">
-                <label for="ccpSelect">Seleccione CCP:</label>
-                <select id="ccpSelect" required>
-                    <option value="">-- Elija una opción --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-            <button type="submit" class="form-btn">Continuar</button>
-        </form>
-        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-            Ver Historial de Inspecciones
-        </button>
-        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-            Estadísticas
-        </button>
-<button onclick="window.location.href='galeria-inspeccion.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-    🖼️ Galería de Inspección
-</button>
-        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-            🔔 Notificaciones
-        </button>
-        <button onclick="window.location.href='resumen-mensual.html'" class="action-btn">
-            📊 Resumen Mensual (KPIs)
-        </button>
-<button onclick="window.location.href='protocolos-supervision.html'" class="action-btn">
-    📑 Protocolos de Supervisión
-</button>
-        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
-    </div>
-    <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -417,7 +375,6 @@
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
-                await cargarNotificacionesAlIniciar();
             } catch (error) {
                 console.error('Error en login:', error);
                 showError('Credenciales incorrectas o usuario no existe');
@@ -429,8 +386,6 @@
                 const { error } = await supabase.auth.signOut();
                 if (error) throw error;
                 document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'none';
-                document.getElementById('dynamicView').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
             } catch (error) {
@@ -451,128 +406,15 @@
                     alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
                     return;
                 }
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-                contarYMostrarNotificaciones();
+                // ✅ Redirigir a formulario externo
+                window.location.href = 'redip-occidental/formulario-inspeccion.html';
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
                 alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
             }
         }
 
-        function backToDashboard() {
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-        }
-
-        // ✅ NUEVA FUNCIÓN: Pantalla intermedia después de seleccionar CCP
-        async function handleOccidentalForm(e) {
-            e.preventDefault();
-            const ccpValue = document.getElementById('ccpSelect').value;
-            if (!ccpValue) {
-                alert('Por favor seleccione un CCP.');
-                return;
-            }
-            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
-            window.ccpSeleccionado = ccpValue;
-
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = `
-                <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Opciones para ${ccpNombre}</h1>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
-                    <button id="btnEstaciones" class="form-btn" style="padding:16px; font-size:18px;">
-                        🏢 Estaciones Policiales
-                    </button>
-                    <button id="btnServiciosAdmin" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #805ad5, #553c9a);">
-                        📋 Servicios Administrativos
-                    </button>
-                    <button id="btnUbicaciones" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #38a169, #2f855a);">
-                        📍 Ubicaciones
-                    </button>
-                    <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
-                </div>
-            `;
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            dynamicView.style.display = 'block';
-
-            document.getElementById('btnEstaciones').onclick = () => cargarEstacionesPoliciales(ccpValue, ccpNombre);
-            document.getElementById('btnServiciosAdmin').onclick = () => {
-                window.location.href = 'servicios-administrativos.html';
-            };
-            document.getElementById('btnUbicaciones').onclick = () => {
-                window.location.href = 'ubicaciones.html';
-            };
-            document.getElementById('backToCcpBtn').onclick = () => {
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-                dynamicView.style.display = 'none';
-            };
-        }
-
-        // ✅ NUEVA FUNCIÓN: Cargar estaciones del CCP seleccionado
-        async function cargarEstacionesPoliciales(ccpValue, ccpNombre) {
-            try {
-                const { data: estaciones, error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccpValue)
-                    .order('nombre', { ascending: true });
-                if (error) {
-                    console.error('Error en consulta:', error);
-                    throw error;
-                }
-                if (!estaciones || estaciones.length === 0) {
-                    alert(`No hay estaciones registradas para ${ccpNombre}.`);
-                    return;
-                }
-                let estacionesHtml = `
-                    <div class="logo-container">
-                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                        <h1 class="title">Selección de Estación Policial</h1>
-                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                            CCP: <strong>${ccpNombre}</strong>
-                        </p>
-                    </div>
-                    <div class="input-group">
-                        <label for="estacionSelect">Seleccione Estación Policial:</label>
-                        <select id="estacionSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px;">
-                            <option value="">-- Elija una estación --</option>
-                `;
-                estaciones.forEach(est => {
-                    estacionesHtml += `<option value="${est.id}">${est.nombre}</option>`;
-                });
-                estacionesHtml += `
-                        </select>
-                    </div>
-                    <button id="loadInspectionBtn" class="form-btn" style="margin-top:20px;">Cargar Formulario de Inspección</button>
-                    <button id="backToOpcionesBtn" class="back-btn" style="margin-top:15px;">← Volver a Opciones</button>
-                `;
-                const dynamicView = document.getElementById('dynamicView');
-                dynamicView.innerHTML = estacionesHtml;
-                dynamicView.style.display = 'block';
-
-                document.getElementById('loadInspectionBtn').onclick = () => {
-                    const estacionId = document.getElementById('estacionSelect').value;
-                    if (!estacionId) {
-                        alert('Por favor seleccione una estación');
-                        return;
-                    }
-                    const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-                    loadInspectionForm(estacionId, estacionNombre);
-                };
-
-                document.getElementById('backToOpcionesBtn').onclick = () => {
-                    handleOccidentalForm({ preventDefault: () => {} });
-                };
-            } catch (error) {
-                console.error('Error al cargar estaciones:', error);
-                alert('Error al cargar las estaciones policiales. Detalle: ' + (error.message || ''));
-            }
-        }
-
-        // ✅ Función para verificar rol y mostrar botón de administración
+        // Verificar si es admin y mostrar botón
         async function checkAuthAndLoad() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -583,8 +425,6 @@
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
             document.getElementById('userNameDisplay').textContent = user.email;
-
-            // Verificar si es admin
             try {
                 const { data, error } = await supabase
                     .from('usuarios_redip')
@@ -593,455 +433,19 @@
                     .single();
                 if (!error && data && data.redip === 'admin') {
                     document.getElementById('btnAdminUsuarios').style.display = 'block';
-                } else {
-                    document.getElementById('btnAdminUsuarios').style.display = 'none';
                 }
             } catch (err) {
                 console.warn('No se pudo verificar rol de admin:', err);
-                document.getElementById('btnAdminUsuarios').style.display = 'none';
             }
-        }
-
-        async function contarReinspeccionesVencidas() {
-            try {
-                const hoy = new Date().toISOString().split('T')[0];
-                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const { data: estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw estError;
-                const idsEstaciones = estaciones.map(e => e.id);
-                if (idsEstaciones.length === 0) return 0;
-                const { count, error: countError } = await supabase
-                    .from('inspecciones')
-                    .select('*', { count: 'exact', head: true })
-                    .in('estacion_id', idsEstaciones)
-                    .lte('proxima_inspeccion', hoy);
-                if (countError) throw countError;
-                return count || 0;
-            } catch (error) {
-                console.error('Error al contar notificaciones:', error);
-                return 0;
-            }
-        }
-
-        async function contarYMostrarNotificaciones() {
-            const contador = await contarReinspeccionesVencidas();
-            const boton = document.getElementById('botonNotificaciones');
-            if (boton) {
-                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
-            }
-        }
-
-        async function cargarNotificacionesAlIniciar() {
-        }
-
-        function loadInspectionForm(estacionId, estacionNombre) {
-            const items = [
-                "nombramiento_comandante",
-                "acta_entrega_recepcion",
-                "dossier_comandante",
-                "conocimiento_ley_organica",
-                "conocimiento_estatuto_personal",
-                "conocimiento_reglamento_disciplinario",
-                "estructura_organizativa",
-                "manuales_normas_procedimientos",
-                "plan_trabajo_anual",
-                "infraestructura_identificacion",
-                "direccion_atencion_victima",
-                "oficina_gestion_humana",
-                "documentacion_personal",
-                "uniforme_presentacion",
-                "practica_induccion_orden_publico",
-                "entrenamiento_armamento",
-                "talleres_manejo_defensivo",
-                "conocimientos_primeros_auxilios",
-                "acciones_moral_disciplina",
-                "conocimiento_pensamiento_bolivariano",
-                "instruccion_etica_moral",
-                "talleres_ministerio_publico",
-                "conocimiento_lineamientos_cpnb",
-                "cursos_sustanciacion_expedientes",
-                "cumplimiento_entrenamiento_fisico",
-                "dotacion_trajes_antimotines",
-                "practica_tecnicas_policiales",
-                "numero_funcionarios_suficiente",
-                "personal_empleado_servicios",
-                "servicios_autorizados_mpprijp",
-                "publicaciones_procedimientos",
-                "libros_novedades",
-                "libro_actas_reuniones",
-                "libro_reuniones_personal",
-                "archivo_general_expedientes",
-                "libro_entrevistas_funcionarios",
-                "supervision_libros",
-                "cumplimiento_normativa_instalaciones",
-                "bienes_publicos_registrados",
-                "resguardo_detenido",
-                "equipos_control_incendios",
-                "equipos_comunicacion",
-                "plan_hospedaje_personal",
-                "calidad_vida_personal",
-                "plan_visita_estaciones",
-                "servicio_medico",
-                "unidad_recepcion_denuncias",
-                "areas_esparcimiento",
-                "vehiculos_operativos",
-                "placa_policial_vehiculos",
-                "vehiculos_suficientes",
-                "vehiculos_donados_inventario",
-                "accesorios_seguridad_vehiculos",
-                "necesidades_repuestos_vehiculos",
-                "identificacion_vehiculos_policiales",
-                "informes_parques_armas",
-                "supervision_pac",
-                "vademecum_actualizado",
-                "despliegues_policiales",
-                "supervision_personal_mando",
-                "planes_contra_trafico_ilicito",
-                "conocimiento_lineamientos_derechos_humanos",
-                "registro_actuaciones_cop",
-                "rendicion_procedimientos_cop",
-                "archivos_informes_rendicion",
-                "informes_preliminares_actuacion",
-                "estatus_procesos_administrativos"
-            ];
-            const nombres = {
-                nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
-                acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
-                dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
-                conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
-                conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
-                conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
-                estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
-                manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
-                plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
-                infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
-                direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
-                oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
-                documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
-                uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
-                practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
-                entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
-                talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
-                conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
-                acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
-                conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
-                instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
-                talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
-                conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
-                cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
-                cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
-                dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
-                practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
-                numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
-                personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
-                servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
-                publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
-                libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
-                libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
-                libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
-                archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
-                libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
-                supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
-                cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
-                bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
-                resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
-                equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
-                equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
-                plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
-                calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
-                plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
-                servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
-                unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
-                areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
-                vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
-                placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
-                vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
-                vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
-                accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
-                necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
-                identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
-                informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
-                supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
-                vademecum_actualizado: "58. Verificar vademécum general actualizado.",
-                despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
-                supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
-                planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
-                conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
-                registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
-                rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
-                archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
-                informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
-                estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
-            };
-            const hoy = new Date().toISOString().split('T')[0];
-            let formHtml = `
-                <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Formulario de Inspección - REDIP OCCIDENTAL</h1>
-                    <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                        Estación: <strong>${estacionNombre}</strong>
-                    </p>
-                </div>
-                <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
-                    <div class="items-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
-            `;
-            items.forEach(item => {
-                formHtml += `
-                    <div class="item-card" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                        <label style="font-weight: bold; color: #0c2440; font-size:13px; margin-bottom:10px; display:block;">${nombres[item]}</label>
-                        <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; font-size:14px;">
-                            <option value="null">-- Seleccione --</option>
-                            <option value="true">Sí</option>
-                            <option value="false">No</option>
-                            <option value="na">No Aplica</option>
-                        </select>
-                        <textarea class="observacion-text" data-item="${item}" 
-                            placeholder="Observaciones" 
-                            style="width:100%; padding:10px; margin-top:12px; border-radius:8px; display:none; border:1px solid #cbd5e0; font-size:13px; background:#fff;"
-                            rows="3"></textarea>
-                        <div class="porcentaje-container" data-item="${item}" style="margin-top:12px; display:none;">
-                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin-bottom:6px;">
-                                Porcentaje de cumplimiento
-                            </label>
-                            <div style="padding:10px 0;">
-                                <input type="range" class="porcentaje-slider" data-item="${item}" 
-                                    min="0" max="100" value="0"
-                                    style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
-                                    oninput="this.nextElementSibling.value = this.value + '%'"
-                                >
-                                <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
-                            </div>
-                        </div>
-                        <!-- ✅ FOTOS -->
-                        <div class="fotos-container" data-item="${item}" style="margin-top:12px; display:none;">
-                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
-                                📸 Fotos (máx. 2)
-                            </label>
-                            <input type="file" class="foto-input" data-item="${item}" data-index="0" accept="image/*" capture="environment" style="width:100%; margin-bottom:6px;">
-                            <input type="file" class="foto-input" data-item="${item}" data-index="1" accept="image/*" capture="environment" style="width:100%;">
-                            <div class="foto-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;"></div>
-                        </div>
-                        <!-- ✅ ARCHIVO ADJUNTO -->
-                        <div class="archivo-container" data-item="${item}" style="margin-top:12px; display:none;">
-                            <label style="font-weight: bold; color: #0c2440; font-size:13px; display:block; margin:8px 0 4px;">
-                                📎 Archivo adjunto (PDF, DOC, etc.)
-                            </label>
-                            <input type="file" class="archivo-input" data-item="${item}" accept=".pdf,.doc,.docx,.jpg,.png" style="width:100%;">
-                            <div class="archivo-confirmacion" data-item="${item}" style="display:none; color:green; font-size:12px; margin-top:6px;">✅ Archivo seleccionado</div>
-                        </div>
-                    </div>
-                `;
-            });
-            formHtml += `
-                </div>
-                <div class="input-group" style="margin-top:20px;">
-                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Observaciones Generales</label>
-                    <textarea id="observacionesGenerales" placeholder="Observaciones adicionales del inspector..." 
-                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;" rows="4"></textarea>
-                </div>
-                <div class="input-group" style="margin-top:20px;">
-                    <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-                    <input type="date" id="proximaInspeccion" 
-                        min="${hoy}"
-                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
-                </div>
-                <div style="text-align:center; margin-top:30px;">
-                    <button type="submit" class="form-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
-                    <button type="button" id="backToEstacionesBtn" class="back-btn" style="margin-top:15px; padding:10px 25px;">← Volver a Estaciones</button>
-                </div>
-            </form>
-            `;
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = formHtml;
-            dynamicView.style.display = 'block';
-            dynamicView.style.maxWidth = '1000px';
-            dynamicView.style.padding = '40px';
-
-            // ✅ NUEVA LÓGICA: solo habilitar fotos y porcentaje si es "Sí"
-            document.querySelectorAll('.cumple-select').forEach(select => {
-                select.addEventListener('change', function () {
-                    const item = this.dataset.item;
-                    const textarea = document.querySelector(`.observacion-text[data-item="${item}"]`);
-                    const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
-                    const fotosContainer = document.querySelector(`.fotos-container[data-item="${item}"]`);
-                    const archivoContainer = document.querySelector(`.archivo-container[data-item="${item}"]`);
-                    const fotoConfirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
-                    const archivoConfirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
-
-                    // Siempre mostrar observación
-                    textarea.style.display = this.value !== 'null' ? 'block' : 'none';
-
-                    if (this.value === 'true') {
-                        // ✅ SOLO si es "Sí": habilitar todo
-                        porcentajeContainer.style.display = 'block';
-                        fotosContainer.style.display = 'block';
-                        archivoContainer.style.display = 'block';
-                    } else {
-                        // ❌ Si es "No", "No aplica" o vacío: deshabilitar y limpiar
-                        porcentajeContainer.style.display = 'none';
-                        fotosContainer.style.display = 'none';
-                        archivoContainer.style.display = 'none';
-
-                        // Limpiar inputs
-                        document.querySelectorAll(`.foto-input[data-item="${item}"]`).forEach(input => input.value = '');
-                        document.querySelector(`.archivo-input[data-item="${item}"]`).value = '';
-
-                        // Ocultar confirmaciones
-                        if (fotoConfirmacion) fotoConfirmacion.style.display = 'none';
-                        if (archivoConfirmacion) archivoConfirmacion.style.display = 'none';
-                    }
-                });
-            });
-
-            // ✅ CONFIRMACIÓN DE FOTOS (dinámico: 1 o 2)
-            document.querySelectorAll('.foto-input').forEach(input => {
-                input.addEventListener('change', function () {
-                    const item = this.dataset.item;
-                    const confirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
-                    const fileInputs = document.querySelectorAll(`.foto-input[data-item="${item}"]`);
-                    const count = Array.from(fileInputs).filter(f => f.files.length > 0).length;
-
-                    if (count > 0) {
-                        confirmacion.textContent = `✅ ${count} foto${count === 1 ? '' : 's'} seleccionada${count === 1 ? '' : 's'}`;
-                        confirmacion.style.display = 'block';
-                    } else {
-                        confirmacion.style.display = 'none';
-                    }
-                });
-            });
-
-            // ✅ CONFIRMACIÓN DE ARCHIVO
-            document.querySelectorAll('.archivo-input').forEach(input => {
-                input.addEventListener('change', function () {
-                    const item = this.dataset.item;
-                    const confirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
-                    if (this.files.length > 0) {
-                        confirmacion.style.display = 'block';
-                    } else {
-                        confirmacion.style.display = 'none';
-                    }
-                });
-            });
-
-            document.getElementById('backToEstacionesBtn').onclick = () => {
-                handleOccidentalForm({ preventDefault: () => {} });
-            };
-
-            // ✅ MANEJADOR DE ENVÍO
-            document.getElementById('inspectionForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    alert('Debe estar autenticado.');
-                    return;
-                }
-                // Crear inspección
-                const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-                const { data: inspeccionData, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .insert({
-                        estacion_id: estacionId,
-                        inspector_email: user.email,
-                        observaciones_generales: document.getElementById('observacionesGenerales').value || null,
-                        proxima_inspeccion: proximaFecha
-                    })
-                    .select()
-                    .single();
-                if (inspError) {
-                    console.error('Error al crear inspección:', inspError);
-                    alert('Error al guardar la inspección.');
-                    return;
-                }
-                const itemsToInsert = [];
-                for (const item of items) {
-                    const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
-                    const valor = select.value;
-                    if (valor === 'null') continue;
-                    let cumple = null;
-                    if (valor === 'true') cumple = true;
-                    if (valor === 'false') cumple = false;
-                    // 'na' → cumple = null
-                    const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-                    let porcentaje = 0;
-                    if (cumple === true) {
-                        const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
-                        porcentaje = parseInt(slider?.value) || 0;
-                    }
-                    // ✅ Subir fotos
-                    let foto1_url = null, foto2_url = null;
-                    const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
-                    const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
-                    if (file1) {
-                        const cleanName = file1.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
-                        const path = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${cleanName}`;
-                        const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file1, { upsert: true });
-                        if (!error) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
-                            foto1_url = data.publicUrl;
-                        }
-                    }
-                    if (file2) {
-                        const cleanName = file2.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
-                        const path = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${cleanName}`;
-                        const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file2, { upsert: true });
-                        if (!error) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
-                            foto2_url = data.publicUrl;
-                        }
-                    }
-                    // ✅ Subir archivo adjunto
-                    let archivo_url = null;
-                    const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
-                    if (archivoFile) {
-                        const cleanName = archivoFile.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
-                        const path = `inspecciones/${inspeccionData.id}/${item}_archivo_${Date.now()}_${cleanName}`;
-                        const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, archivoFile, { upsert: true });
-                        if (!error) {
-                            const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
-                            archivo_url = data.publicUrl;
-                        }
-                    }
-                    itemsToInsert.push({
-                        inspeccion_id: inspeccionData.id,
-                        item_nombre: item,
-                        cumple: cumple,
-                        observacion: observacion,
-                        porcentaje_cumplimiento: porcentaje,
-                        foto1_url: foto1_url,
-                        foto2_url: foto2_url,
-                        archivo_url: archivo_url
-                    });
-                }
-                if (itemsToInsert.length === 0) {
-                    alert('Debe responder al menos un ítem.');
-                    return;
-                }
-                const { error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .insert(itemsToInsert);
-                if (itemsError) {
-                    console.error('Error al guardar ítems:', itemsError);
-                    alert('Error al guardar los ítems.');
-                } else {
-                    alert('✅ Inspección guardada con éxito.');
-                    handleOccidentalForm({ preventDefault: () => {} });
-                }
-            };
         }
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
-        document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
-        document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
         document.getElementById('btnAdminUsuarios').addEventListener('click', () => {
             window.location.href = 'admin-usuarios.html';
         });
 
-        // ✅ Iniciar
         checkAuthAndLoad();
     </script>
 </body>
