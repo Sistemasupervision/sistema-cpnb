@@ -269,6 +269,28 @@ body {
         font-size: 16px;
     }
     .vector-circle {
-        transform: scale(0.7);
+        transform: scale(0.7);    
     }
+    .action-btn,
+.form-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
+}
+
+.action-btn:hover,
+.form-btn:hover {
+    background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
+}
 }
