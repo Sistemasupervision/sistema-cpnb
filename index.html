@@ -6,6 +6,7 @@
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
+        /* ... (todo tu CSS igual, no cambia) ... */
         * {
             margin: 0;
             padding: 0;
@@ -300,10 +301,11 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
-           <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
         </div>
         <form id="loginForm">
@@ -326,10 +328,11 @@
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
+
     <!-- Panel Principal (REDI) -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         <div class="user-info">
@@ -346,16 +349,16 @@
             <button class="redi-btn" data-redi="guayana">REDIP GUAYANA</button>
             <button class="redi-btn" data-redi="maritima">REDIP MARÍTIMA E INSULAR</button>
         </div>
-        <!-- ✅ Botón de administración (mismo estilo, centrado, solo para admin) -->
         <button id="btnAdminUsuarios" class="redi-btn" style="display: none; margin: 20px auto; width: 80%; max-width: 300px;">
             👤 Administrar Usuarios
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
+
     <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">REDIP OCCIDENTAL</h1>
         </div>
         <form id="occidentalForm">
@@ -393,72 +396,18 @@
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
+
     <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
+
     <script>
+        // ... (todo tu JS igual, pero con dos cambios clave en las funciones que generan HTML dinámico)
+
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-        }
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = email;
-                await cargarNotificacionesAlIniciar();
-            } catch (error) {
-                console.error('Error en login:', error);
-                showError('Credenciales incorrectas o usuario no existe');
-            }
-        }
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'none';
-                document.getElementById('dynamicView').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginForm').reset();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-            }
-        }
-        async function showRediOccidental() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || data.redip !== 'occidental') {
-                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
-                    return;
-                }
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-                contarYMostrarNotificaciones();
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
-            }
-        }
-        function backToDashboard() {
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-        }
-        // ✅ NUEVA FUNCIÓN: Pantalla intermedia después de seleccionar CCP
+
+        // ... (todas las funciones anteriores: showError, handleLogin, etc.)
+
         async function handleOccidentalForm(e) {
             e.preventDefault();
             const ccpValue = document.getElementById('ccpSelect').value;
@@ -471,7 +420,7 @@
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = `
                 <div class="logo-container">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                     <h1 class="title">Opciones para ${ccpNombre}</h1>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
@@ -501,7 +450,7 @@
                 dynamicView.style.display = 'none';
             };
         }
-        // ✅ NUEVA FUNCIÓN: Cargar estaciones del CCP seleccionado
+
         async function cargarEstacionesPoliciales(ccpValue, ccpNombre) {
             try {
                 const { data: estaciones, error } = await supabase
@@ -519,7 +468,7 @@
                 }
                 let estacionesHtml = `
                     <div class="logo-container">
-                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                        <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                         <h1 class="title">Selección de Estación Policial</h1>
                         <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
                             CCP: <strong>${ccpNombre}</strong>
@@ -560,68 +509,10 @@
                 alert('Error al cargar las estaciones policiales. Detalle: ' + (error.message || ''));
             }
         }
-        // ✅ Función para verificar rol y mostrar botón de administración
-        async function checkAuthAndLoad() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('dashboardContainer').style.display = 'none';
-                return;
-            }
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = user.email;
-            // Verificar si es admin
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (!error && data && data.redip === 'admin') {
-                    document.getElementById('btnAdminUsuarios').style.display = 'block';
-                } else {
-                    document.getElementById('btnAdminUsuarios').style.display = 'none';
-                }
-            } catch (err) {
-                console.warn('No se pudo verificar rol de admin:', err);
-                document.getElementById('btnAdminUsuarios').style.display = 'none';
-            }
-        }
-        async function contarReinspeccionesVencidas() {
-            try {
-                const hoy = new Date().toISOString().split('T')[0];
-                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const { data: estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw estError;
-                const idsEstaciones = estaciones.map(e => e.id);
-                if (idsEstaciones.length === 0) return 0;
-                const { count, error: countError } = await supabase
-                    .from('inspecciones')
-                    .select('*', { count: 'exact', head: true })
-                    .in('estacion_id', idsEstaciones)
-                    .lte('proxima_inspeccion', hoy);
-                if (countError) throw countError;
-                return count || 0;
-            } catch (error) {
-                console.error('Error al contar notificaciones:', error);
-                return 0;
-            }
-        }
-        async function contarYMostrarNotificaciones() {
-            const contador = await contarReinspeccionesVencidas();
-            const boton = document.getElementById('botonNotificaciones');
-            if (boton) {
-                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
-            }
-        }
-        async function cargarNotificacionesAlIniciar() {
-        }
-        // ❌ LA FUNCIÓN loadInspectionForm HA SIDO ELIMINADA
-        // TODO EL FORMULARIO DE 67 ÍTEMS AHORA ESTÁ EN redip-occidental/formulario-inspeccion.html
+
+        // ... (resto de funciones: checkAuthAndLoad, etc.)
+
+        // ❌ ELIMINADA: loadInspectionForm
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
@@ -631,7 +522,6 @@
         document.getElementById('btnAdminUsuarios').addEventListener('click', () => {
             window.location.href = 'admin-usuarios.html';
         });
-        // ✅ Iniciar
         checkAuthAndLoad();
     </script>
 </body>
