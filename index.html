@@ -5,150 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-        }
-        body {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
-            position: relative;
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            width: 100%;
-            max-width: 450px;
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-            z-index: 10;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
-        }
-        .logo-container {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .logo-img {
-            width: 120px;
-            height: 120px;
-            object-fit: contain;
-            margin: 0 auto 20px;
-            display: block;
-        }
-        .title {
-            text-align: center;
-            color: #0c2440;
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 30px;
-        }
-        .input-group {
-            margin-bottom: 20px;
-        }
-        .input-group label {
-            display: block;
-            color: #2d3748;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-        }
-        .login-btn,
-        .redi-btn,
-        .action-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
-        }
-        .login-btn:hover,
-        .redi-btn:hover,
-        .action-btn:hover {
-            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
-        }
-        .redi-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
-            margin: 25px 0;
-        }
-        .redi-btn {
-            width: auto;
-            padding: 12px;
-            font-size: 14px;
-            text-align: center;
-        }
-        .user-info {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-    
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+
+    <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Sistema de Supervisión y Control</h1>
+            <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
         </div>
         <form id="loginForm">
             <div class="input-group">
                 <label for="username">Email</label>
-                <input type="email" id="username" placeholder="Ingrese su email" required>
+                <input type="email" id="username" placeholder="Ingrese su email" autocomplete="username" required>
             </div>
             <div class="input-group">
                 <label for="password">Contraseña</label>
-                <input type="password" id="password" placeholder="Ingrese su contraseña" required>
+                <input type="password" id="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
             </div>
             <button type="submit" class="login-btn">Iniciar Sesión</button>
+            <div id="errorMessage" class="error-message"></div>
         </form>
+        <div class="security-info">
+            <strong>Seguridad de extremo a extremo</strong>
+            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
+        </div>
+        <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
+            © OTIC-ZULIA. Todos los derechos reservados.
+        </p>
     </div>
-    
-    <div id="dashboardContainer" class="container" style="display: none;">
+
+    <!-- Panel Principal -->
+    <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Panel Principal</h1>
+            <h1 class="title dashboard-title">Panel Principal</h1>
         </div>
         <div class="user-info">
-            <p id="userNameDisplay">Usuario</p>
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Nombre del Usuario</p>
         </div>
         <div class="redi-buttons">
             <button class="redi-btn" onclick="irARedip('andes')">REDIP LOS ANDES</button>
@@ -168,6 +72,13 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -179,24 +90,42 @@
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
             } catch (error) {
-                alert('Credenciales incorrectas');
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
             }
         }
 
         async function handleLogout() {
-            await supabase.auth.signOut();
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('loginContainer').style.display = 'block';
-            document.getElementById('loginForm').reset();
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
         }
 
         function irARedip(nombreRedip) {
-
+            // Por ahora, solo muestra un mensaje
             alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
         }
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+        // Verificar si ya hay sesión activa
+        async function checkAuth() {
+            const {  { user } } = await supabase.auth.getUser();
+            if (user) {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = user.email;
+            }
+        }
+
+        checkAuth();
     </script>
 </body>
 </html>
