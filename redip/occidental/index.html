@@ -23,21 +23,11 @@
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">REDIP OCCIDENTAL</h1>
         </div>
-        <form id="occidentalForm">
-            <div class="input-group">
-                <label for="ccpSelect">Seleccione CCP:</label>
-                <select id="ccpSelect" required>
-                    <option value="">-- Elija una opción --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-            <button type="submit" class="form-btn">Continuar</button>
-        </form>
+        <!-- Botón "Crear Nueva Inspección" -->
+        <button id="btnCrearInspeccion" class="form-btn" style="margin-top: 20px; padding: 16px; font-size: 18px;">
+            🆕 Crear Nueva Inspección
+        </button>
+        <!-- Botones existentes -->
         <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Ver Historial de Inspecciones
         </button>
@@ -57,6 +47,24 @@
             📑 Protocolos de Supervisión
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
+    </div>
+
+    <!-- Modal para seleccionar CCP -->
+    <div id="modalSeleccionCCP" class="container" style="display:none; max-width: 500px; padding: 40px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; box-shadow: 0 20px 60px rgba(0,0,0,0.4);">
+        <div class="logo-container">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Crear Nueva Inspección</h1>
+        </div>
+        <div class="input-group">
+            <label for="ccpSelectModal">Seleccione CCP:</label>
+            <select id="ccpSelectModal" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                <option value="">-- Elija un CCP --</option>
+            </select>
+        </div>
+        <div style="text-align:center; margin-top: 30px;">
+            <button id="btnContinuarCCP" class="form-btn" style="padding:14px 32px; font-size:17px;">Continuar</button>
+            <button id="btnCancelarCCP" class="back-btn" style="margin-top:15px; padding:10px 25px;">Cancelar</button>
+        </div>
     </div>
 
     <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
@@ -89,71 +97,69 @@
             }
         }
 
-        async function handleOccidentalForm(e) {
-            e.preventDefault();
-            const ccpValue = document.getElementById('ccpSelect').value;
-            if (!ccpValue) {
+        // Cargar lista de CCP desde Supabase
+        async function cargarCCPs() {
+            try {
+                const { data: ccps, error } = await supabase
+                    .from('ccps')
+                    .select('id, nombre')
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                const select = document.getElementById('ccpSelectModal');
+                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+                ccps.forEach(ccp => {
+                    const opt = document.createElement('option');
+                    opt.value = ccp.id;
+                    opt.textContent = ccp.nombre;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar CCPs:', error);
+                alert('Error al cargar los CCPs.');
+            }
+        }
+
+        // Mostrar modal de selección de CCP
+        document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
+            document.getElementById('modalSeleccionCCP').style.display = 'block';
+            cargarCCPs(); // Cargar los CCPs cada vez que se abre el modal
+        });
+
+        // Cancelar selección de CCP
+        document.getElementById('btnCancelarCCP').addEventListener('click', () => {
+            document.getElementById('modalSeleccionCCP').style.display = 'none';
+        });
+
+        // Continuar con la inspección
+        document.getElementById('btnContinuarCCP').addEventListener('click', () => {
+            const ccpId = document.getElementById('ccpSelectModal').value;
+            if (!ccpId) {
                 alert('Por favor seleccione un CCP.');
                 return;
             }
-            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
-            window.ccpSeleccionado = ccpValue;
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = `
-                <div class="logo-container">
-                    <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Opciones para ${ccpNombre}</h1>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
-                    <button id="btnEstaciones" class="form-btn" style="padding:16px; font-size:18px;">
-                        🏢 Estaciones Policiales
-                    </button>
-                    <button id="btnServiciosAdmin" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #805ad5, #553c9a);">
-                        📋 Servicios Administrativos
-                    </button>
-                    <button id="btnUbicaciones" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #38a169, #2f855a);">
-                        📍 Ubicaciones
-                    </button>
-                    <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
-                </div>
-            `;
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            dynamicView.style.display = 'block';
-            document.getElementById('btnEstaciones').onclick = () => cargarEstacionesPoliciales(ccpValue, ccpNombre);
-            document.getElementById('btnServiciosAdmin').onclick = () => {
-                window.location.href = 'servicios-administrativos.html';
-            };
-            document.getElementById('btnUbicaciones').onclick = () => {
-                window.location.href = 'ubicaciones.html';
-            };
-            document.getElementById('backToCcpBtn').onclick = () => {
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-                dynamicView.style.display = 'none';
-            };
-        }
+            document.getElementById('modalSeleccionCCP').style.display = 'none';
+            cargarEstacionesPoliciales(ccpId);
+        });
 
-        async function cargarEstacionesPoliciales(ccpValue, ccpNombre) {
+        async function cargarEstacionesPoliciales(ccpId) {
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
-                    .eq('ccp_id', ccpValue)
+                    .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
                 if (error) {
                     console.error('Error en consulta:', error);
                     throw error;
                 }
                 if (!estaciones || estaciones.length === 0) {
-                    alert(`No hay estaciones registradas para ${ccpNombre}.`);
+                    alert(`No hay estaciones registradas para este CCP.`);
                     return;
                 }
                 let estacionesHtml = `
                     <div class="logo-container">
                         <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                         <h1 class="title">Selección de Estación Policial</h1>
-                        <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                            CCP: <strong>${ccpNombre}</strong>
-                        </p>
                     </div>
                     <div class="input-group">
                         <label for="estacionSelect">Seleccione Estación Policial:</label>
@@ -172,6 +178,7 @@
                 const dynamicView = document.getElementById('dynamicView');
                 dynamicView.innerHTML = estacionesHtml;
                 dynamicView.style.display = 'block';
+                document.getElementById('rediOccidentalContainer').style.display = 'none';
                 document.getElementById('loadInspectionBtn').onclick = () => {
                     const estacionId = document.getElementById('estacionSelect').value;
                     if (!estacionId) {
@@ -179,10 +186,11 @@
                         return;
                     }
                     const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-                    loadInspectionForm(estacionId, estacionNombre);
+                    loadInspectionForm(estacionId, estacionNombre, ccpId);
                 };
                 document.getElementById('backToOpcionesBtn').onclick = () => {
-                    handleOccidentalForm({ preventDefault: () => {} });
+                    document.getElementById('rediOccidentalContainer').style.display = 'block';
+                    dynamicView.style.display = 'none';
                 };
             } catch (error) {
                 console.error('Error al cargar estaciones:', error);
@@ -190,7 +198,7 @@
             }
         }
 
-        function loadInspectionForm(estacionId, estacionNombre) {
+        function loadInspectionForm(estacionId, estacionNombre, ccpId) {
             const items = [
                 "nombramiento_comandante",
                 "acta_entrega_recepcion",
@@ -471,7 +479,7 @@
                 });
             });
             document.getElementById('backToEstacionesBtn').onclick = () => {
-                cargarEstacionesPoliciales(window.ccpSeleccionado, document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+                cargarEstacionesPoliciales(ccpId);
             };
             // ✅ MANEJADOR DE ENVÍO
             document.getElementById('inspectionForm').onsubmit = async (e) => {
@@ -570,7 +578,7 @@
                     alert('Error al guardar los ítems.');
                 } else {
                     alert('✅ Inspección guardada con éxito.');
-                    cargarEstacionesPoliciales(window.ccpSeleccionado, document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text);
+                    cargarEstacionesPoliciales(ccpId);
                 }
             };
         }
@@ -609,7 +617,6 @@
 
         // Inicialización
         verificarAcceso().then(() => {
-            document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
             document.getElementById('backToDashboardBtn').addEventListener('click', () => {
                 window.location.href = '../../index.html';
             });
