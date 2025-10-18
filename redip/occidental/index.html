@@ -16,8 +16,6 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
-    <!-- Vista específica: REDI OCCIDENTAL -->
     <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -179,7 +177,6 @@
                         return;
                     }
                     const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-                    // ✅ REDIRECCIÓN AL FORMULARIO EXTERNO
                     window.location.href = `formulario-inspeccion.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpValue=${encodeURIComponent(ccpValue)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
                 };
                 document.getElementById('backToOpcionesBtn').onclick = () => {
@@ -190,8 +187,6 @@
                 alert('Error al cargar las estaciones policiales. Detalle: ' + (error.message || ''));
             }
         }
-
-        // Funciones auxiliares
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
@@ -223,8 +218,6 @@
                 boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
             }
         }
-
-        // Inicialización
         verificarAcceso().then(() => {
             document.getElementById('occidentalForm').addEventListener('submit', handleOccidentalForm);
             document.getElementById('backToDashboardBtn').onclick = () => {
