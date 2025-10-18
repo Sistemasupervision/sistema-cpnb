@@ -75,7 +75,7 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 window.location.href = '../../index.html';
                 return;
@@ -617,10 +617,6 @@
 
         // Inicialización
         verificarAcceso().then(() => {
-            document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
-                document.getElementById('modalSeleccionCCP').style.display = 'block';
-                cargarCCPs(); // Cargar los CCPs cada vez que se abre el modal
-            });
             document.getElementById('backToDashboardBtn').addEventListener('click', () => {
                 window.location.href = '../../index.html';
             });
