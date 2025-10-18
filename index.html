@@ -67,65 +67,106 @@
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
 
-    <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+ <script>
+    const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+            document.getElementById('userNameDisplay').textContent = email;
+            await cargarNotificacionesAlIniciar();
+        } catch (error) {
+            console.error('Error en login:', error);
+            showError('Credenciales incorrectas o usuario no existe');
         }
+    }
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = email;
-            } catch (error) {
-                console.error('Error en login:', error);
-                showError('Credenciales incorrectas o usuario no existe');
+    async function handleLogout() {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            document.getElementById('dynamicView').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('loginForm').reset();
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+        }
+    }
+
+    async function showRediOccidental() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        try {
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (error || !data || data.redip !== 'occidental') {
+                alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.
+Por favor contacte al administrador.');
+                return;
             }
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('rediOccidentalContainer').style.display = 'block';
+            contarYMostrarNotificaciones();
+        } catch (err) {
+            console.error('Error al verificar acceso:', err);
+            alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
         }
+    }
 
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginForm').reset();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
+    function backToDashboard() {
+        document.getElementById('rediOccidentalContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+    }
+
+    // ✅ CORRECCIÓN: checkAuth() ahora es async
+    async function checkAuthAndLoad() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('dashboardContainer').style.display = 'none';
+            return;
+        }
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+        document.getElementById('userNameDisplay').textContent = user.email;
+        // Verificar si es admin
+        try {
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (!error && data && data.redip === 'admin') {
+                document.getElementById('btnAdminUsuarios').style.display = 'block';
+            } else {
+                document.getElementById('btnAdminUsuarios').style.display = 'none';
             }
+        } catch (err) {
+            console.warn('No se pudo verificar rol de admin:', err);
+            document.getElementById('btnAdminUsuarios').style.display = 'none';
         }
+    }
 
-        function irARedip(nombreRedip) {
-            // Por ahora, solo muestra un mensaje
-            alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
-        }
+    // ✅ Llamada inicial
+    checkAuthAndLoad(); // Esta función ya es async, así que no necesita await aquí
 
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-
-        // Verificar si ya hay sesión activa
-        async function checkAuth() {
-            const {  { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
-            }
-        }
-
-        checkAuth();
-    </script>
-</body>
+    // Event listeners
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    document.getElementById('rediOccidentalBtn').addEventListener('click', showRediOccidental);
+    document.getElementById('backToDashboardBtn').addEventListener('click', backToDashboard);
+</script>
 </html>
