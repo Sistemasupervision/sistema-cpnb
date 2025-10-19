@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Supervisión y Control</title>
+    <title>REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="../../assets/css/styles.css">
 </head>
 <body>
     <div class="vector-bg">
@@ -16,114 +16,207 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
-    <!-- Login Form -->
-    <div id="loginContainer" class="container">
+    <!-- Vista específica: REDIP OCCIDENTAL -->
+    <div id="rediOccidentalContainer" class="container">
         <div class="logo-container">
-            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">REDIP OCCIDENTAL</h1>
         </div>
-        <form id="loginForm">
-            <div class="input-group">
-                <label for="username">Email</label>
-                <input type="email" id="username" placeholder="Ingrese su email" autocomplete="username" required>
-            </div>
-            <div class="input-group">
-                <label for="password">Contraseña</label>
-                <input type="password" id="password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
-            </div>
-            <button type="submit" class="login-btn">Iniciar Sesión</button>
-            <div id="errorMessage" class="error-message"></div>
-        </form>
-        <div class="security-info">
-            <strong>Seguridad de extremo a extremo</strong>
-            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
-        </div>
-        <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
-            © OTIC-ZULIA. Todos los derechos reservados.
-        </p>
+        <!-- Botón "Crear Nueva Inspección" -->
+        <button id="btnCrearInspeccion" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🆕 Crear Nueva Inspección
+        </button>
+        <!-- Botones existentes -->
+        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Ver Historial de Inspecciones
+        </button>
+        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Estadísticas
+        </button>
+        <button onclick="window.location.href='galeria-inspeccion.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🖼️ Galería de Inspección
+        </button>
+        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🔔 Notificaciones
+        </button>
+        <button onclick="window.location.href='resumen-mensual.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            📊 Resumen Mensual (KPIs)
+        </button>
+        <button onclick="window.location.href='protocolos-supervision.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            📑 Protocolos de Supervisión
+        </button>
+        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
-
-    <!-- Panel Principal -->
-    <div id="dashboardContainer" class="container">
+    <!-- Modal para seleccionar CCP -->
+    <div id="modalSeleccionCCP" class="container" style="display:none; max-width: 500px; padding: 40px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; box-shadow: 0 20px 60px rgba(0,0,0,0.4);">
         <div class="logo-container">
-            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title dashboard-title">Panel Principal</h1>
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Crear Nueva Inspección</h1>
         </div>
-        <div class="user-info">
-            <h3>Usuario Conectado</h3>
-            <p id="userNameDisplay">Nombre del Usuario</p>
+        <div class="input-group">
+            <label for="ccpSelectModal">Seleccione CCP:</label>
+            <select id="ccpSelectModal" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                <option value="">-- Elija un CCP --</option>
+            </select>
         </div>
-        <div class="redi-buttons">
-            <button class="redi-btn" onclick="irARedip('andes')">REDIP LOS ANDES</button>
-            <button class="redi-btn" onclick="irARedip('capital')">REDIP CAPITAL</button>
-            <button class="redi-btn" onclick="irARedip('central')">REDIP CENTRAL</button>
-            <button class="redi-btn" onclick="window.location.href='redip/occidental/index.html'">REDIP OCCIDENTAL</button>
-            <button class="redi-btn" onclick="irARedip('oriental')">REDIP ORIENTAL</button>
-            <button class="redi-btn" onclick="irARedip('llanos')">REDIP LOS LLANOS</button>
-            <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
-            <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
+        <div style="text-align:center; margin-top: 30px;">
+            <button id="btnContinuarCCP" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+                Continuar
+            </button>
+            <button id="btnCancelarCCP" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">Cancelar</button>
         </div>
-        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-
+    <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = email;
-            } catch (error) {
-                console.error('Error en login:', error);
-                showError('Credenciales incorrectas o usuario no existe');
-            }
-        }
-
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginForm').reset();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-            }
-        }
-
-        function irARedip(nombreRedip) {
-            alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-        }
-
-        // Verificar si ya hay sesión activa
-        async function checkAuth() {
+        async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
+            if (!user) {
+                window.location.href = '../../index.html';
+                return;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
+                    window.location.href = '../../index.html';
+                }
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+                window.location.href = '../../index.html';
             }
         }
 
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        checkAuth();
+        async function cargarCCPs() {
+            try {
+                const { data: ccps, error } = await supabase
+                    .from('ccps')
+                    .select('id, nombre')
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                const select = document.getElementById('ccpSelectModal');
+                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+                ccps.forEach(ccp => {
+                    const opt = document.createElement('option');
+                    opt.value = ccp.id;
+                    opt.textContent = ccp.nombre;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar CCPs:', error);
+                alert('Error al cargar los CCPs.');
+            }
+        }
+
+        document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
+            document.getElementById('modalSeleccionCCP').style.display = 'block';
+            cargarCCPs();
+        });
+
+        document.getElementById('btnCancelarCCP').addEventListener('click', () => {
+            document.getElementById('modalSeleccionCCP').style.display = 'none';
+        });
+
+        document.getElementById('btnContinuarCCP').addEventListener('click', () => {
+            const ccpId = document.getElementById('ccpSelectModal').value;
+            if (!ccpId) {
+                alert('Por favor seleccione un CCP.');
+                return;
+            }
+            const ccpNombre = document.getElementById('ccpSelectModal').options[document.getElementById('ccpSelectModal').selectedIndex].text;
+            document.getElementById('modalSeleccionCCP').style.display = 'none';
+            mostrarOpcionesCCP(ccpId, ccpNombre);
+        });
+
+        function mostrarOpcionesCCP(ccpId, ccpNombre) {
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = `
+                <div class="logo-container">
+                    <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Opciones para ${ccpNombre}</h1>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
+                    <button id="btnEstaciones" class="form-btn" style="padding:16px; font-size:18px;">
+                        🏢 Estaciones Policiales
+                    </button>
+                    <button id="btnServiciosAdmin" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #805ad5, #553c9a);">
+                        📋 Servicios Administrativos
+                    </button>
+                    <button id="btnUbicaciones" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #38a169, #2f855a);">
+                        📍 Ubicaciones
+                    </button>
+                    <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
+                </div>
+            `;
+            document.getElementById('rediOccidentalContainer').style.display = 'none';
+            dynamicView.style.display = 'block';
+
+            document.getElementById('btnEstaciones').onclick = () => {
+                window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            };
+
+            document.getElementById('btnServiciosAdmin').onclick = () => {
+                alert('Próximamente disponible');
+                // window.location.href = 'servicios-administrativos.html';
+            };
+
+            document.getElementById('btnUbicaciones').onclick = () => {
+                alert('Próximamente disponible');
+                // window.location.href = 'ubicaciones.html';
+            };
+
+            document.getElementById('backToCcpBtn').onclick = () => {
+                document.getElementById('rediOccidentalContainer').style.display = 'block';
+                dynamicView.style.display = 'none';
+            };
+        }
+
+        async function contarReinspeccionesVencidas() {
+            try {
+                const hoy = new Date().toISOString().split('T')[0];
+                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+                const { data: estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id')
+                    .in('ccp_id', ccpOcidental);
+                if (estError) throw estError;
+                const idsEstaciones = estaciones.map(e => e.id);
+                if (idsEstaciones.length === 0) return 0;
+                const { count, error: countError } = await supabase
+                    .from('inspecciones')
+                    .select('*', { count: 'exact', head: true })
+                    .in('estacion_id', idsEstaciones)
+                    .lte('proxima_inspeccion', hoy);
+                if (countError) throw countError;
+                return count || 0;
+            } catch (error) {
+                console.error('Error al contar notificaciones:', error);
+                return 0;
+            }
+        }
+
+        async function contarYMostrarNotificaciones() {
+            const contador = await contarReinspeccionesVencidas();
+            const boton = document.getElementById('botonNotificaciones');
+            if (boton) {
+                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
+            }
+        }
+
+        verificarAcceso().then(() => {
+            document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+                window.location.href = '../../index.html';
+            });
+            contarYMostrarNotificaciones();
+        });
     </script>
 </body>
 </html>
