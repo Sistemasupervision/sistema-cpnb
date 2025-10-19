@@ -5,31 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Galería de Inspección</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- Importar estilos del sistema -->
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        /* (Incluye aquí TODO el CSS de tu geleria.txt, desde body hasta .btn-archivo) */
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
-        body {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
+        /* Estilos específicos para la galería */
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            width: 100%;
             max-width: 900px;
             padding: 40px;
             position: relative;
             overflow: hidden;
             z-index: 10;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .container::before {
             content: '';
@@ -48,7 +34,7 @@
             width: 100px;
             height: 100px;
             object-fit: contain;
-            margin: 0 auto 15px;
+            margin: 0 auto;
             display: block;
         }
         .title {
@@ -65,7 +51,52 @@
             font-weight: bold;
             margin-bottom: 20px;
         }
-        /* ... (incluye el resto del CSS: .galeria-container, .foto-card, etc.) ... */
+        .input-group {
+            margin-bottom: 16px;
+        }
+        .input-group label {
+            display: block;
+            color: #2d3748;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            background-color: #f8fafc;
+        }
+        .form-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .form-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 20px;
+            display: block;
+            width: 100%;
+        }
         .galeria-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -111,7 +142,14 @@
             font-weight: bold;
             color: #2d3748;
         }
-        .no-fotos, .loading {
+        .no-fotos {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            padding: 40px;
+            grid-column: span 3;
+        }
+        .loading {
             text-align: center;
             color: #4a5568;
             font-size: 18px;
@@ -139,7 +177,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -167,11 +205,26 @@
             font-size: 12px;
             cursor: pointer;
         }
-        .btn-foto { background: #3182ce; color: white; }
-        .btn-archivo { background: #805ad5; color: white; margin-top: 6px; }
+        .btn-foto {
+            background: #3182ce;
+            color: white;
+        }
+        .btn-archivo {
+            background: #805ad5;
+            color: white;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -192,7 +245,7 @@
                     <input type="date" id="fechaHasta">
                 </div>
                 <div style="display:flex; align-items:end;">
-                    <button id="aplicarFiltroBtn" class="action-btn" style="padding:12px; font-size:14px; margin:0;">Aplicar Filtro</button>
+                    <button id="aplicarFiltroBtn" class="form-btn" style="padding:12px; font-size:14px; margin:0;">Aplicar Filtro</button>
                 </div>
             </div>
         </div>
@@ -203,10 +256,10 @@
             <div id="controlesPaginacion"></div>
         </div>
 
-        <button id="btnVolver" class="back-btn" style="margin-top: 20px; width: 100%;">← Volver a Selección</button>
+        <button id="btnVolver" class="back-btn" style="margin-top: 20px;">← Volver a Selección</button>
     </div>
 
-    <!-- Modal Zoom -->
+    <!-- Modal de Zoom -->
     <div id="zoomModal">
         <span id="closeZoom">&times;</span>
         <img id="zoomImage" alt="Vista ampliada">
@@ -217,11 +270,74 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === NOMBRES DE ÍTEMS (igual que en tu archivo) ===
+        // === NOMBRES DE ÍTEMS ===
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
-            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad...",
-            // ... (incluye todos los 67 ítems como en tu geleria.txt)
+            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+            dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+            conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+            conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+            conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+            estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+            manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+            plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+            infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+            direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+            oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+            documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+            uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+            practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+            entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+            talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+            conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+            acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+            conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+            instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+            talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+            conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+            cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+            cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+            dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+            practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+            numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+            personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+            servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+            publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+            libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+            libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+            libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+            archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+            libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+            supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+            cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+            bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+            resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+            equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+            equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+            plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+            calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+            plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+            servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+            unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+            areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+            vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+            placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+            vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+            vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+            accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+            necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+            identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+            informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+            supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+            vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+            despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+            supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+            planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+            conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+            registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+            rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+            archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+            informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
 
@@ -238,63 +354,113 @@
         }
 
         document.getElementById('infoDisplay').innerHTML = `
-            CCP: <strong>${decodeURIComponent(ccpNombre)}</strong><br>
-            Estación: <strong>${decodeURIComponent(estacionNombre)}</strong>
+            <strong>CCP:</strong> ${decodeURIComponent(ccpNombre)}<br>
+            <strong>Estación:</strong> ${decodeURIComponent(estacionNombre)}
         `;
 
         let todasLasFotos = [];
         let paginaActual = 1;
         const fotosPorPagina = 12;
 
-        // === CARGAR FOTOS ===
+        // Establecer fecha actual en "Fecha hasta" al cargar
+        document.getElementById('fechaHasta').valueAsDate = new Date();
+
+        // Cargar fotos inicialmente (sin filtro)
         async function cargarFotos(fechaDesde = null, fechaHasta = null) {
             const galeriaContainer = document.getElementById('galeriaContainer');
-            galeriaContainer.innerHTML = '<div class="loading">Cargando galería...</div>';
+            galeriaContainer.innerHTML = '<div class="loading">Cargando fotos...</div>';
             galeriaContainer.style.display = 'grid';
             document.getElementById('filtroFechas').style.display = 'block';
 
             try {
+                // Construir la consulta
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at')
                     .eq('estacion_id', estacionId)
                     .order('created_at', { ascending: false });
 
+                // Aplicar filtros de fecha si existen
                 if (fechaDesde) {
                     const desdeISO = new Date(fechaDesde).toISOString();
                     query = query.gte('created_at', desdeISO);
                 }
                 if (fechaHasta) {
                     const hastaISO = new Date(fechaHasta);
-                    hastaISO.setUTCHours(23, 59, 59, 999);
+                    hastaISO.setUTCHours(23, 59, 59, 999); // Hasta el final del día
                     query = query.lte('created_at', hastaISO.toISOString());
                 }
+
+                console.log('Ejecutando consulta con parámetros:', {
+                    estacionId,
+                    fechaDesde,
+                    fechaHasta
+                });
 
                 const { data: inspecciones, error: inspError } = await query;
                 if (inspError) throw inspError;
 
+                console.log('Inspecciones encontradas:', inspecciones.length);
+
                 todasLasFotos = [];
+
+                // Para cada inspección, obtener sus ítems
                 for (const insp of inspecciones) {
                     const { data: items, error: itemError } = await supabase
                         .from('items_inspeccion')
                         .select('item_nombre, foto1_url, foto2_url, archivo_url')
                         .eq('inspeccion_id', insp.id);
-                    if (itemError) continue;
 
+                    if (itemError) {
+                        console.error('Error al obtener items para inspección ID:', insp.id, itemError);
+                        continue;
+                    }
+
+                    // Formatear fecha y hora
                     const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                     });
 
+                    // Procesar cada item
                     for (const item of items) {
-                        if (item.foto1_url) todasLasFotos.push({ url: item.foto1_url, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
-                        if (item.foto2_url) todasLasFotos.push({ url: item.foto2_url, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
-                        if (!item.foto1_url && !item.foto2_url && item.archivo_url) todasLasFotos.push({ url: null, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
+                        // Agregar foto1 si existe
+                        if (item.foto1_url) {
+                            todasLasFotos.push({
+                                url: item.foto1_url,
+                                item: item.item_nombre,
+                                fechaHora: fechaHora,
+                                archivo_url: item.archivo_url
+                            });
+                        }
+                        // Agregar foto2 si existe
+                        if (item.foto2_url) {
+                            todasLasFotos.push({
+                                url: item.foto2_url,
+                                item: item.item_nombre,
+                                fechaHora: fechaHora,
+                                archivo_url: item.archivo_url
+                            });
+                        }
+                        // Si no hay fotos pero sí hay archivo, agregarlo
+                        if (!item.foto1_url && !item.foto2_url && item.archivo_url) {
+                            todasLasFotos.push({
+                                url: null,
+                                item: item.item_nombre,
+                                fechaHora: fechaHora,
+                                archivo_url: item.archivo_url
+                            });
+                        }
                     }
                 }
 
+                console.log('Total de fotos/archivos encontrados:', todasLasFotos.length);
+
                 if (todasLasFotos.length === 0) {
-                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay fotos o archivos en esta estación.</div>';
+                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay fotos ni archivos en esta estación.</div>';
                     document.getElementById('paginacionContainer').style.display = 'none';
                 } else {
                     paginaActual = 1;
@@ -302,20 +468,175 @@
                     actualizarPaginacion();
                     document.getElementById('paginacionContainer').style.display = 'flex';
                 }
+
             } catch (err) {
-                console.error('Error:', err);
+                console.error('Error al cargar galería:', err);
                 galeriaContainer.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
                 document.getElementById('paginacionContainer').style.display = 'none';
             }
         }
 
-        // === FUNCIONES DE PAGINACIÓN, DESCARGA, ZOOM (igual que en tu archivo) ===
-        // (Incluye aquí las funciones: mostrarPagina, actualizarPaginacion, descargarImagen, descargarArchivo)
+        // Mostrar una página específica
+        function mostrarPagina(pagina) {
+            const galeriaContainer = document.getElementById('galeriaContainer');
+            const inicio = (pagina - 1) * fotosPorPagina;
+            const fin = inicio + fotosPorPagina;
+            const fotosPagina = todasLasFotos.slice(inicio, fin);
 
-        // Inicializar
-        document.getElementById('fechaHasta').valueAsDate = new Date();
-        cargarFotos();
+            galeriaContainer.innerHTML = '';
 
+            // Agrupar fotos por fecha y hora
+            const fotosPorFechaHora = {};
+            fotosPagina.forEach(foto => {
+                if (!fotosPorFechaHora[foto.fechaHora]) {
+                    fotosPorFechaHora[foto.fechaHora] = [];
+                }
+                fotosPorFechaHora[foto.fechaHora].push(foto);
+            });
+
+            // Renderizar cada grupo
+            Object.keys(fotosPorFechaHora).forEach(fechaHora => {
+                const header = document.createElement('div');
+                header.className = 'inspeccion-header';
+                header.textContent = `Inspección del ${fechaHora}`;
+                galeriaContainer.appendChild(header);
+
+                fotosPorFechaHora[fechaHora].forEach(foto => {
+                    const card = document.createElement('div');
+                    card.className = 'foto-card';
+
+                    // Mostrar imagen si existe
+                    if (foto.url) {
+                        const img = document.createElement('img');
+                        img.src = foto.url;
+                        img.alt = foto.item;
+                        img.className = 'foto-item';
+                        card.appendChild(img);
+                        img.addEventListener('click', () => {
+                            document.getElementById('zoomImage').src = foto.url;
+                            document.getElementById('zoomModal').style.display = 'flex';
+                        });
+                    }
+
+                    // Mostrar etiqueta del item
+                    const label = document.createElement('div');
+                    label.className = 'foto-label';
+                    label.textContent = nombres[foto.item] || foto.item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    card.appendChild(label);
+
+                    // Botón para descargar la foto (si existe)
+                    if (foto.url) {
+                        const downloadFotoBtn = document.createElement('button');
+                        downloadFotoBtn.className = 'download-btn btn-foto';
+                        downloadFotoBtn.textContent = '📥 Descargar Foto';
+                        downloadFotoBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            await descargarImagen(foto.url, foto.item);
+                        };
+                        card.appendChild(downloadFotoBtn);
+                    }
+
+                    // Botón para descargar el archivo adjunto (si existe)
+                    if (foto.archivo_url) {
+                        const downloadArchivoBtn = document.createElement('button');
+                        downloadArchivoBtn.className = 'download-btn btn-archivo';
+                        downloadArchivoBtn.textContent = '📎 Descargar Archivo';
+                        downloadArchivoBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            await descargarArchivo(foto.archivo_url, foto.item);
+                        };
+                        card.appendChild(downloadArchivoBtn);
+                    }
+
+                    galeriaContainer.appendChild(card);
+                });
+            });
+        }
+
+        // Actualizar paginación
+        function actualizarPaginacion() {
+            const totalPaginas = Math.ceil(todasLasFotos.length / fotosPorPagina);
+            const controles = document.getElementById('controlesPaginacion');
+            controles.innerHTML = '';
+
+            const btnAnterior = document.createElement('button');
+            btnAnterior.textContent = '← Anterior';
+            btnAnterior.className = 'back-btn';
+            btnAnterior.disabled = paginaActual === 1;
+            btnAnterior.onclick = () => {
+                if (paginaActual > 1) {
+                    paginaActual--;
+                    mostrarPagina(paginaActual);
+                    actualizarPaginacion();
+                }
+            };
+
+            const infoPagina = document.createElement('span');
+            infoPagina.textContent = `Página ${paginaActual} de ${totalPaginas}`;
+            infoPagina.style.margin = '0 15px';
+            infoPagina.style.alignSelf = 'center';
+            infoPagina.style.fontWeight = 'bold';
+            infoPagina.style.color = '#0c2440';
+
+            const btnSiguiente = document.createElement('button');
+            btnSiguiente.textContent = 'Siguiente →';
+            btnSiguiente.className = 'back-btn';
+            btnSiguiente.disabled = paginaActual === totalPaginas;
+            btnSiguiente.onclick = () => {
+                if (paginaActual < totalPaginas) {
+                    paginaActual++;
+                    mostrarPagina(paginaActual);
+                    actualizarPaginacion();
+                }
+            };
+
+            controles.appendChild(btnAnterior);
+            controles.appendChild(infoPagina);
+            controles.appendChild(btnSiguiente);
+        }
+
+        // Descargar imagen
+        async function descargarImagen(url, nombreItem) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Error al obtener la imagen');
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `inspeccion_${nombreItem.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+                console.error('Error al descargar la imagen:', err);
+                alert('⚠️ No se pudo descargar la imagen. Intente de nuevo.');
+            }
+        }
+
+        // Descargar archivo
+        async function descargarArchivo(url, nombreItem) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Error al obtener el archivo');
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                const extension = url.split('.').pop().split('?')[0] || 'bin';
+                link.download = `archivo_${nombreItem.replace(/\s+/g, '_')}.${extension}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+                console.error('Error al descargar el archivo:', err);
+                alert('⚠️ No se pudo descargar el archivo. Intente de nuevo.');
+            }
+        }
+
+        // Eventos
         document.getElementById('aplicarFiltroBtn').addEventListener('click', () => {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -326,17 +647,18 @@
             window.history.back();
         });
 
-        // === FUNCIONES AUXILIARES (copiar de tu geleria.txt) ===
-        async function descargarImagen(url, nombreItem) { /* ... */ }
-        async function descargarArchivo(url, nombreItem) { /* ... */ }
-        function mostrarPagina(pagina) { /* ... */ }
-        function actualizarPaginacion() { /* ... */ }
+        // Iniciar carga
+        cargarFotos();
 
+        // Modal de zoom
         document.getElementById('closeZoom').addEventListener('click', () => {
             document.getElementById('zoomModal').style.display = 'none';
         });
+
         document.getElementById('zoomModal').addEventListener('click', (e) => {
-            if (e.target.id === 'zoomModal') document.getElementById('zoomModal').style.display = 'none';
+            if (e.target.id === 'zoomModal') {
+                document.getElementById('zoomModal').style.display = 'none';
+            }
         });
     </script>
 </body>
