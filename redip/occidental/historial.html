@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Inspecciones - CPNB</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 950px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+        .back-btn,
+        .btn-pdf {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
+        }
+        .btn-pdf {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+        }
+        .back-btn:hover,
+        .btn-pdf:hover {
+            opacity: 0.9;
+        }
+        #inspeccionesList {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .inspeccion-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .inspeccion-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .estacion-info {
+            flex: 1;
+            min-width: 200px;
+        }
+        .inspeccion-estacion {
+            font-size: 19px;
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .estado-indicador {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .estado-rojo { background-color: #e53e3e; }
+        .estado-amarillo { background-color: #d69e2e; }
+        .estado-verde { background-color: #38a169; }
+        .alerta-pendiente {
+            color: #e53e3e;
+            font-weight: bold;
+            font-size: 14px;
+            display: block;
+            margin-top: 4px;
+        }
+        .meta-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .meta-label {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .meta-value {
+            font-size: 15px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+        .cumplimiento-badge {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 15px;
+            display: inline-block;
+            margin-top: 12px;
+        }
+        .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); }
+        .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); }
+        .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); }
+        .botones-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: flex-start;
+        }
+        .ver-btn,
+        .btn-reinspeccion {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+            min-width: 140px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .ver-btn {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            color: white;
+        }
+        .btn-reinspeccion {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+        }
+        .ver-btn:hover,
+        .btn-reinspeccion:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        #detalleModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        .detalle-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detalle-item:last-child {
+            border-bottom: none;
+        }
+        .item-nombre {
+            font-weight: bold;
+            color: #0c2440;
+        }
+        .item-respuesta {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .item-respuesta.si {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .item-respuesta.no {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .item-observacion {
+            margin-top: 6px;
+            font-size: 14px;
+            color: #4a5568;
+            font-style: italic;
+        }
+        .observaciones-generales {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+        .loading {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            padding: 30px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .pagination button {
+            padding: 8px 14px;
+            border: 1px solid #cbd5e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .pagination button.active {
+            background: #0c2440;
+            color: white;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #modalFecha {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content-fecha {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .btn-aceptar {
+            background: #38a169;
+            color: white;
+        }
+        .btn-cancelar {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .meta-info {
+                grid-template-columns: 1fr;
+            }
+            .cumplimiento-badge {
+                margin-top: 16px;
+            }
+            .botones-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .ver-btn,
+            .btn-reinspeccion {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Historial de Inspecciones</h1>
+            <p id="ccpNombreDisplay" style="text-align: center; color: #4a5568; margin-bottom: 15px; font-size: 16px;">
+                Cargando...
+            </p>
+        </div>
+        <button class="back-btn" onclick="volverAIndex()">
+            ← Volver 
+        </button>
+        <button class="btn-pdf" onclick="exportarHistorialAPDF()" style="margin-bottom: 15px;">
+            📄 Exportar Historial a PDF
+        </button>
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaDesde" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Desde:</label>
+                    <input type="date" id="fechaDesde" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaHasta" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Hasta:</label>
+                    <input type="date" id="fechaHasta" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="ccpFilter" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Filtrar por CCP:</label>
+                    <select id="ccpFilter" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                        <option value="">Todos los CCP</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="col">CCPE COL</option>
+                        <option value="lara">CCPE LARA</option>
+                        <option value="falcon">CCPE FALCÓN</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="estacionFilter" style="font-size:14px; color:#2d3748; margin-bottom:6px;">Filtrar por Estación:</label>
+                    <select id="estacionFilter" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-size:15px; background-color:#f8fafc;">
+                        <option value="">Todas las estaciones</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-filtrar" onclick="aplicarFiltro()" style="align-self: flex-start; padding:12px 24px; font-size:16px; background:linear-gradient(135deg, #0c2440 0%, #1a365d 100%); color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">
+                Aplicar Filtros
+            </button>
+        </div>
+        <div id="inspeccionesList">
+            <div class="loading">Cargando historial...</div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+    <div id="detalleModal">
+        <div class="modal-content">
+            <div id="detalleContenido"></div>
+        </div>
+    </div>
+    <div id="modalFecha">
+        <div class="modal-content-fecha">
+            <div class="modal-title">Nueva fecha de reinspección</div>
+            <input type="date" id="nuevaFechaInput" class="modal-input" min="">
+            <div class="modal-buttons">
+                <button class="modal-btn btn-cancelar" onclick="cerrarModalFecha()">Cancelar</button>
+                <button class="modal-btn btn-aceptar" onclick="confirmarNuevaFecha()">Aceptar</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        const ccpNombres = {
+            "metropolitano": "CCP METROPOLITANO",
+            "sur-del-lago": "CCP SUR DEL LAGO",
+            "guajira": "CCP GUAJIRA",
+            "col": "CCPE COL",
+            "lara": "CCPE LARA",
+            "falcon": "CCPE FALCÓN"
+        };
+
+        // === PARÁMETROS DE URL ===
+        const urlParams = new URLSearchParams(window.location.search);
+        const ccpIdDesdeUrl = urlParams.get('ccpId');
+        const ccpNombreDesdeUrl = urlParams.get('ccpNombre');
+
+        const hoy = new Date();
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hoy.getDate() - 30);
+        document.getElementById('fechaHasta').valueAsDate = hoy;
+        document.getElementById('fechaDesde').valueAsDate = hace30Dias;
+        document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+
+        let inspeccionesCache = [];
+        let paginaActual = 1;
+        const registrosPorPagina = 10;
+        let inspeccionIdActual = null;
+
+        // Mostrar nombre del CCP en el encabezado
+        if (ccpNombreDesdeUrl) {
+            document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombreDesdeUrl)}`;
+        } else {
+            document.getElementById('ccpNombreDisplay').style.display = 'none';
+        }
+
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión para acceder a esta página.');
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data) {
+                    alert('Error al verificar sus permisos.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                if (data.redip !== 'occidental' && data.redip !== 'admin') {
+                    alert('⚠️ No tiene permisos para acceder a esta sección.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('Error al verificar sus permisos.');
+                window.location.href = 'index.html';
+            }
+        }
+
+        document.getElementById('ccpFilter').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpFilter').value;
+            const estacionSelect = document.getElementById('estacionFilter');
+            estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
+            if (!ccpId) return;
+            try {
+                const { data: estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre, ccp_id')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.id;
+                    opt.textContent = est.nombre;
+                    estacionSelect.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar estaciones:', error);
+                alert('Error al cargar las estaciones');
+            }
+        });
+
+        async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
+            try {
+                const { data: todasEstaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre, ccp_id');
+                if (estError) throw estError;
+                const estacionMap = {};
+                const ccpEstaciones = {};
+                todasEstaciones.forEach(est => {
+                    estacionMap[est.id] = { nombre: est.nombre, ccp_id: est.ccp_id };
+                    if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
+                    ccpEstaciones[est.ccp_id].push(est.id);
+                });
+
+                let query = supabase
+                    .from('inspecciones')
+                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
+                    .order('created_at', { ascending: false });
+
+                if (fechaDesde && fechaHasta) {
+                    const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
+                    const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
+                    query = query
+                        .gte('created_at', desdeISO)
+                        .lte('created_at', hastaISO + 'T23:59:59.999Z');
+                }
+
+                let idsPermitidos = null;
+                if (estacionId) {
+                    idsPermitidos = [parseInt(estacionId)];
+                } else if (ccpId) {
+                    idsPermitidos = ccpEstaciones[ccpId] || [];
+                }
+
+                if (idsPermitidos !== null) {
+                    if (idsPermitidos.length === 0) {
+                        document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay estaciones para ese CCP.</div>';
+                        inspeccionesCache = [];
+                        renderizarPaginacion();
+                        return;
+                    }
+                    query = query.in('estacion_id', idsPermitidos);
+                }
+
+                const { data: inspecciones, error } = await query;
+                if (error) throw error;
+
+                const idsInspecciones = inspecciones.map(i => i.id);
+                let itemsPorInspeccion = {};
+                if (idsInspecciones.length > 0) {
+                    const { data: items, error: itemsError } = await supabase
+                        .from('items_inspeccion')
+                        .select('inspeccion_id, cumple')
+                        .in('inspeccion_id', idsInspecciones);
+                    if (!itemsError && items) {
+                        items.forEach(item => {
+                            if (!itemsPorInspeccion[item.inspeccion_id]) {
+                                itemsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
+                            }
+                            itemsPorInspeccion[item.inspeccion_id].total++;
+                            if (item.cumple) itemsPorInspeccion[item.inspeccion_id].cumplidos++;
+                        });
+                    }
+                }
+
+                inspeccionesCache = inspecciones.map(insp => {
+                    const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
+                    const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+                    return {
+                        ...insp,
+                        estacion_nombre: estacionMap[insp.estacion_id]?.nombre || 'Estación no encontrada',
+                        ccp_id: estacionMap[insp.estacion_id]?.ccp_id || 'desconocido',
+                        porcentaje_cumplimiento: porcentaje
+                    };
+                });
+
+                paginaActual = 1;
+                renderizarLista();
+                renderizarPaginacion();
+            } catch (error) {
+                console.error('Error al cargar historial:', error);
+                document.getElementById('inspeccionesList').innerHTML = 
+                    `<div style="text-align:center; color:red; padding:30px;">Error: ${error.message || 'No se pudo cargar el historial.'}</div>`;
+                inspeccionesCache = [];
+                renderizarPaginacion();
+            }
+        }
+
+        function renderizarLista() {
+            const inicio = (paginaActual - 1) * registrosPorPagina;
+            const fin = inicio + registrosPorPagina;
+            const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
+            const contenedor = document.getElementById('inspeccionesList');
+            if (!inspeccionesCache || inspeccionesCache.length === 0) {
+                contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
+                return;
+            }
+            contenedor.innerHTML = '';
+            inspeccionesPagina.forEach(insp => {
+                const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                let estadoClase = 'estado-verde';
+                let alertaHTML = '';
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                if (insp.proxima_inspeccion) {
+                    const fechaProxima = new Date(insp.proxima_inspeccion);
+                    fechaProxima.setHours(0, 0, 0, 0);
+                    const diffDias = Math.ceil((fechaProxima - hoy) / (1000 * 60 * 60 * 24));
+                    if (fechaProxima <= hoy) {
+                        estadoClase = 'estado-rojo';
+                        alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
+                    } else if (diffDias <= 7) {
+                        estadoClase = 'estado-amarillo';
+                    }
+                }
+
+                let claseCumplimiento = 'cumplimiento-bajo';
+                if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
+                else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
+
+                let botonesHTML = `
+                    <div class="botones-container">
+                        <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
+                `;
+                if (estadoClase === 'estado-rojo') {
+                    botonesHTML += `
+                        <button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">
+                            ✅ Marcar como reinspeccionada
+                        </button>
+                    `;
+                }
+                botonesHTML += `</div>`;
+
+                const card = document.createElement('div');
+                card.className = 'inspeccion-card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="estacion-info">
+                            <div class="inspeccion-estacion">
+                                ${insp.estacion_nombre}
+                                <span class="estado-indicador ${estadoClase}"></span>
+                            </div>
+                            ${alertaHTML}
+                        </div>
+                        <div class="cumplimiento-badge ${claseCumplimiento}">
+                            ${insp.porcentaje_cumplimiento}% cumplimiento
+                        </div>
+                    </div>
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <span class="meta-label">Fecha y Hora</span>
+                            <span class="meta-value">${fechaInspeccion}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Inspector</span>
+                            <span class="meta-value">${insp.inspector_email}</span>
+                        </div>
+                    </div>
+                    ${botonesHTML}
+                `;
+                contenedor.appendChild(card);
+            });
+        }
+
+        function renderizarPaginacion() {
+            const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
+            const paginacionDiv = document.getElementById('pagination');
+            paginacionDiv.innerHTML = '';
+            if (totalPaginas <= 1) return;
+            const maxVisible = 5;
+            let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
+            let end = Math.min(totalPaginas, start + maxVisible - 1);
+            if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '«';
+            prevBtn.disabled = paginaActual === 1;
+            prevBtn.onclick = () => {
+                if (paginaActual > 1) {
+                    paginaActual--;
+                    renderizarLista();
+                    renderizarPaginacion();
+                }
+            };
+            paginacionDiv.appendChild(prevBtn);
+            for (let i = start; i <= end; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = i === paginaActual ? 'active' : '';
+                btn.onclick = () => {
+                    paginaActual = i;
+                    renderizarLista();
+                    renderizarPaginacion();
+                };
+                paginacionDiv.appendChild(btn);
+            }
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '»';
+            nextBtn.disabled = paginaActual === totalPaginas;
+            nextBtn.onclick = () => {
+                if (paginaActual < totalPaginas) {
+                    paginaActual++;
+                    renderizarLista();
+                    renderizarPaginacion();
+                }
+            };
+            paginacionDiv.appendChild(nextBtn);
+        }
+
+        function aplicarFiltro() {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            const ccpId = document.getElementById('ccpFilter').value;
+            const estacionId = document.getElementById('estacionFilter').value;
+            if (desde && hasta && new Date(desde) > new Date(hasta)) {
+                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".');
+                return;
+            }
+            cargarHistorial(desde, hasta, ccpId, estacionId);
+        }
+
+        async function mostrarDetalle(inspeccionId) {
+            inspeccionIdActual = inspeccionId;
+            try {
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+                    .eq('inspeccion_id', inspeccionId)
+                    .order('item_nombre', { ascending: true });
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
+                    .eq('id', inspeccionId)
+                    .single();
+                if (itemsError || inspError) throw itemsError || inspError;
+
+                let nombreEstacion = 'Estación no disponible';
+                const { data: estacionData, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('nombre')
+                    .eq('id', inspeccion.estacion_id)
+                    .single();
+                if (!estError && estacionData) {
+                    nombreEstacion = estacionData.nombre;
+                }
+
+                const nombresAmigables = {
+                    nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
+                    acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+                    dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+                    conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+                    conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+                    conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+                    estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+                    manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+                    plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+                    infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+                    direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+                    oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+                    documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+                    uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+                    practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+                    entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+                    talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+                    conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+                    acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+                    conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+                    instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+                    talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+                    conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+                    cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+                    cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+                    dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+                    practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+                    numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+                    personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+                    servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+                    publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+                    libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+                    libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+                    libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+                    archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+                    libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+                    supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+                    cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+                    bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+                    resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+                    equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+                    equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+                    plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+                    calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+                    plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+                    servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+                    unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+                    areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+                    vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+                    placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+                    vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+                    vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+                    accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+                    necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+                    identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+                    informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+                    supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+                    vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+                    despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+                    supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+                    planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+                    conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+                    registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+                    rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+                    archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+                    informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
+                    estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
+                };
+
+                let fechaFormateada = 'Fecha no disponible';
+                if (inspeccion.created_at) {
+                    const fechaObj = new Date(inspeccion.created_at);
+                    if (!isNaN(fechaObj.getTime())) {
+                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="exportarInspeccionAPDF()" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
+                            <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
+                        </div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const itemsArray = Array.isArray(items) ? items : [];
+                if (itemsArray.length > 0) {
+                    html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
+                    itemsArray.forEach(item => {
+                        const nombre = nombresAmigables[item.item_nombre] || item.item_nombre.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        const clase = item.cumple ? 'si' : 'no';
+                        const texto = item.cumple ? 'Sí' : 'No';
+                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+                        html += `
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
+                                    <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
+                                        ${texto}${porcentajeTexto}
+                                    </span>
+                                </div>
+                                ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                                    <strong>Observación:</strong> ${item.observacion}
+                                </div>` : ''}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
+                }
+
+                if (inspeccion.observaciones_generales) {
+                    html += `
+                        <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
+                            <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('detalleContenido').innerHTML = html;
+                document.getElementById('detalleModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Error al cargar detalles:', error);
+                alert('Error al cargar los detalles.');
+            }
+        }
+
+        function cerrarModal() {
+            document.getElementById('detalleModal').style.display = 'none';
+        }
+
+        document.getElementById('detalleModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detalleModal') cerrarModal();
+        });
+
+        async function exportarInspeccionAPDF() {
+            const content = document.getElementById('detalleContenido');
+            if (!content || !content.innerHTML.trim()) {
+                alert('No hay contenido para exportar.');
+                return;
+            }
+            if (!inspeccionIdActual) {
+                alert('⚠️ Error: No se ha cargado una inspección válida.');
+                return;
+            }
+            try {
+                const { data: nuevoReporte, error: insertError } = await supabase
+                    .from('reportes')
+                    .insert({ inspeccion_id: inspeccionIdActual })
+                    .select('id, fecha_generacion')
+                    .single();
+                if (insertError) {
+                    console.error('Error al crear reporte:', insertError);
+                    alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
+                    return;
+                }
+
+                const fechaGen = new Date(nuevoReporte.fecha_generacion);
+                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
+                await supabase
+                    .from('reportes')
+                    .update({ numero_reporte: numeroReporte })
+                    .eq('id', nuevoReporte.id);
+
+                const htmlContent = `
+    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+        </div>
+        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación</strong>: Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica</strong>: Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación</strong>: Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
+        </div>
+        ${content.innerHTML}
+        <div style="margin-top: 50px; page-break-inside: avoid;">
+            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+                Firmas de conformidad
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+        </div>
+    </div>
+`;
+
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+
+                const canvas = await html2canvas(printDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+                document.body.removeChild(printDiv);
+                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('❌ Error al generar el reporte.');
+            }
+        }
+
+        function abrirModalFecha(inspeccionId) {
+            inspeccionIdActual = inspeccionId;
+            document.getElementById('modalFecha').style.display = 'flex';
+        }
+
+        function cerrarModalFecha() {
+            document.getElementById('modalFecha').style.display = 'none';
+            document.getElementById('nuevaFechaInput').value = '';
+        }
+
+        async function confirmarNuevaFecha() {
+            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
+            if (!nuevaFecha) {
+                alert("Por favor seleccione una fecha.");
+                return;
+            }
+            try {
+                const { error } = await supabase
+                    .from('inspecciones')
+                    .update({ proxima_inspeccion: nuevaFecha })
+                    .eq('id', inspeccionIdActual);
+                if (error) throw error;
+                alert("✅ Reinspección actualizada correctamente.");
+                cerrarModalFecha();
+                const desde = document.getElementById('fechaDesde').value;
+                const hasta = document.getElementById('fechaHasta').value;
+                const ccpId = document.getElementById('ccpFilter').value;
+                const estacionId = document.getElementById('estacionFilter').value;
+                cargarHistorial(desde || null, hasta || null, ccpId || null, estacionId || null);
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                alert("❌ Error al actualizar la reinspección.");
+            }
+        }
+
+        function volverAIndex() {
+            if (ccpIdDesdeUrl && ccpNombreDesdeUrl) {
+                window.location.href = `index.html?ccpId=${encodeURIComponent(ccpIdDesdeUrl)}&ccpNombre=${encodeURIComponent(ccpNombreDesdeUrl)}`;
+            } else {
+                window.history.back();
+            }
+        }
+
+        // === INICIALIZAR ===
+        verificarAcceso().then(() => {
+            const desde = hace30Dias.toISOString().split('T')[0];
+            const hasta = hoy.toISOString().split('T')[0];
+
+            if (ccpIdDesdeUrl) {
+                document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
+                document.getElementById('ccpFilter').dispatchEvent(new Event('change'));
+                cargarHistorial(desde, hasta, ccpIdDesdeUrl);
+            } else {
+                cargarHistorial(desde, hasta);
+            }
+        });
+    </script>
+</body>
+</html>
