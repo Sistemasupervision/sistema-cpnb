@@ -39,19 +39,33 @@
             border-radius: 8px;
             font-size: 14px;
         }
-        .save-btn {
-            width: 100%;
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .save-btn, .delete-btn {
+            flex: 1;
             padding: 10px;
-            background: linear-gradient(135deg, #0c2440, #1a365d);
-            color: white;
             border: none;
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
-            margin-top: 10px;
+            font-weight: bold;
+        }
+        .save-btn {
+            background: linear-gradient(135deg, #0c2440, #1a365d);
+            color: white;
+        }
+        .delete-btn {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
         }
         .save-btn:hover {
             background: linear-gradient(135deg, #1a365d, #0c2440);
+        }
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #c53030, #9b2c2c);
         }
         #map {
             height: 400px;
@@ -90,9 +104,9 @@
 
         <div class="instructions">
             <strong>Instrucciones:</strong><br>
-            1. Haga clic en una estación de la lista.<br>
-            2. Luego haga clic en el mapa en la ubicación exacta.<br>
-            3. Las coordenadas se asignarán automáticamente.
+            1. Haga clic en una estación.<br>
+            2. Haga clic en el mapa para asignar coordenadas.<br>
+            3. Use "Eliminar" si se equivoca.
         </div>
 
         <!-- Mapa -->
@@ -113,7 +127,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Parámetros de URL
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
@@ -125,16 +138,14 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
 
-        // Inicializar mapa
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
         let estacionActiva = null;
-        let markers = [];
+        let markers = {};
 
-        // Cargar estaciones
         async function cargarEstaciones() {
             try {
                 const { data: estaciones, error } = await supabase
@@ -153,11 +164,6 @@
                     return;
                 }
 
-                // Limpiar marcadores
-                markers.forEach(marker => map.removeLayer(marker));
-                markers = [];
-                const bounds = L.latLngBounds();
-
                 estaciones.forEach(est => {
                     const card = document.createElement('div');
                     card.className = 'estacion-card';
@@ -168,26 +174,23 @@
                             <input type="number" step="any" id="lat-${est.id}" placeholder="Latitud" value="${est.latitud || ''}">
                             <input type="number" step="any" id="lng-${est.id}" placeholder="Longitud" value="${est.longitud || ''}">
                         </div>
-                        <button class="save-btn" data-id="${est.id}">Guardar Coordenadas</button>
+                        <div class="btn-group">
+                            <button class="save-btn" data-id="${est.id}">Guardar</button>
+                            <button class="delete-btn" data-id="${est.id}">Eliminar</button>
+                        </div>
                     `;
                     listDiv.appendChild(card);
 
-                    // Añadir marcador si tiene coordenadas
                     if (est.latitud && est.longitud) {
                         const lat = parseFloat(est.latitud);
                         const lng = parseFloat(est.longitud);
                         if (!isNaN(lat) && !isNaN(lng)) {
                             const marker = L.marker([lat, lng]).addTo(map);
                             marker.bindPopup(est.nombre);
-                            markers.push(marker);
-                            bounds.extend([lat, lng]);
+                            markers[est.id] = marker;
                         }
                     }
                 });
-
-                if (bounds.isValid()) {
-                    map.fitBounds(bounds.pad(0.1));
-                }
 
             } catch (error) {
                 console.error('Error al cargar estaciones:', error);
@@ -195,7 +198,6 @@
             }
         }
 
-        // Evento: seleccionar estación
         document.getElementById('estacionesList').addEventListener('click', (e) => {
             if (e.target.closest('.estacion-card')) {
                 const card = e.target.closest('.estacion-card');
@@ -203,14 +205,18 @@
                 card.classList.add('active');
                 estacionActiva = card.dataset.id;
             }
-            // Guardar coordenadas
+
             if (e.target.classList.contains('save-btn')) {
                 const estacionId = e.target.dataset.id;
                 guardarCoordenadas(estacionId);
             }
+
+            if (e.target.classList.contains('delete-btn')) {
+                const estacionId = e.target.dataset.id;
+                eliminarCoordenadas(estacionId);
+            }
         });
 
-        // Evento: clic en el mapa
         map.on('click', function(e) {
             if (estacionActiva === null) {
                 alert('⚠️ Primero seleccione una estación de la lista.');
@@ -222,17 +228,18 @@
             document.getElementById(`lat-${estacionActiva}`).value = lat.toFixed(6);
             document.getElementById(`lng-${estacionActiva}`).value = lng.toFixed(6);
             
-            // Actualizar marcador
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
+            // Eliminar marcador anterior
+            if (markers[estacionActiva]) {
+                map.removeLayer(markers[estacionActiva]);
+            }
+            // Añadir nuevo marcador
             const newMarker = L.marker([lat, lng]).addTo(map);
             newMarker.bindPopup(document.querySelector(`.estacion-card[data-id="${estacionActiva}"] h4`).textContent);
-            markers.push(newMarker);
+            markers[estacionActiva] = newMarker;
             
-            alert(`✅ Coordenadas asignadas a la estación seleccionada.`);
+            alert(`✅ Coordenadas asignadas.`);
         });
 
-        // Guardar coordenadas
         async function guardarCoordenadas(estacionId) {
             const latInput = document.getElementById(`lat-${estacionId}`);
             const lngInput = document.getElementById(`lng-${estacionId}`);
@@ -252,7 +259,6 @@
                     .eq('id', estacionId);
 
                 if (error) throw error;
-
                 alert('✅ Coordenadas guardadas con éxito.');
             } catch (error) {
                 console.error('Error al guardar:', error);
@@ -260,12 +266,40 @@
             }
         }
 
-        // Botón de volver
+        async function eliminarCoordenadas(estacionId) {
+            if (!confirm('¿Está seguro de que desea eliminar las coordenadas de esta estación?')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('estaciones_policiales')
+                    .update({ latitud: null, longitud: null })
+                    .eq('id', estacionId);
+
+                if (error) throw error;
+
+                // Limpiar campos
+                document.getElementById(`lat-${estacionId}`).value = '';
+                document.getElementById(`lng-${estacionId}`).value = '';
+
+                // Eliminar marcador del mapa
+                if (markers[estacionId]) {
+                    map.removeLayer(markers[estacionId]);
+                    delete markers[estacionId];
+                }
+
+                alert('🗑️ Coordenadas eliminadas con éxito.');
+            } catch (error) {
+                console.error('Error al eliminar:', error);
+                alert('❌ Error al eliminar las coordenadas.');
+            }
+        }
+
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
-        // Iniciar
         cargarEstaciones();
     </script>
 </body>
