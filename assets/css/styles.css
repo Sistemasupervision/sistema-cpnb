@@ -329,3 +329,10 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
+.action-btn.servicios-admin {
+    background: linear-gradient(135deg, #805ad5, #553c9a);
+}
+
+.action-btn.ubicaciones {
+    background: linear-gradient(135deg, #38a169, #2f855a);
+}
