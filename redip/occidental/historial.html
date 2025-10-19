@@ -1279,14 +1279,9 @@
             }
         }
 
-        function volverAIndex() {
-            if (ccpIdDesdeUrl && ccpNombreDesdeUrl) {
-                window.location.href = `index.html?ccpId=${encodeURIComponent(ccpIdDesdeUrl)}&ccpNombre=${encodeURIComponent(ccpNombreDesdeUrl)}`;
-            } else {
-                window.history.back();
-            }
-        }
-
+function volverAIndex() {
+    window.location.href = 'index.html';
+}
         // === FUNCION PARA EXPORTAR TODO EL HISTORIAL A PDF ===
         async function exportarHistorialAPDF() {
             try {
