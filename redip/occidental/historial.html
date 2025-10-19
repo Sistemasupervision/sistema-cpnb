@@ -7,8 +7,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- Tus estilos principales -->
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
+        /* Estilos específicos para esta página */
         .container {
             max-width: 1000px;
             padding: 40px;
@@ -64,21 +66,20 @@
         }
         .actions-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
             gap: 10px;
             margin-bottom: 20px;
+            justify-content: space-between;
         }
         .back-btn,
         .btn-pdf {
-            padding: 8px 16px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 15px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             font-weight: bold;
         }
         .back-btn {
@@ -125,6 +126,12 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
+        }
+        .apply-filters-btn:hover {
+            background: linear-gradient(135deg, #1a365d 0%, #0c2440 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(12, 36, 64, 0.4);
         }
         #inspeccionesList {
             display: flex;
@@ -138,6 +145,13 @@
             border-radius: 16px;
             padding: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .inspeccion-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
         }
         .card-header {
             display: flex;
@@ -198,6 +212,8 @@
             font-weight: 600;
         }
         .cumplimiento-badge {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+            color: white;
             padding: 6px 14px;
             border-radius: 20px;
             font-weight: bold;
@@ -205,9 +221,9 @@
             display: inline-block;
             margin-top: 12px;
         }
-        .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); color: white; }
-        .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); color: white; }
-        .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); color: white; }
+        .cumplimiento-alto { background: linear-gradient(135deg, #38a169, #2f855a); }
+        .cumplimiento-medio { background: linear-gradient(135deg, #d69e2e, #b7791f); }
+        .cumplimiento-bajo { background: linear-gradient(135deg, #e53e3e, #c53030); }
         .botones-container {
             display: flex;
             gap: 12px;
@@ -233,6 +249,11 @@
         .btn-reinspeccion {
             background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
             color: white;
+        }
+        .ver-btn:hover,
+        .btn-reinspeccion:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .loading {
             text-align: center;
@@ -292,6 +313,44 @@
             font-size: 24px;
             cursor: pointer;
             color: #666;
+        }
+        .detalle-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detalle-item:last-child {
+            border-bottom: none;
+        }
+        .item-nombre {
+            font-weight: bold;
+            color: #0c2440;
+        }
+        .item-respuesta {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .item-respuesta.si {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .item-respuesta.no {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .item-observacion {
+            margin-top: 6px;
+            font-size: 14px;
+            color: #4a5568;
+            font-style: italic;
+        }
+        .observaciones-generales {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
         }
         #modalFecha {
             display: none;
@@ -357,9 +416,15 @@
             .filters-grid {
                 grid-template-columns: 1fr;
             }
-            .actions-row {
-                flex-direction: column;
-                align-items: stretch;
+            .inspeccion-card {
+                padding: 16px;
+            }
+            .title {
+                font-size: 22px;
+            }
+            .logo-img {
+                width: 100px;
+                height: 100px;
             }
         }
     </style>
@@ -384,46 +449,50 @@
                 ← Volver
             </button>
             <button class="btn-pdf" onclick="exportarHistorialAPDF()">
-                📄 Exportar a PDF
+                📄 Exportar Historial a PDF
             </button>
         </div>
-        <div class="filters-grid">
-            <div class="filter-group">
-                <label class="filter-label" for="fechaDesde">Desde:</label>
-                <input type="date" id="fechaDesde" class="filter-input">
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaDesde">Desde:</label>
+                    <input type="date" id="fechaDesde" class="filter-input">
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaHasta">Hasta:</label>
+                    <input type="date" id="fechaHasta" class="filter-input">
+                </div>
             </div>
-            <div class="filter-group">
-                <label class="filter-label" for="fechaHasta">Hasta:</label>
-                <input type="date" id="fechaHasta" class="filter-input">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="ccpFilter">Filtrar por CCP:</label>
+                    <select id="ccpFilter" class="filter-select">
+                        <option value="">Todos los CCP</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="col">CCPE COL</option>
+                        <option value="lara">CCPE LARA</option>
+                        <option value="falcon">CCPE FALCÓN</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="estacionFilter">Filtrar por Estación:</label>
+                    <select id="estacionFilter" class="filter-select">
+                        <option value="">Todas las estaciones</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-group">
-                <label class="filter-label" for="ccpFilter">Filtrar por CCP:</label>
-                <select id="ccpFilter" class="filter-select">
-                    <option value="">Todos los CCP</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="estacionFilter">Filtrar por Estación:</label>
-                <select id="estacionFilter" class="filter-select">
-                    <option value="">Todas las estaciones</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="servicioFilter">Filtrar por Servicio:</label>
+            <div class="input-group" style="flex: 1; min-width: 300px;">
+                <label for="servicioFilter">Filtrar por Servicio:</label>
                 <select id="servicioFilter" class="filter-select">
                     <option value="">Todos los servicios</option>
                 </select>
             </div>
+            <button class="apply-filters-btn" onclick="aplicarFiltro()">
+                Aplicar Filtros
+            </button>
         </div>
-        <button class="apply-filters-btn" onclick="aplicarFiltro()">
-            Aplicar Filtros
-        </button>
         <div id="inspeccionesList">
             <div class="loading">Cargando historial...</div>
         </div>
@@ -456,20 +525,25 @@
             "lara": "CCPE LARA",
             "falcon": "CCPE FALCÓN"
         };
+
+        // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpIdDesdeUrl = urlParams.get('ccpId');
         const ccpNombreDesdeUrl = urlParams.get('ccpNombre');
+
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
         document.getElementById('fechaHasta').valueAsDate = hoy;
         document.getElementById('fechaDesde').valueAsDate = hace30Dias;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+
         let inspeccionesCache = [];
         let paginaActual = 1;
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
 
+        // Mostrar nombre del CCP en el encabezado
         if (ccpNombreDesdeUrl) {
             document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombreDesdeUrl)}`;
         } else {
@@ -519,39 +593,40 @@
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-                if (!error && estaciones) {
-                    estaciones.forEach(est => {
-                        const opt = document.createElement('option');
-                        opt.value = est.id;
-                        opt.textContent = est.nombre;
-                        estacionSelect.appendChild(opt);
-                    });
-                }
+                if (error) throw error;
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.id;
+                    opt.textContent = est.nombre;
+                    estacionSelect.appendChild(opt);
+                });
+
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-                if (!servError && servicios) {
-                    servicios.forEach(serv => {
-                        const opt = document.createElement('option');
-                        opt.value = serv.id;
-                        opt.textContent = serv.nombre;
-                        servicioSelect.appendChild(opt);
-                    });
-                }
+                if (servError) throw servError;
+                servicios.forEach(serv => {
+                    const opt = document.createElement('option');
+                    opt.value = serv.id;
+                    opt.textContent = serv.nombre;
+                    servicioSelect.appendChild(opt);
+                });
             } catch (error) {
                 console.error('Error al cargar estaciones o servicios:', error);
-                alert('Error al cargar las opciones.');
+                alert('Error al cargar las estaciones o servicios');
             }
         });
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
+                // Cargar estaciones y servicios
                 const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
                 if (estError) throw estError;
+
                 const { data: todosServicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id');
@@ -567,12 +642,14 @@
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
                     ccpEstaciones[est.ccp_id].push(est.id);
                 });
+
                 todosServicios.forEach(serv => {
                     servicioMap[serv.id] = { nombre: serv.nombre, ccp_id: serv.ccp_id };
                     if (!ccpServicios[serv.ccp_id]) ccpServicios[serv.ccp_id] = [];
                     ccpServicios[serv.ccp_id].push(serv.id);
                 });
 
+                // Consultar inspecciones (estaciones + servicios)
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
@@ -618,6 +695,7 @@
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
 
+                // Cargar ítems por inspección
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -732,6 +810,7 @@
                 }
                 botonesHTML += `</div>`;
 
+                // ✅ Ícono actualizado: documento para servicios
                 const tipoIcono = insp.tipo === 'servicio' ? '📄' : '👮';
                 const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
 
@@ -826,7 +905,7 @@
         }
 
         async function mostrarDetalle(inspeccionId) {
-            inspeccionIdActual = inspeccionId; // ←←← IMPORTANTE
+            inspeccionIdActual = inspeccionId;
             try {
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -1036,26 +1115,70 @@
                 return;
             }
             try {
-                // Generar número de reporte de forma segura
-                const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-                const consecutivo = String(Date.now()).slice(-6);
+                const { data: nuevoReporte, error: insertError } = await supabase
+                    .from('reportes')
+                    .insert({ inspeccion_id: inspeccionIdActual })
+                    .select('id, fecha_generacion')
+                    .single();
+                if (insertError) {
+                    console.error('Error al crear reporte:', insertError);
+                    alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
+                    return;
+                }
+
+                const fechaGen = new Date(nuevoReporte.fecha_generacion);
+                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
                 const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
+                await supabase
+                    .from('reportes')
+                    .update({ numero_reporte: numeroReporte })
+                    .eq('id', nuevoReporte.id);
 
                 const htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <img src="../../assets/img/LOGO-PNB.png" 
+                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
             <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
             <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
             <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
         </div>
         <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
-            La seguridad ciudadana es un pilar fundamental...
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación</strong>: Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica</strong>: Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación</strong>: Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
         </div>
         ${content.innerHTML}
         <div style="margin-top: 50px; page-break-inside: avoid;">
-            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
-            <!-- firmas -->
+            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+                Firmas de conformidad
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la ${tipo === 'servicio' ? 'Unidad' : 'Estación'}</div>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                </div>
+            </div>
         </div>
         <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
             Fecha de generación: ${new Date().toLocaleString('es-ES')}
@@ -1072,8 +1195,7 @@
                 const canvas = await html2canvas(printDiv, {
                     scale: 2,
                     useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff'
+                    logging: false
                 });
 
                 const { jsPDF } = window.jspdf;
@@ -1140,12 +1262,266 @@
         }
 
         function volverAIndex() {
-            window.location.href = 'index.html';
+            if (ccpIdDesdeUrl && ccpNombreDesdeUrl) {
+                window.location.href = `index.html?ccpId=${encodeURIComponent(ccpIdDesdeUrl)}&ccpNombre=${encodeURIComponent(ccpNombreDesdeUrl)}`;
+            } else {
+                window.history.back();
+            }
         }
 
+        // === FUNCION PARA EXPORTAR TODO EL HISTORIAL A PDF ===
+        async function exportarHistorialAPDF() {
+            try {
+                // Primero, obtener todas las inspecciones filtradas
+                const desde = document.getElementById('fechaDesde').value;
+                const hasta = document.getElementById('fechaHasta').value;
+                const ccpId = document.getElementById('ccpFilter').value;
+                const estacionId = document.getElementById('estacionFilter').value;
+                const servicioId = document.getElementById('servicioFilter').value;
+
+                let query = supabase
+                    .from('inspecciones')
+                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
+                    .order('created_at', { ascending: false });
+
+                if (desde && hasta) {
+                    const desdeISO = new Date(desde).toISOString().split('T')[0];
+                    const hastaISO = new Date(hasta).toISOString().split('T')[0];
+                    query = query
+                        .gte('created_at', desdeISO)
+                        .lte('created_at', hastaISO + 'T23:59:59.999Z');
+                }
+
+                if (ccpId) {
+                    const { data: todasEstaciones, error: estError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('id, ccp_id');
+                    if (estError) throw estError;
+                    const { data: todosServicios, error: servError } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id, ccp_id');
+                    if (servError) throw servError;
+
+                    const ccpEstaciones = {};
+                    const ccpServicios = {};
+                    todasEstaciones.forEach(est => {
+                        if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
+                        ccpEstaciones[est.ccp_id].push(est.id);
+                    });
+                    todosServicios.forEach(serv => {
+                        if (!ccpServicios[serv.ccp_id]) ccpServicios[serv.ccp_id] = [];
+                        ccpServicios[serv.ccp_id].push(serv.id);
+                    });
+
+                    const idsEstacionPermitidos = ccpEstaciones[ccpId] || [];
+                    const idsServicioPermitidos = ccpServicios[ccpId] || [];
+
+                    const condiciones = [];
+                    if (idsEstacionPermitidos.length > 0) {
+                        condiciones.push(`estacion_id.in.(${idsEstacionPermitidos.join(',')})`);
+                    }
+                    if (idsServicioPermitidos.length > 0) {
+                        condiciones.push(`servicio_id.in.(${idsServicioPermitidos.join(',')})`);
+                    }
+                    if (condiciones.length > 0) {
+                        query = query.or(condiciones.join(','));
+                    }
+                }
+
+                if (estacionId) {
+                    query = query.eq('estacion_id', estacionId);
+                } else if (servicioId) {
+                    query = query.eq('servicio_id', servicioId);
+                }
+
+                const { data: inspecciones, error } = await query;
+                if (error) throw error;
+
+                if (inspecciones.length === 0) {
+                    alert('No hay inspecciones para exportar con los filtros actuales.');
+                    return;
+                }
+
+                // Obtener datos de estaciones y servicios
+                const { data: todasEstaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre, ccp_id');
+                if (estError) throw estError;
+                const { data: todosServicios, error: servError } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre, ccp_id');
+                if (servError) throw servError;
+
+                const estacionMap = {};
+                const servicioMap = {};
+                todasEstaciones.forEach(est => {
+                    estacionMap[est.id] = { nombre: est.nombre, ccp_id: est.ccp_id };
+                });
+                todosServicios.forEach(serv => {
+                    servicioMap[serv.id] = { nombre: serv.nombre, ccp_id: serv.ccp_id };
+                });
+
+                // Obtener ítems por inspección
+                const idsInspecciones = inspecciones.map(i => i.id);
+                let itemsPorInspeccion = {};
+                if (idsInspecciones.length > 0) {
+                    const { data: items, error: itemsError } = await supabase
+                        .from('items_inspeccion')
+                        .select('inspeccion_id, cumple')
+                        .in('inspeccion_id', idsInspecciones);
+                    if (!itemsError && items) {
+                        items.forEach(item => {
+                            if (!itemsPorInspeccion[item.inspeccion_id]) {
+                                itemsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
+                            }
+                            itemsPorInspeccion[item.inspeccion_id].total++;
+                            if (item.cumple) itemsPorInspeccion[item.inspeccion_id].cumplidos++;
+                        });
+                    }
+                }
+
+                // Construir el HTML del PDF
+                let htmlContent = `
+    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="../../assets/img/LOGO-PNB.png" 
+                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
+            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">Fechas: ${desde} - ${hasta}</p>
+            ${ccpId ? `<p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">CCP: ${ccpNombres[ccpId]}</p>` : ''}
+        </div>
+        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación</strong>: Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica</strong>: Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación</strong>: Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
+        </div>
+        <div style="margin-top: 30px; font-size: 14px; line-height: 1.6; color: #2d3748;">
+            <h2 style="color: #0c2440; margin-bottom: 15px;">Resumen de Inspecciones</h2>
+            <p>Se muestran ${inspecciones.length} inspecciones filtradas.</p>
+        </div>
+    `;
+
+                // Agregar cada inspección
+                inspecciones.forEach(insp => {
+                    let nombreEntidad = 'Entidad no encontrada';
+                    let tipo = 'desconocido';
+                    if (insp.estacion_id) {
+                        const est = estacionMap[insp.estacion_id];
+                        if (est) {
+                            nombreEntidad = est.nombre;
+                            tipo = 'estacion';
+                        }
+                    } else if (insp.servicio_id) {
+                        const serv = servicioMap[insp.servicio_id];
+                        if (serv) {
+                            nombreEntidad = serv.nombre;
+                            tipo = 'servicio';
+                        }
+                    }
+
+                    const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
+                    const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+
+                    let estadoClase = 'estado-verde';
+                    let alertaHTML = '';
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    if (insp.proxima_inspeccion) {
+                        const fechaProxima = new Date(insp.proxima_inspeccion);
+                        fechaProxima.setHours(0, 0, 0, 0);
+                        const diffDias = Math.ceil((fechaProxima - hoy) / (1000 * 60 * 60 * 24));
+                        if (fechaProxima <= hoy) {
+                            estadoClase = 'estado-rojo';
+                            alertaHTML = '<span style="color: #e53e3e; font-weight: bold; font-size: 12px; margin-left: 5px;">⚠️ Pendiente</span>';
+                        } else if (diffDias <= 7) {
+                            estadoClase = 'estado-amarillo';
+                        }
+                    }
+
+                    const tipoIcono = tipo === 'servicio' ? '📄' : '👮';
+                    const tipoTexto = tipo === 'servicio' ? 'Servicio' : 'Estación';
+
+                    htmlContent += `
+        <div style="margin-top: 20px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <strong style="color: #0c2440; font-size: 16px;">${tipoIcono} ${tipoTexto}: ${nombreEntidad}</strong>
+                    <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${estadoClase === 'estado-rojo' ? '#e53e3e' : estadoClase === 'estado-amarillo' ? '#d69e2e' : '#38a169'};"></span>
+                    ${alertaHTML}
+                </div>
+                <div style="font-size: 14px; color: #2d3748;">
+                    <strong>Fecha:</strong> ${new Date(insp.created_at).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </div>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 15px; font-size: 14px; color: #2d3748;">
+                <div><strong>Inspector:</strong> ${insp.inspector_email}</div>
+                <div><strong>Cumplimiento:</strong> ${porcentaje}%</div>
+                <div><strong>Próxima inspección:</strong> ${insp.proxima_inspeccion ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</div>
+            </div>
+            ${insp.observaciones_generales ? `<div style="margin-top: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; font-size: 14px; color: #2d3748; font-style: italic;">
+                <strong>Observaciones Generales:</strong> ${insp.observaciones_generales}
+            </div>` : ''}
+        </div>
+    `;
+                });
+
+                htmlContent += `
+        <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
+            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+        </div>
+    </div>
+`;
+
+                // Generar el PDF
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+
+                const canvas = await html2canvas(printDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`historial_inspecciones_${ccpId || 'todos'}_${desde}_${hasta}.pdf`);
+                document.body.removeChild(printDiv);
+                alert(`✅ Historial exportado con éxito.`);
+            } catch (error) {
+                console.error('Error al exportar historial a PDF:', error);
+                alert('❌ Error al generar el PDF del historial.');
+            }
+        }
+
+        // === INICIALIZAR ===
         verificarAcceso().then(() => {
             const desde = hace30Dias.toISOString().split('T')[0];
             const hasta = hoy.toISOString().split('T')[0];
+
             if (ccpIdDesdeUrl) {
                 document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
                 document.getElementById('ccpFilter').dispatchEvent(new Event('change'));
