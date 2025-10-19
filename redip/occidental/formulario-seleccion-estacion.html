@@ -100,13 +100,12 @@
                 return;
             }
             const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-            // Redirigir al formulario de inspección con todos los parámetros
             window.location.href = `formulario-inspeccion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
         });
 
-        // Evento: Volver a opciones
+        // ✅ CORREGIDO: Volver a opciones
         document.getElementById('btnVolver').addEventListener('click', () => {
-            window.history.back();
+            window.location.href = `index.txt?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
     </script>
 </body>
