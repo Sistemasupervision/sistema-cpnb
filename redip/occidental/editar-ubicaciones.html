@@ -137,7 +137,7 @@
         // Cargar estaciones
         async function cargarEstaciones() {
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, latitud, longitud')
                     .eq('ccp_id', ccpId)
