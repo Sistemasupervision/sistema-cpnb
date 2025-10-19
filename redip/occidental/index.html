@@ -34,10 +34,9 @@
         <button id="btnCrearInspeccion" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🆕 Crear Nueva Inspección
         </button>
-        <!-- Botones existentes -->
-        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-            Ver Historial de Inspecciones
-        </button>
+      <button id="btnHistorial" class="action-btn" style="padding:14px; font-size:16px; width:100%; margin-top:15px;">
+    📋 Historial de Inspecciones
+</button>
         <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Estadísticas
         </button>
@@ -217,6 +216,9 @@
             contarYMostrarNotificaciones();
             manejarParametrosURL(); // ✅ Ejecutar al cargar
         });
+        document.getElementById('btnHistorial').addEventListener('click', () => {
+    window.location.href = `historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+});
     </script>
 </body>
 </html>
