@@ -25,18 +25,13 @@
             justify-content: space-between;
             align-items: center;
         }
-        .ubicacion-card h4 {
-            color: #0c2440;
-            margin: 0 0 6px;
-            font-size: 16px;
-        }
-        .ubicacion-card p {
-            color: #4a5568;
-            margin: 0;
-            font-size: 13px;
-        }
         .tipo-estacion { border-left-color: #3182ce; }
         .tipo-servicio { border-left-color: #805ad5; }
+        .ubicacion-card h4 {
+            color: #0c2440;
+            margin: 0;
+            font-size: 16px;
+        }
         .rutas-btn {
             background: linear-gradient(135deg, #0c2440, #1a365d);
             color: white;
@@ -47,22 +42,12 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .rutas-btn:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
         .lista-titulo {
             margin-top: 30px;
             color: #0c2440;
             font-weight: bold;
             font-size: 18px;
             margin-bottom: 15px;
-        }
-        .no-coords {
-            color: #e53e3e;
-            font-style: italic;
-            font-size: 12px;
         }
     </style>
 </head>
@@ -84,7 +69,7 @@
             Cargando...
         </p>
 
-        <!-- Mapa -->
+        <!-- Mapa (opcional, puedes mantenerlo o quitarlo) -->
         <div id="map"></div>
 
         <!-- Botón de edición -->
@@ -93,7 +78,7 @@
         </button>
 
         <!-- Lista de estaciones y servicios -->
-        <h3 class="lista-titulo">Estaciones y Servicios del CCP</h3>
+        <h3 class="lista-titulo">Estaciones y Servicios</h3>
         <div id="listaEntidades"></div>
 
         <button id="btnVolver" class="back-btn" style="margin-top: 20px; padding: 10px 20px;">
@@ -101,7 +86,7 @@
         </button>
     </div>
 
-    <!-- Leaflet JS -->
+    <!-- Leaflet JS (solo si usas mapa) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -119,83 +104,56 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
 
-        // Inicializar mapa
+        // Inicializar mapa (opcional)
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        let allMarkers = [];
-
-        // Cargar ubicaciones de la tabla `ubicaciones`
-        async function cargarUbicaciones() {
+        // Cargar ubicaciones de la tabla `ubicaciones` (solo para el mapa)
+        async function cargarUbicacionesMapa() {
             try {
                 const { data: ubicaciones, error } = await supabase
                     .from('ubicaciones')
                     .select('id, nombre, latitud, longitud, tipo')
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-
-                if (error) throw error;
-
-                if (ubicaciones && ubicaciones.length > 0) {
+                    .eq('ccp_id', ccpId);
+                if (!error && ubicaciones) {
                     ubicaciones.forEach(ub => {
                         if (ub.latitud && ub.longitud) {
-                            const marker = L.marker([ub.latitud, ub.longitud]).addTo(map);
-                            marker.bindPopup(`<b>${ub.nombre}</b><br>Tipo: ${ub.tipo || 'N/A'}`);
-                            allMarkers.push(marker);
+                            L.marker([ub.latitud, ub.longitud])
+                                .addTo(map)
+                                .bindPopup(`<b>${ub.nombre}</b><br>Tipo: ${ub.tipo || 'N/A'}`);
                         }
                     });
-                    const group = new L.featureGroup(allMarkers);
-                    map.fitBounds(group.getBounds().pad(0.1));
                 }
-            } catch (error) {
-                console.error('Error al cargar ubicaciones:', error);
+            } catch (err) {
+                console.warn('No se pudieron cargar ubicaciones para el mapa.');
             }
         }
 
-        // Cargar estaciones y servicios
+        // Cargar estaciones y servicios para la lista
         async function cargarEntidades() {
             const listaDiv = document.getElementById('listaEntidades');
-            listaDiv.innerHTML = '<div class="loading">Cargando estaciones y servicios...</div>';
+            listaDiv.innerHTML = '<div style="text-align:center; color:#4a5568;">Cargando...</div>';
 
             try {
-                // Cargar estaciones
-                const { data: estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre, latitud, longitud')
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
+                const [estacionesRes, serviciosRes] = await Promise.all([
+                    supabase.from('estaciones_policiales').select('id, nombre').eq('ccp_id', ccpId).order('nombre'),
+                    supabase.from('servicios_administrativos').select('id, nombre').eq('ccp_id', ccpId).order('nombre')
+                ]);
 
-                // Cargar servicios
-                const { data: servicios, error: servError } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre, latitud, longitud')
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-
-                if (estError || servError) {
-                    throw new Error('Error al cargar entidades');
-                }
+                const estaciones = estacionesRes.data || [];
+                const servicios = serviciosRes.data || [];
 
                 let html = '';
 
-                // Estaciones
-                if (estaciones && estaciones.length > 0) {
+                if (estaciones.length > 0) {
                     html += '<h4 style="color:#0c2440; margin:15px 0 10px;">👮 Estaciones Policiales</h4>';
                     estaciones.forEach(est => {
-                        const tieneCoords = est.latitud && est.longitud;
                         html += `
                             <div class="ubicacion-card tipo-estacion">
-                                <div>
-                                    <h4>${est.nombre}</h4>
-                                    ${tieneCoords 
-                                        ? `<p>Lat: ${est.latitud}, Lng: ${est.longitud}</p>`
-                                        : `<p class="no-coords">⚠️ Coordenadas no disponibles</p>`
-                                    }
-                                </div>
-                                <button class="rutas-btn" ${tieneCoords ? '' : 'disabled'} 
-                                        onclick="abrirRuta(${est.latitud}, ${est.longitud})">
+                                <h4>${est.nombre}</h4>
+                                <button class="rutas-btn" onclick="abrirRutaManual('${est.id}', 'estacion')">
                                     Rutas
                                 </button>
                             </div>
@@ -203,22 +161,13 @@
                     });
                 }
 
-                // Servicios
-                if (servicios && servicios.length > 0) {
+                if (servicios.length > 0) {
                     html += '<h4 style="color:#0c2440; margin:25px 0 10px;">📋 Servicios Administrativos</h4>';
                     servicios.forEach(serv => {
-                        const tieneCoords = serv.latitud && serv.longitud;
                         html += `
                             <div class="ubicacion-card tipo-servicio">
-                                <div>
-                                    <h4>${serv.nombre}</h4>
-                                    ${tieneCoords 
-                                        ? `<p>Lat: ${serv.latitud}, Lng: ${serv.longitud}</p>`
-                                        : `<p class="no-coords">⚠️ Coordenadas no disponibles</p>`
-                                    }
-                                </div>
-                                <button class="rutas-btn" ${tieneCoords ? '' : 'disabled'} 
-                                        onclick="abrirRuta(${serv.latitud}, ${serv.longitud})">
+                                <h4>${serv.nombre}</h4>
+                                <button class="rutas-btn" onclick="abrirRutaManual('${serv.id}', 'servicio')">
                                     Rutas
                                 </button>
                             </div>
@@ -226,21 +175,29 @@
                     });
                 }
 
-                if (!estaciones?.length && !servicios?.length) {
-                    html = '<p style="text-align:center; color:#666;">No hay estaciones ni servicios registrados para este CCP.</p>';
+                if (estaciones.length === 0 && servicios.length === 0) {
+                    html = '<p style="text-align:center; color:#666;">No hay estaciones ni servicios registrados.</p>';
                 }
 
                 listaDiv.innerHTML = html;
             } catch (error) {
                 console.error('Error al cargar entidades:', error);
-                listaDiv.innerHTML = '<p style="color:#e53e3e;">❌ Error al cargar estaciones y servicios.</p>';
+                listaDiv.innerHTML = '<p style="color:#e53e3e; text-align:center;">❌ Error al cargar datos.</p>';
             }
         }
 
-        // Función para abrir ruta en Google Maps
-        function abrirRuta(lat, lng) {
-            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-            window.open(url, '_blank');
+        // ✅ FUNCIÓN QUE PUEDES MODIFICAR DESPUÉS
+        function abrirRutaManual(id, tipo) {
+            // Aquí puedes:
+            // 1. Consultar un enlace desde la BD, o
+            // 2. Usar un mapeo fijo, o
+            // 3. Mostrar un mensaje temporal (como ahora)
+
+            alert(`🚧 Enlace de "Rutas" no configurado aún para este ítem.\nID: ${id}\nTipo: ${tipo}`);
+            
+            // Ejemplo futuro (cuando tengas enlaces en la BD):
+            // const enlace = obtenerEnlaceDesdeBD(id, tipo);
+            // if (enlace) window.open(enlace, '_blank');
         }
 
         // Eventos
@@ -253,7 +210,7 @@
         });
 
         // Iniciar
-        cargarUbicaciones();
+        cargarUbicacionesMapa();
         cargarEntidades();
     </script>
 </body>
