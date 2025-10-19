@@ -551,21 +551,38 @@
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null) {
             try {
+                // Cargar estaciones y servicios
                 const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
                 if (estError) throw estError;
+
+                const { data: todosServicios, error: servError } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre, ccp_id');
+                if (servError) throw servError;
+
                 const estacionMap = {};
+                const servicioMap = {};
                 const ccpEstaciones = {};
+                const ccpServicios = {};
+
                 todasEstaciones.forEach(est => {
                     estacionMap[est.id] = { nombre: est.nombre, ccp_id: est.ccp_id };
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
                     ccpEstaciones[est.ccp_id].push(est.id);
                 });
 
+                todosServicios.forEach(serv => {
+                    servicioMap[serv.id] = { nombre: serv.nombre, ccp_id: serv.ccp_id };
+                    if (!ccpServicios[serv.ccp_id]) ccpServicios[serv.ccp_id] = [];
+                    ccpServicios[serv.ccp_id].push(serv.id);
+                });
+
+                // Consultar inspecciones (estaciones + servicios)
                 let query = supabase
                     .from('inspecciones')
-                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, proxima_inspeccion')
+                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
 
                 if (fechaDesde && fechaHasta) {
@@ -576,26 +593,38 @@
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
 
-                let idsPermitidos = null;
+                let idsEstacionPermitidos = null;
+                let idsServicioPermitidos = null;
+
                 if (estacionId) {
-                    idsPermitidos = [parseInt(estacionId)];
+                    idsEstacionPermitidos = [parseInt(estacionId)];
                 } else if (ccpId) {
-                    idsPermitidos = ccpEstaciones[ccpId] || [];
+                    idsEstacionPermitidos = ccpEstaciones[ccpId] || [];
+                    idsServicioPermitidos = ccpServicios[ccpId] || [];
                 }
 
-                if (idsPermitidos !== null) {
-                    if (idsPermitidos.length === 0) {
-                        document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay estaciones para ese CCP.</div>';
+                // Aplicar filtros
+                if (idsEstacionPermitidos !== null || idsServicioPermitidos !== null) {
+                    const condiciones = [];
+                    if (idsEstacionPermitidos && idsEstacionPermitidos.length > 0) {
+                        condiciones.push(`estacion_id.in.(${idsEstacionPermitidos.join(',')})`);
+                    }
+                    if (idsServicioPermitidos && idsServicioPermitidos.length > 0) {
+                        condiciones.push(`servicio_id.in.(${idsServicioPermitidos.join(',')})`);
+                    }
+                    if (condiciones.length === 0) {
+                        document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones para ese CCP.</div>';
                         inspeccionesCache = [];
                         renderizarPaginacion();
                         return;
                     }
-                    query = query.in('estacion_id', idsPermitidos);
+                    query = query.or(condiciones.join(','));
                 }
 
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
 
+                // Cargar ítems por inspección
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -614,13 +643,36 @@
                     }
                 }
 
+                // Construir lista con tipo
                 inspeccionesCache = inspecciones.map(insp => {
+                    let nombreEntidad = 'Entidad no encontrada';
+                    let tipo = 'desconocido';
+                    let ccp_id = 'desconocido';
+
+                    if (insp.estacion_id) {
+                        const est = estacionMap[insp.estacion_id];
+                        if (est) {
+                            nombreEntidad = est.nombre;
+                            tipo = 'estacion';
+                            ccp_id = est.ccp_id;
+                        }
+                    } else if (insp.servicio_id) {
+                        const serv = servicioMap[insp.servicio_id];
+                        if (serv) {
+                            nombreEntidad = serv.nombre;
+                            tipo = 'servicio';
+                            ccp_id = serv.ccp_id;
+                        }
+                    }
+
                     const stats = itemsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
                     const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+
                     return {
                         ...insp,
-                        estacion_nombre: estacionMap[insp.estacion_id]?.nombre || 'Estación no encontrada',
-                        ccp_id: estacionMap[insp.estacion_id]?.ccp_id || 'desconocido',
+                        nombre_entidad: nombreEntidad,
+                        tipo: tipo,
+                        ccp_id: ccp_id,
                         porcentaje_cumplimiento: porcentaje
                     };
                 });
@@ -688,13 +740,16 @@
                 }
                 botonesHTML += `</div>`;
 
+                const tipoIcono = insp.tipo === 'servicio' ? '🛠️' : '👮';
+                const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
+
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
                 card.innerHTML = `
                     <div class="card-header">
                         <div class="estacion-info">
                             <div class="inspeccion-estacion">
-                                ${insp.estacion_nombre}
+                                ${tipoIcono} ${tipoTexto}: <strong>${insp.nombre_entidad}</strong>
                                 <span class="estado-indicador ${estadoClase}"></span>
                             </div>
                             ${alertaHTML}
@@ -787,19 +842,33 @@
                     .order('item_nombre', { ascending: true });
                 const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
-                    .select('created_at, observaciones_generales, estacion_id, proxima_inspeccion')
+                    .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
                     .single();
                 if (itemsError || inspError) throw itemsError || inspError;
 
-                let nombreEstacion = 'Estación no disponible';
-                const { data: estacionData, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('nombre')
-                    .eq('id', inspeccion.estacion_id)
-                    .single();
-                if (!estError && estacionData) {
-                    nombreEstacion = estacionData.nombre;
+                let nombreEntidad = 'Entidad no disponible';
+                let tipo = 'desconocido';
+                if (inspeccion.estacion_id) {
+                    const { data: estacionData, error: estError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('nombre')
+                        .eq('id', inspeccion.estacion_id)
+                        .single();
+                    if (!estError && estacionData) {
+                        nombreEntidad = estacionData.nombre;
+                        tipo = 'estacion';
+                    }
+                } else if (inspeccion.servicio_id) {
+                    const { data: servicioData, error: servError } = await supabase
+                        .from('servicios_administrativos')
+                        .select('nombre')
+                        .eq('id', inspeccion.servicio_id)
+                        .single();
+                    if (!servError && servicioData) {
+                        nombreEntidad = servicioData.nombre;
+                        tipo = 'servicio';
+                    }
                 }
 
                 const nombresAmigables = {
@@ -897,8 +966,8 @@
                     <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
                         <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                             <div style="flex: 1; min-width: 200px;">
-                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Estación:</strong>
-                                <span style="font-size: 16px; color: #2d3748;">${nombreEstacion}</span>
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">${tipo === 'servicio' ? 'Servicio' : 'Estación'}:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${nombreEntidad}</span>
                             </div>
                             <div style="flex: 1; min-width: 200px;">
                                 <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
@@ -1025,7 +1094,7 @@
                 </div>
                 <div style="text-align: center;">
                     <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la Estación Policial</div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la ${tipo === 'servicio' ? 'Unidad' : 'Estación'}</div>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
