@@ -99,8 +99,9 @@
             window.location.href = `formulario-servicio.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}`;
         });
 
-        document.getElementById('btnVolver').addEventListener('click', () => {
-            window.history.back();
+      document.getElementById('btnVolver').addEventListener('click', () => {
+    window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+});
         });
     </script>
 </body>
