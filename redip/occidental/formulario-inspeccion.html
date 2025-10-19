@@ -330,7 +330,7 @@
                 }
 
                 const proximaFecha = document.getElementById('proximaInspeccion').value || null;
-                const { data: inspeccionData, error: inspError } = await supabase
+                const {  inspeccionData, error: inspError } = await supabase
                     .from('inspecciones')
                     .insert({
                         estacion_id: estacionId,
@@ -424,7 +424,7 @@
 
                 if (itemsError) {
                     console.error('Error al guardar ítems:', itemsError);
-                    alert('Error al guardar los ítems.');
+                    alert('Error al guardar los ítems. Detalle: ' + (itemsError.message || ''));
                 } else {
                     alert('✅ Inspección guardada con éxito.');
                     window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
