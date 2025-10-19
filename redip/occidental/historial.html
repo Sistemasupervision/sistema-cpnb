@@ -449,7 +449,8 @@
     </div>
     <div class="container">
         <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <!-- ✅ CORRECCIÓN DEL LOGO: USANDO RUTA RELATIVA -->
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Historial de Inspecciones</h1>
             <p class="ccp-info" id="ccpNombreDisplay">Cargando...</p>
         </div>
@@ -461,43 +462,47 @@
                 📄 Exportar Historial a PDF
             </button>
         </div>
-        <div class="filters-grid">
-            <div class="filter-group">
-                <label class="filter-label" for="fechaDesde">Desde:</label>
-                <input type="date" id="fechaDesde" class="filter-input">
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px;">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaDesde">Desde:</label>
+                    <input type="date" id="fechaDesde" class="filter-input">
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 180px;">
+                    <label for="fechaHasta">Hasta:</label>
+                    <input type="date" id="fechaHasta" class="filter-input">
+                </div>
             </div>
-            <div class="filter-group">
-                <label class="filter-label" for="fechaHasta">Hasta:</label>
-                <input type="date" id="fechaHasta" class="filter-input">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="ccpFilter">Filtrar por CCP:</label>
+                    <select id="ccpFilter" class="filter-select">
+                        <option value="">Todos los CCP</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="col">CCPE COL</option>
+                        <option value="lara">CCPE LARA</option>
+                        <option value="falcon">CCPE FALCÓN</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 300px;">
+                    <label for="estacionFilter">Filtrar por Estación:</label>
+                    <select id="estacionFilter" class="filter-select">
+                        <option value="">Todas las estaciones</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-group">
-                <label class="filter-label" for="ccpFilter">Filtrar por CCP:</label>
-                <select id="ccpFilter" class="filter-select">
-                    <option value="">Todos los CCP</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="estacionFilter">Filtrar por Estación:</label>
-                <select id="estacionFilter" class="filter-select">
-                    <option value="">Todas las estaciones</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="servicioFilter">Filtrar por Servicio:</label>
+            <div class="input-group" style="flex: 1; min-width: 300px;">
+                <label for="servicioFilter">Filtrar por Servicio:</label>
                 <select id="servicioFilter" class="filter-select">
                     <option value="">Todos los servicios</option>
                 </select>
             </div>
+            <button class="apply-filters-btn" onclick="aplicarFiltro()">
+                Aplicar Filtros
+            </button>
         </div>
-        <button class="apply-filters-btn" onclick="aplicarFiltro()">
-            Aplicar Filtros
-        </button>
         <div id="inspeccionesList">
             <div class="loading">Cargando historial...</div>
         </div>
@@ -626,6 +631,7 @@
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
+                // Cargar estaciones y servicios
                 const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
@@ -653,6 +659,7 @@
                     ccpServicios[serv.ccp_id].push(serv.id);
                 });
 
+                // Consultar inspecciones (estaciones + servicios)
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
@@ -698,6 +705,7 @@
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
 
+                // Cargar ítems por inspección
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -1141,7 +1149,7 @@
                 const htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+            <img src="../../assets/img/LOGO-PNB.png" 
                  alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
             <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
             <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
@@ -1386,7 +1394,7 @@
                 let htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
+            <img src="../../assets/img/LOGO-PNB.png" 
                  alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
             <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
             <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
