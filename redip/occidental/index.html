@@ -163,9 +163,9 @@
             document.getElementById('btnServiciosAdmin').onclick = () => {
                 alert('Próximamente disponible');
             };
-            document.getElementById('btnUbicaciones').onclick = () => {
-                alert('Próximamente disponible');
-            };
+        document.getElementById('btnUbicaciones').onclick = () => {
+    window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+};
             document.getElementById('backToCcpBtn').onclick = () => {
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
                 dynamicView.style.display = 'none';
