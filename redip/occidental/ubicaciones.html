@@ -56,6 +56,11 @@
         <!-- Mapa de OpenStreetMap -->
         <div id="map"></div>
 
+        <!-- ✅ Botón de edición (nuevo) -->
+        <button id="btnEditarUbicaciones" class="action-btn" style="margin-top: 20px; padding: 14px; font-size: 16px;">
+            🗺️ Editar Ubicaciones
+        </button>
+
         <!-- Listado de ubicaciones (modo móvil) -->
         <div id="listaUbicaciones" style="margin-top: 20px; display: none;"></div>
 
@@ -92,7 +97,7 @@
         // Cargar estaciones desde Supabase
         async function cargarEstaciones() {
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, latitud, longitud')
                     .eq('ccp_id', ccpId)
@@ -139,6 +144,11 @@
                 document.getElementById('ccpNombreDisplay').innerHTML = `CCP: ${ccpNombre} <br><em style="color:#e53e3e;">❌ Error al cargar ubicaciones.</em>`;
             }
         }
+
+        // ✅ Botón de edición
+        document.getElementById('btnEditarUbicaciones').addEventListener('click', () => {
+            window.location.href = `editar-ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+        });
 
         // Botón de volver
         document.getElementById('btnVolver').addEventListener('click', () => {
