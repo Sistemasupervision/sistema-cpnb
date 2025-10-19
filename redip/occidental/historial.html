@@ -1104,39 +1104,56 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        async function exportarInspeccionAPDF() {
-            const content = document.getElementById('detalleContenido');
-            if (!content || !content.innerHTML.trim()) {
-                alert('No hay contenido para exportar.');
-                return;
-            }
-            if (!inspeccionIdActual) {
-                alert('⚠️ Error: No se ha cargado una inspección válida.');
-                return;
-            }
-            try {
-                const { data: nuevoReporte, error: insertError } = await supabase
-                    .from('reportes')
-                    .insert({ inspeccion_id: inspeccionIdActual })
-                    .select('id, fecha_generacion')
-                    .single();
-                if (insertError) {
-                    console.error('Error al crear reporte:', insertError);
-                    alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
-                    return;
-                }
+       async function exportarInspeccionAPDF() {
+    const content = document.getElementById('detalleContenido');
+    if (!content || !content.innerHTML.trim()) {
+        alert('No hay contenido para exportar.');
+        return;
+    }
+    if (!inspeccionIdActual) {
+        alert('⚠️ Error: No se ha cargado una inspección válida.');
+        return;
+    }
+    try {
+        // Obtener los datos de la inspección para determinar si es "estacion" o "servicio"
+        const { data: inspeccion, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('estacion_id, servicio_id')
+            .eq('id', inspeccionIdActual)
+            .single();
+        if (inspError) throw inspError;
 
-                const fechaGen = new Date(nuevoReporte.fecha_generacion);
-                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
-                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
-                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+        let tipo = 'desconocido';
+        if (inspeccion.estacion_id) {
+            tipo = 'estacion';
+        } else if (inspeccion.servicio_id) {
+            tipo = 'servicio';
+        }
 
-                await supabase
-                    .from('reportes')
-                    .update({ numero_reporte: numeroReporte })
-                    .eq('id', nuevoReporte.id);
+        // Crear el reporte en la base de datos
+        const { data: nuevoReporte, error: insertError } = await supabase
+            .from('reportes')
+            .insert({ inspeccion_id: inspeccionIdActual })
+            .select('id, fecha_generacion')
+            .single();
+        if (insertError) {
+            console.error('Error al crear reporte:', insertError);
+            alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
+            return;
+        }
 
-                const htmlContent = `
+        const fechaGen = new Date(nuevoReporte.fecha_generacion);
+        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+        const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+        const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
+        await supabase
+            .from('reportes')
+            .update({ numero_reporte: numeroReporte })
+            .eq('id', nuevoReporte.id);
+
+        // Construir el HTML del PDF
+        const htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
             <img src="../../assets/img/LOGO-PNB.png" 
@@ -1186,44 +1203,45 @@
     </div>
 `;
 
-                const printDiv = document.createElement('div');
-                printDiv.innerHTML = htmlContent;
-                document.body.appendChild(printDiv);
-                printDiv.style.position = 'fixed';
-                printDiv.style.left = '-9999px';
+        // Generar el PDF
+        const printDiv = document.createElement('div');
+        printDiv.innerHTML = htmlContent;
+        document.body.appendChild(printDiv);
+        printDiv.style.position = 'fixed';
+        printDiv.style.left = '-9999px';
 
-                const canvas = await html2canvas(printDiv, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
-                });
+        const canvas = await html2canvas(printDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        });
 
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
 
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-
-                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
-                document.body.removeChild(printDiv);
-                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('❌ Error al generar el reporte.');
-            }
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
         }
+
+        pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+        document.body.removeChild(printDiv);
+        alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('❌ Error al generar el reporte.');
+    }
+}
 
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
