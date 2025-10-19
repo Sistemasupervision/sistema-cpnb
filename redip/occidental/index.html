@@ -216,17 +216,8 @@
             contarYMostrarNotificaciones();
             manejarParametrosURL(); // ✅ Ejecutar al cargar
         });
-    document.getElementById('btnHistorial').addEventListener('click', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const ccpId = urlParams.get('ccpId');
-    const ccpNombre = urlParams.get('ccpNombre');
-
-    if (!ccpId || !ccpNombre) {
-        alert('⚠️ No se encontraron datos del CCP. Por favor, regrese al menú principal.');
-        return;
-    }
-
-    window.location.href = `historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+ document.getElementById('btnHistorial').addEventListener('click', () => {
+    window.location.href = 'seleccion-ccp-historial.html';
 });
     </script>
 </body>
