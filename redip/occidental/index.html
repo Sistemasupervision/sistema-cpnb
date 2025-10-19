@@ -48,10 +48,13 @@
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
     <!-- Modal para seleccionar CCP -->
-    <div id="modalSeleccionCCP" class="container" style="display:none; max-width: 500px; padding: 40px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 20px; overflow: hidden;">
-        <h1 class="title" style="margin-bottom: 20px; text-align: center;">Crear Nueva Inspección</h1>
-        <div class="input-group" style="margin-bottom: 25px;">
-            <label for="ccpSelectModal" style="display: block; color: #2d3748; margin-bottom: 8px; font-weight: 600; font-size: 14px;">Seleccione CCP:</label>
+    <div id="modalSeleccionCCP" class="container" style="display:none; max-width: 600px; padding: 50px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 20px; overflow: hidden;">
+        <div class="logo-container">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Crear Nueva Inspección</h1>
+        </div>
+        <div class="input-group">
+            <label for="ccpSelectModal">Seleccione CCP:</label>
             <select id="ccpSelectModal" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
                 <option value="">-- Elija un CCP --</option>
             </select>
@@ -70,6 +73,7 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -92,6 +96,7 @@
                 window.location.href = '../../index.html';
             }
         }
+
         async function cargarCCPs() {
             try {
                 const { data: ccps, error } = await supabase
@@ -112,13 +117,16 @@
                 alert('Error al cargar los CCPs.');
             }
         }
+
         document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'block';
             cargarCCPs();
         });
+
         document.getElementById('btnCancelarCCP').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'none';
         });
+
         document.getElementById('btnContinuarCCP').addEventListener('click', () => {
             const ccpId = document.getElementById('ccpSelectModal').value;
             if (!ccpId) {
@@ -129,6 +137,7 @@
             document.getElementById('modalSeleccionCCP').style.display = 'none';
             mostrarOpcionesCCP(ccpId, ccpNombre);
         });
+
         function mostrarOpcionesCCP(ccpId, ccpNombre) {
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = `
@@ -140,10 +149,10 @@
                     <button id="btnEstaciones" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 18px;">
                         🏢 Estaciones Policiales
                     </button>
-                    <button id="btnServiciosAdmin" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #805ad5, #553c9a);">
+                    <button id="btnServiciosAdmin" class="form-btn servicios-admin" style="padding:16px; font-size:18px; width: 100%;">
                         📋 Servicios Administrativos
                     </button>
-                    <button id="btnUbicaciones" class="form-btn" style="padding:16px; font-size:18px; background: linear-gradient(135deg, #38a169, #2f855a);">
+                    <button id="btnUbicaciones" class="form-btn ubicaciones" style="padding:16px; font-size:18px; width: 100%;">
                         📍 Ubicaciones
                     </button>
                     <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
@@ -151,22 +160,27 @@
             `;
             document.getElementById('rediOccidentalContainer').style.display = 'none';
             dynamicView.style.display = 'block';
+
             document.getElementById('btnEstaciones').onclick = () => {
                 window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             };
+
             document.getElementById('btnServiciosAdmin').onclick = () => {
                 alert('Próximamente disponible');
                 // window.location.href = 'servicios-administrativos.html';
             };
+
             document.getElementById('btnUbicaciones').onclick = () => {
                 alert('Próximamente disponible');
                 // window.location.href = 'ubicaciones.html';
             };
+
             document.getElementById('backToCcpBtn').onclick = () => {
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
                 dynamicView.style.display = 'none';
             };
         }
+
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
@@ -190,6 +204,7 @@
                 return 0;
             }
         }
+
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
@@ -197,6 +212,7 @@
                 boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
             }
         }
+
         verificarAcceso().then(() => {
             document.getElementById('backToDashboardBtn').addEventListener('click', () => {
                 window.location.href = '../../index.html';
