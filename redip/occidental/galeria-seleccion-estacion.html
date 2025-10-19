@@ -102,12 +102,9 @@
             }
         });
 
-        // Habilitar botón al seleccionar estación
         document.getElementById('estacionSelect').addEventListener('change', () => {
             document.getElementById('btnCargarGaleria').disabled = !document.getElementById('estacionSelect').value;
         });
-
-        // Redirigir a galería con parámetros
         document.getElementById('btnCargarGaleria').addEventListener('click', () => {
             const ccpId = document.getElementById('ccpSelect').value;
             const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
@@ -122,12 +119,10 @@
             window.location.href = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
         });
 
-        // Volver al menú principal
+
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
-
-        // Inicializar
         cargarCCPs();
     </script>
 </body>
