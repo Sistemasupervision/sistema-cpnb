@@ -1115,126 +1115,329 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-        async function exportarInspeccionAPDF() {
-            const content = document.getElementById('detalleContenido');
-            if (!content || !content.innerHTML.trim()) {
-                alert('No hay contenido para exportar.');
-                return;
+      async function exportarInspeccionAPDF() {
+    // Validaciones básicas
+    const content = document.getElementById('detalleContenido');
+    if (!content || !content.innerHTML.trim()) {
+        alert('No hay contenido para exportar.');
+        return;
+    }
+    if (!inspeccionIdActual) {
+        alert('⚠️ Error: No se ha cargado una inspección válida.');
+        return;
+    }
+
+    try {
+        // 1. Obtener los datos de la inspección
+        const { data: inspeccion, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
+            .eq('id', inspeccionIdActual)
+            .single();
+        if (inspError) throw inspError;
+
+        // 2. Obtener los ítems
+        const { data: items, error: itemsError } = await supabase
+            .from('items_inspeccion')
+            .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+            .eq('inspeccion_id', inspeccionIdActual)
+            .order('item_nombre', { ascending: true });
+        if (itemsError) throw itemsError;
+
+        // 3. Obtener nombre de la entidad (estación o servicio)
+        let nombreEntidad = 'Entidad no disponible';
+        let tipo = 'desconocido';
+        if (inspeccion.estacion_id) {
+            const { data: estacionData, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('nombre')
+                .eq('id', inspeccion.estacion_id)
+                .single();
+            if (!estError && estacionData) {
+                nombreEntidad = estacionData.nombre;
+                tipo = 'estacion';
             }
-            if (!inspeccionIdActual) {
-                alert('⚠️ Error: No se ha cargado una inspección válida.');
-                return;
-            }
-            try {
-                const { data: nuevoReporte, error: insertError } = await supabase
-                    .from('reportes')
-                    .insert({ inspeccion_id: inspeccionIdActual })
-                    .select('id, fecha_generacion')
-                    .single();
-                if (insertError) {
-                    console.error('Error al crear reporte:', insertError);
-                    alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
-                    return;
-                }
-
-                const fechaGen = new Date(nuevoReporte.fecha_generacion);
-                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
-                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
-                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
-
-                await supabase
-                    .from('reportes')
-                    .update({ numero_reporte: numeroReporte })
-                    .eq('id', nuevoReporte.id);
-
-                const htmlContent = `
-    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="../../assets/img/LOGO-PNB.png" 
-                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
-        </div>
-        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
-            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
-            La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
-            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
-            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación</strong>: Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
-            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica</strong>: Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
-            3. <strong>Vértice 11: Geopolítica de la Transformación</strong>: Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
-            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
-        </div>
-        ${content.innerHTML}
-        <div style="margin-top: 50px; page-break-inside: avoid;">
-            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
-                Firmas de conformidad
-            </h3>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
-                <div style="text-align: center;">
-                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la ${tipo === 'servicio' ? 'Unidad' : 'Estación'}</div>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
-                <div style="text-align: center;">
-                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
-                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
-                </div>
-            </div>
-        </div>
-        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-            Fecha de generación: ${new Date().toLocaleString('es-ES')}
-        </div>
-    </div>
-`;
-
-                const printDiv = document.createElement('div');
-                printDiv.innerHTML = htmlContent;
-                document.body.appendChild(printDiv);
-                printDiv.style.position = 'fixed';
-                printDiv.style.left = '-9999px';
-
-                const canvas = await html2canvas(printDiv, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false
-                });
-
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-
-                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
-                document.body.removeChild(printDiv);
-                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('❌ Error al generar el reporte.');
+        } else if (inspeccion.servicio_id) {
+            const { data: servicioData, error: servError } = await supabase
+                .from('servicios_administrativos')
+                .select('nombre')
+                .eq('id', inspeccion.servicio_id)
+                .single();
+            if (!servError && servicioData) {
+                nombreEntidad = servicioData.nombre;
+                tipo = 'servicio';
             }
         }
+
+        // 4. Definir nombres amigables
+        const nombresAmigables = {
+            nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
+            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+            dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+            conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+            conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+            conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+            estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+            manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+            plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+            infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+            direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+            oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+            documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+            uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+            practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+            entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+            talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+            conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+            acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+            conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+            instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+            talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+            conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+            cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+            cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+            dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+            practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+            numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+            personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+            servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+            publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+            libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+            libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+            libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+            archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+            libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+            supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+            cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+            bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+            resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+            equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+            equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+            plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+            calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+            plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+            servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+            unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+            areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+            vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+            placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+            vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+            vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+            accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+            necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+            identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+            informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+            supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+            vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+            despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+            supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+            planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+            conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+            registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+            rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+            archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+            informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
+            estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
+        };
+
+        // 5. Formatear fecha
+        let fechaFormateada = 'Fecha no disponible';
+        if (inspeccion.created_at) {
+            const fechaObj = new Date(inspeccion.created_at);
+            if (!isNaN(fechaObj.getTime())) {
+                fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        }
+
+        // 6. Generar el HTML simplificado para el PDF
+        let htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Inspección</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+            color: #2d3748;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 15px;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 10px;
+            display: block;
+        }
+        h1 {
+            color: #0c2440;
+            font-size: 22px;
+            margin: 10px 0;
+        }
+        p {
+            margin: 5px 0;
+        }
+        .info-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #3182ce;
+        }
+        .info-title {
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 5px;
+        }
+        .item {
+            background: white;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .item-title {
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 5px;
+        }
+        .item-status {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .status-si {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .status-no {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .observacion {
+            font-style: italic;
+            color: #4a5568;
+            margin-top: 5px;
+            padding: 5px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo">
+        <h1>REPORTE DE INSPECCIÓN</h1>
+        <p>Cuerpo de Policía Nacional Bolivariana</p>
+        <p><strong>N° de Reporte:</strong> ${numeroReporte}</p>
+    </div>
+
+    <div class="info-box">
+        <div class="info-title">Información General</div>
+        <p><strong>${tipo === 'servicio' ? 'Servicio' : 'Estación'}:</strong> ${nombreEntidad}</p>
+        <p><strong>Fecha de inspección:</strong> ${fechaFormateada}</p>
+        <p><strong>Próxima inspección programada:</strong> ${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</p>
+    </div>
+
+    <div class="info-box">
+        <div class="info-title">Ítems Inspeccionados</div>
+        ${items.map(item => {
+            const nombre = nombresAmigables[item.item_nombre] || item.item_nombre.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const clase = item.cumple ? 'status-si' : 'status-no';
+            const texto = item.cumple ? 'Sí' : 'No';
+            const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+            return `
+            <div class="item">
+                <div class="item-title">${nombre}</div>
+                <span class="item-status ${clase}">${texto}${porcentajeTexto}</span>
+                ${item.observacion ? `<div class="observacion"><strong>Observación:</strong> ${item.observacion}</div>` : ''}
+            </div>
+            `;
+        }).join('')}
+    </div>
+
+    ${inspeccion.observaciones_generales ? `
+    <div class="info-box">
+        <div class="info-title">Observaciones Generales</div>
+        <p>${inspeccion.observaciones_generales}</p>
+    </div>
+    ` : ''}
+
+    <div class="footer">
+        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+    </div>
+</body>
+</html>
+`;
+
+        // 7. Crear un contenedor temporal para el PDF
+        const printDiv = document.createElement('div');
+        printDiv.innerHTML = htmlContent;
+        document.body.appendChild(printDiv);
+        printDiv.style.position = 'fixed';
+        printDiv.style.left = '-9999px';
+
+        // 8. Usar html2canvas para convertir a imagen
+        const canvas = await html2canvas(printDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        });
+
+        // 9. Generar el PDF
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 297;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        // 10. Guardar el PDF
+        pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+        document.body.removeChild(printDiv);
+
+        // 11. Mostrar éxito
+        alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('❌ Error al generar el reporte.');
+    }
+}
 
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
