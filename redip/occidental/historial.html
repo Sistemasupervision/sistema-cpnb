@@ -1115,7 +1115,7 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
 
-      async function exportarInspeccionAPDF() {
+    async function exportarInspeccionAPDF() {
     // Validaciones básicas
     const content = document.getElementById('detalleContenido');
     if (!content || !content.innerHTML.trim()) {
@@ -1255,7 +1255,13 @@
             }
         }
 
-        // 6. Generar el HTML simplificado para el PDF
+        // 6. Generar el número de reporte
+        const fechaGen = new Date(); // Usa la fecha actual para el reporte
+        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+        const consecutivo = String(Date.now()).slice(-6); // Usa los últimos 6 dígitos del timestamp para evitar colisiones
+        const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
+        // 7. Crear el contenido HTML del PDF
         let htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
@@ -1392,14 +1398,14 @@
 </html>
 `;
 
-        // 7. Crear un contenedor temporal para el PDF
+        // 8. Crear un contenedor temporal para el PDF
         const printDiv = document.createElement('div');
         printDiv.innerHTML = htmlContent;
         document.body.appendChild(printDiv);
         printDiv.style.position = 'fixed';
         printDiv.style.left = '-9999px';
 
-        // 8. Usar html2canvas para convertir a imagen
+        // 9. Usar html2canvas para convertir a imagen
         const canvas = await html2canvas(printDiv, {
             scale: 2,
             useCORS: true,
@@ -1407,7 +1413,7 @@
             backgroundColor: '#ffffff'
         });
 
-        // 9. Generar el PDF
+        // 10. Generar el PDF
         const { jsPDF } = window.jspdf;
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -1426,11 +1432,11 @@
             heightLeft -= pageHeight;
         }
 
-        // 10. Guardar el PDF
+        // 11. Guardar el PDF
         pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
         document.body.removeChild(printDiv);
 
-        // 11. Mostrar éxito
+        // 12. Mostrar éxito
         alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
 
     } catch (error) {
