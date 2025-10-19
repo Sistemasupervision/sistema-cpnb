@@ -160,8 +160,8 @@
             document.getElementById('btnEstaciones').onclick = () => {
                 window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             };
-            document.getElementById('btnServiciosAdmin').onclick = () => {
-                alert('Próximamente disponible');
+           document.getElementById('btnServiciosAdmin').onclick = () => {
+    window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             };
         document.getElementById('btnUbicaciones').onclick = () => {
     window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
