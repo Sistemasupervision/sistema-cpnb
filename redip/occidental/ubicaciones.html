@@ -56,7 +56,7 @@
         <!-- Mapa de OpenStreetMap -->
         <div id="map"></div>
 
-        <!-- ✅ Botón de edición (nuevo) -->
+        <!-- ✅ Botón de edición -->
         <button id="btnEditarUbicaciones" class="action-btn" style="margin-top: 20px; padding: 14px; font-size: 16px;">
             🗺️ Editar Ubicaciones
         </button>
@@ -94,46 +94,84 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Cargar estaciones desde Supabase
+        // ✅ Función mejorada para cargar y mostrar estaciones
         async function cargarEstaciones() {
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, latitud, longitud')
                     .eq('ccp_id', ccpId)
-                    .not('latitud', 'is', null)
-                    .not('longitud', 'is', null)
                     .order('nombre', { ascending: true });
 
                 if (error) throw error;
 
+                // Limpiar marcadores anteriores (por si se recarga)
+                if (window.markers) {
+                    window.markers.forEach(marker => map.removeLayer(marker));
+                }
+                window.markers = [];
+
+                const listaDiv = document.getElementById('listaUbicaciones');
+                listaDiv.innerHTML = '';
+                let hayCoordenadasValidas = false;
+
                 if (!estaciones || estaciones.length === 0) {
-                    document.getElementById('ccpNombreDisplay').innerHTML = `CCP: ${ccpNombre} <br><em style="color:#e53e3e;">⚠️ No hay estaciones con coordenadas registradas.</em>`;
+                    document.getElementById('ccpNombreDisplay').innerHTML = `CCP: ${ccpNombre} <br><em style="color:#e53e3e;">⚠️ No hay estaciones registradas.</em>`;
                     return;
                 }
 
                 const bounds = L.latLngBounds();
-                const listaDiv = document.getElementById('listaUbicaciones');
 
                 estaciones.forEach(est => {
+                    // ✅ Convertir a número y validar
                     const lat = parseFloat(est.latitud);
                     const lng = parseFloat(est.longitud);
-                    const marker = L.marker([lat, lng]).addTo(map);
-                    marker.bindPopup(`<b>${est.nombre}</b><br>Lat: ${lat}<br>Lng: ${lng}`);
 
-                    bounds.extend([lat, lng]);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        hayCoordenadasValidas = true;
 
-                    // Lista para móviles
-                    const card = document.createElement('div');
-                    card.className = 'ubicacion-card';
-                    card.innerHTML = `
-                        <h4>${est.nombre}</h4>
-                        <p>Lat: ${lat}, Lng: ${lng}</p>
-                    `;
-                    listaDiv.appendChild(card);
+                        // ✅ Crear marcador con ícono de policía
+                        const marker = L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: `<div style="
+                                    background: #1a365d;
+                                    color: white;
+                                    width: 32px;
+                                    height: 32px;
+                                    border-radius: 50%;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-weight: bold;
+                                    font-size: 16px;
+                                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                                ">👮</div>`,
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 16]
+                            })
+                        }).addTo(map);
+
+                        marker.bindPopup(`<b>${est.nombre}</b><br>Lat: ${lat}<br>Lng: ${lng}`);
+                        window.markers.push(marker);
+                        bounds.extend([lat, lng]);
+
+                        // Lista para móviles
+                        const card = document.createElement('div');
+                        card.className = 'ubicacion-card';
+                        card.innerHTML = `
+                            <h4>${est.nombre}</h4>
+                            <p>Lat: ${lat}, Lng: ${lng}</p>
+                        `;
+                        listaDiv.appendChild(card);
+                    }
                 });
 
-                map.fitBounds(bounds.pad(0.1));
+                if (hayCoordenadasValidas) {
+                    map.fitBounds(bounds.pad(0.1));
+                } else {
+                    document.getElementById('ccpNombreDisplay').innerHTML = `CCP: ${ccpNombre} <br><em style="color:#e53e3e;">⚠️ No hay estaciones con coordenadas válidas.</em>`;
+                }
 
                 if (window.innerWidth < 768) {
                     listaDiv.style.display = 'block';
