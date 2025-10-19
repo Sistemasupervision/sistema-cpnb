@@ -6,6 +6,14 @@
     <title>REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
+    <style>
+        .action-btn.servicios-admin {
+            background: linear-gradient(135deg, #805ad5, #553c9a);
+        }
+        .action-btn.ubicaciones {
+            background: linear-gradient(135deg, #38a169, #2f855a);
+        }
+    </style>
 </head>
 <body>
     <div class="vector-bg">
@@ -90,23 +98,6 @@
                 window.location.href = '../../index.html';
             }
         }
-        function manejarParametrosURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const ccpId = urlParams.get('ccpId');
-    const ccpNombre = urlParams.get('ccpNombre');
-    if (ccpId && ccpNombre) {
-        document.getElementById('rediOccidentalContainer').style.display = 'none';
-        mostrarOpcionesCCP(ccpId, ccpNombre);
-    }
-}
-
-verificarAcceso().then(() => {
-    document.getElementById('backToDashboardBtn').addEventListener('click', () => {
-        window.location.href = '../../index.html';
-    });
-    contarYMostrarNotificaciones();
-    manejarParametrosURL(); // ← Esta línea es clave
-});
         async function cargarCCPs() {
             try {
                 const { data: ccps, error } = await supabase
@@ -171,16 +162,23 @@ verificarAcceso().then(() => {
             };
             document.getElementById('btnServiciosAdmin').onclick = () => {
                 alert('Próximamente disponible');
-                // window.location.href = 'servicios-administrativos.html';
             };
             document.getElementById('btnUbicaciones').onclick = () => {
                 alert('Próximamente disponible');
-                // window.location.href = 'ubicaciones.html';
             };
             document.getElementById('backToCcpBtn').onclick = () => {
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
                 dynamicView.style.display = 'none';
             };
+        }
+        // ✅ NUEVO: Manejar parámetros de URL para volver a opciones
+        function manejarParametrosURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ccpId = urlParams.get('ccpId');
+            const ccpNombre = urlParams.get('ccpNombre');
+            if (ccpId && ccpNombre) {
+                mostrarOpcionesCCP(ccpId, ccpNombre);
+            }
         }
         async function contarReinspeccionesVencidas() {
             try {
@@ -217,6 +215,7 @@ verificarAcceso().then(() => {
                 window.location.href = '../../index.html';
             });
             contarYMostrarNotificaciones();
+            manejarParametrosURL(); // ✅ Ejecutar al cargar
         });
     </script>
 </body>
