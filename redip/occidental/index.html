@@ -90,6 +90,23 @@
                 window.location.href = '../../index.html';
             }
         }
+        function manejarParametrosURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ccpId = urlParams.get('ccpId');
+    const ccpNombre = urlParams.get('ccpNombre');
+    if (ccpId && ccpNombre) {
+        document.getElementById('rediOccidentalContainer').style.display = 'none';
+        mostrarOpcionesCCP(ccpId, ccpNombre);
+    }
+}
+
+verificarAcceso().then(() => {
+    document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+        window.location.href = '../../index.html';
+    });
+    contarYMostrarNotificaciones();
+    manejarParametrosURL(); // ← Esta línea es clave
+});
         async function cargarCCPs() {
             try {
                 const { data: ccps, error } = await supabase
