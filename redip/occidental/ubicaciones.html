@@ -14,6 +14,7 @@
             border-radius: 12px;
             margin-top: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
         }
         .ubicacion-card {
             background: #f8fafc;
@@ -25,11 +26,12 @@
         .ubicacion-card h4 {
             color: #0c2440;
             margin: 0 0 6px;
+            font-size: 15px;
         }
         .ubicacion-card p {
             color: #4a5568;
             margin: 0;
-            font-size: 14px;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -45,19 +47,17 @@
     <div id="container" class="container" style="max-width: 1000px; padding: 40px;">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Ubicaciones - REDIP OCCIDENTAL</h1>
+            <h1 class="title">Ubicaciones de Estaciones Policiales</h1>
         </div>
         <p id="ccpNombreDisplay" style="text-align: center; color: #4a5568; margin-bottom: 20px; font-size: 16px;">
             Cargando...
         </p>
 
-        <!-- Lista de ubicaciones (modo móvil o fallback) -->
-        <div id="listaUbicaciones" style="margin-top: 20px; display: none;">
-            <h3 style="color: #0c2440; margin-bottom: 15px;">Listado de Ubicaciones</h3>
-        </div>
-
-        <!-- Mapa -->
+        <!-- Mapa de OpenStreetMap -->
         <div id="map"></div>
+
+        <!-- Listado de ubicaciones (modo móvil) -->
+        <div id="listaUbicaciones" style="margin-top: 20px; display: none;"></div>
 
         <button id="btnVolver" class="back-btn" style="margin-top: 20px; padding: 10px 20px;">
             ← Volver a Opciones
@@ -83,56 +83,59 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
 
-        // Inicializar mapa (centrado en Venezuela)
+        // Inicializar mapa centrado en Venezuela
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Cargar ubicaciones desde Supabase
-        async function cargarUbicaciones() {
+        // Cargar estaciones desde Supabase
+        async function cargarEstaciones() {
             try {
-                const { data: ubicaciones, error } = await supabase
-                    .from('ubicaciones')
-                    .select('id, nombre, latitud, longitud, tipo')
+                const { data: estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre, latitud, longitud')
                     .eq('ccp_id', ccpId)
+                    .not('latitud', 'is', null)
+                    .not('longitud', 'is', null)
                     .order('nombre', { ascending: true });
 
                 if (error) throw error;
 
-                if (!ubicaciones || ubicaciones.length === 0) {
-                    document.getElementById('ccpNombreDisplay').innerHTML = `CCP: ${ccpNombre} <br><em style="color:#e53e3e;">⚠️ No hay ubicaciones registradas.</em>`;
+                if (!estaciones || estaciones.length === 0) {
+                    document.getElementById('ccpNombreDisplay').innerHTML = `CCP: ${ccpNombre} <br><em style="color:#e53e3e;">⚠️ No hay estaciones con coordenadas registradas.</em>`;
                     return;
                 }
 
+                const bounds = L.latLngBounds();
                 const listaDiv = document.getElementById('listaUbicaciones');
-                ubicaciones.forEach(ub => {
-                    // Añadir marcador al mapa
-                    const marker = L.marker([ub.latitud, ub.longitud]).addTo(map);
-                    marker.bindPopup(`<b>${ub.nombre}</b><br>Tipo: ${ub.tipo || 'N/A'}`);
 
-                    // Añadir a la lista (para móviles o fallback)
+                estaciones.forEach(est => {
+                    const lat = parseFloat(est.latitud);
+                    const lng = parseFloat(est.longitud);
+                    const marker = L.marker([lat, lng]).addTo(map);
+                    marker.bindPopup(`<b>${est.nombre}</b><br>Lat: ${lat}<br>Lng: ${lng}`);
+
+                    bounds.extend([lat, lng]);
+
+                    // Lista para móviles
                     const card = document.createElement('div');
                     card.className = 'ubicacion-card';
                     card.innerHTML = `
-                        <h4>${ub.nombre}</h4>
-                        <p>Lat: ${ub.latitud}, Lng: ${ub.longitud}</p>
-                        <p>Tipo: ${ub.tipo || 'N/A'}</p>
+                        <h4>${est.nombre}</h4>
+                        <p>Lat: ${lat}, Lng: ${lng}</p>
                     `;
                     listaDiv.appendChild(card);
                 });
 
-                // Ajustar vista del mapa a los marcadores
-                const group = new L.featureGroup(ubicaciones.map(ub => L.marker([ub.latitud, ub.longitud])));
-                map.fitBounds(group.getBounds().pad(0.1));
+                map.fitBounds(bounds.pad(0.1));
 
-                // Mostrar lista en móviles
                 if (window.innerWidth < 768) {
                     listaDiv.style.display = 'block';
                 }
 
             } catch (error) {
-                console.error('Error al cargar ubicaciones:', error);
+                console.error('Error al cargar estaciones:', error);
                 document.getElementById('ccpNombreDisplay').innerHTML = `CCP: ${ccpNombre} <br><em style="color:#e53e3e;">❌ Error al cargar ubicaciones.</em>`;
             }
         }
@@ -143,7 +146,7 @@
         });
 
         // Iniciar
-        cargarUbicaciones();
+        cargarEstaciones();
     </script>
 </body>
 </html>
