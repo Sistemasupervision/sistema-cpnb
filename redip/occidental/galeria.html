@@ -7,12 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-        }
         body {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
             min-height: 100vh;
@@ -20,21 +14,18 @@
             justify-content: center;
             align-items: flex-start;
             padding: 20px;
-            position: relative;
             overflow-x: hidden;
-            overflow-y: auto;
         }
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
             width: 100%;
             max-width: 900px;
             padding: 40px;
             position: relative;
             overflow: hidden;
-            z-index: 10;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .container::before {
             content: '';
@@ -43,7 +34,7 @@
             left: 0;
             right: 0;
             height: 8px;
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
         }
         .logo-container {
             text-align: center;
@@ -54,63 +45,18 @@
             height: 100px;
             object-fit: contain;
             margin: 0 auto 15px;
-            display: block;
         }
         .title {
-            text-align: center;
             color: #0c2440;
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 10px;
         }
-        #infoDisplay {
+        #estacionInfo {
             text-align: center;
             color: #2d3748;
-            font-size: 16px;
             font-weight: bold;
             margin-bottom: 20px;
-        }
-        .input-group {
-            margin-bottom: 16px;
-        }
-        .input-group label {
-            display: block;
-            color: #2d3748;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 15px;
-            background-color: #f8fafc;
-        }
-        .form-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .back-btn {
-            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 20px;
-            display: block;
-            width: 100%;
         }
         .galeria-container {
             display: grid;
@@ -128,32 +74,25 @@
             flex-direction: column;
             align-items: center;
         }
+        .foto-item {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #cbd5e0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .foto-item:hover {
+            transform: scale(1.02);
+        }
         .foto-label {
             text-align: center;
             font-size: 13px;
             color: #2d3748;
             font-weight: bold;
-            margin: 10px 0 12px;
-        }
-        .fotos-container {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-            margin-bottom: 12px;
-        }
-        .foto-item-mini {
-            width: 48%;
-            max-height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid #cbd5e0;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .foto-item-mini:hover {
-            transform: scale(1.02);
+            margin-top: 6px;
         }
         .inspeccion-header {
             grid-column: span 3;
@@ -164,14 +103,7 @@
             font-weight: bold;
             color: #2d3748;
         }
-        .no-fotos {
-            text-align: center;
-            color: #4a5568;
-            font-size: 18px;
-            padding: 40px;
-            grid-column: span 3;
-        }
-        .loading {
+        .no-fotos, .loading {
             text-align: center;
             color: #4a5568;
             font-size: 18px;
@@ -179,7 +111,6 @@
             grid-column: span 3;
         }
         #filtroFechas {
-            display: block;
             background: #f8fafc;
             padding: 20px;
             border-radius: 12px;
@@ -187,11 +118,33 @@
             border: 1px solid #e2e8f0;
         }
         #paginacionContainer {
-            display: none;
+            display: flex;
             justify-content: center;
             margin-top: 25px;
             gap: 10px;
         }
+        .download-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn-foto { background: #3182ce; color: white; }
+        .btn-archivo { background: #805ad5; color: white; margin-top: 6px; }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282, #1a365d);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        /* Modal de Zoom */
         #zoomModal {
             display: none;
             position: fixed;
@@ -199,7 +152,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0,0,0,0.9);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -219,23 +172,6 @@
             font-size: 30px;
             cursor: pointer;
         }
-        .download-btn {
-            margin-top: 6px;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .btn-foto {
-            background: #3182ce;
-            color: white;
-        }
-        .btn-archivo {
-            background: #805ad5;
-            color: white;
-            margin-top: 6px;
-        }
     </style>
 </head>
 <body>
@@ -243,37 +179,38 @@
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Galería de Inspección</h1>
-            <div id="infoDisplay"></div>
+            <div id="estacionInfo"></div>
         </div>
 
         <!-- Filtro de fechas -->
         <div id="filtroFechas">
             <h3 style="text-align:center; margin-bottom:15px; color:#0c2440;">Filtrar por Fecha</h3>
             <div style="display:flex; gap:15px; flex-wrap:wrap;">
-                <div class="input-group" style="flex:1; min-width:200px;">
+                <div style="flex:1; min-width:200px;">
                     <label for="fechaDesde">Desde:</label>
-                    <input type="date" id="fechaDesde">
+                    <input type="date" id="fechaDesde" style="width:100%; padding:10px; border:1px solid #cbd5e0; border-radius:8px;">
                 </div>
-                <div class="input-group" style="flex:1; min-width:200px;">
+                <div style="flex:1; min-width:200px;">
                     <label for="fechaHasta">Hasta:</label>
-                    <input type="date" id="fechaHasta">
+                    <input type="date" id="fechaHasta" style="width:100%; padding:10px; border:1px solid #cbd5e0; border-radius:8px;">
                 </div>
                 <div style="display:flex; align-items:end;">
-                    <button id="aplicarFiltroBtn" class="form-btn" style="padding:12px; font-size:14px; margin:0;">Aplicar Filtro</button>
+                    <button id="aplicarFiltroBtn" class="back-btn" style="padding:10px; font-size:14px;">Aplicar</button>
                 </div>
             </div>
         </div>
 
         <!-- Galería -->
-        <div id="galeriaContainer" class="galeria-container" style="display:none;"></div>
-        <div id="paginacionContainer">
-            <div id="controlesPaginacion"></div>
+        <div id="galeriaContainer" class="galeria-container">
+            <div class="loading">Cargando galería...</div>
         </div>
+
+        <div id="paginacionContainer" style="display:none;"></div>
 
         <button id="btnVolver" class="back-btn">← Volver a Selección</button>
     </div>
 
-    <!-- Modal de Zoom -->
+    <!-- Modal Zoom -->
     <div id="zoomModal">
         <span id="closeZoom">&times;</span>
         <img id="zoomImage" alt="Vista ampliada">
@@ -284,7 +221,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === NOMBRES DE ÍTEMS ===
+        // ✅ Objeto con los 67 ítems (copiado exactamente de formulario-inspeccion.html)
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -357,32 +294,26 @@
 
         // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
-        const ccpId = urlParams.get('ccpId');
-        const ccpNombre = urlParams.get('ccpNombre');
         const estacionId = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre');
+        const ccpNombre = urlParams.get('ccpNombre');
 
-        if (!ccpId || !estacionId || !ccpNombre || !estacionNombre) {
+        if (!estacionId || !estacionNombre) {
             alert('⚠️ Datos incompletos. Redirigiendo...');
             window.history.back();
         }
 
-        document.getElementById('infoDisplay').innerHTML = `
-            <strong>CCP:</strong> ${decodeURIComponent(ccpNombre)}<br>
-            <strong>Estación:</strong> ${decodeURIComponent(estacionNombre)}
-        `;
+        document.getElementById('estacionInfo').textContent = `Estación: ${estacionNombre} | CCP: ${ccpNombre}`;
+        document.getElementById('fechaHasta').valueAsDate = new Date();
 
         let todasLasFotos = [];
         let paginaActual = 1;
         const fotosPorPagina = 12;
 
-        document.getElementById('fechaHasta').valueAsDate = new Date();
-
         // === CARGAR FOTOS ===
         async function cargarFotos(fechaDesde = null, fechaHasta = null) {
-            const galeriaContainer = document.getElementById('galeriaContainer');
-            galeriaContainer.innerHTML = '<div class="loading">Cargando galería...</div>';
-            galeriaContainer.style.display = 'grid';
+            const contenedor = document.getElementById('galeriaContainer');
+            contenedor.innerHTML = '<div class="loading">Cargando...</div>';
 
             try {
                 let query = supabase
@@ -391,34 +322,24 @@
                     .eq('estacion_id', estacionId)
                     .order('created_at', { ascending: false });
 
-                if (fechaDesde && fechaHasta) {
-                    const desde = new Date(fechaDesde);
+                if (fechaDesde) {
+                    query = query.gte('created_at', new Date(fechaDesde).toISOString());
+                }
+                if (fechaHasta) {
                     const hasta = new Date(fechaHasta);
-                    if (!isNaN(desde.getTime()) && !isNaN(hasta.getTime())) {
-                        hasta.setUTCHours(23, 59, 59, 999);
-                        query = query
-                            .gte('created_at', desde.toISOString())
-                            .lte('created_at', hasta.toISOString());
-                    }
+                    hasta.setUTCHours(23, 59, 59, 999);
+                    query = query.lte('created_at', hasta.toISOString());
                 }
 
-                const {  inspecciones, error: inspError } = await query;
-                if (inspError) throw inspError;
-
-                if (!inspecciones || !Array.isArray(inspecciones) || inspecciones.length === 0) {
-                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay inspecciones en esta estación.</div>';
-                    document.getElementById('paginacionContainer').style.display = 'none';
-                    return;
-                }
+                const { data: inspecciones, error } = await query;
+                if (error) throw error;
 
                 todasLasFotos = [];
-
                 for (const insp of inspecciones) {
-                    const {  items, error: itemError } = await supabase
+                    const { data: items } = await supabase
                         .from('items_inspeccion')
                         .select('item_nombre, foto1_url, foto2_url, archivo_url')
                         .eq('inspeccion_id', insp.id);
-                    if (itemError) continue;
 
                     const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
@@ -428,252 +349,152 @@
                         minute: '2-digit'
                     });
 
-                    for (const item of items) {
-                        // Agregar una sola entrada por ítem, con ambas fotos y el archivo
-                        todasLasFotos.push({
-                            item: item.item_nombre,
-                            fechaHora: fechaHora,
-                            foto1_url: item.foto1_url,
-                            foto2_url: item.foto2_url,
-                            archivo_url: item.archivo_url
-                        });
+                    for (const item of items || []) {
+                        if (item.foto1_url) {
+                            todasLasFotos.push({ url: item.foto1_url, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
+                        }
+                        if (item.foto2_url) {
+                            todasLasFotos.push({ url: item.foto2_url, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
+                        }
+                        if (!item.foto1_url && !item.foto2_url && item.archivo_url) {
+                            todasLasFotos.push({ url: null, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
+                        }
                     }
                 }
 
-                if (todasLasFotos.length === 0) {
-                    galeriaContainer.innerHTML = '<div class="no-fotos">No hay fotos ni archivos en esta estación.</div>';
-                    document.getElementById('paginacionContainer').style.display = 'none';
-                } else {
-                    paginaActual = 1;
-                    mostrarPagina(paginaActual);
-                    actualizarPaginacion();
-                    document.getElementById('paginacionContainer').style.display = 'flex';
-                }
+                paginaActual = 1;
+                mostrarPagina();
+                actualizarPaginacion();
+                document.getElementById('paginacionContainer').style.display = todasLasFotos.length > 0 ? 'flex' : 'none';
+
             } catch (err) {
-                console.error('Error:', err);
-                galeriaContainer.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
-                document.getElementById('paginacionContainer').style.display = 'none';
+                console.error(err);
+                contenedor.innerHTML = '<div class="no-fotos">❌ Error al cargar la galería.</div>';
             }
         }
 
-        // === MOSTRAR PÁGINA ===
-        function mostrarPagina(pagina) {
-            const galeriaContainer = document.getElementById('galeriaContainer');
-            const inicio = (pagina - 1) * fotosPorPagina;
+        function mostrarPagina() {
+            const inicio = (paginaActual - 1) * fotosPorPagina;
             const fin = inicio + fotosPorPagina;
-            const itemsPagina = todasLasFotos.slice(inicio, fin);
+            const fotos = todasLasFotos.slice(inicio, fin);
+            const contenedor = document.getElementById('galeriaContainer');
 
-            galeriaContainer.innerHTML = '';
+            if (fotos.length === 0) {
+                contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
+                return;
+            }
 
-            // Agrupar por fecha
-            const itemsPorFecha = {};
-            itemsPagina.forEach(item => {
-                if (!itemsPorFecha[item.fechaHora]) {
-                    itemsPorFecha[item.fechaHora] = [];
-                }
-                itemsPorFecha[item.fechaHora].push(item);
+            const porFecha = {};
+            fotos.forEach(f => {
+                if (!porFecha[f.fechaHora]) porFecha[f.fechaHora] = [];
+                porFecha[f.fechaHora].push(f);
             });
 
-            Object.keys(itemsPorFecha).forEach(fechaHora => {
+            contenedor.innerHTML = '';
+            Object.entries(porFecha).forEach(([fecha, fotos]) => {
                 const header = document.createElement('div');
                 header.className = 'inspeccion-header';
-                header.textContent = `Inspección del ${fechaHora}`;
-                galeriaContainer.appendChild(header);
+                header.textContent = `Inspección del ${fecha}`;
+                contenedor.appendChild(header);
 
-                itemsPorFecha[fechaHora].forEach(item => {
+                fotos.forEach(f => {
                     const card = document.createElement('div');
                     card.className = 'foto-card';
 
-                    // Nombre del ítem
+                    if (f.url) {
+                        const img = document.createElement('img');
+                        img.src = f.url;
+                        img.className = 'foto-item';
+                        img.onclick = () => {
+                            document.getElementById('zoomImage').src = f.url;
+                            document.getElementById('zoomModal').style.display = 'flex';
+                        };
+                        card.appendChild(img);
+                    }
+
                     const label = document.createElement('div');
                     label.className = 'foto-label';
-                    label.textContent = nombres[item.item] || item.item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    label.textContent = nombres[f.item] || f.item;
                     card.appendChild(label);
 
-                    // Miniaturas
-                    const fotosContainer = document.createElement('div');
-                    fotosContainer.className = 'fotos-container';
-
-                    if (item.foto1_url) {
-                        const img1 = document.createElement('img');
-                        img1.src = item.foto1_url;
-                        img1.alt = 'Foto 1';
-                        img1.className = 'foto-item-mini';
-                        img1.addEventListener('click', () => {
-                            document.getElementById('zoomImage').src = item.foto1_url;
-                            document.getElementById('zoomModal').style.display = 'flex';
-                        });
-                        fotosContainer.appendChild(img1);
+                    if (f.url) {
+                        const btn = document.createElement('button');
+                        btn.className = 'download-btn btn-foto';
+                        btn.textContent = '📥 Descargar Foto';
+                        btn.onclick = async () => await descargar(f.url, f.item, 'foto');
+                        card.appendChild(btn);
                     }
 
-                    if (item.foto2_url) {
-                        const img2 = document.createElement('img');
-                        img2.src = item.foto2_url;
-                        img2.alt = 'Foto 2';
-                        img2.className = 'foto-item-mini';
-                        img2.addEventListener('click', () => {
-                            document.getElementById('zoomImage').src = item.foto2_url;
-                            document.getElementById('zoomModal').style.display = 'flex';
-                        });
-                        fotosContainer.appendChild(img2);
+                    if (f.archivo_url) {
+                        const btn = document.createElement('button');
+                        btn.className = 'download-btn btn-archivo';
+                        btn.textContent = '📎 Descargar Archivo';
+                        btn.onclick = async () => await descargar(f.archivo_url, f.item, 'archivo');
+                        card.appendChild(btn);
                     }
 
-                    if (item.foto1_url || item.foto2_url) {
-                        card.appendChild(fotosContainer);
-                    }
-
-                    // Botones de descarga
-                    if (item.foto1_url) {
-                        const btn1 = document.createElement('button');
-                        btn1.className = 'download-btn btn-foto';
-                        btn1.textContent = '📥 Descargar Foto 1';
-                        btn1.onclick = async (e) => {
-                            e.stopPropagation();
-                            await descargarImagen(item.foto1_url, item.item);
-                        };
-                        card.appendChild(btn1);
-                    }
-
-                    if (item.foto2_url) {
-                        const btn2 = document.createElement('button');
-                        btn2.className = 'download-btn btn-foto';
-                        btn2.textContent = '📥 Descargar Foto 2';
-                        btn2.onclick = async (e) => {
-                            e.stopPropagation();
-                            await descargarImagen(item.foto2_url, item.item);
-                        };
-                        card.appendChild(btn2);
-                    }
-
-                    // ✅ Botón de archivo adjunto (solo una vez por ítem)
-                    if (item.archivo_url) {
-                        const btnArchivo = document.createElement('button');
-                        btnArchivo.className = 'download-btn btn-archivo';
-                        btnArchivo.textContent = '📎 Descargar Archivo Adjunto';
-                        btnArchivo.onclick = async (e) => {
-                            e.stopPropagation();
-                            await descargarArchivo(item.archivo_url, item.item);
-                        };
-                        card.appendChild(btnArchivo);
-                    }
-
-                    galeriaContainer.appendChild(card);
+                    contenedor.appendChild(card);
                 });
             });
         }
 
-        // === FUNCIONES DE DESCARGA ===
-        async function descargarImagen(url, nombreItem) {
+        async function descargar(url, item, tipo) {
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Error al obtener la imagen');
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = `inspeccion_${nombreItem.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (err) {
-                console.error('Error al descargar la imagen:', err);
-                alert('⚠️ No se pudo descargar la imagen. Intente de nuevo.');
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${tipo}_${item.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${url.split('.').pop().split('?')[0]}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (e) {
+                alert('Error al descargar.');
             }
         }
 
-        async function descargarArchivo(url, nombreItem) {
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Error al obtener el archivo');
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                const extension = url.split('.').pop().split('?')[0] || 'bin';
-                link.download = `archivo_${nombreItem.replace(/\s+/g, '_')}.${extension}`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (err) {
-                console.error('Error al descargar el archivo:', err);
-                alert('⚠️ No se pudo descargar el archivo. Intente de nuevo.');
-            }
-        }
-
-        // === PAGINACIÓN ===
         function actualizarPaginacion() {
-            const totalPaginas = Math.ceil(todasLasFotos.length / fotosPorPagina);
-            const controles = document.getElementById('controlesPaginacion');
+            const total = Math.ceil(todasLasFotos.length / fotosPorPagina);
+            const controles = document.getElementById('paginacionContainer');
             controles.innerHTML = '';
 
-            const btnAnterior = document.createElement('button');
-            btnAnterior.textContent = '← Anterior';
-            btnAnterior.className = 'back-btn';
-            btnAnterior.disabled = paginaActual === 1;
-            btnAnterior.onclick = () => {
-                if (paginaActual > 1) {
-                    paginaActual--;
-                    mostrarPagina(paginaActual);
-                    actualizarPaginacion();
-                }
-            };
+            const prev = document.createElement('button');
+            prev.textContent = '← Anterior';
+            prev.className = 'back-btn';
+            prev.disabled = paginaActual === 1;
+            prev.onclick = () => { if (paginaActual > 1) { paginaActual--; mostrarPagina(); actualizarPaginacion(); } };
+            controles.appendChild(prev);
 
-            const infoPagina = document.createElement('span');
-            infoPagina.textContent = `Página ${paginaActual} de ${totalPaginas}`;
-            infoPagina.style.margin = '0 15px';
-            infoPagina.style.alignSelf = 'center';
-            infoPagina.style.fontWeight = 'bold';
-            infoPagina.style.color = '#0c2440';
+            const info = document.createElement('span');
+            info.textContent = `Página ${paginaActual} de ${total}`;
+            info.style.margin = '0 15px';
+            info.style.fontWeight = 'bold';
+            controles.appendChild(info);
 
-            const btnSiguiente = document.createElement('button');
-            btnSiguiente.textContent = 'Siguiente →';
-            btnSiguiente.className = 'back-btn';
-            btnSiguiente.disabled = paginaActual === totalPaginas;
-            btnSiguiente.onclick = () => {
-                if (paginaActual < totalPaginas) {
-                    paginaActual++;
-                    mostrarPagina(paginaActual);
-                    actualizarPaginacion();
-                }
-            };
-
-            controles.appendChild(btnAnterior);
-            controles.appendChild(infoPagina);
-            controles.appendChild(btnSiguiente);
+            const next = document.createElement('button');
+            next.textContent = 'Siguiente →';
+            next.className = 'back-btn';
+            next.disabled = paginaActual === total;
+            next.onclick = () => { if (paginaActual < total) { paginaActual++; mostrarPagina(); actualizarPaginacion(); } };
+            controles.appendChild(next);
         }
 
-        // === EVENTOS ===
+        // Eventos
         document.getElementById('aplicarFiltroBtn').addEventListener('click', () => {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
-            if (desde && hasta) {
-                if (new Date(desde) > new Date(hasta)) {
-                    alert('La fecha "Desde" no puede ser mayor que "Hasta".');
-                    return;
-                }
-                cargarFotos(desde, hasta);
-            } else {
-                alert('Seleccione ambas fechas.');
-            }
+            cargarFotos(desde, hasta);
         });
 
-        document.getElementById('btnVolver').addEventListener('click', () => {
-            window.history.back();
-        });
+        document.getElementById('btnVolver').addEventListener('click', () => window.history.back());
 
-        document.getElementById('closeZoom').addEventListener('click', () => {
-            document.getElementById('zoomModal').style.display = 'none';
-        });
+        document.getElementById('closeZoom').onclick = () => document.getElementById('zoomModal').style.display = 'none';
+        document.getElementById('zoomModal').onclick = (e) => {
+            if (e.target.id === 'zoomModal') document.getElementById('zoomModal').style.display = 'none';
+        };
 
-        document.getElementById('zoomModal').addEventListener('click', (e) => {
-            if (e.target.id === 'zoomModal') {
-                document.getElementById('zoomModal').style.display = 'none';
-            }
-        });
-
-        // === INICIAR ===
+        // Iniciar
         cargarFotos();
     </script>
 </body>
