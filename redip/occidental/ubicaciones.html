@@ -246,7 +246,7 @@
                         marker.bindPopup(`<b>${ub.nombre}</b><br>Tipo: ${ub.tipo}`);
                     });
                     // Ajustar vista del mapa
-                    const group = L.featureGroup(todasLasUbicaciones.map(ub => L.marker([ub.lat, ub.lng])));
+                    const group = L.featureGroup(todosLosMarcadores.map(ub => L.marker([ub.lat, ub.lng])));
                     map.fitBounds(group.getBounds().pad(0.1));
                 } else {
                     document.getElementById('ccpNombreDisplay').innerHTML += 
