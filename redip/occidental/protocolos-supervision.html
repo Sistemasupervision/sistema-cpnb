@@ -56,19 +56,10 @@
             font-weight: bold;
             color: #2d3748;
         }
-        /* Estilo unificado para selects y botones */
-        .input-control {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 16px;
-            background: white;
-        }
         .input-group-btn {
             width: 100%;
             padding: 12px;
-            background: #f8fafc;
+            background: #edf2f7;
             border: 2px solid #e2e8f0;
             border-radius: 10px;
             text-align: left;
@@ -77,7 +68,7 @@
             transition: background 0.2s;
         }
         .input-group-btn:hover:not(:disabled) {
-            background: #edf2f7;
+            background: #e2e8f0;
         }
         .input-group-btn:disabled {
             background: #f7fafc;
@@ -85,7 +76,7 @@
             cursor: not-allowed;
         }
         .dropdown-menu {
-            border: 2px solid #e2e8f0;
+            border: 1px solid #e2e8f0;
             border-top: none;
             max-height: 200px;
             overflow-y: auto;
@@ -98,6 +89,7 @@
             padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid #edf2f7;
+            transition: background 0.2s;
         }
         .dropdown-item:hover {
             background: #ebf8ff;
@@ -110,7 +102,7 @@
             padding: 20px;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .protocolo-titulo {
             font-weight: bold;
@@ -118,18 +110,24 @@
             margin-bottom: 12px;
             font-size: 16px;
         }
-        .aviso-actualizar {
-            font-size: 12px;
-            color: #e53e3e;
-            margin-top: 8px;
-            font-style: italic;
-        }
         .archivo-input {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e0;
             border-radius: 8px;
             margin-bottom: 12px;
+        }
+        /* ✨ Aviso destacado solo si hay archivo existente */
+        .aviso-actualizacion {
+            background: #fff5f5;
+            border-left: 4px solid #e53e3e;
+            padding: 10px 14px;
+            margin: 12px 0;
+            border-radius: 0 6px 6px 0;
+            color: #c53030;
+            font-weight: bold;
+            font-size: 14px;
+            display: none; /* por defecto oculto */
         }
         .botones-item {
             display: flex;
@@ -200,10 +198,9 @@
     <div class="container">
         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/imagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
-
         <div class="input-group">
             <label for="redipSelect">Seleccione REDIP:</label>
-            <select id="redipSelect" class="input-control" required>
+            <select id="redipSelect" required>
                 <option value="">-- Elija una REDIP --</option>
                 <option value="occidental">REDIP OCCIDENTAL</option>
                 <option value="capital">REDIP CAPITAL</option>
@@ -215,47 +212,40 @@
                 <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
             </select>
         </div>
-
         <div class="input-group">
             <label for="ccpSelect">Seleccione CCP:</label>
-            <select id="ccpSelect" class="input-control" disabled required>
+            <select id="ccpSelect" disabled required>
                 <option value="">-- Primero seleccione REDIP --</option>
             </select>
         </div>
-
-        <!-- Estación Policial -->
+        <!-- Botón + Dropdown: Estación -->
         <div class="input-group">
             <label>Estación Policial:</label>
             <button id="btnEstacion" class="input-group-btn" disabled>
-                Seleccionar Estación Policial
+                📍 Seleccionar Estación Policial
             </button>
             <div id="dropdownEstacion" class="dropdown-menu" style="display: none;"></div>
         </div>
-
-        <!-- Servicio Administrativo -->
+        <!-- Botón + Dropdown: Servicio -->
         <div class="input-group">
             <label>Servicio Administrativo:</label>
             <button id="btnServicio" class="input-group-btn" disabled>
-                Seleccionar Servicio Administrativo
+                📋 Seleccionar Servicio Administrativo
             </button>
             <div id="dropdownServicio" class="dropdown-menu" style="display: none;"></div>
         </div>
-
+        <!-- Contenedor de protocolos (común) -->
         <div id="protocolosContainer"></div>
-
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
         </button>
-
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
         <div id="mensaje" class="mensaje" style="display: none;"></div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const redipCcpMap = {
             occidental: [
                 { value: 'metropolitano', text: 'CCP METROPOLITANO' },
@@ -272,19 +262,17 @@
             ],
             central: [], andes: [], oriental: [], llanos: [], guayana: [], maritima: []
         };
-
         const protocolos = [
             { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
             { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf' },
             { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
-
         let estadoArchivos = {};
-        let tipoActivo = null;
+        let tipoActivo = null; // 'estacion' o 'servicio'
         let idActivo = null;
 
-        // === REDIP / CCP ===
+        // === REDIP y CCP ===
         document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
@@ -294,7 +282,7 @@
             if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
-                ccpSelect.innerHTML = '<option value="">No hay CCPs para esta REDIP</option>';
+                ccpSelect.innerHTML = '<option value="">No hay CCPs</option>';
                 ccpSelect.disabled = true;
             } else {
                 ccps.forEach(ccp => {
@@ -331,19 +319,17 @@
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp) return;
-
-            document.getElementById('dropdownServicio').style.display = 'none';
+            const otro = document.getElementById('dropdownServicio');
+            otro.style.display = 'none';
             const dropdown = document.getElementById('dropdownEstacion');
             dropdown.style.display = 'block';
             dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
-
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
                     .order('nombre', { ascending: true });
-
                 dropdown.innerHTML = '';
                 if (error || !estaciones?.length) {
                     dropdown.innerHTML = '<div class="dropdown-item">No hay estaciones</div>';
@@ -353,11 +339,12 @@
                         div.className = 'dropdown-item';
                         div.textContent = est.nombre;
                         div.onclick = () => {
-                            document.getElementById('btnEstacion').textContent = est.nombre;
+                            document.getElementById('btnEstacion').textContent = `📍 ${est.nombre}`;
                             dropdown.style.display = 'none';
                             tipoActivo = 'estacion';
                             idActivo = est.id;
                             renderizarProtocolos();
+                            verificarArchivosExistentes();
                         };
                         dropdown.appendChild(div);
                     });
@@ -373,19 +360,17 @@
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp) return;
-
-            document.getElementById('dropdownEstacion').style.display = 'none';
+            const otro = document.getElementById('dropdownEstacion');
+            otro.style.display = 'none';
             const dropdown = document.getElementById('dropdownServicio');
             dropdown.style.display = 'block';
             dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
-
             try {
                 const { data: servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
                     .order('nombre', { ascending: true });
-
                 dropdown.innerHTML = '';
                 if (error || !servicios?.length) {
                     dropdown.innerHTML = '<div class="dropdown-item">No hay servicios</div>';
@@ -395,11 +380,12 @@
                         div.className = 'dropdown-item';
                         div.textContent = serv.nombre;
                         div.onclick = () => {
-                            document.getElementById('btnServicio').textContent = serv.nombre;
+                            document.getElementById('btnServicio').textContent = `📋 ${serv.nombre}`;
                             dropdown.style.display = 'none';
                             tipoActivo = 'servicio';
                             idActivo = serv.id;
                             renderizarProtocolos();
+                            verificarArchivosExistentes();
                         };
                         dropdown.appendChild(div);
                     });
@@ -416,10 +402,13 @@
             protocolos.forEach(proto => {
                 const div = document.createElement('div');
                 div.className = 'protocolo-item';
+                const tipoLabel = tipoActivo === 'estacion' ? 'Estación' : 'Servicio';
                 div.innerHTML = `
-                    <div class="protocolo-titulo">${proto.nombre}</div>
+                    <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
                     <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
-                    <p class="aviso-actualizar">⚠️ Al actualizar, el archivo anterior será eliminado.</p>
+                    <div class="aviso-actualizacion" id="aviso_${proto.id}">
+                        ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
+                    </div>
                     <div class="botones-item">
                         <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
                         <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
@@ -431,10 +420,9 @@
                 `;
                 container.appendChild(div);
             });
-            verificarArchivosExistentes();
         }
 
-        // === Verificar archivos ===
+        // === Verificar archivos existentes ===
         async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -450,15 +438,27 @@
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
+                        // Mostrar aviso y botones
                         document.querySelector(`#input_${proto.id}`).disabled = true;
+                        document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
                         document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-block';
                         document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
                     } else {
-                        resetBotones(proto.id);
+                        estadoArchivos[proto.id] = { existe: false };
+                        document.querySelector(`#input_${proto.id}`).disabled = false;
+                        document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
+                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
+                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
+                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
                     }
                 } catch {
-                    resetBotones(proto.id);
+                    estadoArchivos[proto.id] = { existe: false };
+                    document.querySelector(`#input_${proto.id}`).disabled = false;
+                    document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
+                    document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
+                    document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
+                    document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
                 }
             }
             document.getElementById('btnDescargarTodo').disabled = !existen;
@@ -466,6 +466,7 @@
 
         function resetBotones(id) {
             document.querySelector(`#input_${id}`).disabled = false;
+            document.querySelector(`#aviso_${id}`).style.display = 'none';
             document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
             document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
@@ -475,30 +476,27 @@
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
-            if (!archivo) return mostrarMensaje(`⚠️ Seleccione un archivo para ${protocolos.find(p => p.id === id).nombre}.`, 'error');
-
+            if (!archivo) return mostrarMensaje(`⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
-            if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensaje('⚠️ Complete todos los pasos.', 'error');
-
+            if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensaje('⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
             const proto = protocolos.find(p => p.id === id);
             const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
             const progressBar = document.getElementById(`progress_${id}`);
             const fillBar = document.getElementById(`fill_${id}`);
             progressBar.style.display = 'block';
             fillBar.style.width = '0%';
-
             try {
                 const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
                 if (error) throw error;
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
-                mostrarMensaje(`✅ ${proto.nombre} subido correctamente.`, 'exito');
+                mostrarMensaje(`✅ ${proto.nombre} subido (${tipoActivo})`, 'exito');
                 input.value = '';
                 await verificarArchivosExistentes();
             } catch (e) {
                 console.error(e);
-                mostrarMensaje(`❌ Error al subir ${proto.nombre}.`, 'error');
+                mostrarMensaje(`❌ Error al subir ${proto.nombre}`, 'error');
             } finally {
                 progressBar.style.display = 'none';
             }
@@ -512,16 +510,16 @@
             try {
                 await supabase.storage.from('protocolos-supervision').remove([ruta]);
                 resetBotones(id);
-                mostrarMensaje(`✅ Archivo anterior eliminado. Suba uno nuevo.`, 'exito');
+                mostrarMensaje(`✅ Archivo eliminado. Suba uno nuevo.`, 'exito');
             } catch (e) {
                 console.error(e);
-                mostrarMensaje('❌ Error al eliminar archivo.', 'error');
+                mostrarMensaje('❌ Error al eliminar archivo', 'error');
             }
         }
 
         async function descargarArchivo(id) {
             const archivo = estadoArchivos[id]?.data;
-            if (!archivo) return mostrarMensaje('❌ Archivo no disponible.', 'error');
+            if (!archivo) return mostrarMensaje('❌ Archivo no disponible', 'error');
             const proto = protocolos.find(p => p.id === id);
             const url = URL.createObjectURL(archivo);
             const a = document.createElement('a');
@@ -535,10 +533,10 @@
             for (const proto of protocolos) {
                 if (estadoArchivos[proto.id]?.existe) {
                     await descargarArchivo(proto.id);
-                    await new Promise(r => setTimeout(r, 400));
+                    await new Promise(r => setTimeout(r, 500));
                 }
             }
-            mostrarMensaje(`✅ Todos los protocolos descargados.`, 'exito');
+            mostrarMensaje(`✅ Todos los archivos descargados (${tipoActivo})`, 'exito');
         }
 
         function mostrarMensaje(texto, tipo) {
