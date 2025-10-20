@@ -16,7 +16,6 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -43,7 +42,6 @@
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
-
     <!-- Panel Principal -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -64,14 +62,16 @@
             <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
             <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
         </div>
+        <!-- ✅ BOTÓN DE ADMINISTRACIÓN (solo visible para admin) -->
+        <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #e53e3e, #c53030);">
+            👤 Administrar Usuarios
+        </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -87,7 +87,6 @@
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
-
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -99,28 +98,41 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-
         function irARedip(nombreRedip) {
             alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
         }
-
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-
-        // Verificar si ya hay sesión activa
+        // ✅ Verificar si ya hay sesión activa Y si es administrador
         async function checkAuth() {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
+
+                // ✅ Verificar si es administrador
+                try {
+                    const { data, error } = await supabase
+                        .from('usuarios_redip')
+                        .select('redip')
+                        .eq('user_id', user.id)
+                        .single();
+                    if (!error && data && data.redip === 'admin') {
+                        document.getElementById('adminUsuariosBtn').style.display = 'block';
+                        document.getElementById('adminUsuariosBtn').onclick = () => {
+                            window.location.href = 'admin-usuarios.html';
+                        };
+                    }
+                } catch (err) {
+                    console.error('Error al verificar rol de administrador:', err);
+                }
             }
         }
-
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         checkAuth();
