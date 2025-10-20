@@ -406,7 +406,7 @@
                     query = query.lte('created_at', hastaISO.toISOString());
                 }
 
-                const { data: inspecciones, error: inspError } = await query;
+                const {  inspecciones, error: inspError } = await query;
                 if (inspError) throw inspError;
 
                 // ✅ CORRECCIÓN: Verificar que inspecciones sea un array
@@ -419,7 +419,7 @@
                 todasLasFotos = [];
 
                 for (const insp of inspecciones) {
-                    const { data: items, error: itemError } = await supabase
+                    const {  items, error: itemError } = await supabase
                         .from('items_inspeccion')
                         .select('item_nombre, foto1_url, foto2_url, archivo_url')
                         .eq('inspeccion_id', insp.id);
