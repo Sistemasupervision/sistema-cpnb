@@ -569,34 +569,42 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        async function subirArchivo(id) {
-            const input = document.getElementById(`input_${id}`);
-            const archivo = input.files[0];
-            if (!archivo) return mostrarMensaje(`⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensaje('⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
-            const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            const progressBar = document.getElementById(`progress_${id}`);
-            const fillBar = document.getElementById(`fill_${id}`);
-            progressBar.style.display = 'block';
-            fillBar.style.width = '0%';
-            try {
-                const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
-                if (error) throw error;
-                fillBar.style.width = '100%';
-                await new Promise(r => setTimeout(r, 300));
-                mostrarMensaje(`✅ ${proto.nombre} subido (${tipoActivo})`, 'exito');
-                input.value = '';
-                await verificarArchivosExistentes();
-            } catch (e) {
-                console.error(e);
-                mostrarMensaje(`❌ Error al subir ${proto.nombre}`, 'error');
-            } finally {
-                progressBar.style.display = 'none';
-            }
-        }
+      async function subirArchivo(id) {
+    const input = document.getElementById(`input_${id}`);
+    const archivo = input.files[0];
+    if (!archivo) return mostrarMensaje(`⚠️ Seleccione un archivo para subir`, 'error');
+    
+    const redip = document.getElementById('redipSelect').value;
+    const ccp = document.getElementById('ccpSelect').value;
+    if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensaje('⚠️ Seleccione REDIP, CCP y una unidad válida.', 'error');
+    
+    const proto = protocolos.find(p => p.id === id);
+    const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+    const progressBar = document.getElementById(`progress_${id}`);
+    const fillBar = document.getElementById(`fill_${id}`);
+    
+    progressBar.style.display = 'block';
+    fillBar.style.width = '0%';
+    
+    try {
+        const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
+        if (error) throw error;
+        
+        fillBar.style.width = '100%';
+        await new Promise(r => setTimeout(r, 300));
+        
+        // ✅ Mensaje amigable de éxito
+        mostrarMensaje('✅ Archivo subido exitosamente', 'exito');
+        
+        input.value = '';
+        await verificarArchivosExistentes();
+    } catch (e) {
+        console.error(e);
+        mostrarMensaje('❌ Error al subir el archivo', 'error');
+    } finally {
+        progressBar.style.display = 'none';
+    }
+}
 
         async function actualizarArchivo(id) {
             const redip = document.getElementById('redipSelect').value;
