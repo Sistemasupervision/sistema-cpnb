@@ -56,38 +56,40 @@
             font-weight: bold;
             color: #2d3748;
         }
-        select, .dropdown-btn {
+        .input-group-btn {
             width: 100%;
             padding: 12px;
+            background: #edf2f7;
             border: 2px solid #e2e8f0;
             border-radius: 10px;
-            font-size: 16px;
-        }
-        .dropdown-btn {
-            background: white;
             text-align: left;
+            font-weight: bold;
             cursor: pointer;
+            transition: background 0.2s;
         }
-        .dropdown-btn:disabled {
+        .input-group-btn:hover:not(:disabled) {
+            background: #e2e8f0;
+        }
+        .input-group-btn:disabled {
             background: #f7fafc;
             color: #a0aec0;
             cursor: not-allowed;
         }
         .dropdown-menu {
-            position: relative;
-            z-index: 10;
-            border: 2px solid #e2e8f0;
+            border: 1px solid #e2e8f0;
             border-top: none;
             max-height: 200px;
             overflow-y: auto;
             background: white;
             border-radius: 0 0 10px 10px;
-            display: none;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .dropdown-item {
             padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid #edf2f7;
+            transition: background 0.2s;
         }
         .dropdown-item:hover {
             background: #ebf8ff;
@@ -207,26 +209,27 @@
             </select>
         </div>
 
-        <!-- Estación Policial -->
+        <!-- Botón + Dropdown: Estación -->
         <div class="input-group">
             <label>Estación Policial:</label>
-            <button id="btnEstacion" class="dropdown-btn" disabled>
-                Seleccionar Estación Policial
+            <button id="btnEstacion" class="input-group-btn" disabled>
+                📍 Seleccionar Estación Policial
             </button>
-            <div id="dropdownEstacion" class="dropdown-menu"></div>
+            <div id="dropdownEstacion" class="dropdown-menu" style="display: none;"></div>
         </div>
 
-        <!-- Servicio Administrativo -->
+        <!-- Botón + Dropdown: Servicio -->
         <div class="input-group">
             <label>Servicio Administrativo:</label>
-            <button id="btnServicio" class="dropdown-btn" disabled>
-                Seleccionar Servicio Administrativo
+            <button id="btnServicio" class="input-group-btn" disabled>
+                📋 Seleccionar Servicio Administrativo
             </button>
-            <div id="dropdownServicio" class="dropdown-menu"></div>
+            <div id="dropdownServicio" class="dropdown-menu" style="display: none;"></div>
         </div>
 
-        <!-- Protocolos -->
+        <!-- Contenedor de protocolos (común) -->
         <div id="protocolosContainer"></div>
+
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
         </button>
@@ -265,10 +268,10 @@
         ];
 
         let estadoArchivos = {};
-        let tipoActivo = null;
+        let tipoActivo = null; // 'estacion' o 'servicio'
         let idActivo = null;
 
-        // === REDIP / CCP ===
+        // === REDIP y CCP ===
         document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
@@ -278,7 +281,7 @@
             if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
-                ccpSelect.innerHTML = '<option value="">No hay CCPs para esta REDIP</option>';
+                ccpSelect.innerHTML = '<option value="">No hay CCPs</option>';
                 ccpSelect.disabled = true;
             } else {
                 ccps.forEach(ccp => {
@@ -316,13 +319,15 @@
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp) return;
 
-            document.getElementById('dropdownServicio').style.display = 'none';
+            const otro = document.getElementById('dropdownServicio');
+            otro.style.display = 'none';
+
             const dropdown = document.getElementById('dropdownEstacion');
             dropdown.style.display = 'block';
             dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
 
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -337,11 +342,12 @@
                         div.className = 'dropdown-item';
                         div.textContent = est.nombre;
                         div.onclick = () => {
-                            document.getElementById('btnEstacion').textContent = est.nombre;
+                            document.getElementById('btnEstacion').textContent = `📍 ${est.nombre}`;
                             dropdown.style.display = 'none';
                             tipoActivo = 'estacion';
                             idActivo = est.id;
                             renderizarProtocolos();
+                            verificarArchivosExistentes();
                         };
                         dropdown.appendChild(div);
                     });
@@ -358,13 +364,15 @@
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp) return;
 
-            document.getElementById('dropdownEstacion').style.display = 'none';
+            const otro = document.getElementById('dropdownEstacion');
+            otro.style.display = 'none';
+
             const dropdown = document.getElementById('dropdownServicio');
             dropdown.style.display = 'block';
             dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
 
             try {
-                const {  servicios, error } = await supabase
+                const { data: servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -379,11 +387,12 @@
                         div.className = 'dropdown-item';
                         div.textContent = serv.nombre;
                         div.onclick = () => {
-                            document.getElementById('btnServicio').textContent = serv.nombre;
+                            document.getElementById('btnServicio').textContent = `📋 ${serv.nombre}`;
                             dropdown.style.display = 'none';
                             tipoActivo = 'servicio';
                             idActivo = serv.id;
                             renderizarProtocolos();
+                            verificarArchivosExistentes();
                         };
                         dropdown.appendChild(div);
                     });
@@ -400,8 +409,9 @@
             protocolos.forEach(proto => {
                 const div = document.createElement('div');
                 div.className = 'protocolo-item';
+                const tipoLabel = tipoActivo === 'estacion' ? 'Estación' : 'Servicio';
                 div.innerHTML = `
-                    <div class="protocolo-titulo">${proto.nombre}</div>
+                    <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
                     <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
                     <div class="botones-item">
                         <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
@@ -414,10 +424,9 @@
                 `;
                 container.appendChild(div);
             });
-            verificarArchivosExistentes();
         }
 
-        // === Verificar archivos ===
+        // === Verificar archivos existentes ===
         async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -458,11 +467,11 @@
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
-            if (!archivo) return mostrarMensaje(`⚠️ Seleccione un archivo para ${protocolos.find(p => p.id === id).nombre}.`, 'error');
+            if (!archivo) return mostrarMensaje(`⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
 
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
-            if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensaje('⚠️ Complete todos los pasos.', 'error');
+            if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensaje('⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
 
             const proto = protocolos.find(p => p.id === id);
             const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
@@ -476,12 +485,12 @@
                 if (error) throw error;
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
-                mostrarMensaje(`✅ ${proto.nombre} subido correctamente.`, 'exito');
+                mostrarMensaje(`✅ ${proto.nombre} subido (${tipoActivo})`, 'exito');
                 input.value = '';
                 await verificarArchivosExistentes();
             } catch (e) {
                 console.error(e);
-                mostrarMensaje(`❌ Error al subir ${proto.nombre}.`, 'error');
+                mostrarMensaje(`❌ Error al subir ${proto.nombre}`, 'error');
             } finally {
                 progressBar.style.display = 'none';
             }
@@ -498,13 +507,13 @@
                 mostrarMensaje(`✅ Archivo eliminado. Suba uno nuevo.`, 'exito');
             } catch (e) {
                 console.error(e);
-                mostrarMensaje('❌ Error al eliminar archivo.', 'error');
+                mostrarMensaje('❌ Error al eliminar archivo', 'error');
             }
         }
 
         async function descargarArchivo(id) {
             const archivo = estadoArchivos[id]?.data;
-            if (!archivo) return mostrarMensaje('❌ Archivo no disponible.', 'error');
+            if (!archivo) return mostrarMensaje('❌ Archivo no disponible', 'error');
             const proto = protocolos.find(p => p.id === id);
             const url = URL.createObjectURL(archivo);
             const a = document.createElement('a');
@@ -518,10 +527,10 @@
             for (const proto of protocolos) {
                 if (estadoArchivos[proto.id]?.existe) {
                     await descargarArchivo(proto.id);
-                    await new Promise(r => setTimeout(r, 400));
+                    await new Promise(r => setTimeout(r, 500));
                 }
             }
-            mostrarMensaje(`✅ Todos los protocolos descargados.`, 'exito');
+            mostrarMensaje(`✅ Todos los archivos descargados (${tipoActivo})`, 'exito');
         }
 
         function mostrarMensaje(texto, tipo) {
