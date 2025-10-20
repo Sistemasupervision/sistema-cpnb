@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protocolos de Supervisión - CPNB</title>
+    <title>Protocolos y Servicios - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
@@ -20,7 +20,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.4);
             width: 100%;
-            max-width: 800px;
+            max-width: 850px;
             padding: 40px;
             position: relative;
         }
@@ -31,7 +31,7 @@
             left: 0;
             right: 0;
             height: 8px;
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
         }
         .logo-img {
             width: 100px;
@@ -47,12 +47,20 @@
             font-weight: bold;
             margin-bottom: 30px;
         }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0c2440;
+            margin: 25px 0 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
         .input-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .input-group label {
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-weight: bold;
             color: #2d3748;
         }
@@ -62,14 +70,14 @@
             border: 2px solid #e2e8f0;
             border-radius: 10px;
         }
-        .protocolo-item {
+        .item-container {
             background: #f8fafc;
             padding: 20px;
             border-radius: 12px;
-            border: 1px solid #e2e8f0;
             margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
         }
-        .protocolo-titulo {
+        .item-titulo {
             font-weight: bold;
             color: #0c2440;
             margin-bottom: 12px;
@@ -78,9 +86,9 @@
         .archivo-input {
             width: 100%;
             padding: 10px;
+            margin: 10px 0;
             border: 1px solid #cbd5e0;
-            border-radius: 8px;
-            margin-bottom: 12px;
+            border-radius: 6px;
         }
         .aviso-existente {
             display: none;
@@ -96,6 +104,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            margin-top: 10px;
         }
         .btn {
             padding: 8px 14px;
@@ -117,7 +126,7 @@
             border: none;
             border-radius: 12px;
             font-weight: bold;
-            margin-top: 20px;
+            margin: 25px 0;
         }
         .back-btn {
             background: #2c5282;
@@ -159,8 +168,8 @@
 </head>
 <body>
     <div class="container">
-        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-        <h1 class="title">Protocolos de Supervisión</h1>
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/imagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <h1 class="title">Protocolos y Servicios Administrativos</h1>
         <div class="input-group">
             <label for="redipSelect">Seleccione REDIP:</label>
             <select id="redipSelect" required>
@@ -187,13 +196,15 @@
                 <option value="">-- Primero seleccione CCP --</option>
             </select>
         </div>
-        <!-- Ítems de protocolo -->
-        <div id="protocolosContainer">
-            <!-- Los ítems se generarán dinámicamente -->
-        </div>
+        <!-- Sección 1: Protocolos de Supervisión -->
+        <h2 class="section-title">📋 Protocolos de Supervisión</h2>
+        <div id="protocolosContainer"></div>
+        <!-- Sección 2: Servicios Administrativos -->
+        <h2 class="section-title">💼 Servicios Administrativos</h2>
+        <div id="serviciosContainer"></div>
         <!-- Botón para descargar todo -->
-        <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
-            📥 Descargar Todos los Protocolos
+        <button class="btn-descargar-todo" onclick="descargarTodo()" id="btnDescargarTodo" disabled>
+            📥 Descargar Todos los Archivos
         </button>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
         <div id="mensaje" class="mensaje" style="display: none;"></div>
@@ -223,16 +234,25 @@
             guayana: [],
             maritima: []
         };
+        // Protocolos de supervisión
         const protocolos = [
-            { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
-            { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf' },
-            { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
-            { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
+            { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf', tipo: 'protocolo' },
+            { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf', tipo: 'protocolo' },
+            { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf', tipo: 'protocolo' },
+            { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf', tipo: 'protocolo' }
+        ];
+        // Servicios administrativos
+        const servicios = [
+            { id: 'nomina', nombre: 'Nómina y Recursos Humanos', archivo: 'nomina.pdf', tipo: 'servicio' },
+            { id: 'inventario', nombre: 'Inventario de Bienes', archivo: 'inventario.pdf', tipo: 'servicio' },
+            { id: 'logistica', nombre: 'Logística y Abastecimiento', archivo: 'logistica.pdf', tipo: 'servicio' },
+            { id: 'presupuesto', nombre: 'Presupuesto y Finanzas', archivo: 'presupuesto.pdf', tipo: 'servicio' },
+            { id: 'archivo', nombre: 'Archivo y Documentación', archivo: 'archivo.pdf', tipo: 'servicio' }
         ];
         let estadoArchivos = {};
         async function verificarAutenticacion() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const {  { user } } = await supabase.auth.getUser();
                 if (!user) {
                     alert('Debe iniciar sesión.');
                     window.location.href = 'index.html';
@@ -244,6 +264,30 @@
                 alert('Error al verificar sesión.');
                 return false;
             }
+        }
+        function renderizarItems(items, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-container';
+                div.innerHTML = `
+                    <div class="item-titulo">${item.nombre}</div>
+                    <input type="file" id="input_${item.id}" class="archivo-input" accept=".pdf,.doc,.docx,.xlsx">
+                    <div class="aviso-existente" id="aviso_${item.id}">
+                        ⚠️ Ya existe un archivo. Al subir uno nuevo, el anterior será eliminado.
+                    </div>
+                    <div class="botones-item">
+                        <button class="btn btn-subir" onclick="subirArchivo('${item.id}', '${item.tipo}')">📤 Subir</button>
+                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${item.id}', '${item.tipo}')" style="display:none;">🔄 Actualizar</button>
+                        <button class="btn btn-descargar" onclick="descargarArchivo('${item.id}', '${item.tipo}')" style="display:none;">📥 Descargar</button>
+                    </div>
+                    <div class="progress-container" id="progress_${item.id}">
+                        <div class="progress-bar"><div class="progress-fill" id="fill_${item.id}"></div></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
         }
         document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
@@ -280,7 +324,7 @@
             }
             if (!(await verificarAutenticacion())) return;
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -311,36 +355,15 @@
             const estacionId = document.getElementById('estacionSelect').value;
             if (!estacionId) {
                 document.getElementById('protocolosContainer').innerHTML = '';
+                document.getElementById('serviciosContainer').innerHTML = '';
                 document.getElementById('btnDescargarTodo').disabled = true;
                 return;
             }
-            await renderizarProtocolos();
+            // Renderizar ambas secciones
+            renderizarItems(protocolos, 'protocolosContainer');
+            renderizarItems(servicios, 'serviciosContainer');
             await verificarArchivosExistentes();
         });
-        function renderizarProtocolos() {
-            const container = document.getElementById('protocolosContainer');
-            container.innerHTML = '';
-            protocolos.forEach(proto => {
-                const div = document.createElement('div');
-                div.className = 'protocolo-item';
-                div.innerHTML = `
-                    <div class="protocolo-titulo">${proto.nombre}</div>
-                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
-                    <div class="aviso-existente" id="aviso_${proto.id}">
-                        ⚠️ Ya existe un archivo. Al subir uno nuevo, el anterior será eliminado.
-                    </div>
-                    <div class="botones-item">
-                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
-                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
-                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
-                    </div>
-                    <div class="progress-container" id="progress_${proto.id}">
-                        <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
         async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -348,45 +371,47 @@
             if (!redip || !ccp || !estacionId) return;
             estadoArchivos = {};
             let existenArchivos = false;
-            for (const proto of protocolos) {
-                const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${proto.archivo}`;
+            const todosItems = [...protocolos, ...servicios];
+            for (const item of todosItems) {
+                const folder = item.tipo === 'protocolo' ? 'protocolos-supervision' : 'servicios-admin';
+                const filePath = `${folder}/${redip}/${ccp}/estacion_${estacionId}/${item.archivo}`;
                 try {
                     const { data, error } = await supabase.storage
-                        .from('protocolos-supervision')
+                        .from('documentos-admin') // ← Usa un solo bucket
                         .download(filePath);
                     if (data) {
-                        estadoArchivos[proto.id] = { existe: true, data };
+                        estadoArchivos[item.id] = { existe: true, data, folder, filePath };
                         existenArchivos = true;
-                        // Mostrar aviso y botones
-                        document.querySelector(`#input_${proto.id}`).disabled = true;
-                        document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
-                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
+                        // Mostrar botones y aviso
+                        document.querySelector(`#input_${item.id}`).disabled = true;
+                        document.querySelector(`#aviso_${item.id}`).style.display = 'block';
+                        document.querySelector(`button[onclick="descargarArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'inline-block';
+                        document.querySelector(`button[onclick="actualizarArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'inline-block';
+                        document.querySelector(`button[onclick="subirArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'none';
                     } else {
-                        estadoArchivos[proto.id] = { existe: false };
-                        document.querySelector(`#input_${proto.id}`).disabled = false;
-                        document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
-                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                        estadoArchivos[item.id] = { existe: false };
+                        document.querySelector(`#input_${item.id}`).disabled = false;
+                        document.querySelector(`#aviso_${item.id}`).style.display = 'none';
+                        document.querySelector(`button[onclick="descargarArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'none';
+                        document.querySelector(`button[onclick="actualizarArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'none';
+                        document.querySelector(`button[onclick="subirArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'inline-block';
                     }
                 } catch (error) {
-                    estadoArchivos[proto.id] = { existe: false };
-                    document.querySelector(`#input_${proto.id}`).disabled = false;
-                    document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
-                    document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                    estadoArchivos[item.id] = { existe: false };
+                    document.querySelector(`#input_${item.id}`).disabled = false;
+                    document.querySelector(`#aviso_${item.id}`).style.display = 'none';
+                    document.querySelector(`button[onclick="descargarArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'none';
+                    document.querySelector(`button[onclick="actualizarArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'none';
+                    document.querySelector(`button[onclick="subirArchivo('${item.id}', '${item.tipo}')"]`).style.display = 'inline-block';
                 }
             }
             document.getElementById('btnDescargarTodo').disabled = !existenArchivos;
         }
-        async function subirArchivo(id) {
+        async function subirArchivo(id, tipo) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
             if (!archivo) {
-                mostrarMensaje(`⚠️ Seleccione un archivo para ${protocolos.find(p => p.id === id).nombre}.`, 'error');
+                mostrarMensaje(`⚠️ Seleccione un archivo para ${id}.`, 'error');
                 return;
             }
             const redip = document.getElementById('redipSelect').value;
@@ -396,72 +421,70 @@
                 mostrarMensaje('⚠️ Seleccione REDIP, CCP y Estación.', 'error');
                 return;
             }
-            const proto = protocolos.find(p => p.id === id);
-            const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${proto.archivo}`;
+            const item = [...protocolos, ...servicios].find(i => i.id === id);
+            const folder = tipo === 'protocolo' ? 'protocolos-supervision' : 'servicios-admin';
+            const filePath = `${folder}/${redip}/${ccp}/estacion_${estacionId}/${item.archivo}`;
             const progressBar = document.getElementById(`progress_${id}`);
             const fillBar = document.getElementById(`fill_${id}`);
             progressBar.style.display = 'block';
             fillBar.style.width = '0%';
             try {
                 const { error } = await supabase.storage
-                    .from('protocolos-supervision')
+                    .from('documentos-admin')
                     .upload(filePath, archivo, { upsert: true });
                 if (error) throw error;
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
-                mostrarMensaje(`✅ ${proto.nombre} subido correctamente.`, 'exito');
+                mostrarMensaje(`✅ ${item.nombre} subido correctamente.`, 'exito');
                 input.value = '';
                 await verificarArchivosExistentes();
             } catch (error) {
                 console.error('Error al subir:', error);
-                mostrarMensaje(`❌ Error al subir ${proto.nombre}.`, 'error');
+                mostrarMensaje(`❌ Error al subir ${item.nombre}.`, 'error');
             } finally {
                 progressBar.style.display = 'none';
             }
         }
-        async function actualizarArchivo(id) {
-            // Eliminar el archivo antiguo
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const estacionId = document.getElementById('estacionSelect').value;
-            const proto = protocolos.find(p => p.id === id);
-            const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${proto.archivo}`;
+        async function actualizarArchivo(id, tipo) {
+            const archivoInfo = estadoArchivos[id];
+            if (!archivoInfo || !archivoInfo.filePath) return;
             try {
                 await supabase.storage
-                    .from('protocolos-supervision')
-                    .remove([filePath]);
-                // Habilitar input y botón de subir
+                    .from('documentos-admin')
+                    .remove([archivoInfo.filePath]);
+                // Habilitar input
                 document.querySelector(`#input_${id}`).disabled = false;
                 document.querySelector(`#aviso_${id}`).style.display = 'none';
-                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
-                document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
-                document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
+                document.querySelector(`button[onclick="subirArchivo('${id}', '${tipo}')"]`).style.display = 'inline-block';
+                document.querySelector(`button[onclick="actualizarArchivo('${id}', '${tipo}')"]`).style.display = 'none';
+                document.querySelector(`button[onclick="descargarArchivo('${id}', '${tipo}')"]`).style.display = 'none';
                 mostrarMensaje(`✅ Archivo antiguo eliminado. Seleccione nuevo archivo y haga clic en "Subir".`, 'exito');
             } catch (error) {
                 console.error('Error al eliminar:', error);
                 mostrarMensaje('❌ Error al preparar actualización.', 'error');
             }
         }
-        async function descargarArchivo(id) {
+        async function descargarArchivo(id, tipo) {
             const archivo = estadoArchivos[id]?.data;
             if (!archivo) {
                 mostrarMensaje('❌ Archivo no disponible.', 'error');
                 return;
             }
-            const proto = protocolos.find(p => p.id === id);
+            const item = [...protocolos, ...servicios].find(i => i.id === id);
             const url = URL.createObjectURL(archivo);
             const a = document.createElement('a');
             a.href = url;
-            a.download = proto.archivo;
+            a.download = item.archivo;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
         async function descargarTodo() {
-            for (const proto of protocolos) {
-                if (estadoArchivos[proto.id]?.existe) {
-                    await descargarArchivo(proto.id);
+            const todosItems = [...protocolos, ...servicios];
+            for (const item of todosItems) {
+                if (estadoArchivos[item.id]?.existe) {
+                    await descargarArchivo(item.id, item.tipo);
                     await new Promise(r => setTimeout(r, 500));
                 }
             }
@@ -476,7 +499,6 @@
                 setTimeout(() => { msg.style.display = 'none'; }, 5000);
             }
         }
-        // Verificar autenticación al cargar
         verificarAutenticacion();
     </script>
 </body>
