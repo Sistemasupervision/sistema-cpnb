@@ -142,70 +142,72 @@
             }
         }
 
-        // Cargar estaciones y servicios con enlace_rutas
-        async function cargarEntidades() {
-            const listaDiv = document.getElementById('listaEntidades');
-            listaDiv.innerHTML = '<div style="text-align:center; color:#4a5568;">Cargando...</div>';
+    async function cargarEntidades() {
+    const listaDiv = document.getElementById('listaEntidades');
+    listaDiv.innerHTML = '<div style="text-align:center; color:#4a5568;">Cargando...</div>';
 
-            try {
-                const [estacionesRes, serviciosRes] = await Promise.all([
-                    supabase.from('estaciones_policiales').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre'),
-                    supabase.from('servicios_administrativos').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre')
-                ]);
+    try {
+        const [estacionesRes, serviciosRes] = await Promise.all([
+            supabase.from('estaciones_policiales').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre'),
+            supabase.from('servicios_administrativos').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre')
+        ]);
 
-                const estaciones = estacionesRes.data || [];
-                const servicios = serviciosRes.data || [];
+        const estaciones = estacionesRes.data || [];
+        const servicios = serviciosRes.data || [];
 
-                let html = '';
+        let html = '';
 
-                if (estaciones.length > 0) {
-                    html += '<h4 style="color:#0c2440; margin:15px 0 10px;">👮 Estaciones Policiales</h4>';
-                    estaciones.forEach(est => {
-                        const tieneEnlace = est.enlace_rutas && est.enlace_rutas.trim() !== '';
-                        html += `
-                            <div class="ubicacion-card tipo-estacion">
-                                <div>
-                                    <h4>${est.nombre}</h4>
-                                    ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
-                                </div>
-                                <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
-                                        onclick="window.open('${est.enlace_rutas.replace(/'/g, "\\'")}', '_blank')">
-                                    Rutas
-                                </button>
-                            </div>
-                        `;
-                    });
-                }
-
-                if (servicios.length > 0) {
-                    html += '<h4 style="color:#0c2440; margin:25px 0 10px;">📋 Servicios Administrativos</h4>';
-                    servicios.forEach(serv => {
-                        const tieneEnlace = serv.enlace_rutas && serv.enlace_rutas.trim() !== '';
-                        html += `
-                            <div class="ubicacion-card tipo-servicio">
-                                <div>
-                                    <h4>${serv.nombre}</h4>
-                                    ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
-                                </div>
-                                <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
-                                        onclick="window.open('${serv.enlace_rutas.replace(/'/g, "\\'")}', '_blank')">
-                                    Rutas
-                                </button>
-                            </div>
-                        `;
-                    });
-                }
-
-                if (estaciones.length === 0 && servicios.length === 0) {
-                    html = '<p style="text-align:center; color:#666;">No hay estaciones ni servicios registrados.</p>';
-                }
-
-                listaDiv.innerHTML = html;
-            } catch (error) {
-                console.error('Error al cargar entidades:', error);
-                listaDiv.innerHTML = '<p style="color:#e53e3e; text-align:center;">❌ Error al cargar datos.</p>';
-            }
+        if (estaciones.length > 0) {
+            html += '<h4 style="color:#0c2440; margin:15px 0 10px;">👮 Estaciones Policiales</h4>';
+            estaciones.forEach(est => {
+                const tieneEnlace = est.enlace_rutas && est.enlace_rutas.trim() !== '';
+                // ✅ Solo generar el enlace si existe
+                const enlaceSeguro = tieneEnlace ? est.enlace_rutas.replace(/'/g, "\\'") : '';
+                html += `
+                    <div class="ubicacion-card tipo-estacion">
+                        <div>
+                            <h4>${est.nombre}</h4>
+                            ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
+                        </div>
+                        <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
+                                onclick="${tieneEnlace ? `window.open('${enlaceSeguro}', '_blank')` : `alert('⚠️ No se ha configurado un enlace de rutas para esta estación.')`}">
+                            Rutas
+                        </button>
+                    </div>
+                `;
+            });
         }
+
+        if (servicios.length > 0) {
+            html += '<h4 style="color:#0c2440; margin:25px 0 10px;">📋 Servicios Administrativos</h4>';
+            servicios.forEach(serv => {
+                const tieneEnlace = serv.enlace_rutas && serv.enlace_rutas.trim() !== '';
+                const enlaceSeguro = tieneEnlace ? serv.enlace_rutas.replace(/'/g, "\\'") : '';
+                html += `
+                    <div class="ubicacion-card tipo-servicio">
+                        <div>
+                            <h4>${serv.nombre}</h4>
+                            ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
+                        </div>
+                        <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
+                                onclick="${tieneEnlace ? `window.open('${enlaceSeguro}', '_blank')` : `alert('⚠️ No se ha configurado un enlace de rutas para este servicio.')`}">
+                            Rutas
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        if (estaciones.length === 0 && servicios.length === 0) {
+            html = '<p style="text-align:center; color:#666;">No hay estaciones ni servicios registrados.</p>';
+        }
+
+        listaDiv.innerHTML = html;
+    } catch (error) {
+        console.error('Error al cargar entidades:', error);
+        listaDiv.innerHTML = '<p style="color:#e53e3e; text-align:center;">❌ Error al cargar datos.</p>';
+    }
+}
 
         // Eventos
         document.getElementById('btnEditar').addEventListener('click', () => {
