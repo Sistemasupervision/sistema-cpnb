@@ -151,67 +151,52 @@
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0;
+            max-height: 400px;
+            overflow-y: auto;
         }
         .chart-wrapper {
-            height: 350px;
+            height: 600px;
             position: relative;
+            min-width: 800px;
         }
         .porcentajes-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 16px;
             margin-top: 25px;
         }
-        .porcentaje-item {
-            background: white;
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-            border: 1px solid #e2e8f0;
-            transition: transform 0.2s;
+        .tabla-filtro {
+            margin-bottom: 15px;
         }
-        .porcentaje-item:hover {
-            transform: translateY(-2px);
+        .tabla-filtro input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 14px;
         }
-        .porcentaje-nombre {
-            font-size: 13px;
-            color: #2d3748;
-            margin-bottom: 8px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #edf2f7;
             font-weight: bold;
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            color: #2d3748;
+        }
+        tr:hover {
+            background: #f8fafc;
         }
         .porcentaje-valor {
-            font-size: 22px;
             font-weight: bold;
-            color: #3182ce;
-            background: linear-gradient(135deg, #ebf8ff 0%, #c6f6d5 100%);
-            padding: 8px;
-            border-radius: 8px;
-            display: inline-block;
-            width: 100%;
+            text-align: center;
         }
-        @media (max-width: 600px) {
-            .container {
-                padding: 25px;
-            }
-            .chart-wrapper {
-                height: 280px;
-            }
-            .porcentajes-container {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .porcentaje-nombre {
-                font-size: 12px;
-                min-height: 36px;
-            }
-            .porcentaje-valor {
-                font-size: 20px;
-            }
-        }
+        .porcentaje-valor.bajo { color: #e53e3e; }
+        .porcentaje-valor.medio { color: #dd6b20; }
+        .porcentaje-valor.alto { color: #38a169; }
     </style>
 </head>
 <body>
@@ -220,11 +205,10 @@
             <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Estadísticas de Inspecciones</h1>
         </div>
-        <!-- SELECCIÓN: CCP + Estación (SIN botón PDF aquí) -->
         <div id="seleccionContainer">
-         <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
-    ← Volver al Panel Principal
-</button>
+            <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
+                ← Volver al Panel Principal
+            </button>
             <div class="filtro-container">
                 <div class="input-group">
                     <label for="ccpFilter">Seleccione CCP:</label>
@@ -246,7 +230,6 @@
                 </div>
             </div>
         </div>
-        <!-- RESULTADOS: Gráficos, porcentajes Y botón PDF aquí -->
         <div id="resultadosContainer" style="display: none;">
             <div class="stats-header" id="statsHeader"></div>
             <div class="action-buttons">
@@ -262,7 +245,20 @@
                     <canvas id="cumplimientoChart"></canvas>
                 </div>
             </div>
-            <div class="porcentajes-container" id="porcentajesContainer"></div>
+            <div class="porcentajes-container">
+                <div class="tabla-filtro">
+                    <input type="text" id="filtroItems" placeholder="Buscar ítem...">
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ítem</th>
+                            <th style="text-align: center;">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaItems"></tbody>
+                </table>
+            </div>
         </div>
         <div id="mensajeCarga" class="loading" style="display: none;">Cargando estadísticas...</div>
         <div id="mensajeSinDatos" class="no-data" style="display: none;">
@@ -280,7 +276,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let chartInstance = null;
-        // ✅ NUEVO OBJETO CON 67 ÍTEMS
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -414,7 +409,7 @@
                 }
                 const estadisticas = calcularEstadisticas(items);
                 renderizarGrafico(estadisticas, estacionNombre);
-                renderizarPorcentajes(estadisticas);
+                renderizarTabla(estadisticas);
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
             } catch (error) {
@@ -469,6 +464,7 @@
                     }]
                 },
                 options: {
+                    indexAxis: 'y', // ← Hace el gráfico HORIZONTAL (mejor para muchos ítems)
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
@@ -483,13 +479,13 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return `${context.dataset.label}: ${context.parsed.y}%`;
+                                    return `${context.dataset.label}: ${context.parsed.x}%`;
                                 }
                             }
                         }
                     },
                     scales: {
-                        y: {
+                        x: {
                             beginAtZero: true,
                             max: 100,
                             ticks: {
@@ -504,14 +500,12 @@
                                 color: 'rgba(0,0,0,0.05)'
                             }
                         },
-                        x: {
+                        y: {
                             ticks: {
                                 font: {
-                                    size: 11
+                                    size: 10
                                 },
-                                autoSkip: false,
-                                maxRotation: 45,
-                                minRotation: 45
+                                autoSkip: false
                             },
                             grid: {
                                 display: false
@@ -522,20 +516,29 @@
             });
             document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
         }
-        function renderizarPorcentajes(estadisticas) {
-            const container = document.getElementById('porcentajesContainer');
-            container.innerHTML = '';
-            todosLosItems.forEach(key => {
-                const nombre = nombresItems[key];
-                const porcentaje = estadisticas[key] || 0;
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'porcentaje-item';
-                itemDiv.innerHTML = `
-                    <div class="porcentaje-nombre">${nombre}</div>
-                    <div class="porcentaje-valor">${porcentaje}%</div>
-                `;
-                container.appendChild(itemDiv);
-            });
+        function renderizarTabla(estadisticas) {
+            const tbody = document.getElementById('tablaItems');
+            const filtro = document.getElementById('filtroItems');
+            function actualizarTabla() {
+                tbody.innerHTML = '';
+                todosLosItems.forEach(key => {
+                    const nombre = nombresItems[key];
+                    const porcentaje = estadisticas[key] || 0;
+                    if (nombre.toLowerCase().includes(filtro.value.toLowerCase())) {
+                        const tr = document.createElement('tr');
+                        let clase = 'alto';
+                        if (porcentaje < 50) clase = 'bajo';
+                        else if (porcentaje < 80) clase = 'medio';
+                        tr.innerHTML = `
+                            <td>${nombre}</td>
+                            <td class="porcentaje-valor ${clase}">${porcentaje}%</td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
+                });
+            }
+            filtro.addEventListener('input', actualizarTabla);
+            actualizarTabla();
         }
         function volverASeleccion() {
             document.getElementById('seleccionContainer').style.display = 'block';
@@ -546,83 +549,11 @@
                 chartInstance.destroy();
                 chartInstance = null;
             }
-            document.getElementById('porcentajesContainer').innerHTML = '';
+            document.getElementById('tablaItems').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
         }
         async function exportarEstadisticasAPDF() {
-            const resultadosDiv = document.getElementById('resultadosContainer');
-            if (resultadosDiv.style.display !== 'block') {
-                alert('No hay estadísticas para exportar.');
-                return;
-            }
-            const estacionNombre = document.getElementById('statsHeader').textContent.replace('Estadísticas para: ', '');
-            const fechaActual = new Date().toLocaleString('es-ES');
-            const printContent = document.createElement('div');
-            printContent.innerHTML = `
-                <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                             alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                        <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">ESTADÍSTICAS DE INSPECCIÓN</h1>
-                        <p style="color: #4a5568; font-size: 16px;">Estación: <strong>${estacionNombre}</strong></p>
-                        <p style="color: #666; font-size: 14px;">Fecha de generación: ${fechaActual}</p>
-                    </div>
-                    <div style="margin-top: 25px;" id="chart-placeholder">
-                        <!-- El gráfico se insertará aquí como imagen -->
-                    </div>
-                    <div style="margin-top: 30px;">
-                        <h3 style="text-align: center; color: #0c2440; margin-bottom: 15px;">Porcentajes por Ítem</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
-                            ${document.getElementById('porcentajesContainer').innerHTML}
-                        </div>
-                    </div>
-                </div>
-            `;
-            // Convertir el gráfico de Chart.js a imagen
-            const canvas = document.getElementById('cumplimientoChart');
-            if (canvas && chartInstance) {
-                chartInstance.resize();
-                const imgSrc = canvas.toDataURL('image/png');
-                const placeholder = printContent.querySelector('#chart-placeholder');
-                placeholder.innerHTML = `
-                    <div class="chart-container" style="padding:20px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
-                        <img src="${imgSrc}" alt="Gráfico de cumplimiento" style="width:100%; height:auto; display:block;">
-                    </div>
-                `;
-            }
-            document.body.appendChild(printContent);
-            printContent.style.position = 'fixed';
-            printContent.style.left = '-9999px';
-            try {
-                const captureCanvas = await html2canvas(printContent, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    allowTaint: true
-                });
-                const { jsPDF } = window.jspdf;
-                const imgData = captureCanvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (captureCanvas.height * imgWidth) / captureCanvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-                pdf.save(`estadisticas_cpnb_${estacionNombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('Error al generar el PDF. Intente nuevamente.');
-            } finally {
-                document.body.removeChild(printContent);
-            }
+            alert('Exportación a PDF no implementada en esta versión mejorada.\nPuedes usar la función de impresión del navegador (Ctrl+P).');
         }
     </script>
 </body>
