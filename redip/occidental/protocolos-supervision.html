@@ -5,40 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protocolos de Supervisión - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        :root {
-            --cpnb-blue: #0c2440;
-            --cpnb-blue-dark: #1a365d;
-            --cpnb-gold: #ffcc00;
-            --cpnb-orange: #ff6b00;
-            --light-bg: #f8fafc;
-            --border-color: #e2e8f0;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body {
-            background: linear-gradient(135deg, var(--cpnb-blue) 0%, var(--cpnb-blue-dark) 100%);
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             padding: 20px;
-            color: #2d3748;
         }
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
             width: 100%;
             max-width: 800px;
             padding: 40px;
             position: relative;
-            overflow: hidden;
         }
         .container::before {
             content: '';
@@ -46,8 +30,8 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 6px;
-            background: linear-gradient(90deg, var(--cpnb-gold), var(--cpnb-orange), var(--cpnb-gold));
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         .logo-img {
             width: 100px;
@@ -55,15 +39,13 @@
             object-fit: contain;
             margin: 0 auto 20px;
             display: block;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
         .title {
             text-align: center;
-            color: var(--cpnb-blue);
-            font-size: 26px;
-            font-weight: 800;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
             margin-bottom: 30px;
-            letter-spacing: -0.5px;
         }
         .input-group {
             margin-bottom: 25px;
@@ -71,115 +53,67 @@
         .input-group label {
             display: block;
             margin-bottom: 10px;
-            font-weight: 700;
-            color: var(--cpnb-blue);
-            font-size: 15px;
+            font-weight: bold;
+            color: #2d3748;
         }
-        select, .selection-btn {
+        select, .dropdown-btn {
             width: 100%;
-            padding: 14px;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
             font-size: 16px;
+        }
+        .dropdown-btn {
             background: white;
-            transition: all 0.25s ease;
-        }
-        select:focus, .selection-btn:focus {
-            outline: none;
-            border-color: var(--cpnb-gold);
-            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2);
-        }
-        .selection-btn {
-            background: #f0f7ff;
             text-align: left;
-            font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
         }
-        .selection-btn i {
-            color: var(--cpnb-blue);
-            font-size: 18px;
-        }
-        .selection-btn:hover:not(:disabled) {
-            background: #e6f2ff;
-            border-color: #a0cfff;
-        }
-        .selection-btn:disabled {
+        .dropdown-btn:disabled {
             background: #f7fafc;
             color: #a0aec0;
             cursor: not-allowed;
         }
         .dropdown-menu {
-            position: absolute;
-            z-index: 20;
-            background: white;
-            border: 2px solid var(--border-color);
+            position: relative;
+            z-index: 10;
+            border: 2px solid #e2e8f0;
             border-top: none;
-            border-radius: 0 0 12px 12px;
-            max-height: 220px;
+            max-height: 200px;
             overflow-y: auto;
-            width: calc(100% - 2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-            animation: fadeIn 0.2s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
+            background: white;
+            border-radius: 0 0 10px 10px;
+            display: none;
         }
         .dropdown-item {
-            padding: 14px 18px;
+            padding: 12px 16px;
             cursor: pointer;
-            transition: background 0.2s;
-            font-size: 15px;
             border-bottom: 1px solid #edf2f7;
+        }
+        .dropdown-item:hover {
+            background: #ebf8ff;
         }
         .dropdown-item:last-child {
             border-bottom: none;
         }
-        .dropdown-item:hover {
-            background: #ebf8ff;
-            color: var(--cpnb-blue);
-        }
-        .protocolo-section {
-            margin-top: 30px;
-            padding-top: 25px;
-            border-top: 2px dashed #e2e8f0;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--cpnb-blue);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
         .protocolo-item {
-            background: var(--light-bg);
+            background: #f8fafc;
             padding: 20px;
-            border-radius: 14px;
-            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
             margin-bottom: 20px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
         }
         .protocolo-titulo {
-            font-weight: 700;
-            color: var(--cpnb-blue);
+            font-weight: bold;
+            color: #0c2440;
             margin-bottom: 12px;
             font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
         .archivo-input {
             width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            margin-bottom: 14px;
-            font-size: 15px;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
         }
         .botones-item {
             display: flex;
@@ -187,78 +121,60 @@
             flex-wrap: wrap;
         }
         .btn {
-            padding: 10px 16px;
+            padding: 8px 14px;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
             cursor: pointer;
             white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: opacity 0.2s;
-        }
-        .btn:hover {
-            opacity: 0.9;
         }
         .btn-subir { background: #3182ce; color: white; }
         .btn-actualizar { background: #dd6b20; color: white; }
         .btn-descargar { background: #38a169; color: white; }
         .btn-descargar-todo {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, var(--cpnb-blue), var(--cpnb-blue-dark));
+            padding: 14px;
+            background: linear-gradient(135deg, #0c2440, #1a365d);
             color: white;
             border: none;
-            border-radius: 14px;
-            font-weight: 700;
-            margin-top: 25px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            border-radius: 12px;
+            font-weight: bold;
+            margin-top: 20px;
         }
         .back-btn {
+            background: #2c5282;
+            padding: 10px 20px;
             display: inline-block;
-            background: var(--cpnb-blue);
             color: white;
             text-decoration: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: 600;
+            border-radius: 8px;
             margin-top: 20px;
             text-align: center;
-            transition: background 0.3s;
-        }
-        .back-btn:hover {
-            background: var(--cpnb-blue-dark);
         }
         .mensaje {
-            margin-top: 20px;
-            padding: 14px;
-            border-radius: 10px;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
             text-align: center;
-            font-weight: 600;
-            font-size: 15px;
+            font-weight: bold;
         }
         .exito { background: #c6f6d5; color: #22543d; }
         .error { background: #fed7d7; color: #9b2c2c; }
         .progress-container {
             display: none;
-            margin-top: 12px;
+            margin-top: 15px;
         }
         .progress-bar {
             width: 100%;
-            height: 8px;
+            height: 6px;
             background: #e2e8f0;
-            border-radius: 4px;
+            border-radius: 3px;
             overflow: hidden;
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #3182ce, var(--cpnb-blue));
+            background: linear-gradient(90deg, #3182ce, #0c2440);
             width: 0%;
             transition: width 0.3s ease;
         }
@@ -270,7 +186,7 @@
         <h1 class="title">Protocolos de Supervisión</h1>
 
         <div class="input-group">
-            <label for="redipSelect"><i class="fas fa-map-marked-alt"></i> Seleccione REDIP:</label>
+            <label for="redipSelect">Seleccione REDIP:</label>
             <select id="redipSelect" required>
                 <option value="">-- Elija una REDIP --</option>
                 <option value="occidental">REDIP OCCIDENTAL</option>
@@ -285,44 +201,37 @@
         </div>
 
         <div class="input-group">
-            <label for="ccpSelect"><i class="fas fa-shield-alt"></i> Seleccione CCP:</label>
+            <label for="ccpSelect">Seleccione CCP:</label>
             <select id="ccpSelect" disabled required>
                 <option value="">-- Primero seleccione REDIP --</option>
             </select>
         </div>
 
-        <!-- Botón Estación -->
+        <!-- Estación Policial -->
         <div class="input-group">
-            <label><i class="fas fa-building"></i> Estación Policial:</label>
-            <button id="btnEstacion" class="selection-btn" disabled>
-                <i class="fas fa-map-pin"></i> Seleccionar Estación Policial
+            <label>Estación Policial:</label>
+            <button id="btnEstacion" class="dropdown-btn" disabled>
+                Seleccionar Estación Policial
             </button>
-            <div id="dropdownEstacion" class="dropdown-menu" style="display: none;"></div>
+            <div id="dropdownEstacion" class="dropdown-menu"></div>
         </div>
 
-        <!-- Botón Servicio -->
+        <!-- Servicio Administrativo -->
         <div class="input-group">
-            <label><i class="fas fa-file-alt"></i> Servicio Administrativo:</label>
-            <button id="btnServicio" class="selection-btn" disabled>
-                <i class="fas fa-briefcase"></i> Seleccionar Servicio Administrativo
+            <label>Servicio Administrativo:</label>
+            <button id="btnServicio" class="dropdown-btn" disabled>
+                Seleccionar Servicio Administrativo
             </button>
-            <div id="dropdownServicio" class="dropdown-menu" style="display: none;"></div>
+            <div id="dropdownServicio" class="dropdown-menu"></div>
         </div>
 
         <!-- Protocolos -->
-        <div id="protocolosSection" class="protocolo-section" style="display: none;">
-            <h2 class="section-title" id="sectionTitle">
-                <i class="fas fa-file-contract"></i> Protocolos
-            </h2>
-            <div id="protocolosContainer"></div>
-            <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
-                <i class="fas fa-download"></i> Descargar Todos los Protocolos
-            </button>
-        </div>
+        <div id="protocolosContainer"></div>
+        <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
+            📥 Descargar Todos los Protocolos
+        </button>
 
-        <a href="index.html" class="back-btn">
-            <i class="fas fa-arrow-left"></i> Volver al Panel Principal
-        </a>
+        <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
         <div id="mensaje" class="mensaje" style="display: none;"></div>
     </div>
 
@@ -349,10 +258,10 @@
         };
 
         const protocolos = [
-            { id: 'guia', nombre: 'Guía de Inspección', icon: 'fa-search', archivo: 'guia_inspeccion.pdf' },
-            { id: 'vademecum', nombre: 'Vademécum', icon: 'fa-book', archivo: 'vademecum.pdf' },
-            { id: 'fotograma', nombre: 'Fotograma', icon: 'fa-camera', archivo: 'fotograma.pdf' },
-            { id: 'plan', nombre: 'Plan de Acción y Reacción', icon: 'fa-clipboard-list', archivo: 'plan_accion_reaccion.pdf' }
+            { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
+            { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf' },
+            { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
+            { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
 
         let estadoArchivos = {};
@@ -369,7 +278,7 @@
             if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
-                ccpSelect.innerHTML = '<option value="">No hay CCPs</option>';
+                ccpSelect.innerHTML = '<option value="">No hay CCPs para esta REDIP</option>';
                 ccpSelect.disabled = true;
             } else {
                 ccps.forEach(ccp => {
@@ -410,10 +319,10 @@
             document.getElementById('dropdownServicio').style.display = 'none';
             const dropdown = document.getElementById('dropdownEstacion');
             dropdown.style.display = 'block';
-            dropdown.innerHTML = '<div class="dropdown-item"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+            dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
 
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -421,14 +330,14 @@
 
                 dropdown.innerHTML = '';
                 if (error || !estaciones?.length) {
-                    dropdown.innerHTML = '<div class="dropdown-item"><i class="fas fa-exclamation-circle"></i> No hay estaciones</div>';
+                    dropdown.innerHTML = '<div class="dropdown-item">No hay estaciones</div>';
                 } else {
                     estaciones.forEach(est => {
                         const div = document.createElement('div');
                         div.className = 'dropdown-item';
-                        div.innerHTML = `<i class="fas fa-building"></i> ${est.nombre}`;
+                        div.textContent = est.nombre;
                         div.onclick = () => {
-                            document.getElementById('btnEstacion').innerHTML = `<i class="fas fa-check-circle" style="color:#38a169"></i> ${est.nombre}`;
+                            document.getElementById('btnEstacion').textContent = est.nombre;
                             dropdown.style.display = 'none';
                             tipoActivo = 'estacion';
                             idActivo = est.id;
@@ -438,7 +347,7 @@
                     });
                 }
             } catch (err) {
-                dropdown.innerHTML = '<div class="dropdown-item"><i class="fas fa-exclamation-triangle"></i> Error al cargar</div>';
+                dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
             }
         });
 
@@ -452,10 +361,10 @@
             document.getElementById('dropdownEstacion').style.display = 'none';
             const dropdown = document.getElementById('dropdownServicio');
             dropdown.style.display = 'block';
-            dropdown.innerHTML = '<div class="dropdown-item"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+            dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
 
             try {
-                const { data: servicios, error } = await supabase
+                const {  servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -463,14 +372,14 @@
 
                 dropdown.innerHTML = '';
                 if (error || !servicios?.length) {
-                    dropdown.innerHTML = '<div class="dropdown-item"><i class="fas fa-exclamation-circle"></i> No hay servicios</div>';
+                    dropdown.innerHTML = '<div class="dropdown-item">No hay servicios</div>';
                 } else {
                     servicios.forEach(serv => {
                         const div = document.createElement('div');
                         div.className = 'dropdown-item';
-                        div.innerHTML = `<i class="fas fa-briefcase"></i> ${serv.nombre}`;
+                        div.textContent = serv.nombre;
                         div.onclick = () => {
-                            document.getElementById('btnServicio').innerHTML = `<i class="fas fa-check-circle" style="color:#38a169"></i> ${serv.nombre}`;
+                            document.getElementById('btnServicio').textContent = serv.nombre;
                             dropdown.style.display = 'none';
                             tipoActivo = 'servicio';
                             idActivo = serv.id;
@@ -480,31 +389,24 @@
                     });
                 }
             } catch (err) {
-                dropdown.innerHTML = '<div class="dropdown-item"><i class="fas fa-exclamation-triangle"></i> Error al cargar</div>';
+                dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
             }
         });
 
         // === Renderizar protocolos ===
         function renderizarProtocolos() {
-            const section = document.getElementById('protocolosSection');
-            const title = document.getElementById('sectionTitle');
-            section.style.display = 'block';
-
-            const tipoLabel = tipoActivo === 'estacion' ? 'Estación Policial' : 'Servicio Administrativo';
-            title.innerHTML = `<i class="fas fa-file-contract"></i> Protocolos para ${tipoLabel}`;
-
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
             protocolos.forEach(proto => {
                 const div = document.createElement('div');
                 div.className = 'protocolo-item';
                 div.innerHTML = `
-                    <div class="protocolo-titulo"><i class="fas ${proto.icon}"></i> ${proto.nombre}</div>
+                    <div class="protocolo-titulo">${proto.nombre}</div>
                     <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
                     <div class="botones-item">
-                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')"><i class="fas fa-upload"></i> Subir</button>
-                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;"><i class="fas fa-sync-alt"></i> Actualizar</button>
-                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;"><i class="fas fa-download"></i> Descargar</button>
+                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
+                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
+                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
                     </div>
                     <div class="progress-container" id="progress_${proto.id}">
                         <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
@@ -532,8 +434,8 @@
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
                         document.querySelector(`#input_${proto.id}`).disabled = true;
-                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-flex';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-flex';
+                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-block';
                         document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
                     } else {
                         resetBotones(proto.id);
@@ -549,7 +451,7 @@
             document.querySelector(`#input_${id}`).disabled = false;
             document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
             document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
-            document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-flex';
+            document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
         // === Funciones de archivo ===
@@ -574,7 +476,7 @@
                 if (error) throw error;
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
-                mostrarMensaje(`✅ ${proto.nombre} subido correctamente (${tipoActivo}).`, 'exito');
+                mostrarMensaje(`✅ ${proto.nombre} subido correctamente.`, 'exito');
                 input.value = '';
                 await verificarArchivosExistentes();
             } catch (e) {
@@ -619,7 +521,7 @@
                     await new Promise(r => setTimeout(r, 400));
                 }
             }
-            mostrarMensaje(`✅ Todos los protocolos descargados (${tipoActivo}).`, 'exito');
+            mostrarMensaje(`✅ Todos los protocolos descargados.`, 'exito');
         }
 
         function mostrarMensaje(texto, tipo) {
@@ -627,7 +529,7 @@
             msg.textContent = texto;
             msg.className = `mensaje ${tipo}`;
             msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 6000);
+            setTimeout(() => msg.style.display = 'none', 5000);
         }
 
         // === Autenticación ===
