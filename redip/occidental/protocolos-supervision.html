@@ -20,7 +20,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.4);
             width: 100%;
-            max-width: 700px;
+            max-width: 800px;
             padding: 40px;
             position: relative;
         }
@@ -48,20 +48,58 @@
             margin-bottom: 30px;
         }
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         .input-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: bold;
+            color: #2d3748;
         }
-        .input-group select, .input-group input[type="file"] {
+        .input-group select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e2e8f0;
             border-radius: 10px;
         }
+        .protocolo-item {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+        .protocolo-titulo {
+            font-weight: bold;
+            color: #0c2440;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .archivo-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .botones-item {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
         .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-subir { background: #3182ce; color: white; }
+        .btn-actualizar { background: #dd6b20; color: white; }
+        .btn-descargar { background: #38a169; color: white; }
+        .btn-descargar-todo {
             width: 100%;
             padding: 14px;
             background: linear-gradient(135deg, #0c2440, #1a365d);
@@ -69,16 +107,7 @@
             border: none;
             border-radius: 12px;
             font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .btn:hover { opacity: 0.9; }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .btn-actualizar {
-            background: linear-gradient(135deg, #dd6b20, #c05621);
+            margin-top: 20px;
         }
         .back-btn {
             background: #2c5282;
@@ -99,50 +128,22 @@
         }
         .exito { background: #c6f6d5; color: #22543d; }
         .error { background: #fed7d7; color: #9b2c2c; }
-        .info { background: #ebf8ff; color: #2c5282; }
-        .acciones {
-            display: flex;
-            gap: 15px;
-            margin-top: 25px;
-        }
-        .acciones button {
-            flex: 1;
-        }
-        .archivo-indicador {
-            font-size: 13px;
-            color: #38a169;
-            font-weight: bold;
-            margin-top: 8px;
-            display: none;
-        }
         .progress-container {
             display: none;
-            margin-top: 20px;
-        }
-        .progress-label {
-            text-align: center;
-            font-size: 14px;
-            color: #0c2440;
-            margin-bottom: 8px;
-        }
-        .progress-bar-container {
-            width: 100%;
-            background: #e2e8f0;
-            border-radius: 10px;
-            height: 12px;
-            overflow: hidden;
+            margin-top: 15px;
         }
         .progress-bar {
-            width: 0%;
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #3182ce, #0c2440);
+            width: 0%;
             transition: width 0.3s ease;
-        }
-        .progress-text {
-            text-align: center;
-            font-size: 13px;
-            color: #4a5568;
-            margin-top: 6px;
         }
     </style>
 </head>
@@ -150,77 +151,42 @@
     <div class="container">
         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/imagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
-        <form id="protocolosForm">
-            <div class="input-group">
-                <label for="redipSelect">Seleccione REDIP:</label>
-                <select id="redipSelect" required>
-                    <option value="">-- Elija una REDIP --</option>
-                    <option value="occidental">REDIP OCCIDENTAL</option>
-                    <option value="capital">REDIP CAPITAL</option>
-                    <option value="central">REDIP CENTRAL</option>
-                    <option value="andes">REDIP LOS ANDES</option>
-                    <option value="oriental">REDIP ORIENTAL</option>
-                    <option value="llanos">REDIP LOS LLANOS</option>
-                    <option value="guayana">REDIP GUAYANA</option>
-                    <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="ccpSelect">Seleccione CCP:</label>
-                <select id="ccpSelect" disabled required>
-                    <option value="">-- Primero seleccione REDIP --</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="estacionSelect">Seleccione Estación Policial:</label>
-                <select id="estacionSelect" disabled required>
-                    <option value="">-- Primero seleccione CCP --</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="guia">Guía de Inspección (PDF)</label>
-                <input type="file" id="guia" accept=".pdf" disabled>
-                <div class="archivo-indicador" id="guia-indicador">✅ Archivo seleccionado</div>
-            </div>
-            <div class="input-group">
-                <label for="vademecum">Vademécum (PDF)</label>
-                <input type="file" id="vademecum" accept=".pdf" disabled>
-                <div class="archivo-indicador" id="vademecum-indicador">✅ Archivo seleccionado</div>
-            </div>
-            <div class="input-group">
-                <label for="fotograma">Fotograma (PDF)</label>
-                <input type="file" id="fotograma" accept=".pdf" disabled>
-                <div class="archivo-indicador" id="fotograma-indicador">✅ Archivo seleccionado</div>
-            </div>
-            <div class="input-group">
-                <label for="plan">Plan de Acción y Reacción (PDF)</label>
-                <input type="file" id="plan" accept=".pdf" disabled>
-                <div class="archivo-indicador" id="plan-indicador">✅ Archivo seleccionado</div>
-            </div>
-            <div class="acciones">
-                <button type="button" id="btnSubir" class="btn" onclick="subirProtocolos()" disabled>📤 Subir Protocolos</button>
-                <button type="button" class="btn" onclick="descargarProtocolos()">📥 Descargar Protocolos</button>
-            </div>
-            <button type="button" id="btnActualizar" class="btn btn-actualizar" style="display:none;" onclick="habilitarActualizacion()">
-                🔄 Actualizar Protocolos
-            </button>
-        </form>
-        <div id="uploadProgress" class="progress-container">
-            <div class="progress-label">Subiendo archivos...</div>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="uploadBar"></div>
-            </div>
-            <div class="progress-text" id="uploadText">0%</div>
+        <div class="input-group">
+            <label for="redipSelect">Seleccione REDIP:</label>
+            <select id="redipSelect" required>
+                <option value="">-- Elija una REDIP --</option>
+                <option value="occidental">REDIP OCCIDENTAL</option>
+                <option value="capital">REDIP CAPITAL</option>
+                <option value="central">REDIP CENTRAL</option>
+                <option value="andes">REDIP LOS ANDES</option>
+                <option value="oriental">REDIP ORIENTAL</option>
+                <option value="llanos">REDIP LOS LLANOS</option>
+                <option value="guayana">REDIP GUAYANA</option>
+                <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
+            </select>
         </div>
-        <div id="downloadProgress" class="progress-container">
-            <div class="progress-label">Verificando archivos...</div>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="downloadBar"></div>
-            </div>
-            <div class="progress-text" id="downloadText">0%</div>
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect" disabled required>
+                <option value="">-- Primero seleccione REDIP --</option>
+            </select>
         </div>
-        <div id="mensaje" class="mensaje" style="display: none;"></div>
+        <div class="input-group">
+            <label for="estacionSelect">Seleccione Estación Policial:</label>
+            <select id="estacionSelect" disabled required>
+                <option value="">-- Primero seleccione CCP --</option>
+            </select>
+        </div>
+        <!-- Ítems de protocolo -->
+        <div id="protocolosContainer">
+            <!-- Los ítems se generarán dinámicamente -->
+        </div>
+        <!-- Botón para descargar todo -->
+        <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
+            📥 Descargar Todos los Protocolos
+        </button>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
+        <div id="mensaje" class="mensaje" style="display: none;"></div>
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -247,8 +213,13 @@
             guayana: [],
             maritima: []
         };
-        let hayArchivosExistentes = false;
-
+        const protocolos = [
+            { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
+            { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf' },
+            { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
+            { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
+        ];
+        let estadoArchivos = {};
         async function verificarAutenticacion() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -264,7 +235,6 @@
                 return false;
             }
         }
-
         document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
@@ -273,7 +243,6 @@
             estacionSelect.innerHTML = '<option value="">-- Primero seleccione CCP --</option>';
             ccpSelect.disabled = !redip;
             estacionSelect.disabled = true;
-            resetFormulario();
             if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
@@ -289,14 +258,12 @@
                 ccpSelect.disabled = false;
             }
         });
-
         document.getElementById('ccpSelect').addEventListener('change', async () => {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const estacionSelect = document.getElementById('estacionSelect');
             estacionSelect.innerHTML = '<option value="">-- Cargando estaciones... --</option>';
             estacionSelect.disabled = true;
-            resetFormulario();
             if (!redip || !ccp) {
                 estacionSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
                 return;
@@ -330,128 +297,82 @@
                 estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
             }
         });
-
         document.getElementById('estacionSelect').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionSelect').value;
             if (!estacionId) {
-                resetFormulario();
+                document.getElementById('protocolosContainer').innerHTML = '';
+                document.getElementById('btnDescargarTodo').disabled = true;
                 return;
             }
-            await verificarYMostrarEstado(estacionId);
+            await renderizarProtocolos();
+            await verificarArchivosExistentes();
         });
-
-        function resetFormulario() {
-            // Deshabilitar todo
-            ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
-                const input = document.getElementById(id);
-                if (input) input.disabled = true;
-                const indicador = document.getElementById(`${id}-indicador`);
-                if (indicador) indicador.style.display = 'none';
-            });
-            document.getElementById('btnSubir').disabled = true;
-            document.getElementById('btnActualizar').style.display = 'none';
-            hayArchivosExistentes = false;
-            ocultarMensaje();
-        }
-
-        async function verificarYMostrarEstado(estacionId) {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            if (!redip || !ccp) return;
-
-            const nombresArchivos = [
-                'guia_inspeccion.pdf',
-                'vademecum.pdf',
-                'fotograma.pdf',
-                'plan_accion_reaccion.pdf'
-            ];
-
-            try {
-                const verificaciones = await Promise.all(
-                    nombresArchivos.map(nombre => {
-                        const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
-                        return supabase.storage
-                            .from('protocolos-supervision')
-                            .download(filePath)
-                            .then(({ data, error }) => {
-                                if (error) return { nombre, existe: false };
-                                return { nombre, existe: true };
-                            })
-                            .catch(() => ({ nombre, existe: false }));
-                    })
-                );
-
-                const existentes = verificaciones.filter(v => v.existe);
-                if (existentes.length > 0) {
-                    hayArchivosExistentes = true;
-                    mostrarMensaje(`✅ La estación ya tiene ${existentes.length} protocolo(s) cargado(s).`, 'info');
-                    document.getElementById('btnActualizar').style.display = 'block';
-                    // Mantener inputs deshabilitados
-                } else {
-                    hayArchivosExistentes = false;
-                    habilitarInputs();
-                    document.getElementById('btnActualizar').style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Error al verificar archivos:', error);
-                mostrarMensaje('❌ Error al verificar protocolos.', 'error');
-            }
-        }
-
-        function habilitarInputs() {
-            ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
-                const input = document.getElementById(id);
-                if (input) input.disabled = false;
-            });
-            document.getElementById('btnSubir').disabled = false;
-        }
-
-        function habilitarActualizacion() {
-            // Eliminar archivos anteriores
-            eliminarArchivosAnteriores().then(() => {
-                habilitarInputs();
-                document.getElementById('btnActualizar').style.display = 'none';
-                mostrarMensaje('✅ Archivos anteriores eliminados. Puede subir nuevos.', 'exito');
+        function renderizarProtocolos() {
+            const container = document.getElementById('protocolosContainer');
+            container.innerHTML = '';
+            protocolos.forEach(proto => {
+                const div = document.createElement('div');
+                div.className = 'protocolo-item';
+                div.innerHTML = `
+                    <div class="protocolo-titulo">${proto.nombre}</div>
+                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
+                    <div class="botones-item">
+                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
+                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
+                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
+                    </div>
+                    <div class="progress-container" id="progress_${proto.id}">
+                        <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
+                    </div>
+                `;
+                container.appendChild(div);
             });
         }
-
-        async function eliminarArchivosAnteriores() {
+        async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const estacionId = document.getElementById('estacionSelect').value;
-            const nombresArchivos = [
-                'guia_inspeccion.pdf',
-                'vademecum.pdf',
-                'fotograma.pdf',
-                'plan_accion_reaccion.pdf'
-            ];
-            try {
-                await Promise.all(
-                    nombresArchivos.map(nombre => {
-                        const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
-                        return supabase.storage
-                            .from('protocolos-supervision')
-                            .remove([filePath]);
-                    })
-                );
-            } catch (error) {
-                console.error('Error al eliminar archivos:', error);
-            }
-        }
-
-        ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
-            const input = document.getElementById(id);
-            if (input) {
-                input.addEventListener('change', function() {
-                    const indicador = document.getElementById(`${id}-indicador`);
-                    if (indicador) {
-                        indicador.style.display = this.files.length > 0 ? 'block' : 'none';
+            if (!redip || !ccp || !estacionId) return;
+            estadoArchivos = {};
+            let existenArchivos = false;
+            for (const proto of protocolos) {
+                const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${proto.archivo}`;
+                try {
+                    const { data, error } = await supabase.storage
+                        .from('protocolos-supervision')
+                        .download(filePath);
+                    if (data) {
+                        estadoArchivos[proto.id] = { existe: true, data };
+                        existenArchivos = true;
+                        // Mostrar botones de descargar y actualizar
+                        document.querySelector(`#input_${proto.id}`).disabled = true;
+                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
+                    } else {
+                        estadoArchivos[proto.id] = { existe: false };
+                        document.querySelector(`#input_${proto.id}`).disabled = false;
+                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
+                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
+                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
                     }
-                });
+                } catch (error) {
+                    estadoArchivos[proto.id] = { existe: false };
+                    document.querySelector(`#input_${proto.id}`).disabled = false;
+                    document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
+                    document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
+                    document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                }
             }
-        });
-
-        async function subirProtocolos() {
+            document.getElementById('btnDescargarTodo').disabled = !existenArchivos;
+        }
+        async function subirArchivo(id) {
+            const input = document.getElementById(`input_${id}`);
+            const archivo = input.files[0];
+            if (!archivo) {
+                mostrarMensaje(`⚠️ Seleccione un archivo para ${protocolos.find(p => p.id === id).nombre}.`, 'error');
+                return;
+            }
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const estacionId = document.getElementById('estacionSelect').value;
@@ -459,147 +380,85 @@
                 mostrarMensaje('⚠️ Seleccione REDIP, CCP y Estación.', 'error');
                 return;
             }
-            const inputs = {
-                guia_inspeccion: document.getElementById('guia'),
-                vademecum: document.getElementById('vademecum'),
-                fotograma: document.getElementById('fotograma'),
-                plan_accion_reaccion: document.getElementById('plan')
-            };
-            const archivos = {};
-            Object.entries(inputs).forEach(([key, input]) => {
-                if (input && input.files.length > 0) {
-                    archivos[key] = input.files[0];
-                }
-            });
-            if (Object.keys(archivos).length === 0) {
-                mostrarMensaje('⚠️ Seleccione al menos un archivo para subir.', 'error');
-                return;
-            }
-            const uploadProgress = document.getElementById('uploadProgress');
-            const uploadBar = document.getElementById('uploadBar');
-            const uploadText = document.getElementById('uploadText');
-            if (uploadProgress) uploadProgress.style.display = 'block';
-            if (uploadBar) uploadBar.style.width = '0%';
-            if (uploadText) uploadText.textContent = '0%';
-            let subidos = 0;
-            const total = Object.keys(archivos).length;
+            const proto = protocolos.find(p => p.id === id);
+            const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${proto.archivo}`;
+            const progressBar = document.getElementById(`progress_${id}`);
+            const fillBar = document.getElementById(`fill_${id}`);
+            progressBar.style.display = 'block';
+            fillBar.style.width = '0%';
             try {
-                for (const [nombre, archivo] of Object.entries(archivos)) {
-                    const ext = archivo.name.split('.').pop().toLowerCase();
-                    const cleanNombre = nombre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                    const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${cleanNombre}.${ext}`;
-                    const porcentaje = Math.round((subidos / total) * 100);
-                    if (uploadBar) uploadBar.style.width = `${porcentaje}%`;
-                    if (uploadText) uploadText.textContent = `${porcentaje}%`;
-                    const { error } = await supabase.storage
-                        .from('protocolos-supervision')
-                        .upload(filePath, archivo, { upsert: true });
-                    if (error) throw error;
-                    subidos++;
-                }
-                if (uploadBar) uploadBar.style.width = '100%';
-                if (uploadText) uploadText.textContent = '100%';
+                const { error } = await supabase.storage
+                    .from('protocolos-supervision')
+                    .upload(filePath, archivo, { upsert: true });
+                if (error) throw error;
+                fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
-                mostrarMensaje(`✅ ${subidos} archivo(s) subido(s) correctamente.`, 'exito');
-                if (uploadProgress) uploadProgress.style.display = 'none';
-                // Limpiar inputs e indicadores
-                Object.values(inputs).forEach(input => {
-                    if (input) input.value = '';
-                });
-                ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
-                    const indicador = document.getElementById(`${id}-indicador`);
-                    if (indicador) indicador.style.display = 'none';
-                });
-                // Volver a verificar estado
-                await verificarYMostrarEstado(estacionId);
+                mostrarMensaje(`✅ ${proto.nombre} subido correctamente.`, 'exito');
+                input.value = '';
+                await verificarArchivosExistentes();
             } catch (error) {
                 console.error('Error al subir:', error);
-                mostrarMensaje('❌ Error al subir los archivos.', 'error');
-                if (uploadProgress) uploadProgress.style.display = 'none';
+                mostrarMensaje(`❌ Error al subir ${proto.nombre}.`, 'error');
+            } finally {
+                progressBar.style.display = 'none';
             }
         }
-
-        async function descargarProtocolos() {
+        async function actualizarArchivo(id) {
+            // Eliminar el archivo antiguo
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const estacionId = document.getElementById('estacionSelect').value;
-            if (!redip || !ccp || !estacionId) {
-                mostrarMensaje('⚠️ Seleccione REDIP, CCP y Estación.', 'error');
-                return;
-            }
-            const nombresArchivos = [
-                'guia_inspeccion.pdf',
-                'vademecum.pdf',
-                'fotograma.pdf',
-                'plan_accion_reaccion.pdf'
-            ];
-            const downloadProgress = document.getElementById('downloadProgress');
-            const downloadBar = document.getElementById('downloadBar');
-            const downloadText = document.getElementById('downloadText');
-            if (downloadProgress) downloadProgress.style.display = 'block';
-            if (downloadBar) downloadBar.style.width = '0%';
-            if (downloadText) downloadText.textContent = '0%';
+            const proto = protocolos.find(p => p.id === id);
+            const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${proto.archivo}`;
             try {
-                const verificaciones = await Promise.all(
-                    nombresArchivos.map(nombre => {
-                        const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
-                        return supabase.storage
-                            .from('protocolos-supervision')
-                            .download(filePath)
-                            .then(({ data, error }) => {
-                                if (error) return { nombre, existe: false };
-                                return { nombre, existe: true, data };
-                            })
-                            .catch(() => ({ nombre, existe: false }));
-                    })
-                );
-                const existentes = verificaciones.filter(v => v.existe);
-                if (existentes.length === 0) {
-                    if (downloadProgress) downloadProgress.style.display = 'none';
-                    mostrarMensaje('❌ La estación no tiene protocolos cargados.', 'error');
-                    return;
-                }
-                let descargados = 0;
-                for (const item of existentes) {
-                    const porcentaje = Math.round((descargados / existentes.length) * 100);
-                    if (downloadBar) downloadBar.style.width = `${porcentaje}%`;
-                    if (downloadText) downloadText.textContent = `${porcentaje}%`;
-                    const url = URL.createObjectURL(item.data);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = item.nombre;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    descargados++;
-                }
-                if (downloadBar) downloadBar.style.width = '100%';
-                if (downloadText) downloadText.textContent = '100%';
-                await new Promise(r => setTimeout(r, 300));
-                mostrarMensaje(`✅ ${descargados} archivo(s) descargado(s).`, 'exito');
-                if (downloadProgress) downloadProgress.style.display = 'none';
+                await supabase.storage
+                    .from('protocolos-supervision')
+                    .remove([filePath]);
+                // Habilitar input y botón de subir
+                document.querySelector(`#input_${id}`).disabled = false;
+                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
+                document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
+                document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
+                mostrarMensaje(`✅ Archivo antiguo eliminado. Seleccione nuevo archivo y haga clic en "Subir".`, 'exito');
             } catch (error) {
-                console.error('Error al verificar/descargar:', error);
-                mostrarMensaje('❌ Error al acceder a los protocolos.', 'error');
-                if (downloadProgress) downloadProgress.style.display = 'none';
+                console.error('Error al eliminar:', error);
+                mostrarMensaje('❌ Error al preparar actualización.', 'error');
             }
         }
-
+        async function descargarArchivo(id) {
+            const archivo = estadoArchivos[id]?.data;
+            if (!archivo) {
+                mostrarMensaje('❌ Archivo no disponible.', 'error');
+                return;
+            }
+            const proto = protocolos.find(p => p.id === id);
+            const url = URL.createObjectURL(archivo);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = proto.archivo;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        async function descargarTodo() {
+            for (const proto of protocolos) {
+                if (estadoArchivos[proto.id]?.existe) {
+                    await descargarArchivo(proto.id);
+                    await new Promise(r => setTimeout(r, 500)); // Pequeña pausa entre descargas
+                }
+            }
+            mostrarMensaje('✅ Todos los archivos descargados.', 'exito');
+        }
         function mostrarMensaje(texto, tipo) {
             const msg = document.getElementById('mensaje');
             if (msg) {
                 msg.textContent = texto;
                 msg.className = `mensaje ${tipo}`;
                 msg.style.display = 'block';
+                setTimeout(() => { msg.style.display = 'none'; }, 5000);
             }
         }
-
-        function ocultarMensaje() {
-            const msg = document.getElementById('mensaje');
-            if (msg) msg.style.display = 'none';
-        }
-
         // Verificar autenticación al cargar
         verificarAutenticacion();
     </script>
