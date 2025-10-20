@@ -58,45 +58,59 @@
         }
         .input-group-btn {
             width: 100%;
-            padding: 12px;
-            background: #edf2f7;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border: 2px solid #cbd5e0;
+            border-radius: 12px;
             text-align: left;
-            font-weight: bold;
+            font-weight: 600;
+            color: #2d3748;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .input-group-btn:hover:not(:disabled) {
-            background: #e2e8f0;
+            background: #edf2f7;
+            border-color: #a0aec0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         .input-group-btn:disabled {
             background: #f7fafc;
             color: #a0aec0;
             cursor: not-allowed;
+            border-color: #e2e8f0;
+            box-shadow: none;
         }
+
+        /* ✨ Dropdown mejorado */
         .dropdown-menu {
-            border: 1px solid #e2e8f0;
-            border-top: none;
-            max-height: 200px;
+            position: absolute;
+            width: 100%;
+            max-height: 220px;
             overflow-y: auto;
             background: white;
-            border-radius: 0 0 10px 10px;
-            z-index: 10;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 2px solid #cbd5e0;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+            z-index: 20;
+            margin-top: -2px;
+            font-size: 14px;
         }
         .dropdown-item {
             padding: 12px 16px;
             cursor: pointer;
-            border-bottom: 1px solid #edf2f7;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
+            color: #2d3748;
         }
         .dropdown-item:hover {
             background: #ebf8ff;
+            color: #2c5282;
         }
         .dropdown-item:last-child {
-            border-bottom: none;
+            border-radius: 0 0 10px 10px;
         }
+
         .protocolo-item {
             background: #f8fafc;
             padding: 20px;
@@ -117,7 +131,6 @@
             border-radius: 8px;
             margin-bottom: 12px;
         }
-        /* ✨ Aviso destacado solo si hay archivo existente */
         .aviso-actualizacion {
             background: #fff5f5;
             border-left: 4px solid #e53e3e;
@@ -127,7 +140,7 @@
             color: #c53030;
             font-weight: bold;
             font-size: 14px;
-            display: none; /* por defecto oculto */
+            display: none;
         }
         .botones-item {
             display: flex;
@@ -195,6 +208,7 @@
     </style>
 </head>
 <body>
+    <!-- Resto del HTML sin cambios -->
     <div class="container">
         <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/imagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
@@ -218,7 +232,6 @@
                 <option value="">-- Primero seleccione REDIP --</option>
             </select>
         </div>
-        <!-- Botón + Dropdown: Estación -->
         <div class="input-group">
             <label>Estación Policial:</label>
             <button id="btnEstacion" class="input-group-btn" disabled>
@@ -226,7 +239,6 @@
             </button>
             <div id="dropdownEstacion" class="dropdown-menu" style="display: none;"></div>
         </div>
-        <!-- Botón + Dropdown: Servicio -->
         <div class="input-group">
             <label>Servicio Administrativo:</label>
             <button id="btnServicio" class="input-group-btn" disabled>
@@ -234,7 +246,6 @@
             </button>
             <div id="dropdownServicio" class="dropdown-menu" style="display: none;"></div>
         </div>
-        <!-- Contenedor de protocolos (común) -->
         <div id="protocolosContainer"></div>
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
@@ -243,6 +254,7 @@
         <div id="mensaje" class="mensaje" style="display: none;"></div>
     </div>
     <script>
+        // Todo el script permanece exactamente igual
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -269,10 +281,9 @@
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
         let estadoArchivos = {};
-        let tipoActivo = null; // 'estacion' o 'servicio'
+        let tipoActivo = null;
         let idActivo = null;
 
-        // === REDIP y CCP ===
         document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
@@ -303,7 +314,6 @@
             document.getElementById('btnServicio').disabled = !habilitar;
         });
 
-        // === Cerrar dropdowns al hacer clic fuera ===
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#btnEstacion') && !e.target.closest('#dropdownEstacion')) {
                 document.getElementById('dropdownEstacion').style.display = 'none';
@@ -313,7 +323,6 @@
             }
         });
 
-        // === Estaciones ===
         document.getElementById('btnEstacion').addEventListener('click', async (e) => {
             e.stopPropagation();
             const redip = document.getElementById('redipSelect').value;
@@ -354,7 +363,6 @@
             }
         });
 
-        // === Servicios ===
         document.getElementById('btnServicio').addEventListener('click', async (e) => {
             e.stopPropagation();
             const redip = document.getElementById('redipSelect').value;
@@ -395,7 +403,6 @@
             }
         });
 
-        // === Renderizar protocolos ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -407,7 +414,7 @@
                     <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
                     <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
                     <div class="aviso-actualizacion" id="aviso_${proto.id}">
-                        ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
+                       ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
                     </div>
                     <div class="botones-item">
                         <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
@@ -422,15 +429,12 @@
             });
         }
 
-        // === Verificar archivos existentes ===
         async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp || !tipoActivo || !idActivo) return;
-
             estadoArchivos = {};
             let existen = false;
-
             for (const proto of protocolos) {
                 const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
                 try {
@@ -438,7 +442,6 @@
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
-                        // Mostrar aviso y botones
                         document.querySelector(`#input_${proto.id}`).disabled = true;
                         document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
@@ -472,7 +475,6 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // === Funciones de archivo ===
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
@@ -547,7 +549,6 @@
             setTimeout(() => msg.style.display = 'none', 5000);
         }
 
-        // === Autenticación ===
         async function verificarAutenticacion() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
