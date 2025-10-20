@@ -24,13 +24,13 @@
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
             width: 100%;
             max-width: 900px;
             padding: 40px;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .container::before {
             content: '';
@@ -222,6 +222,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // === OBJETO CON LOS 67 ÍTEMS ===
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -292,7 +293,7 @@
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
 
-        // === PARÁMETROS DE URL ===
+        // === OBTENER PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const estacionIdStr = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre') || 'Desconocida';
@@ -508,9 +509,15 @@
 
         document.getElementById('btnVolver').addEventListener('click', () => window.history.back());
 
-        document.getElementById('closeZoom').onclick = () => document.getElementById('zoomModal').style.display = 'none';
-        document.getElementById('zoomModal').onclick = (e) => {
-            if (e.target.id === 'zoomModal') document.getElementById('zoomModal').style.display = 'none';
+        // Modal de zoom
+        document.getElementById('closeZoom').addEventListener('click', () => {
+            document.getElementById('zoomModal').style.display = 'none';
+        });
+
+        document.getElementById('zoomModal').addEventListener('click', (e) => {
+            if (e.target.id === 'zoomModal') {
+                document.getElementById('zoomModal').style.display = 'none';
+            }
         });
 
         // === INICIAR ===
