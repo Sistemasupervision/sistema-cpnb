@@ -42,12 +42,23 @@
             cursor: pointer;
             font-weight: bold;
         }
+        .rutas-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
         .lista-titulo {
             margin-top: 30px;
             color: #0c2440;
             font-weight: bold;
             font-size: 18px;
             margin-bottom: 15px;
+        }
+        .no-enlace {
+            color: #e53e3e;
+            font-style: italic;
+            font-size: 12px;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -69,7 +80,7 @@
             Cargando...
         </p>
 
-        <!-- Mapa (opcional, puedes mantenerlo o quitarlo) -->
+        <!-- Mapa -->
         <div id="map"></div>
 
         <!-- Botón de edición -->
@@ -86,7 +97,7 @@
         </button>
     </div>
 
-    <!-- Leaflet JS (solo si usas mapa) -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -104,7 +115,7 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
 
-        // Inicializar mapa (opcional)
+        // Inicializar mapa
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -131,15 +142,15 @@
             }
         }
 
-        // Cargar estaciones y servicios para la lista
+        // Cargar estaciones y servicios con enlace_rutas
         async function cargarEntidades() {
             const listaDiv = document.getElementById('listaEntidades');
             listaDiv.innerHTML = '<div style="text-align:center; color:#4a5568;">Cargando...</div>';
 
             try {
                 const [estacionesRes, serviciosRes] = await Promise.all([
-                    supabase.from('estaciones_policiales').select('id, nombre').eq('ccp_id', ccpId).order('nombre'),
-                    supabase.from('servicios_administrativos').select('id, nombre').eq('ccp_id', ccpId).order('nombre')
+                    supabase.from('estaciones_policiales').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre'),
+                    supabase.from('servicios_administrativos').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre')
                 ]);
 
                 const estaciones = estacionesRes.data || [];
@@ -150,10 +161,15 @@
                 if (estaciones.length > 0) {
                     html += '<h4 style="color:#0c2440; margin:15px 0 10px;">👮 Estaciones Policiales</h4>';
                     estaciones.forEach(est => {
+                        const tieneEnlace = est.enlace_rutas && est.enlace_rutas.trim() !== '';
                         html += `
                             <div class="ubicacion-card tipo-estacion">
-                                <h4>${est.nombre}</h4>
-                                <button class="rutas-btn" onclick="abrirRutaManual('${est.id}', 'estacion')">
+                                <div>
+                                    <h4>${est.nombre}</h4>
+                                    ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
+                                </div>
+                                <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
+                                        onclick="window.open('${est.enlace_rutas.replace(/'/g, "\\'")}', '_blank')">
                                     Rutas
                                 </button>
                             </div>
@@ -164,10 +180,15 @@
                 if (servicios.length > 0) {
                     html += '<h4 style="color:#0c2440; margin:25px 0 10px;">📋 Servicios Administrativos</h4>';
                     servicios.forEach(serv => {
+                        const tieneEnlace = serv.enlace_rutas && serv.enlace_rutas.trim() !== '';
                         html += `
                             <div class="ubicacion-card tipo-servicio">
-                                <h4>${serv.nombre}</h4>
-                                <button class="rutas-btn" onclick="abrirRutaManual('${serv.id}', 'servicio')">
+                                <div>
+                                    <h4>${serv.nombre}</h4>
+                                    ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
+                                </div>
+                                <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
+                                        onclick="window.open('${serv.enlace_rutas.replace(/'/g, "\\'")}', '_blank')">
                                     Rutas
                                 </button>
                             </div>
@@ -184,20 +205,6 @@
                 console.error('Error al cargar entidades:', error);
                 listaDiv.innerHTML = '<p style="color:#e53e3e; text-align:center;">❌ Error al cargar datos.</p>';
             }
-        }
-
-        // ✅ FUNCIÓN QUE PUEDES MODIFICAR DESPUÉS
-        function abrirRutaManual(id, tipo) {
-            // Aquí puedes:
-            // 1. Consultar un enlace desde la BD, o
-            // 2. Usar un mapeo fijo, o
-            // 3. Mostrar un mensaje temporal (como ahora)
-
-            alert(`🚧 Enlace de "Rutas" no configurado aún para este ítem.\nID: ${id}\nTipo: ${tipo}`);
-            
-            // Ejemplo futuro (cuando tengas enlaces en la BD):
-            // const enlace = obtenerEnlaceDesdeBD(id, tipo);
-            // if (enlace) window.open(enlace, '_blank');
         }
 
         // Eventos
