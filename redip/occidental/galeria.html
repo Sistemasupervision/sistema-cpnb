@@ -483,11 +483,69 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
             });
         }
 
-        async function descargar(url, item, tipo) {
+            async function descargar(url, item, tipo) {
             try {
                 const res = await fetch(url);
                 const blob = await res.blob();
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
                 const ext = url.split('.').pop().split('?')[0] || 'bin';
-                a.down
+                const nombreItem = (nombres[item] || item).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                a.download = `${tipo}_${nombreItem}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (err) {
+                console.error('Error al descargar:', err);
+                alert('No se pudo descargar el archivo. Verifica la conexión o el enlace.');
+            }
+        }
+
+        function actualizarPaginacion() {
+            const totalPaginas = Math.ceil(todasLasEntradas.length / entradasPorPagina);
+            const contenedor = document.getElementById('paginacionContainer');
+            contenedor.innerHTML = '';
+
+            if (totalPaginas <= 1) return;
+
+            for (let i = 1; i <= totalPaginas; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.style.padding = '8px 12px';
+                btn.style.border = '1px solid #cbd5e0';
+                btn.style.borderRadius = '6px';
+                btn.style.background = i === paginaActual ? '#3182ce' : 'white';
+                btn.style.color = i === paginaActual ? 'white' : '#2d3748';
+                btn.onclick = () => {
+                    paginaActual = i;
+                    mostrarPagina();
+                };
+                contenedor.appendChild(btn);
+            }
+        }
+
+        // === EVENTOS ===
+        document.getElementById('aplicarFiltroBtn').addEventListener('click', () => {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            if (desde && new Date(desde) > new Date(hasta)) {
+                alert('La fecha "Desde" no puede ser mayor que "Hasta".');
+                return;
+            }
+            cargarGaleria(desde || null, hasta || null);
+        });
+
+        document.getElementById('btnVolver').addEventListener('click', () => {
+            window.history.back();
+        });
+
+        document.getElementById('closeZoom').addEventListener('click', () => {
+            document.getElementById('zoomModal').style.display = 'none';
+        });
+
+        // === CARGAR INICIAL ===
+        cargarGaleria();
+    </script>
+</body>
+</html>
