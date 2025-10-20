@@ -5,8 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Galería de Inspección</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
         body {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
             min-height: 100vh;
@@ -19,13 +24,13 @@
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             width: 100%;
             max-width: 900px;
             padding: 40px;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .container::before {
             content: '';
@@ -58,13 +63,20 @@
             font-weight: bold;
             margin-bottom: 20px;
         }
+        #filtroFechas {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
         .galeria-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
-        .foto-card {
+        .item-card {
             background: #f8fafc;
             border-radius: 12px;
             padding: 15px;
@@ -74,25 +86,25 @@
             flex-direction: column;
             align-items: center;
         }
+        .item-label {
+            text-align: center;
+            font-size: 13px;
+            color: #2d3748;
+            font-weight: bold;
+            margin: 8px 0;
+        }
         .foto-item {
             width: 100%;
             max-height: 200px;
             object-fit: cover;
             border-radius: 8px;
-            margin-bottom: 10px;
+            margin: 6px 0;
             border: 1px solid #cbd5e0;
             cursor: pointer;
             transition: transform 0.2s;
         }
         .foto-item:hover {
             transform: scale(1.02);
-        }
-        .foto-label {
-            text-align: center;
-            font-size: 13px;
-            color: #2d3748;
-            font-weight: bold;
-            margin-top: 6px;
         }
         .inspeccion-header {
             grid-column: span 3;
@@ -110,13 +122,6 @@
             padding: 40px;
             grid-column: span 3;
         }
-        #filtroFechas {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            border: 1px solid #e2e8f0;
-        }
         #paginacionContainer {
             display: flex;
             justify-content: center;
@@ -124,7 +129,7 @@
             gap: 10px;
         }
         .download-btn {
-            margin-top: 8px;
+            margin-top: 6px;
             padding: 6px 12px;
             border: none;
             border-radius: 6px;
@@ -144,7 +149,6 @@
             margin-top: 20px;
             display: inline-block;
         }
-        /* Modal de Zoom */
         #zoomModal {
             display: none;
             position: fixed;
@@ -182,7 +186,6 @@
             <div id="estacionInfo"></div>
         </div>
 
-        <!-- Filtro de fechas -->
         <div id="filtroFechas">
             <h3 style="text-align:center; margin-bottom:15px; color:#0c2440;">Filtrar por Fecha</h3>
             <div style="display:flex; gap:15px; flex-wrap:wrap;">
@@ -200,7 +203,6 @@
             </div>
         </div>
 
-        <!-- Galería -->
         <div id="galeriaContainer" class="galeria-container">
             <div class="loading">Cargando galería...</div>
         </div>
@@ -210,7 +212,6 @@
         <button id="btnVolver" class="back-btn">← Volver a Selección</button>
     </div>
 
-    <!-- Modal Zoom -->
     <div id="zoomModal">
         <span id="closeZoom">&times;</span>
         <img id="zoomImage" alt="Vista ampliada">
@@ -221,7 +222,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ Objeto con los 67 ítems (copiado exactamente de formulario-inspeccion.html)
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -294,201 +294,187 @@
 
         // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
-        const estacionId = urlParams.get('estacionId');
-        const estacionNombre = urlParams.get('estacionNombre');
-        const ccpNombre = urlParams.get('ccpNombre');
+        const estacionIdStr = urlParams.get('estacionId');
+        const estacionNombre = urlParams.get('estacionNombre') || 'Desconocida';
+        const ccpNombre = urlParams.get('ccpNombre') || 'Desconocido';
 
-        if (!estacionId || !estacionNombre) {
-            alert('⚠️ Datos incompletos. Redirigiendo...');
+        if (!estacionIdStr || isNaN(estacionIdStr)) {
+            alert('⚠️ Estación no válida. Redirigiendo...');
             window.history.back();
         }
 
+        const estacionId = parseInt(estacionIdStr, 10);
         document.getElementById('estacionInfo').textContent = `Estación: ${estacionNombre} | CCP: ${ccpNombre}`;
         document.getElementById('fechaHasta').valueAsDate = new Date();
 
-        let todasLasFotos = [];
+        let todasLasEntradas = [];
         let paginaActual = 1;
-        const fotosPorPagina = 12;
+        const entradasPorPagina = 12;
 
-      // === CARGAR FOTOS Y AGRUPAR POR ÍTEM ===
-async function cargarFotos(estacionId, fechaDesde = null, fechaHasta = null) {
-    const galeriaContainer = document.getElementById('galeriaContainer');
-    galeriaContainer.innerHTML = '<div class="loading">Cargando...</div>';
+        // === CARGAR DATOS ===
+        async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
+            const contenedor = document.getElementById('galeriaContainer');
+            contenedor.innerHTML = '<div class="loading">Cargando...</div>';
 
-    try {
-        // Obtener inspecciones en rango de fechas
-        let query = supabase
-            .from('inspecciones')
-            .select('id, created_at')
-            .eq('estacion_id', estacionId)
-            .order('created_at', { ascending: false });
+            try {
+                let query = supabase
+                    .from('inspecciones')
+                    .select('id, created_at')
+                    .eq('estacion_id', estacionId)
+                    .order('created_at', { ascending: false });
 
-        if (fechaDesde) {
-            query = query.gte('created_at', new Date(fechaDesde).toISOString());
-        }
-        if (fechaHasta) {
-            const hasta = new Date(fechaHasta);
-            hasta.setUTCHours(23, 59, 59, 999);
-            query = query.lte('created_at', hasta.toISOString());
-        }
-
-        const { data: inspecciones, error: inspError } = await query;
-        if (inspError) throw inspError;
-
-        // Agrupar ítems por item_nombre y por inspección
-        const itemsPorInspeccion = {};
-
-        for (const insp of inspecciones) {
-            const { data: items, error: itemError } = await supabase
-                .from('items_inspeccion')
-                .select('item_nombre, foto1_url, foto2_url, archivo_url')
-                .eq('inspeccion_id', insp.id)
-                .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
-
-            if (itemError || !items?.length) continue;
-
-            const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            if (!itemsPorInspeccion[fechaHora]) {
-                itemsPorInspeccion[fechaHora] = {};
-            }
-
-            for (const item of items) {
-                const key = item.item_nombre;
-                if (!itemsPorInspeccion[fechaHora][key]) {
-                    itemsPorInspeccion[fechaHora][key] = {
-                        fotos: [],
-                        archivo_url: null
-                    };
+                if (fechaDesde) {
+                    query = query.gte('created_at', new Date(fechaDesde).toISOString());
                 }
-                if (item.foto1_url) itemsPorInspeccion[fechaHora][key].fotos.push(item.foto1_url);
-                if (item.foto2_url) itemsPorInspeccion[fechaHora][key].fotos.push(item.foto2_url);
-                if (item.archivo_url) itemsPorInspeccion[fechaHora][key].archivo_url = item.archivo_url;
+                if (fechaHasta) {
+                    const hasta = new Date(fechaHasta);
+                    hasta.setUTCHours(23, 59, 59, 999);
+                    query = query.lte('created_at', hasta.toISOString());
+                }
+
+                const {  inspecciones, error } = await query;
+                if (error) throw error;
+
+                const entradasPorFecha = {};
+
+                for (const insp of inspecciones) {
+                    const {  items } = await supabase
+                        .from('items_inspeccion')
+                        .select('item_nombre, foto1_url, foto2_url, archivo_url')
+                        .eq('inspeccion_id', insp.id)
+                        .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
+
+                    if (!items?.length) continue;
+
+                    const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    if (!entradasPorFecha[fechaHora]) {
+                        entradasPorFecha[fechaHora] = {};
+                    }
+
+                    for (const item of items) {
+                        const key = item.item_nombre;
+                        if (!entradasPorFecha[fechaHora][key]) {
+                            entradasPorFecha[fechaHora][key] = {
+                                fotos: [],
+                                archivo_url: null
+                            };
+                        }
+                        if (item.foto1_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto1_url);
+                        if (item.foto2_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto2_url);
+                        if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
+                    }
+                }
+
+                // Convertir a array
+                todasLasEntradas = [];
+                for (const [fecha, items] of Object.entries(entradasPorFecha)) {
+                    for (const [itemNombre, datos] of Object.entries(items)) {
+                        todasLasEntradas.push({ fecha, itemNombre, ...datos });
+                    }
+                }
+
+                paginaActual = 1;
+                mostrarPagina();
+                actualizarPaginacion();
+                document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+
+            } catch (err) {
+                console.error('Error:', err);
+                contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
             }
         }
 
-        // Convertir a array para paginación
-        const todasLasEntradas = [];
-        for (const [fechaHora, items] of Object.entries(itemsPorInspeccion)) {
-            for (const [itemNombre, datos] of Object.entries(items)) {
-                todasLasEntradas.push({
-                    fechaHora,
-                    itemNombre,
-                    fotos: datos.fotos,
-                    archivo_url: datos.archivo_url
+        function mostrarPagina() {
+            const inicio = (paginaActual - 1) * entradasPorPagina;
+            const fin = inicio + entradasPorPagina;
+            const entradas = todasLasEntradas.slice(inicio, fin);
+            const contenedor = document.getElementById('galeriaContainer');
+
+            if (entradas.length === 0) {
+                contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
+                return;
+            }
+
+            const porFecha = {};
+            entradas.forEach(e => {
+                if (!porFecha[e.fecha]) porFecha[e.fecha] = [];
+                porFecha[e.fecha].push(e);
+            });
+
+            contenedor.innerHTML = '';
+            Object.entries(porFecha).forEach(([fecha, items]) => {
+                const header = document.createElement('div');
+                header.className = 'inspeccion-header';
+                header.textContent = `Inspección del ${fecha}`;
+                contenedor.appendChild(header);
+
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+
+                    const label = document.createElement('div');
+                    label.className = 'item-label';
+                    label.textContent = nombres[item.itemNombre] || item.itemNombre;
+                    card.appendChild(label);
+
+                    item.fotos.forEach(fotoUrl => {
+                        const img = document.createElement('img');
+                        img.src = fotoUrl;
+                        img.className = 'foto-item';
+                        img.onclick = () => {
+                            document.getElementById('zoomImage').src = fotoUrl;
+                            document.getElementById('zoomModal').style.display = 'flex';
+                        };
+                        card.appendChild(img);
+                    });
+
+                    item.fotos.forEach((_, i) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'download-btn btn-foto';
+                        btn.textContent = `📥 Descargar Foto ${i + 1}`;
+                        btn.onclick = async () => await descargar(item.fotos[i], item.itemNombre, 'foto');
+                        card.appendChild(btn);
+                    });
+
+                    if (item.archivo_url) {
+                        const btn = document.createElement('button');
+                        btn.className = 'download-btn btn-archivo';
+                        btn.textContent = '📎 Descargar Archivo';
+                        btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
+                        card.appendChild(btn);
+                    }
+
+                    contenedor.appendChild(card);
                 });
+            });
+        }
+
+        async function descargar(url, item, tipo) {
+            try {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                const ext = url.split('.').pop().split('?')[0] || 'bin';
+                a.download = `${tipo}_${item.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (e) {
+                alert('Error al descargar.');
             }
         }
 
-        todasLasFotos = todasLasEntradas;
-        paginaActual = 1;
-        mostrarPagina();
-        actualizarPaginacion();
-        document.getElementById('paginacionContainer').style.display = todasLasFotos.length > 0 ? 'flex' : 'none';
-
-    } catch (err) {
-        console.error('Error al cargar galería:', err);
-        galeriaContainer.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
-    }
-}
-
-// === MOSTRAR PÁGINA CON AGRUPACIÓN POR ÍTEM ===
-function mostrarPagina() {
-    const inicio = (paginaActual - 1) * fotosPorPagina;
-    const fin = inicio + fotosPorPagina;
-    const entradas = todasLasFotos.slice(inicio, fin);
-    const contenedor = document.getElementById('galeriaContainer');
-
-    if (entradas.length === 0) {
-        contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
-        return;
-    }
-
-    // Agrupar por fecha de inspección para mostrar encabezado
-    const porFecha = {};
-    entradas.forEach(e => {
-        if (!porFecha[e.fechaHora]) porFecha[e.fechaHora] = [];
-        porFecha[e.fechaHora].push(e);
-    });
-
-    contenedor.innerHTML = '';
-    Object.entries(porFecha).forEach(([fecha, items]) => {
-        const header = document.createElement('div');
-        header.className = 'inspeccion-header';
-        header.textContent = `Inspección del ${fecha}`;
-        contenedor.appendChild(header);
-
-        items.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'foto-card';
-
-            // Título del ítem (una sola vez)
-            const label = document.createElement('div');
-            label.className = 'foto-label';
-            label.textContent = nombres[item.itemNombre] || item.itemNombre;
-            card.appendChild(label);
-
-            // Mostrar fotos (hasta 2)
-            item.fotos.forEach(fotoUrl => {
-                const img = document.createElement('img');
-                img.src = fotoUrl;
-                img.className = 'foto-item';
-                img.onclick = () => {
-                    document.getElementById('zoomImage').src = fotoUrl;
-                    document.getElementById('zoomModal').style.display = 'flex';
-                };
-                card.appendChild(img);
-            });
-
-            // Botones de descarga
-            item.fotos.forEach((fotoUrl, i) => {
-                const btn = document.createElement('button');
-                btn.className = 'download-btn btn-foto';
-                btn.textContent = `📥 Descargar Foto ${i + 1}`;
-                btn.onclick = async () => await descargar(fotoUrl, item.itemNombre, 'foto');
-                card.appendChild(btn);
-            });
-
-            // Archivo adjunto
-            if (item.archivo_url) {
-                const btn = document.createElement('button');
-                btn.className = 'download-btn btn-archivo';
-                btn.textContent = '📎 Descargar Archivo';
-                btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
-                card.appendChild(btn);
-            }
-
-            contenedor.appendChild(card);
-        });
-    });
-}
-
-// === FUNCIÓN DE DESCARGA REUTILIZABLE ===
-async function descargar(url, item, tipo) {
-    try {
-        const res = await fetch(url);
-        const blob = await res.blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        const ext = url.split('.').pop().split('?')[0] || 'bin';
-        a.download = `${tipo}_${item.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-    } catch (e) {
-        console.error('Error al descargar:', e);
-        alert('⚠️ No se pudo descargar el archivo.');
-    }
-}
         function actualizarPaginacion() {
-            const total = Math.ceil(todasLasFotos.length / fotosPorPagina);
+            const total = Math.ceil(todasLasEntradas.length / entradasPorPagina);
             const controles = document.getElementById('paginacionContainer');
             controles.innerHTML = '';
 
@@ -513,11 +499,11 @@ async function descargar(url, item, tipo) {
             controles.appendChild(next);
         }
 
-        // Eventos
+        // === EVENTOS ===
         document.getElementById('aplicarFiltroBtn').addEventListener('click', () => {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
-            cargarFotos(desde, hasta);
+            cargarGaleria(desde, hasta);
         });
 
         document.getElementById('btnVolver').addEventListener('click', () => window.history.back());
@@ -525,10 +511,10 @@ async function descargar(url, item, tipo) {
         document.getElementById('closeZoom').onclick = () => document.getElementById('zoomModal').style.display = 'none';
         document.getElementById('zoomModal').onclick = (e) => {
             if (e.target.id === 'zoomModal') document.getElementById('zoomModal').style.display = 'none';
-        };
+        });
 
-        // Iniciar
-        cargarFotos();
+        // === INICIAR ===
+        cargarGaleria();
     </script>
 </body>
 </html>
