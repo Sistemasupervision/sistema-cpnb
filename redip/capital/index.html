@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REDIP CAPITAL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="../../assets/css/styles.css">
+</head>
+<body>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+    <!-- Panel: REDIP CAPITAL -->
+    <div id="rediCapitalContainer" class="container">
+        <div class="logo-container">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">REDIP CAPITAL</h1>
+        </div>
+        <button id="btnCrearInspeccion" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🆕 Crear Nueva Inspección
+        </button>
+        <button onclick="window.location.href='historial.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Ver Historial de Inspecciones
+        </button>
+        <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            Estadísticas
+        </button>
+        <button onclick="window.location.href='galeria-inspeccion.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🖼️ Galería de Inspección
+        </button>
+        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🔔 Notificaciones
+        </button>
+        <button onclick="window.location.href='resumen-mensual.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            📊 Resumen Mensual (KPIs)
+        </button>
+        <button onclick="window.location.href='protocolos-supervision.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            📑 Protocolos de Supervisión
+        </button>
+        <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
+                    window.location.href = '../../index.html';
+                }
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+                window.location.href = '../../index.html';
+            }
+        }
+
+        // Contar notificaciones (reinspecciones vencidas en CCPs de CAPITAL)
+        async function contarReinspeccionesVencidas() {
+            try {
+                const hoy = new Date().toISOString().split('T')[0];
+                // Ajusta estos CCPs según los de REDIP CAPITAL
+                const ccpCapital = ['ccp_1', 'ccp_2', 'ccp_3']; // ← ¡Personaliza esto!
+                const { data: estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id')
+                    .in('ccp_id', ccpCapital);
+                if (estError) throw estError;
+                const idsEstaciones = estaciones.map(e => e.id);
+                if (idsEstaciones.length === 0) return 0;
+                const { count, error: countError } = await supabase
+                    .from('inspecciones')
+                    .select('*', { count: 'exact', head: true })
+                    .in('estacion_id', idsEstaciones)
+                    .lte('proxima_inspeccion', hoy);
+                if (countError) throw countError;
+                return count || 0;
+            } catch (error) {
+                console.error('Error al contar notificaciones:', error);
+                return 0;
+            }
+        }
+
+        async function contarYMostrarNotificaciones() {
+            const contador = await contarReinspeccionesVencidas();
+            const boton = document.getElementById('botonNotificaciones');
+            if (boton) {
+                boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
+            }
+        }
+
+        // Inicializar
+        verificarAcceso().then(() => {
+            document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+                window.location.href = '../../index.html';
+            });
+            contarYMostrarNotificaciones();
+        });
+
+        // Funcionalidad básica para "Crear Nueva Inspección" (puedes expandirla)
+        document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
+            alert('Próximamente: Selección de CCP para REDIP CAPITAL');
+        });
+    </script>
+</body>
+</html>
