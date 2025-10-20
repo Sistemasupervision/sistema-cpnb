@@ -56,6 +56,47 @@
             font-weight: bold;
             color: #2d3748;
         }
+        /* === Estilos mejorados para los desplegables (select) === */
+select {
+    width: 100%;
+    padding: 12px;
+    background: #edf2f7; /* Color de fondo coherente con otros inputs */
+    border: 2px solid #e2e8f0; /* Borde suave */
+    border-radius: 10px; /* Bordes redondeados */
+    font-weight: bold;
+    color: #2d3748; /* Color de texto oscuro */
+    cursor: pointer;
+    -webkit-appearance: none; /* Elimina el estilo nativo de Webkit */
+    -moz-appearance: none; /* Elimina el estilo nativo de Firefox */
+    appearance: none; /* Elimina el estilo nativo estándar */
+    position: relative;
+}
+
+/* Estilo para el ícono de flecha descendente */
+select::after {
+    content: '▼';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #2d3748;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+/* Efecto hover */
+select:hover {
+    background: #e2e8f0;
+    border-color: #bee3f8;
+}
+
+/* Estado cuando está deshabilitado */
+select:disabled {
+    background: #f7fafc;
+    color: #a0aec0;
+    cursor: not-allowed;
+}
         .input-group-btn {
             width: 100%;
             padding: 12px;
