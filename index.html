@@ -17,7 +17,34 @@
         <div class="vector-line"></div>
     </div>
 
-    <!-- Login Form -->
+    <!-- Panel Principal (siempre visible, pero se oculta si no hay sesión) -->
+    <div id="dashboardContainer" class="container" style="display: none;">
+        <div class="logo-container">
+            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title dashboard-title">Panel Principal</h1>
+        </div>
+        <div class="user-info">
+            <h3>Usuario Conectado</h3>
+            <p id="userNameDisplay">Nombre del Usuario</p>
+        </div>
+        <div class="redi-buttons">
+            <button class="redi-btn" onclick="irARedip('andes')">REDIP LOS ANDES</button>
+            <button class="redi-btn" onclick="irARedip('capital')">REDIP CAPITAL</button>
+            <button class="redi-btn" onclick="irARedip('central')">REDIP CENTRAL</button>
+            <button class="redi-btn" onclick="window.location.href='redip/occidental/index.html'">REDIP OCCIDENTAL</button>
+            <button class="redi-btn" onclick="irARedip('oriental')">REDIP ORIENTAL</button>
+            <button class="redi-btn" onclick="irARedip('llanos')">REDIP LOS LLANOS</button>
+            <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
+            <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
+        </div>
+        <!-- Botón de administración (solo visible si es admin) -->
+        <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #e53e3e, #c53030);">
+            👤 Administrar Usuarios
+        </button>
+        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
+    </div>
+
+    <!-- Pantalla de Login (solo visible si no hay sesión) -->
     <div id="loginContainer" class="container" style="display: none;">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -44,34 +71,7 @@
         </p>
     </div>
 
-    <!-- Panel Principal -->
-    <div id="dashboardContainer" class="container" style="display: none;">
-        <div class="logo-container">
-            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title dashboard-title">Panel Principal</h1>
-        </div>
-        <div class="user-info">
-            <h3>Usuario Conectado</h3>
-            <p id="userNameDisplay">Nombre del Usuario</p>
-        </div>
-        <div class="redi-buttons">
-            <button class="redi-btn" onclick="irARedip('andes')">REDIP LOS ANDES</button>
-            <button class="redi-btn" onclick="irARedip('capital')">REDIP CAPITAL</button>
-            <button class="redi-btn" onclick="irARedip('central')">REDIP CENTRAL</button>
-            <button class="redi-btn" onclick="window.location.href='redip/occidental/index.html'">REDIP OCCIDENTAL</button>
-            <button class="redi-btn" onclick="irARedip('oriental')">REDIP ORIENTAL</button>
-            <button class="redi-btn" onclick="irARedip('llanos')">REDIP LOS LLANOS</button>
-            <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
-            <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
-        </div>
-        <!-- ✅ Botón de administración (solo visible si es admin) -->
-        <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #e53e3e, #c53030);">
-            👤 Administrar Usuarios
-        </button>
-        <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
-    </div>
-
-    <!-- ✅ Indicador de carga (nuevo) -->
+    <!-- Indicador de carga (solo visible si la verificación tarda) -->
     <div id="loadingScreen" class="container" style="display: none; text-align: center; padding: 50px;">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img" style="width: 80px; height: 80px;">
@@ -95,7 +95,6 @@
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('loadingScreen').style.display = 'block';
-            // Animación de barra de carga
             setTimeout(() => {
                 document.getElementById('loadingBar').style.width = '100%';
             }, 500);
@@ -123,12 +122,12 @@
 
                 // Verificar si es administrador
                 try {
-                    const { data, error } = await supabase
+                    const { data: userData, error: userError } = await supabase
                         .from('usuarios_redip')
                         .select('redip')
                         .eq('user_id', user.id)
                         .single();
-                    if (!error && data && data.redip === 'admin') {
+                    if (!userError && userData && userData.redip === 'admin') {
                         document.getElementById('adminUsuariosBtn').style.display = 'block';
                         document.getElementById('adminUsuariosBtn').onclick = () => {
                             window.location.href = 'admin-usuarios.html';
@@ -136,7 +135,6 @@
                     }
                 } catch (err) {
                     console.error('Error al verificar rol de administrador:', err);
-                    // No mostramos el botón si hay error
                     document.getElementById('adminUsuariosBtn').style.display = 'none';
                 }
             } catch (error) {
