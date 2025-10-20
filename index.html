@@ -16,8 +16,9 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
-    <div id="loginContainer" class="container">
+    <div id="loginContainer" class="container" style="display: none;">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Sistema de Supervisión y Control del CPNB</h1>
@@ -42,8 +43,9 @@
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
+
     <!-- Panel Principal -->
-    <div id="dashboardContainer" class="container">
+    <div id="dashboardContainer" class="container" style="display: none;">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title dashboard-title">Panel Principal</h1>
@@ -62,46 +64,85 @@
             <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
             <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
         </div>
-        <!-- ✅ BOTÓN DE ADMINISTRACIÓN (solo visible para admin) -->
-        <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #7D0500, #B01B17);">
+        <!-- ✅ Botón de administración (solo visible si es admin) -->
+        <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #e53e3e, #c53030);">
             👤 Administrar Usuarios
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
+
+    <!-- ✅ Indicador de carga (nuevo) -->
+    <div id="loadingScreen" class="container" style="display: none; text-align: center; padding: 50px;">
+        <div class="logo-container">
+            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img" style="width: 80px; height: 80px;">
+        </div>
+        <h1 class="title" style="margin-top: 20px; font-size: 20px;">Verificando sesión...</h1>
+        <div style="margin-top: 20px; width: 100%; max-width: 200px; margin-left: auto; margin-right: auto;">
+            <div style="width: 100%; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;">
+                <div id="loadingBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #ffcc00, #ff6b00); transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+        <p style="margin-top: 20px; color: #4a5568; font-size: 14px;">Por favor espere...</p>
+    </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ NUEVA FUNCIÓN: Verifica si el usuario es admin y muestra/oculta el botón
-        async function verificarYMostrarBotonAdmin() {
-            const adminBtn = document.getElementById('adminUsuariosBtn');
-            if (!adminBtn) return;
+        // Función para mostrar la pantalla de carga
+        function showLoading() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('loadingScreen').style.display = 'block';
+            // Animación de barra de carga
+            setTimeout(() => {
+                document.getElementById('loadingBar').style.width = '100%';
+            }, 500);
+        }
 
+        // Función para ocultar la pantalla de carga
+        function hideLoading() {
+            document.getElementById('loadingScreen').style.display = 'none';
+        }
+
+        async function verificarAcceso() {
+            showLoading(); // Mostrar pantalla de carga inmediatamente
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
-                    adminBtn.style.display = 'none';
+                    // No hay sesión, mostrar login
+                    hideLoading();
+                    document.getElementById('loginContainer').style.display = 'block';
                     return;
                 }
+                // Hay sesión, mostrar panel principal
+                document.getElementById('userNameDisplay').textContent = user.email;
+                document.getElementById('dashboardContainer').style.display = 'block';
+                hideLoading();
 
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-
-                if (!error && data && data.redip === 'admin') {
-                    adminBtn.style.display = 'block';
-                    adminBtn.onclick = () => {
-                        window.location.href = 'admin-usuarios.html';
-                    };
-                } else {
-                    adminBtn.style.display = 'none';
+                // Verificar si es administrador
+                try {
+                    const { data, error } = await supabase
+                        .from('usuarios_redip')
+                        .select('redip')
+                        .eq('user_id', user.id)
+                        .single();
+                    if (!error && data && data.redip === 'admin') {
+                        document.getElementById('adminUsuariosBtn').style.display = 'block';
+                        document.getElementById('adminUsuariosBtn').onclick = () => {
+                            window.location.href = 'admin-usuarios.html';
+                        };
+                    }
+                } catch (err) {
+                    console.error('Error al verificar rol de administrador:', err);
+                    // No mostramos el botón si hay error
+                    document.getElementById('adminUsuariosBtn').style.display = 'none';
                 }
-            } catch (err) {
-                console.error('Error al verificar rol de administrador:', err);
-                adminBtn.style.display = 'none';
+            } catch (error) {
+                console.error('Error al verificar sesión:', error);
+                hideLoading();
+                document.getElementById('loginContainer').style.display = 'block';
             }
         }
 
@@ -115,8 +156,23 @@
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
-                // ✅ Verificar rol inmediatamente después del login
-                await verificarYMostrarBotonAdmin();
+                // Verificar rol de administrador después del login
+                try {
+                    const { data: userData, error: userError } = await supabase
+                        .from('usuarios_redip')
+                        .select('redip')
+                        .eq('user_id', data.user.id)
+                        .single();
+                    if (!userError && userData && userData.redip === 'admin') {
+                        document.getElementById('adminUsuariosBtn').style.display = 'block';
+                        document.getElementById('adminUsuariosBtn').onclick = () => {
+                            window.location.href = 'admin-usuarios.html';
+                        };
+                    }
+                } catch (err) {
+                    console.error('Error al verificar rol de administrador:', err);
+                    document.getElementById('adminUsuariosBtn').style.display = 'none';
+                }
             } catch (error) {
                 console.error('Error en login:', error);
                 showError('Credenciales incorrectas o usuario no existe');
@@ -130,9 +186,8 @@
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
-                // ✅ Ocultar botón de admin al cerrar sesión
-                const adminBtn = document.getElementById('adminUsuariosBtn');
-                if (adminBtn) adminBtn.style.display = 'none';
+                // Ocultar el botón de administración al cerrar sesión
+                document.getElementById('adminUsuariosBtn').style.display = 'none';
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
             }
@@ -149,21 +204,11 @@
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
 
-        // Verificar si ya hay sesión activa
-        async function checkAuth() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
-                // ✅ Verificar rol al cargar la página
-                await verificarYMostrarBotonAdmin();
-            }
-        }
+        // Inicializar
+        verificarAcceso();
 
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        checkAuth();
     </script>
 </body>
 </html>
