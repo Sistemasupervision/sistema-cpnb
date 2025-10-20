@@ -15,11 +15,44 @@
             margin-top: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin: 25px 0 15px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #0c2440;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            font-size: 15px;
+            margin-bottom: 15px;
+            background: #f8fafc;
+        }
         .ubicacion-card {
             background: #f8fafc;
-            padding: 12px;
+            padding: 14px;
             border-radius: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             border-left: 4px solid #3182ce;
             display: flex;
             justify-content: space-between;
@@ -31,6 +64,12 @@
             color: #0c2440;
             margin: 0;
             font-size: 16px;
+        }
+        .no-enlace {
+            color: #e53e3e;
+            font-style: italic;
+            font-size: 12px;
+            margin-top: 4px;
         }
         .rutas-btn {
             background: linear-gradient(135deg, #0c2440, #1a365d);
@@ -47,18 +86,27 @@
             cursor: not-allowed;
             opacity: 0.7;
         }
-        .lista-titulo {
-            margin-top: 30px;
-            color: #0c2440;
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 15px;
+        .lista-contenedor {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 8px;
         }
-        .no-enlace {
-            color: #e53e3e;
+        .lista-contenedor::-webkit-scrollbar {
+            width: 8px;
+        }
+        .lista-contenedor::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .lista-contenedor::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+        .no-resultados {
+            text-align: center;
+            color: #718096;
+            padding: 20px;
             font-style: italic;
-            font-size: 12px;
-            margin-top: 4px;
         }
     </style>
 </head>
@@ -88,9 +136,20 @@
             ✏️ Editar Ubicaciones
         </button>
 
-        <!-- Lista de estaciones y servicios -->
-        <h3 class="lista-titulo">Estaciones y Servicios</h3>
-        <div id="listaEntidades"></div>
+        <!-- Pestañas -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
+            <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
+        </div>
+
+        <!-- Barra de búsqueda -->
+        <input type="text" id="searchInput" class="search-box" placeholder="Buscar por nombre...">
+
+        <!-- Lista dinámica -->
+        <div class="lista-contenedor">
+            <div id="listaEstaciones"></div>
+            <div id="listaServicios" style="display:none;"></div>
+        </div>
 
         <button id="btnVolver" class="back-btn" style="margin-top: 20px; padding: 10px 20px;">
             ← Volver a Opciones
@@ -121,10 +180,13 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Cargar ubicaciones de la tabla `ubicaciones` (solo para el mapa)
+        let todasEstaciones = [];
+        let todosServicios = [];
+
+        // Cargar ubicaciones del mapa (tabla 'ubicaciones')
         async function cargarUbicacionesMapa() {
             try {
-                const { data: ubicaciones, error } = await supabase
+                const {  ubicaciones, error } = await supabase
                     .from('ubicaciones')
                     .select('id, nombre, latitud, longitud, tipo')
                     .eq('ccp_id', ccpId);
@@ -142,74 +204,80 @@
             }
         }
 
-    async function cargarEntidades() {
-    const listaDiv = document.getElementById('listaEntidades');
-    listaDiv.innerHTML = '<div style="text-align:center; color:#4a5568;">Cargando...</div>';
+        // Cargar estaciones y servicios
+        async function cargarEntidades() {
+            try {
+                const [estRes, servRes] = await Promise.all([
+                    supabase.from('estaciones_policiales').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre'),
+                    supabase.from('servicios_administrativos').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre')
+                ]);
+                todasEstaciones = estRes.data || [];
+                todosServicios = servRes.data || [];
+                renderizarListas();
+            } catch (error) {
+                console.error('Error al cargar entidades:', error);
+                document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ Error al cargar datos.</p>';
+            }
+        }
 
-    try {
-        const [estacionesRes, serviciosRes] = await Promise.all([
-            supabase.from('estaciones_policiales').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre'),
-            supabase.from('servicios_administrativos').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre')
-        ]);
+        // Renderizar listas (con búsqueda)
+        function renderizarListas() {
+            const termino = document.getElementById('searchInput').value.toLowerCase();
+            
+            // Filtrar estaciones
+            const estacionesFiltradas = todasEstaciones.filter(e => 
+                e.nombre.toLowerCase().includes(termino)
+            );
+            renderizarLista('listaEstaciones', estacionesFiltradas, 'estacion');
 
-        const estaciones = estacionesRes.data || [];
-        const servicios = serviciosRes.data || [];
+            // Filtrar servicios
+            const serviciosFiltrados = todosServicios.filter(s => 
+                s.nombre.toLowerCase().includes(termino)
+            );
+            renderizarLista('listaServicios', serviciosFiltrados, 'servicio');
+        }
 
-        let html = '';
-
-        if (estaciones.length > 0) {
-            html += '<h4 style="color:#0c2440; margin:15px 0 10px;">👮 Estaciones Policiales</h4>';
-            estaciones.forEach(est => {
-                const tieneEnlace = est.enlace_rutas && est.enlace_rutas.trim() !== '';
-                // ✅ Solo generar el enlace si existe
-                const enlaceSeguro = tieneEnlace ? est.enlace_rutas.replace(/'/g, "\\'") : '';
+        function renderizarLista(contenedorId, items, tipo) {
+            const contenedor = document.getElementById(contenedorId);
+            if (items.length === 0) {
+                contenedor.innerHTML = '<div class="no-resultados">No se encontraron resultados.</div>';
+                return;
+            }
+            let html = '';
+            items.forEach(item => {
+                const tieneEnlace = item.enlace_rutas && item.enlace_rutas.trim() !== '';
+                const enlaceSeguro = tieneEnlace ? item.enlace_rutas.replace(/'/g, "\\'") : '';
                 html += `
-                    <div class="ubicacion-card tipo-estacion">
+                    <div class="ubicacion-card tipo-${tipo}">
                         <div>
-                            <h4>${est.nombre}</h4>
-                            ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
+                            <h4>${item.nombre}</h4>
+                            ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace no configurado</p>' : ''}
                         </div>
                         <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
-                                onclick="${tieneEnlace ? `window.open('${enlaceSeguro}', '_blank')` : `alert('⚠️ No se ha configurado un enlace de rutas para esta estación.')`}">
+                                onclick="${tieneEnlace ? `window.open('${enlaceSeguro}', '_blank')` : `alert('⚠️ Enlace no configurado para esta ubicación.')`}">
                             Rutas
                         </button>
                     </div>
                 `;
             });
+            contenedor.innerHTML = html;
         }
 
-        if (servicios.length > 0) {
-            html += '<h4 style="color:#0c2440; margin:25px 0 10px;">📋 Servicios Administrativos</h4>';
-            servicios.forEach(serv => {
-                const tieneEnlace = serv.enlace_rutas && serv.enlace_rutas.trim() !== '';
-                const enlaceSeguro = tieneEnlace ? serv.enlace_rutas.replace(/'/g, "\\'") : '';
-                html += `
-                    <div class="ubicacion-card tipo-servicio">
-                        <div>
-                            <h4>${serv.nombre}</h4>
-                            ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace de rutas no configurado</p>' : ''}
-                        </div>
-                        <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
-                                onclick="${tieneEnlace ? `window.open('${enlaceSeguro}', '_blank')` : `alert('⚠️ No se ha configurado un enlace de rutas para este servicio.')`}">
-                            Rutas
-                        </button>
-                    </div>
-                `;
+        // Eventos de pestañas
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const tab = btn.dataset.tab;
+                document.getElementById('listaEstaciones').style.display = tab === 'estaciones' ? 'block' : 'none';
+                document.getElementById('listaServicios').style.display = tab === 'servicios' ? 'block' : 'none';
             });
-        }
+        });
 
-        if (estaciones.length === 0 && servicios.length === 0) {
-            html = '<p style="text-align:center; color:#666;">No hay estaciones ni servicios registrados.</p>';
-        }
+        // Evento de búsqueda
+        document.getElementById('searchInput').addEventListener('input', renderizarListas);
 
-        listaDiv.innerHTML = html;
-    } catch (error) {
-        console.error('Error al cargar entidades:', error);
-        listaDiv.innerHTML = '<p style="color:#e53e3e; text-align:center;">❌ Error al cargar datos.</p>';
-    }
-}
-
-        // Eventos
+        // Botones
         document.getElementById('btnEditar').addEventListener('click', () => {
             window.location.href = `editar-ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
