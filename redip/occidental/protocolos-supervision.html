@@ -66,9 +66,6 @@
             font-weight: bold;
             cursor: pointer;
             transition: background 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         .input-group-btn:hover:not(:disabled) {
             background: #e2e8f0;
@@ -120,7 +117,6 @@
             border-radius: 8px;
             margin-bottom: 12px;
         }
-        /* ✨ Aviso destacado solo si hay archivo existente */
         .aviso-actualizacion {
             background: #fff5f5;
             border-left: 4px solid #e53e3e;
@@ -130,7 +126,7 @@
             color: #c53030;
             font-weight: bold;
             font-size: 14px;
-            display: none; /* por defecto oculto */
+            display: none;
         }
         .botones-item {
             display: flex;
@@ -195,49 +191,77 @@
             width: 0%;
             transition: width 0.3s ease;
         }
+
+        /* === Estilos para pestañas === */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .tab-btn.activo {
+            background: #ebf8ff;
+            color: #2c5282;
+            border-color: #bee3f8;
+        }
+        .tab-btn:hover:not(.activo) {
+            background: #edf2f7;
+        }
+        #seleccionActiva {
+            margin-top: 16px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/imagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
-
-        <!-- REDIP personalizado -->
         <div class="input-group">
-            <label>Seleccione REDIP:</label>
-            <button id="btnRedip" class="input-group-btn">
-                🌍 Seleccione REDIP
-            </button>
-            <div id="dropdownRedip" class="dropdown-menu" style="display: none;"></div>
+            <label for="redipSelect">Seleccione REDIP:</label>
+            <select id="redipSelect" required>
+                <option value="">-- Elija una REDIP --</option>
+                <option value="occidental">REDIP OCCIDENTAL</option>
+                <option value="capital">REDIP CAPITAL</option>
+                <option value="central">REDIP CENTRAL</option>
+                <option value="andes">REDIP LOS ANDES</option>
+                <option value="oriental">REDIP ORIENTAL</option>
+                <option value="llanos">REDIP LOS LLANOS</option>
+                <option value="guayana">REDIP GUAYANA</option>
+                <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect" disabled required>
+                <option value="">-- Primero seleccione REDIP --</option>
+            </select>
         </div>
 
-        <!-- CCP personalizado -->
+        <!-- Pestañas -->
         <div class="input-group">
-            <label>Seleccione CCP:</label>
-            <button id="btnCcp" class="input-group-btn" disabled>
-                🏢 Seleccione CCP
-            </button>
-            <div id="dropdownCcp" class="dropdown-menu" style="display: none;"></div>
+            <label>Seleccione el tipo de unidad:</label>
+            <div class="tabs">
+                <button id="tabEstacion" class="tab-btn activo">📍 Estación Policial</button>
+                <button id="tabServicio" class="tab-btn">📋 Servicio Administrativo</button>
+            </div>
         </div>
 
-        <!-- Botón + Dropdown: Estación -->
-        <div class="input-group">
-            <label>Estación Policial:</label>
-            <button id="btnEstacion" class="input-group-btn" disabled>
-                📍 Seleccionar Estación Policial
-            </button>
-            <div id="dropdownEstacion" class="dropdown-menu" style="display: none;"></div>
-        </div>
-        <!-- Botón + Dropdown: Servicio -->
-        <div class="input-group">
-            <label>Servicio Administrativo:</label>
-            <button id="btnServicio" class="input-group-btn" disabled>
-                📋 Seleccionar Servicio Administrativo
-            </button>
-            <div id="dropdownServicio" class="dropdown-menu" style="display: none;"></div>
+        <!-- Contenido dinámico según pestaña -->
+        <div id="seleccionActiva">
+            <!-- Se rellenará con JS -->
         </div>
 
-        <!-- Contenedor de protocolos (común) -->
+        <!-- Contenedor común de protocolos -->
         <div id="protocolosContainer"></div>
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
@@ -273,194 +297,175 @@
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
         let estadoArchivos = {};
-        let tipoActivo = null; // 'estacion' o 'servicio'
+        let tipoActivo = null;
         let idActivo = null;
 
-        // === REDIP PERSONALIZADO ===
-        function cargarDropdownRedip() {
-            const dropdown = document.getElementById('dropdownRedip');
-            dropdown.innerHTML = '';
-            const redips = [
-                { value: 'occidental', text: 'REDIP OCCIDENTAL' },
-                { value: 'capital', text: 'REDIP CAPITAL' },
-                { value: 'central', text: 'REDIP CENTRAL' },
-                { value: 'andes', text: 'REDIP LOS ANDES' },
-                { value: 'oriental', text: 'REDIP ORIENTAL' },
-                { value: 'llanos', text: 'REDIP LOS LLANOS' },
-                { value: 'guayana', text: 'REDIP GUAYANA' },
-                { value: 'maritima', text: 'REDIP MARÍTIMA E INSULAR' }
-            ];
-            redips.forEach(r => {
-                const div = document.createElement('div');
-                div.className = 'dropdown-item';
-                div.textContent = r.text;
-                div.onclick = () => {
-                    document.getElementById('btnRedip').textContent = `🌍 ${r.text}`;
-                    dropdown.style.display = 'none';
-                    // Guardar valor seleccionado
-                    window.redipSeleccionado = r.value;
-                    // Limpiar CCP y deshabilitar
-                    document.getElementById('btnCcp').textContent = '🏢 Seleccione CCP';
-                    document.getElementById('btnCcp').disabled = true;
-                    document.getElementById('dropdownCcp').style.display = 'none';
-                    // Limpiar selecciones posteriores
-                    document.getElementById('btnEstacion').textContent = '📍 Seleccionar Estación Policial';
-                    document.getElementById('btnServicio').textContent = '📋 Seleccionar Servicio Administrativo';
-                    document.getElementById('btnEstacion').disabled = true;
-                    document.getElementById('btnServicio').disabled = true;
-                    document.getElementById('protocolosContainer').innerHTML = '';
-                    document.getElementById('btnDescargarTodo').disabled = true;
-                    // Cargar CCPs correspondientes
-                    cargarDropdownCcp(r.value);
-                };
-                dropdown.appendChild(div);
-            });
-        }
-
-        function cargarDropdownCcp(redip) {
-            const dropdown = document.getElementById('dropdownCcp');
-            dropdown.innerHTML = '';
+        // === REDIP y CCP ===
+        document.getElementById('redipSelect').addEventListener('change', () => {
+            const redip = document.getElementById('redipSelect').value;
+            const ccpSelect = document.getElementById('ccpSelect');
+            ccpSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
+            document.getElementById('tabEstacion').click(); // Reiniciar vista
+            if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
-                const div = document.createElement('div');
-                div.className = 'dropdown-item';
-                div.textContent = 'No hay CCPs disponibles';
-                div.style.color = '#a0aec0';
-                div.style.cursor = 'default';
-                dropdown.appendChild(div);
-                return;
+                ccpSelect.innerHTML = '<option value="">No hay CCPs</option>';
+                ccpSelect.disabled = true;
+            } else {
+                ccps.forEach(ccp => {
+                    const opt = document.createElement('option');
+                    opt.value = ccp.value;
+                    opt.textContent = ccp.text;
+                    ccpSelect.appendChild(opt);
+                });
+                ccpSelect.disabled = false;
             }
-            ccps.forEach(c => {
-                const div = document.createElement('div');
-                div.className = 'dropdown-item';
-                div.textContent = c.text;
-                div.onclick = () => {
-                    document.getElementById('btnCcp').textContent = `🏢 ${c.text}`;
-                    dropdown.style.display = 'none';
-                    window.ccpSeleccionado = c.value;
-                    // Habilitar estación y servicio
-                    document.getElementById('btnEstacion').disabled = false;
-                    document.getElementById('btnServicio').disabled = false;
-                };
-                dropdown.appendChild(div);
-            });
+        });
+
+        document.getElementById('ccpSelect').addEventListener('change', () => {
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
+            const habilitar = redip && ccp;
+            // Solo habilitamos visualmente; la lógica se maneja en las pestañas
+            if (habilitar) {
+                // No habilitamos botones aquí; se maneja en renderPestana
+            }
+        });
+
+        // === Cerrar dropdowns al hacer clic fuera ===
+        document.addEventListener('click', (e) => {
+            const dropdownEstacion = document.getElementById('dropdownEstacion');
+            const dropdownServicio = document.getElementById('dropdownServicio');
+            if (dropdownEstacion && !e.target.closest('#btnEstacion') && !e.target.closest('#dropdownEstacion')) {
+                dropdownEstacion.style.display = 'none';
+            }
+            if (dropdownServicio && !e.target.closest('#btnServicio') && !e.target.closest('#dropdownServicio')) {
+                dropdownServicio.style.display = 'none';
+            }
+        });
+
+        // === Renderizado de pestañas ===
+        function renderPestana(tipo) {
+            const contenedor = document.getElementById('seleccionActiva');
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
+            const habilitar = redip && ccp;
+
+            // Actualizar estado visual de pestañas
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
+            if (tipo === 'estacion') {
+                document.getElementById('tabEstacion').classList.add('activo');
+                tipoActivo = null;
+                idActivo = null;
+                contenedor.innerHTML = `
+                    <div class="input-group">
+                        <label>Estación Policial:</label>
+                        <button id="btnEstacion" class="input-group-btn" ${habilitar ? '' : 'disabled'}>
+                            📍 Seleccionar Estación Policial
+                        </button>
+                        <div id="dropdownEstacion" class="dropdown-menu" style="display: none;"></div>
+                    </div>
+                `;
+                if (habilitar) {
+                    document.getElementById('btnEstacion').addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const otro = document.getElementById('dropdownServicio');
+                        if (otro) otro.style.display = 'none';
+                        const dropdown = document.getElementById('dropdownEstacion');
+                        dropdown.style.display = 'block';
+                        dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
+                        try {
+                            const { data: estaciones, error } = await supabase
+                                .from('estaciones_policiales')
+                                .select('id, nombre')
+                                .eq('ccp_id', ccp)
+                                .order('nombre', { ascending: true });
+                            dropdown.innerHTML = '';
+                            if (error || !estaciones?.length) {
+                                dropdown.innerHTML = '<div class="dropdown-item">No hay estaciones</div>';
+                            } else {
+                                estaciones.forEach(est => {
+                                    const div = document.createElement('div');
+                                    div.className = 'dropdown-item';
+                                    div.textContent = est.nombre;
+                                    div.onclick = () => {
+                                        document.getElementById('btnEstacion').textContent = `📍 ${est.nombre}`;
+                                        dropdown.style.display = 'none';
+                                        tipoActivo = 'estacion';
+                                        idActivo = est.id;
+                                        renderizarProtocolos();
+                                        verificarArchivosExistentes();
+                                    };
+                                    dropdown.appendChild(div);
+                                });
+                            }
+                        } catch (err) {
+                            dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
+                        }
+                    });
+                }
+            } else if (tipo === 'servicio') {
+                document.getElementById('tabServicio').classList.add('activo');
+                tipoActivo = null;
+                idActivo = null;
+                contenedor.innerHTML = `
+                    <div class="input-group">
+                        <label>Servicio Administrativo:</label>
+                        <button id="btnServicio" class="input-group-btn" ${habilitar ? '' : 'disabled'}>
+                            📋 Seleccionar Servicio Administrativo
+                        </button>
+                        <div id="dropdownServicio" class="dropdown-menu" style="display: none;"></div>
+                    </div>
+                `;
+                if (habilitar) {
+                    document.getElementById('btnServicio').addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const otro = document.getElementById('dropdownEstacion');
+                        if (otro) otro.style.display = 'none';
+                        const dropdown = document.getElementById('dropdownServicio');
+                        dropdown.style.display = 'block';
+                        dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
+                        try {
+                            const { data: servicios, error } = await supabase
+                                .from('servicios_administrativos')
+                                .select('id, nombre')
+                                .eq('ccp_id', ccp)
+                                .order('nombre', { ascending: true });
+                            dropdown.innerHTML = '';
+                            if (error || !servicios?.length) {
+                                dropdown.innerHTML = '<div class="dropdown-item">No hay servicios</div>';
+                            } else {
+                                servicios.forEach(serv => {
+                                    const div = document.createElement('div');
+                                    div.className = 'dropdown-item';
+                                    div.textContent = serv.nombre;
+                                    div.onclick = () => {
+                                        document.getElementById('btnServicio').textContent = `📋 ${serv.nombre}`;
+                                        dropdown.style.display = 'none';
+                                        tipoActivo = 'servicio';
+                                        idActivo = serv.id;
+                                        renderizarProtocolos();
+                                        verificarArchivosExistentes();
+                                    };
+                                    dropdown.appendChild(div);
+                                });
+                            }
+                        } catch (err) {
+                            dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
+                        }
+                    });
+                }
+            }
         }
 
-        // Eventos de apertura
-        document.getElementById('btnRedip').addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.getElementById('dropdownCcp').style.display = 'none';
-            const dropdown = document.getElementById('dropdownRedip');
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-            if (dropdown.style.display === 'block' && dropdown.innerHTML.trim() === '') {
-                cargarDropdownRedip();
-            }
-        });
+        // === Eventos de pestañas ===
+        document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
+        document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
 
-        document.getElementById('btnCcp').addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (document.getElementById('btnCcp').disabled) return;
-            document.getElementById('dropdownRedip').style.display = 'none';
-            const dropdown = document.getElementById('dropdownCcp');
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        });
+        // Iniciar con Estación Policial
+        renderPestana('estacion');
 
-        // Cerrar al hacer clic fuera
-        document.addEventListener('click', (e) => {
-            const redipOpen = e.target.closest('#btnRedip') || e.target.closest('#dropdownRedip');
-            const ccpOpen = e.target.closest('#btnCcp') || e.target.closest('#dropdownCcp');
-            const estacionOpen = e.target.closest('#btnEstacion') || e.target.closest('#dropdownEstacion');
-            const servicioOpen = e.target.closest('#btnServicio') || e.target.closest('#dropdownServicio');
-
-            if (!redipOpen) document.getElementById('dropdownRedip').style.display = 'none';
-            if (!ccpOpen) document.getElementById('dropdownCcp').style.display = 'none';
-            if (!estacionOpen) document.getElementById('dropdownEstacion').style.display = 'none';
-            if (!servicioOpen) document.getElementById('dropdownServicio').style.display = 'none';
-        });
-
-        // === Estaciones ===
-        document.getElementById('btnEstacion').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const redip = window.redipSeleccionado;
-            const ccp = window.ccpSeleccionado;
-            if (!redip || !ccp) return;
-            const otro = document.getElementById('dropdownServicio');
-            otro.style.display = 'none';
-            const dropdown = document.getElementById('dropdownEstacion');
-            dropdown.style.display = 'block';
-            dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
-            try {
-                const { data: estaciones, error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccp)
-                    .order('nombre', { ascending: true });
-                dropdown.innerHTML = '';
-                if (error || !estaciones?.length) {
-                    dropdown.innerHTML = '<div class="dropdown-item">No hay estaciones</div>';
-                } else {
-                    estaciones.forEach(est => {
-                        const div = document.createElement('div');
-                        div.className = 'dropdown-item';
-                        div.textContent = est.nombre;
-                        div.onclick = () => {
-                            document.getElementById('btnEstacion').textContent = `📍 ${est.nombre}`;
-                            dropdown.style.display = 'none';
-                            tipoActivo = 'estacion';
-                            idActivo = est.id;
-                            renderizarProtocolos();
-                            verificarArchivosExistentes();
-                        };
-                        dropdown.appendChild(div);
-                    });
-                }
-            } catch (err) {
-                dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
-            }
-        });
-
-        // === Servicios ===
-        document.getElementById('btnServicio').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const redip = window.redipSeleccionado;
-            const ccp = window.ccpSeleccionado;
-            if (!redip || !ccp) return;
-            const otro = document.getElementById('dropdownEstacion');
-            otro.style.display = 'none';
-            const dropdown = document.getElementById('dropdownServicio');
-            dropdown.style.display = 'block';
-            dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
-            try {
-                const { data: servicios, error } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccp)
-                    .order('nombre', { ascending: true });
-                dropdown.innerHTML = '';
-                if (error || !servicios?.length) {
-                    dropdown.innerHTML = '<div class="dropdown-item">No hay servicios</div>';
-                } else {
-                    servicios.forEach(serv => {
-                        const div = document.createElement('div');
-                        div.className = 'dropdown-item';
-                        div.textContent = serv.nombre;
-                        div.onclick = () => {
-                            document.getElementById('btnServicio').textContent = `📋 ${serv.nombre}`;
-                            dropdown.style.display = 'none';
-                            tipoActivo = 'servicio';
-                            idActivo = serv.id;
-                            renderizarProtocolos();
-                            verificarArchivosExistentes();
-                        };
-                        dropdown.appendChild(div);
-                    });
-                }
-            } catch (err) {
-                dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
-            }
-        });
-
-        // === Renderizar protocolos ===
+        // === Resto de funciones (sin cambios) ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -472,7 +477,7 @@
                     <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
                     <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
                     <div class="aviso-actualizacion" id="aviso_${proto.id}">
-                       ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
+                      ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
                     </div>
                     <div class="botones-item">
                         <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
@@ -487,10 +492,9 @@
             });
         }
 
-        // === Verificar archivos existentes ===
         async function verificarArchivosExistentes() {
-            const redip = window.redipSeleccionado;
-            const ccp = window.ccpSeleccionado;
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
             let existen = false;
@@ -501,7 +505,6 @@
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
-                        // Mostrar aviso y botones
                         document.querySelector(`#input_${proto.id}`).disabled = true;
                         document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
@@ -535,13 +538,12 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // === Funciones de archivo ===
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
             if (!archivo) return mostrarMensaje(`⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
-            const redip = window.redipSeleccionado;
-            const ccp = window.ccpSeleccionado;
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensaje('⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
             const proto = protocolos.find(p => p.id === id);
             const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
@@ -566,8 +568,8 @@
         }
 
         async function actualizarArchivo(id) {
-            const redip = window.redipSeleccionado;
-            const ccp = window.ccpSeleccionado;
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
             const proto = protocolos.find(p => p.id === id);
             const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
             try {
@@ -610,7 +612,6 @@
             setTimeout(() => msg.style.display = 'none', 5000);
         }
 
-        // === Autenticación ===
         async function verificarAutenticacion() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
