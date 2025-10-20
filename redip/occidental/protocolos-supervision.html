@@ -82,6 +82,16 @@
             border-radius: 8px;
             margin-bottom: 12px;
         }
+        .aviso-existente {
+            display: none;
+            margin-top: 8px;
+            padding: 8px;
+            background: #fffbeb;
+            border: 1px solid #fed7d7;
+            border-radius: 6px;
+            color: #975a00;
+            font-size: 12px;
+        }
         .botones-item {
             display: flex;
             gap: 10px;
@@ -316,6 +326,9 @@
                 div.innerHTML = `
                     <div class="protocolo-titulo">${proto.nombre}</div>
                     <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
+                    <div class="aviso-existente" id="aviso_${proto.id}">
+                        ⚠️ Ya existe un archivo. Al subir uno nuevo, el anterior será eliminado.
+                    </div>
                     <div class="botones-item">
                         <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
                         <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
@@ -344,14 +357,16 @@
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existenArchivos = true;
-                        // Mostrar botones de descargar y actualizar
+                        // Mostrar aviso y botones
                         document.querySelector(`#input_${proto.id}`).disabled = true;
+                        document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
                         document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-block';
                         document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
                     } else {
                         estadoArchivos[proto.id] = { existe: false };
                         document.querySelector(`#input_${proto.id}`).disabled = false;
+                        document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
                         document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
                         document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
@@ -359,6 +374,7 @@
                 } catch (error) {
                     estadoArchivos[proto.id] = { existe: false };
                     document.querySelector(`#input_${proto.id}`).disabled = false;
+                    document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
                     document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
                     document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
                     document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
@@ -416,6 +432,7 @@
                     .remove([filePath]);
                 // Habilitar input y botón de subir
                 document.querySelector(`#input_${id}`).disabled = false;
+                document.querySelector(`#aviso_${id}`).style.display = 'none';
                 document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
                 document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
                 document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
@@ -445,7 +462,7 @@
             for (const proto of protocolos) {
                 if (estadoArchivos[proto.id]?.existe) {
                     await descargarArchivo(proto.id);
-                    await new Promise(r => setTimeout(r, 500)); // Pequeña pausa entre descargas
+                    await new Promise(r => setTimeout(r, 500));
                 }
             }
             mostrarMensaje('✅ Todos los archivos descargados.', 'exito');
