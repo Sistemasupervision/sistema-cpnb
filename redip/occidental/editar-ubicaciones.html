@@ -126,6 +126,11 @@
             background: #cbd5e0;
             border-radius: 3px;
         }
+        .loading {
+            text-align: center;
+            color: #4a5568;
+            padding: 15px;
+        }
     </style>
 </head>
 <body>
@@ -162,8 +167,12 @@
         </div>
         <!-- Listados -->
         <div class="contenedor-lista">
-            <div id="listaEstaciones"></div>
-            <div id="listaServicios" style="display:none;"></div>
+            <div id="listaEstaciones">
+                <div class="loading">Cargando estaciones...</div>
+            </div>
+            <div id="listaServicios" style="display:none;">
+                <div class="loading">Cargando servicios...</div>
+            </div>
         </div>
         <button id="btnVolver" class="back-btn" style="margin-top: 20px; padding: 10px 20px;">
             ← Volver a Ubicaciones
@@ -178,20 +187,31 @@
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
+
         if (!ccpId || !ccpNombre) {
             alert('⚠️ Datos de CCP no válidos.');
             window.history.back();
         }
-        document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
+
+        document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
+
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
+
         let entidadActiva = null;
         let tipoEntidadActiva = null; // 'estacion' o 'servicio'
         let markers = {};
 
+        // ✅ Validar ccpId antes de consultar
         async function cargarEntidades() {
+            if (!ccpId || typeof ccpId !== 'string' || ccpId.trim() === '') {
+                document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ CCP ID no válido.</p>';
+                document.getElementById('listaServicios').innerHTML = '<p style="color:#e53e3e;">❌ CCP ID no válido.</p>';
+                return;
+            }
+
             try {
                 // Cargar estaciones
                 const { data: estaciones, error: estError } = await supabase
@@ -199,7 +219,8 @@
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-                if (estError) throw estError;
+
+                if (estError) throw new Error(`Estaciones: ${estError.message}`);
                 renderizarLista('listaEstaciones', estaciones || [], 'estacion');
 
                 // Cargar servicios
@@ -208,11 +229,15 @@
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-                if (servError) throw servError;
+
+                if (servError) throw new Error(`Servicios: ${servError.message}`);
                 renderizarLista('listaServicios', servicios || [], 'servicio');
+
             } catch (error) {
                 console.error('Error al cargar entidades:', error);
-                document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ Error al cargar datos.</p>';
+                const msg = error.message || 'Error desconocido';
+                document.getElementById('listaEstaciones').innerHTML = `<p style="color:#e53e3e;">❌ ${msg}</p>`;
+                document.getElementById('listaServicios').innerHTML = `<p style="color:#e53e3e;">❌ ${msg}</p>`;
             }
         }
 
@@ -256,7 +281,7 @@
             });
         }
 
-        // Eventos de pestañas
+        // Pestañas
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -267,7 +292,7 @@
             });
         });
 
-        // Eventos de clic en lista
+        // Clic en lista
         document.getElementById('container').addEventListener('click', (e) => {
             if (e.target.closest('.entidad-card')) {
                 const card = e.target.closest('.entidad-card');
@@ -288,7 +313,7 @@
             }
         });
 
-        // Clic en el mapa
+        // Clic en mapa
         map.on('click', function(e) {
             if (entidadActiva === null || tipoEntidadActiva === null) {
                 alert('⚠️ Primero seleccione una entidad de la lista.');
@@ -298,20 +323,18 @@
             const lng = e.latlng.lng;
             document.getElementById(`lat-${tipoEntidadActiva}-${entidadActiva}`).value = lat.toFixed(6);
             document.getElementById(`lng-${tipoEntidadActiva}-${entidadActiva}`).value = lng.toFixed(6);
-            // Eliminar marcador anterior
             const keyAnterior = `${tipoEntidadActiva}-${entidadActiva}`;
             if (markers[keyAnterior]) {
                 map.removeLayer(markers[keyAnterior]);
                 delete markers[keyAnterior];
             }
-            // Añadir nuevo marcador
             const newMarker = L.marker([lat, lng]).addTo(map);
             newMarker.bindPopup(document.querySelector(`.entidad-card[data-id="${entidadActiva}"] h4`).textContent);
             markers[keyAnterior] = newMarker;
             alert(`✅ Coordenadas asignadas.`);
         });
 
-        // Guardar entidad (estación o servicio)
+        // Guardar
         async function guardarEntidad(id, tipo) {
             const tabla = tipo === 'estacion' ? 'estaciones_policiales' : 'servicios_administrativos';
             const latInput = document.getElementById(`lat-${tipo}-${id}`);
@@ -345,7 +368,7 @@
             }
         }
 
-        // Eliminar coordenadas
+        // Eliminar
         async function eliminarCoordenadas(id, tipo) {
             if (!confirm('¿Está seguro de que desea eliminar las coordenadas?')) return;
             const tabla = tipo === 'estacion' ? 'estaciones_policiales' : 'servicios_administrativos';
