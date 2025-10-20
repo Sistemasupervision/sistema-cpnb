@@ -310,150 +310,183 @@
         let paginaActual = 1;
         const fotosPorPagina = 12;
 
-        // === CARGAR FOTOS ===
-        async function cargarFotos(fechaDesde = null, fechaHasta = null) {
-            const contenedor = document.getElementById('galeriaContainer');
-            contenedor.innerHTML = '<div class="loading">Cargando...</div>';
+      // === CARGAR FOTOS Y AGRUPAR POR ÍTEM ===
+async function cargarFotos(estacionId, fechaDesde = null, fechaHasta = null) {
+    const galeriaContainer = document.getElementById('galeriaContainer');
+    galeriaContainer.innerHTML = '<div class="loading">Cargando...</div>';
 
-            try {
-                let query = supabase
-                    .from('inspecciones')
-                    .select('id, created_at')
-                    .eq('estacion_id', estacionId)
-                    .order('created_at', { ascending: false });
+    try {
+        // Obtener inspecciones en rango de fechas
+        let query = supabase
+            .from('inspecciones')
+            .select('id, created_at')
+            .eq('estacion_id', estacionId)
+            .order('created_at', { ascending: false });
 
-                if (fechaDesde) {
-                    query = query.gte('created_at', new Date(fechaDesde).toISOString());
+        if (fechaDesde) {
+            query = query.gte('created_at', new Date(fechaDesde).toISOString());
+        }
+        if (fechaHasta) {
+            const hasta = new Date(fechaHasta);
+            hasta.setUTCHours(23, 59, 59, 999);
+            query = query.lte('created_at', hasta.toISOString());
+        }
+
+        const { data: inspecciones, error: inspError } = await query;
+        if (inspError) throw inspError;
+
+        // Agrupar ítems por item_nombre y por inspección
+        const itemsPorInspeccion = {};
+
+        for (const insp of inspecciones) {
+            const { data: items, error: itemError } = await supabase
+                .from('items_inspeccion')
+                .select('item_nombre, foto1_url, foto2_url, archivo_url')
+                .eq('inspeccion_id', insp.id)
+                .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
+
+            if (itemError || !items?.length) continue;
+
+            const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            if (!itemsPorInspeccion[fechaHora]) {
+                itemsPorInspeccion[fechaHora] = {};
+            }
+
+            for (const item of items) {
+                const key = item.item_nombre;
+                if (!itemsPorInspeccion[fechaHora][key]) {
+                    itemsPorInspeccion[fechaHora][key] = {
+                        fotos: [],
+                        archivo_url: null
+                    };
                 }
-                if (fechaHasta) {
-                    const hasta = new Date(fechaHasta);
-                    hasta.setUTCHours(23, 59, 59, 999);
-                    query = query.lte('created_at', hasta.toISOString());
-                }
-
-                const { data: inspecciones, error } = await query;
-                if (error) throw error;
-
-                todasLasFotos = [];
-                for (const insp of inspecciones) {
-                    const { data: items } = await supabase
-                        .from('items_inspeccion')
-                        .select('item_nombre, foto1_url, foto2_url, archivo_url')
-                        .eq('inspeccion_id', insp.id);
-
-                    const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-
-                    for (const item of items || []) {
-                        if (item.foto1_url) {
-                            todasLasFotos.push({ url: item.foto1_url, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
-                        }
-                        if (item.foto2_url) {
-                            todasLasFotos.push({ url: item.foto2_url, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
-                        }
-                        if (!item.foto1_url && !item.foto2_url && item.archivo_url) {
-                            todasLasFotos.push({ url: null, item: item.item_nombre, fechaHora, archivo_url: item.archivo_url });
-                        }
-                    }
-                }
-
-                paginaActual = 1;
-                mostrarPagina();
-                actualizarPaginacion();
-                document.getElementById('paginacionContainer').style.display = todasLasFotos.length > 0 ? 'flex' : 'none';
-
-            } catch (err) {
-                console.error(err);
-                contenedor.innerHTML = '<div class="no-fotos">❌ Error al cargar la galería.</div>';
+                if (item.foto1_url) itemsPorInspeccion[fechaHora][key].fotos.push(item.foto1_url);
+                if (item.foto2_url) itemsPorInspeccion[fechaHora][key].fotos.push(item.foto2_url);
+                if (item.archivo_url) itemsPorInspeccion[fechaHora][key].archivo_url = item.archivo_url;
             }
         }
 
-        function mostrarPagina() {
-            const inicio = (paginaActual - 1) * fotosPorPagina;
-            const fin = inicio + fotosPorPagina;
-            const fotos = todasLasFotos.slice(inicio, fin);
-            const contenedor = document.getElementById('galeriaContainer');
-
-            if (fotos.length === 0) {
-                contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
-                return;
-            }
-
-            const porFecha = {};
-            fotos.forEach(f => {
-                if (!porFecha[f.fechaHora]) porFecha[f.fechaHora] = [];
-                porFecha[f.fechaHora].push(f);
-            });
-
-            contenedor.innerHTML = '';
-            Object.entries(porFecha).forEach(([fecha, fotos]) => {
-                const header = document.createElement('div');
-                header.className = 'inspeccion-header';
-                header.textContent = `Inspección del ${fecha}`;
-                contenedor.appendChild(header);
-
-                fotos.forEach(f => {
-                    const card = document.createElement('div');
-                    card.className = 'foto-card';
-
-                    if (f.url) {
-                        const img = document.createElement('img');
-                        img.src = f.url;
-                        img.className = 'foto-item';
-                        img.onclick = () => {
-                            document.getElementById('zoomImage').src = f.url;
-                            document.getElementById('zoomModal').style.display = 'flex';
-                        };
-                        card.appendChild(img);
-                    }
-
-                    const label = document.createElement('div');
-                    label.className = 'foto-label';
-                    label.textContent = nombres[f.item] || f.item;
-                    card.appendChild(label);
-
-                    if (f.url) {
-                        const btn = document.createElement('button');
-                        btn.className = 'download-btn btn-foto';
-                        btn.textContent = '📥 Descargar Foto';
-                        btn.onclick = async () => await descargar(f.url, f.item, 'foto');
-                        card.appendChild(btn);
-                    }
-
-                    if (f.archivo_url) {
-                        const btn = document.createElement('button');
-                        btn.className = 'download-btn btn-archivo';
-                        btn.textContent = '📎 Descargar Archivo';
-                        btn.onclick = async () => await descargar(f.archivo_url, f.item, 'archivo');
-                        card.appendChild(btn);
-                    }
-
-                    contenedor.appendChild(card);
+        // Convertir a array para paginación
+        const todasLasEntradas = [];
+        for (const [fechaHora, items] of Object.entries(itemsPorInspeccion)) {
+            for (const [itemNombre, datos] of Object.entries(items)) {
+                todasLasEntradas.push({
+                    fechaHora,
+                    itemNombre,
+                    fotos: datos.fotos,
+                    archivo_url: datos.archivo_url
                 });
-            });
-        }
-
-        async function descargar(url, item, tipo) {
-            try {
-                const res = await fetch(url);
-                const blob = await res.blob();
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `${tipo}_${item.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${url.split('.').pop().split('?')[0]}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(a.href);
-            } catch (e) {
-                alert('Error al descargar.');
             }
         }
 
+        todasLasFotos = todasLasEntradas;
+        paginaActual = 1;
+        mostrarPagina();
+        actualizarPaginacion();
+        document.getElementById('paginacionContainer').style.display = todasLasFotos.length > 0 ? 'flex' : 'none';
+
+    } catch (err) {
+        console.error('Error al cargar galería:', err);
+        galeriaContainer.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+    }
+}
+
+// === MOSTRAR PÁGINA CON AGRUPACIÓN POR ÍTEM ===
+function mostrarPagina() {
+    const inicio = (paginaActual - 1) * fotosPorPagina;
+    const fin = inicio + fotosPorPagina;
+    const entradas = todasLasFotos.slice(inicio, fin);
+    const contenedor = document.getElementById('galeriaContainer');
+
+    if (entradas.length === 0) {
+        contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
+        return;
+    }
+
+    // Agrupar por fecha de inspección para mostrar encabezado
+    const porFecha = {};
+    entradas.forEach(e => {
+        if (!porFecha[e.fechaHora]) porFecha[e.fechaHora] = [];
+        porFecha[e.fechaHora].push(e);
+    });
+
+    contenedor.innerHTML = '';
+    Object.entries(porFecha).forEach(([fecha, items]) => {
+        const header = document.createElement('div');
+        header.className = 'inspeccion-header';
+        header.textContent = `Inspección del ${fecha}`;
+        contenedor.appendChild(header);
+
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'foto-card';
+
+            // Título del ítem (una sola vez)
+            const label = document.createElement('div');
+            label.className = 'foto-label';
+            label.textContent = nombres[item.itemNombre] || item.itemNombre;
+            card.appendChild(label);
+
+            // Mostrar fotos (hasta 2)
+            item.fotos.forEach(fotoUrl => {
+                const img = document.createElement('img');
+                img.src = fotoUrl;
+                img.className = 'foto-item';
+                img.onclick = () => {
+                    document.getElementById('zoomImage').src = fotoUrl;
+                    document.getElementById('zoomModal').style.display = 'flex';
+                };
+                card.appendChild(img);
+            });
+
+            // Botones de descarga
+            item.fotos.forEach((fotoUrl, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'download-btn btn-foto';
+                btn.textContent = `📥 Descargar Foto ${i + 1}`;
+                btn.onclick = async () => await descargar(fotoUrl, item.itemNombre, 'foto');
+                card.appendChild(btn);
+            });
+
+            // Archivo adjunto
+            if (item.archivo_url) {
+                const btn = document.createElement('button');
+                btn.className = 'download-btn btn-archivo';
+                btn.textContent = '📎 Descargar Archivo';
+                btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
+                card.appendChild(btn);
+            }
+
+            contenedor.appendChild(card);
+        });
+    });
+}
+
+// === FUNCIÓN DE DESCARGA REUTILIZABLE ===
+async function descargar(url, item, tipo) {
+    try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const ext = url.split('.').pop().split('?')[0] || 'bin';
+        a.download = `${tipo}_${item.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    } catch (e) {
+        console.error('Error al descargar:', e);
+        alert('⚠️ No se pudo descargar el archivo.');
+    }
+}
         function actualizarPaginacion() {
             const total = Math.ceil(todasLasFotos.length / fotosPorPagina);
             const controles = document.getElementById('paginacionContainer');
