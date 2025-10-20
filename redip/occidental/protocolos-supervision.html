@@ -175,8 +175,8 @@
             </select>
         </div>
         <div class="input-group">
-            <label for="tipoSelect">Tipo de Entidad:</label>
-            <select id="tipoSelect" disabled required>
+            <label for="tipoEntidad">Tipo de Entidad:</label>
+            <select id="tipoEntidad" disabled required>
                 <option value="">-- Seleccione tipo --</option>
                 <option value="estacion">🏢 Estaciones Policiales</option>
                 <option value="servicio">📋 Servicios Administrativos</option>
@@ -245,7 +245,7 @@
             const ccpSelect = document.getElementById('ccpSelect');
             ccpSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
             ccpSelect.disabled = !redip;
-            document.getElementById('tipoSelect').disabled = true;
+            document.getElementById('tipoEntidad').disabled = true;
             document.getElementById('entidadSelect').disabled = true;
             if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
@@ -264,23 +264,22 @@
         });
         document.getElementById('ccpSelect').addEventListener('change', () => {
             const ccp = document.getElementById('ccpSelect').value;
-            document.getElementById('tipoSelect').disabled = !ccp;
-            document.getElementById('entidadSelect').disabled = true;
+            document.getElementById('tipoEntidad').disabled = !ccp;
         });
-        document.getElementById('tipoSelect').addEventListener('change', async () => {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const tipo = document.getElementById('tipoSelect').value;
+        document.getElementById('tipoEntidad').addEventListener('change', async () => {
+            const tipo = document.getElementById('tipoEntidad').value;
             const entidadSelect = document.getElementById('entidadSelect');
             entidadSelect.innerHTML = '<option value="">-- Cargando... --</option>';
             entidadSelect.disabled = true;
-            if (!redip || !ccp || !tipo) {
+            if (!tipo) {
                 entidadSelect.innerHTML = '<option value="">-- Seleccione tipo --</option>';
                 return;
             }
             if (!(await verificarAutenticacion())) return;
             try {
                 if (tipo === 'estacion') {
+                    const redip = document.getElementById('redipSelect').value;
+                    const ccp = document.getElementById('ccpSelect').value;
                     const {  estaciones, error } = await supabase
                         .from('estaciones_policiales')
                         .select('id, nombre')
@@ -319,8 +318,7 @@
                 document.getElementById('btnDescargarTodo').disabled = true;
                 return;
             }
-            const tipo = entidad.startsWith('estacion_') ? 'estacion' : 'servicio';
-            tipoActual = tipo;
+            tipoActual = entidad.startsWith('estacion_') ? 'estacion' : 'servicio';
             entidadActual = entidad;
             renderizarProtocolos();
             await verificarArchivosExistentes();
