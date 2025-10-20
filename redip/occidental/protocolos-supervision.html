@@ -56,9 +56,19 @@
             font-weight: bold;
             color: #2d3748;
         }
+        /* ✅ Estilo unificado para todos los controles de selección */
+        .input-control {
+            width: 100%;
+            padding: 14px; /* Más alto para mejor apariencia */
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            appearance: none; /* Opcional: quita la flecha nativa en algunos navegadores */
+        }
         .input-group-btn {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background: #edf2f7;
             border: 2px solid #e2e8f0;
             border-radius: 10px;
@@ -200,7 +210,8 @@
         <h1 class="title">Protocolos de Supervisión</h1>
         <div class="input-group">
             <label for="redipSelect">Seleccione REDIP:</label>
-            <select id="redipSelect" required>
+            <!-- ✅ Aplicado estilo unificado -->
+            <select id="redipSelect" class="input-control" required>
                 <option value="">-- Elija una REDIP --</option>
                 <option value="occidental">REDIP OCCIDENTAL</option>
                 <option value="capital">REDIP CAPITAL</option>
@@ -214,7 +225,8 @@
         </div>
         <div class="input-group">
             <label for="ccpSelect">Seleccione CCP:</label>
-            <select id="ccpSelect" disabled required>
+            <!-- ✅ Aplicado estilo unificado -->
+            <select id="ccpSelect" class="input-control" disabled required>
                 <option value="">-- Primero seleccione REDIP --</option>
             </select>
         </div>
@@ -269,10 +281,9 @@
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
         let estadoArchivos = {};
-        let tipoActivo = null; // 'estacion' o 'servicio'
+        let tipoActivo = null;
         let idActivo = null;
 
-        // === REDIP y CCP ===
         document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
@@ -303,7 +314,6 @@
             document.getElementById('btnServicio').disabled = !habilitar;
         });
 
-        // === Cerrar dropdowns al hacer clic fuera ===
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#btnEstacion') && !e.target.closest('#dropdownEstacion')) {
                 document.getElementById('dropdownEstacion').style.display = 'none';
@@ -313,19 +323,17 @@
             }
         });
 
-        // === Estaciones ===
         document.getElementById('btnEstacion').addEventListener('click', async (e) => {
             e.stopPropagation();
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp) return;
-            const otro = document.getElementById('dropdownServicio');
-            otro.style.display = 'none';
+            document.getElementById('dropdownServicio').style.display = 'none';
             const dropdown = document.getElementById('dropdownEstacion');
             dropdown.style.display = 'block';
             dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -354,19 +362,17 @@
             }
         });
 
-        // === Servicios ===
         document.getElementById('btnServicio').addEventListener('click', async (e) => {
             e.stopPropagation();
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp) return;
-            const otro = document.getElementById('dropdownEstacion');
-            otro.style.display = 'none';
+            document.getElementById('dropdownEstacion').style.display = 'none';
             const dropdown = document.getElementById('dropdownServicio');
             dropdown.style.display = 'block';
             dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
             try {
-                const { data: servicios, error } = await supabase
+                const {  servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
@@ -395,7 +401,6 @@
             }
         });
 
-        // === Renderizar protocolos ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -422,7 +427,6 @@
             });
         }
 
-        // === Verificar archivos existentes ===
         async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -438,7 +442,6 @@
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
-                        // Mostrar aviso y botones
                         document.querySelector(`#input_${proto.id}`).disabled = true;
                         document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
@@ -472,7 +475,6 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // === Funciones de archivo ===
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
@@ -547,10 +549,9 @@
             setTimeout(() => msg.style.display = 'none', 5000);
         }
 
-        // === Autenticación ===
         async function verificarAutenticacion() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const {  { user } } = await supabase.auth.getUser();
                 if (!user) {
                     alert('Debe iniciar sesión.');
                     window.location.href = 'index.html';
