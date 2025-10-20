@@ -15,98 +15,21 @@
             margin-top: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .tabs {
-            display: flex;
-            gap: 2px;
-            margin: 25px 0 15px;
-            background: #e2e8f0;
-            border-radius: 10px;
-            padding: 4px;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
-            font-weight: bold;
-            color: #4a5568;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tab-btn.active {
-            background: white;
-            color: #0c2440;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .search-box {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #cbd5e0;
-            border-radius: 10px;
-            font-size: 15px;
-            margin-bottom: 15px;
-            background: #f8fafc;
-        }
         .ubicacion-card {
             background: #f8fafc;
-            padding: 14px;
+            padding: 12px;
             border-radius: 10px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             border-left: 4px solid #3182ce;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .tipo-estacion { border-left-color: #3182ce; }
-        .tipo-servicio { border-left-color: #805ad5; }
         .ubicacion-card h4 {
             color: #0c2440;
+            margin: 0 0 6px;
+        }
+        .ubicacion-card p {
+            color: #4a5568;
             margin: 0;
-            font-size: 16px;
-        }
-        .no-enlace {
-            color: #e53e3e;
-            font-style: italic;
-            font-size: 12px;
-            margin-top: 4px;
-        }
-        .rutas-btn {
-            background: linear-gradient(135deg, #0c2440, #1a365d);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 13px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .rutas-btn:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-        .lista-contenedor {
-            max-height: 400px;
-            overflow-y: auto;
-            padding-right: 8px;
-        }
-        .lista-contenedor::-webkit-scrollbar {
-            width: 8px;
-        }
-        .lista-contenedor::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        .lista-contenedor::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 4px;
-        }
-        .no-resultados {
-            text-align: center;
-            color: #718096;
-            padding: 20px;
-            font-style: italic;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -127,168 +50,124 @@
         <p id="ccpNombreDisplay" style="text-align: center; color: #4a5568; margin-bottom: 20px; font-size: 16px;">
             Cargando...
         </p>
-
+        <!-- Lista de ubicaciones (modo móvil o fallback) -->
+        <div id="listaUbicaciones" style="margin-top: 20px; display: none;">
+            <h3 style="color: #0c2440; margin-bottom: 15px;">Listado de Ubicaciones</h3>
+        </div>
         <!-- Mapa -->
         <div id="map"></div>
-
-        <!-- Botón de edición -->
         <button id="btnEditar" class="action-btn" style="margin-top: 20px; padding: 12px; font-size: 15px; width: 100%;">
             ✏️ Editar Ubicaciones
         </button>
-
-        <!-- Pestañas -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
-            <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
-        </div>
-
-        <!-- Barra de búsqueda -->
-        <input type="text" id="searchInput" class="search-box" placeholder="Buscar por nombre...">
-
-        <!-- Lista dinámica -->
-        <div class="lista-contenedor">
-            <div id="listaEstaciones"></div>
-            <div id="listaServicios" style="display:none;"></div>
-        </div>
-
         <button id="btnVolver" class="back-btn" style="margin-top: 20px; padding: 10px 20px;">
             ← Volver a Opciones
         </button>
     </div>
-
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
+        // Obtener parámetros de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
-
         if (!ccpId || !ccpNombre) {
             alert('⚠️ Datos de CCP no válidos.');
             window.history.back();
         }
-
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
-
-        // Inicializar mapa
+        // Inicializar mapa (centrado en Venezuela)
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        let todasEstaciones = [];
-        let todosServicios = [];
-
-        // Cargar ubicaciones del mapa (tabla 'ubicaciones')
-        async function cargarUbicacionesMapa() {
+        // ✅ NUEVA FUNCIÓN: Cargar ubicaciones Y estaciones
+        async function cargarUbicacionesYEstaciones() {
             try {
-                const {  ubicaciones, error } = await supabase
+                // Cargar ubicaciones generales
+                const { data: ubicaciones, error: errUbic } = await supabase
                     .from('ubicaciones')
                     .select('id, nombre, latitud, longitud, tipo')
-                    .eq('ccp_id', ccpId);
-                if (!error && ubicaciones) {
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+
+                // Cargar estaciones policiales
+                const { data: estaciones, error: errEst } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre, latitud, longitud')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+
+                if (errUbic && errEst) {
+                    throw new Error('Error al cargar datos de ubicaciones y estaciones.');
+                }
+
+                const todasLasUbicaciones = [];
+
+                // Agregar ubicaciones generales
+                if (ubicaciones && ubicaciones.length > 0) {
                     ubicaciones.forEach(ub => {
                         if (ub.latitud && ub.longitud) {
-                            L.marker([ub.latitud, ub.longitud])
-                                .addTo(map)
-                                .bindPopup(`<b>${ub.nombre}</b><br>Tipo: ${ub.tipo || 'N/A'}`);
+                            todasLasUbicaciones.push({
+                                lat: ub.latitud,
+                                lng: ub.longitud,
+                                nombre: ub.nombre,
+                                tipo: ub.tipo || 'Ubicación general'
+                            });
                         }
                     });
                 }
-            } catch (err) {
-                console.warn('No se pudieron cargar ubicaciones para el mapa.');
-            }
-        }
 
-        // Cargar estaciones y servicios
-        async function cargarEntidades() {
-            try {
-                const [estRes, servRes] = await Promise.all([
-                    supabase.from('estaciones_policiales').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre'),
-                    supabase.from('servicios_administrativos').select('id, nombre, enlace_rutas').eq('ccp_id', ccpId).order('nombre')
-                ]);
-                todasEstaciones = estRes.data || [];
-                todosServicios = servRes.data || [];
-                renderizarListas();
+                // Agregar estaciones policiales
+                if (estaciones && estaciones.length > 0) {
+                    estaciones.forEach(est => {
+                        if (est.latitud && est.longitud) {
+                            todasLasUbicaciones.push({
+                                lat: est.latitud,
+                                lng: est.longitud,
+                                nombre: est.nombre,
+                                tipo: 'Estación Policial'
+                            });
+                        }
+                    });
+                }
+
+                // Mostrar en el mapa
+                if (todasLasUbicaciones.length > 0) {
+                    todasLasUbicaciones.forEach(ub => {
+                        const marker = L.marker([ub.lat, ub.lng]).addTo(map);
+                        marker.bindPopup(`<b>${ub.nombre}</b><br>Tipo: ${ub.tipo}`);
+                    });
+                    // Ajustar vista del mapa
+                    const group = L.featureGroup(todasLasUbicaciones.map(ub => L.marker([ub.lat, ub.lng])));
+                    map.fitBounds(group.getBounds().pad(0.1));
+                } else {
+                    document.getElementById('ccpNombreDisplay').innerHTML += 
+                        `<br><em style="color:#e53e3e;">⚠️ No hay ubicaciones con coordenadas.</em>`;
+                }
+
             } catch (error) {
-                console.error('Error al cargar entidades:', error);
-                document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ Error al cargar datos.</p>';
+                console.error('Error al cargar ubicaciones y estaciones:', error);
+                document.getElementById('ccpNombreDisplay').innerHTML += 
+                    `<br><em style="color:#e53e3e;">❌ Error al cargar datos.</em>`;
             }
         }
 
-        // Renderizar listas (con búsqueda)
-        function renderizarListas() {
-            const termino = document.getElementById('searchInput').value.toLowerCase();
-            
-            // Filtrar estaciones
-            const estacionesFiltradas = todasEstaciones.filter(e => 
-                e.nombre.toLowerCase().includes(termino)
-            );
-            renderizarLista('listaEstaciones', estacionesFiltradas, 'estacion');
-
-            // Filtrar servicios
-            const serviciosFiltrados = todosServicios.filter(s => 
-                s.nombre.toLowerCase().includes(termino)
-            );
-            renderizarLista('listaServicios', serviciosFiltrados, 'servicio');
-        }
-
-        function renderizarLista(contenedorId, items, tipo) {
-            const contenedor = document.getElementById(contenedorId);
-            if (items.length === 0) {
-                contenedor.innerHTML = '<div class="no-resultados">No se encontraron resultados.</div>';
-                return;
-            }
-            let html = '';
-            items.forEach(item => {
-                const tieneEnlace = item.enlace_rutas && item.enlace_rutas.trim() !== '';
-                const enlaceSeguro = tieneEnlace ? item.enlace_rutas.replace(/'/g, "\\'") : '';
-                html += `
-                    <div class="ubicacion-card tipo-${tipo}">
-                        <div>
-                            <h4>${item.nombre}</h4>
-                            ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace no configurado</p>' : ''}
-                        </div>
-                        <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
-                                onclick="${tieneEnlace ? `window.open('${enlaceSeguro}', '_blank')` : `alert('⚠️ Enlace no configurado para esta ubicación.')`}">
-                            Rutas
-                        </button>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        // Eventos de pestañas
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const tab = btn.dataset.tab;
-                document.getElementById('listaEstaciones').style.display = tab === 'estaciones' ? 'block' : 'none';
-                document.getElementById('listaServicios').style.display = tab === 'servicios' ? 'block' : 'none';
-            });
-        });
-
-        // Evento de búsqueda
-        document.getElementById('searchInput').addEventListener('input', renderizarListas);
-
-        // Botones
+        // Botón de editar
         document.getElementById('btnEditar').addEventListener('click', () => {
             window.location.href = `editar-ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
+        // Botón de volver
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
         // Iniciar
-        cargarUbicacionesMapa();
-        cargarEntidades();
+        cargarUbicacionesYEstaciones();
     </script>
 </body>
 </html>
