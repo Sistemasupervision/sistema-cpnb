@@ -73,6 +73,13 @@
             margin-top: 10px;
         }
         .btn:hover { opacity: 0.9; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-actualizar {
+            background: linear-gradient(135deg, #dd6b20, #c05621);
+        }
         .back-btn {
             background: #2c5282;
             padding: 10px 20px;
@@ -92,6 +99,7 @@
         }
         .exito { background: #c6f6d5; color: #22543d; }
         .error { background: #fed7d7; color: #9b2c2c; }
+        .info { background: #ebf8ff; color: #2c5282; }
         .acciones {
             display: flex;
             gap: 15px;
@@ -140,9 +148,8 @@
 </head>
 <body>
     <div class="container">
-        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/imagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
-        
         <form id="protocolosForm">
             <div class="input-group">
                 <label for="redipSelect">Seleccione REDIP:</label>
@@ -170,34 +177,34 @@
                     <option value="">-- Primero seleccione CCP --</option>
                 </select>
             </div>
-            
             <div class="input-group">
                 <label for="guia">Guía de Inspección (PDF)</label>
-                <input type="file" id="guia" accept=".pdf">
+                <input type="file" id="guia" accept=".pdf" disabled>
                 <div class="archivo-indicador" id="guia-indicador">✅ Archivo seleccionado</div>
             </div>
             <div class="input-group">
                 <label for="vademecum">Vademécum (PDF)</label>
-                <input type="file" id="vademecum" accept=".pdf">
+                <input type="file" id="vademecum" accept=".pdf" disabled>
                 <div class="archivo-indicador" id="vademecum-indicador">✅ Archivo seleccionado</div>
             </div>
             <div class="input-group">
                 <label for="fotograma">Fotograma (PDF)</label>
-                <input type="file" id="fotograma" accept=".pdf">
+                <input type="file" id="fotograma" accept=".pdf" disabled>
                 <div class="archivo-indicador" id="fotograma-indicador">✅ Archivo seleccionado</div>
             </div>
             <div class="input-group">
                 <label for="plan">Plan de Acción y Reacción (PDF)</label>
-                <input type="file" id="plan" accept=".pdf">
+                <input type="file" id="plan" accept=".pdf" disabled>
                 <div class="archivo-indicador" id="plan-indicador">✅ Archivo seleccionado</div>
             </div>
-            
             <div class="acciones">
-                <button type="button" class="btn" onclick="subirProtocolos()">📤 Subir Protocolos</button>
+                <button type="button" id="btnSubir" class="btn" onclick="subirProtocolos()" disabled>📤 Subir Protocolos</button>
                 <button type="button" class="btn" onclick="descargarProtocolos()">📥 Descargar Protocolos</button>
             </div>
+            <button type="button" id="btnActualizar" class="btn btn-actualizar" style="display:none;" onclick="habilitarActualizacion()">
+                🔄 Actualizar Protocolos
+            </button>
         </form>
-        
         <div id="uploadProgress" class="progress-container">
             <div class="progress-label">Subiendo archivos...</div>
             <div class="progress-bar-container">
@@ -205,7 +212,6 @@
             </div>
             <div class="progress-text" id="uploadText">0%</div>
         </div>
-        
         <div id="downloadProgress" class="progress-container">
             <div class="progress-label">Verificando archivos...</div>
             <div class="progress-bar-container">
@@ -213,17 +219,13 @@
             </div>
             <div class="progress-text" id="downloadText">0%</div>
         </div>
-        
         <div id="mensaje" class="mensaje" style="display: none;"></div>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
     </div>
-
     <script>
-        // URLs y claves sin espacios
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const redipCcpMap = {
             occidental: [
                 { value: 'metropolitano', text: 'CCP METROPOLITANO' },
@@ -245,6 +247,7 @@
             guayana: [],
             maritima: []
         };
+        let hayArchivosExistentes = false;
 
         async function verificarAutenticacion() {
             try {
@@ -266,14 +269,12 @@
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
             const estacionSelect = document.getElementById('estacionSelect');
-
             ccpSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
             estacionSelect.innerHTML = '<option value="">-- Primero seleccione CCP --</option>';
             ccpSelect.disabled = !redip;
             estacionSelect.disabled = true;
-
+            resetFormulario();
             if (!redip) return;
-
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
                 ccpSelect.innerHTML = '<option value="">No hay CCPs para esta REDIP</option>';
@@ -293,37 +294,30 @@
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const estacionSelect = document.getElementById('estacionSelect');
-
             estacionSelect.innerHTML = '<option value="">-- Cargando estaciones... --</option>';
             estacionSelect.disabled = true;
-
+            resetFormulario();
             if (!redip || !ccp) {
                 estacionSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
                 return;
             }
-
             if (!(await verificarAutenticacion())) return;
-
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccp)
                     .order('nombre', { ascending: true });
-
                 estacionSelect.innerHTML = '<option value="">-- Seleccione Estación --</option>';
-
                 if (error) {
                     console.error('Error de Supabase:', error);
                     estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
                     return;
                 }
-
                 if (!estaciones || estaciones.length === 0) {
                     estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
                     return;
                 }
-
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.id;
@@ -337,7 +331,114 @@
             }
         });
 
-        // Manejo seguro de los inputs de archivo
+        document.getElementById('estacionSelect').addEventListener('change', async () => {
+            const estacionId = document.getElementById('estacionSelect').value;
+            if (!estacionId) {
+                resetFormulario();
+                return;
+            }
+            await verificarYMostrarEstado(estacionId);
+        });
+
+        function resetFormulario() {
+            // Deshabilitar todo
+            ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) input.disabled = true;
+                const indicador = document.getElementById(`${id}-indicador`);
+                if (indicador) indicador.style.display = 'none';
+            });
+            document.getElementById('btnSubir').disabled = true;
+            document.getElementById('btnActualizar').style.display = 'none';
+            hayArchivosExistentes = false;
+            ocultarMensaje();
+        }
+
+        async function verificarYMostrarEstado(estacionId) {
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
+            if (!redip || !ccp) return;
+
+            const nombresArchivos = [
+                'guia_inspeccion.pdf',
+                'vademecum.pdf',
+                'fotograma.pdf',
+                'plan_accion_reaccion.pdf'
+            ];
+
+            try {
+                const verificaciones = await Promise.all(
+                    nombresArchivos.map(nombre => {
+                        const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
+                        return supabase.storage
+                            .from('protocolos-supervision')
+                            .download(filePath)
+                            .then(({ data, error }) => {
+                                if (error) return { nombre, existe: false };
+                                return { nombre, existe: true };
+                            })
+                            .catch(() => ({ nombre, existe: false }));
+                    })
+                );
+
+                const existentes = verificaciones.filter(v => v.existe);
+                if (existentes.length > 0) {
+                    hayArchivosExistentes = true;
+                    mostrarMensaje(`✅ La estación ya tiene ${existentes.length} protocolo(s) cargado(s).`, 'info');
+                    document.getElementById('btnActualizar').style.display = 'block';
+                    // Mantener inputs deshabilitados
+                } else {
+                    hayArchivosExistentes = false;
+                    habilitarInputs();
+                    document.getElementById('btnActualizar').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error al verificar archivos:', error);
+                mostrarMensaje('❌ Error al verificar protocolos.', 'error');
+            }
+        }
+
+        function habilitarInputs() {
+            ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) input.disabled = false;
+            });
+            document.getElementById('btnSubir').disabled = false;
+        }
+
+        function habilitarActualizacion() {
+            // Eliminar archivos anteriores
+            eliminarArchivosAnteriores().then(() => {
+                habilitarInputs();
+                document.getElementById('btnActualizar').style.display = 'none';
+                mostrarMensaje('✅ Archivos anteriores eliminados. Puede subir nuevos.', 'exito');
+            });
+        }
+
+        async function eliminarArchivosAnteriores() {
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
+            const estacionId = document.getElementById('estacionSelect').value;
+            const nombresArchivos = [
+                'guia_inspeccion.pdf',
+                'vademecum.pdf',
+                'fotograma.pdf',
+                'plan_accion_reaccion.pdf'
+            ];
+            try {
+                await Promise.all(
+                    nombresArchivos.map(nombre => {
+                        const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${nombre}`;
+                        return supabase.storage
+                            .from('protocolos-supervision')
+                            .remove([filePath]);
+                    })
+                );
+            } catch (error) {
+                console.error('Error al eliminar archivos:', error);
+            }
+        }
+
         ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
             const input = document.getElementById(id);
             if (input) {
@@ -358,62 +459,49 @@
                 mostrarMensaje('⚠️ Seleccione REDIP, CCP y Estación.', 'error');
                 return;
             }
-
             const inputs = {
                 guia_inspeccion: document.getElementById('guia'),
                 vademecum: document.getElementById('vademecum'),
                 fotograma: document.getElementById('fotograma'),
                 plan_accion_reaccion: document.getElementById('plan')
             };
-
             const archivos = {};
             Object.entries(inputs).forEach(([key, input]) => {
                 if (input && input.files.length > 0) {
                     archivos[key] = input.files[0];
                 }
             });
-
             if (Object.keys(archivos).length === 0) {
                 mostrarMensaje('⚠️ Seleccione al menos un archivo para subir.', 'error');
                 return;
             }
-
             const uploadProgress = document.getElementById('uploadProgress');
             const uploadBar = document.getElementById('uploadBar');
             const uploadText = document.getElementById('uploadText');
             if (uploadProgress) uploadProgress.style.display = 'block';
             if (uploadBar) uploadBar.style.width = '0%';
             if (uploadText) uploadText.textContent = '0%';
-
             let subidos = 0;
             const total = Object.keys(archivos).length;
-
             try {
                 for (const [nombre, archivo] of Object.entries(archivos)) {
                     const ext = archivo.name.split('.').pop().toLowerCase();
-                    // Normaliza el nombre del archivo para evitar errores 400
                     const cleanNombre = nombre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
                     const filePath = `protocolos-supervision/${redip}/${ccp}/estacion_${estacionId}/${cleanNombre}.${ext}`;
-                    
                     const porcentaje = Math.round((subidos / total) * 100);
                     if (uploadBar) uploadBar.style.width = `${porcentaje}%`;
                     if (uploadText) uploadText.textContent = `${porcentaje}%`;
-
                     const { error } = await supabase.storage
                         .from('protocolos-supervision')
                         .upload(filePath, archivo, { upsert: true });
-
                     if (error) throw error;
                     subidos++;
                 }
-
                 if (uploadBar) uploadBar.style.width = '100%';
                 if (uploadText) uploadText.textContent = '100%';
                 await new Promise(r => setTimeout(r, 300));
-
                 mostrarMensaje(`✅ ${subidos} archivo(s) subido(s) correctamente.`, 'exito');
                 if (uploadProgress) uploadProgress.style.display = 'none';
-
                 // Limpiar inputs e indicadores
                 Object.values(inputs).forEach(input => {
                     if (input) input.value = '';
@@ -422,7 +510,8 @@
                     const indicador = document.getElementById(`${id}-indicador`);
                     if (indicador) indicador.style.display = 'none';
                 });
-
+                // Volver a verificar estado
+                await verificarYMostrarEstado(estacionId);
             } catch (error) {
                 console.error('Error al subir:', error);
                 mostrarMensaje('❌ Error al subir los archivos.', 'error');
@@ -438,21 +527,18 @@
                 mostrarMensaje('⚠️ Seleccione REDIP, CCP y Estación.', 'error');
                 return;
             }
-
             const nombresArchivos = [
                 'guia_inspeccion.pdf',
                 'vademecum.pdf',
                 'fotograma.pdf',
                 'plan_accion_reaccion.pdf'
             ];
-
             const downloadProgress = document.getElementById('downloadProgress');
             const downloadBar = document.getElementById('downloadBar');
             const downloadText = document.getElementById('downloadText');
             if (downloadProgress) downloadProgress.style.display = 'block';
             if (downloadBar) downloadBar.style.width = '0%';
             if (downloadText) downloadText.textContent = '0%';
-
             try {
                 const verificaciones = await Promise.all(
                     nombresArchivos.map(nombre => {
@@ -467,20 +553,17 @@
                             .catch(() => ({ nombre, existe: false }));
                     })
                 );
-
                 const existentes = verificaciones.filter(v => v.existe);
                 if (existentes.length === 0) {
                     if (downloadProgress) downloadProgress.style.display = 'none';
                     mostrarMensaje('❌ La estación no tiene protocolos cargados.', 'error');
                     return;
                 }
-
                 let descargados = 0;
                 for (const item of existentes) {
                     const porcentaje = Math.round((descargados / existentes.length) * 100);
                     if (downloadBar) downloadBar.style.width = `${porcentaje}%`;
                     if (downloadText) downloadText.textContent = `${porcentaje}%`;
-
                     const url = URL.createObjectURL(item.data);
                     const a = document.createElement('a');
                     a.href = url;
@@ -491,14 +574,11 @@
                     URL.revokeObjectURL(url);
                     descargados++;
                 }
-
                 if (downloadBar) downloadBar.style.width = '100%';
                 if (downloadText) downloadText.textContent = '100%';
                 await new Promise(r => setTimeout(r, 300));
-
                 mostrarMensaje(`✅ ${descargados} archivo(s) descargado(s).`, 'exito');
                 if (downloadProgress) downloadProgress.style.display = 'none';
-
             } catch (error) {
                 console.error('Error al verificar/descargar:', error);
                 mostrarMensaje('❌ Error al acceder a los protocolos.', 'error');
@@ -512,8 +592,12 @@
                 msg.textContent = texto;
                 msg.className = `mensaje ${tipo}`;
                 msg.style.display = 'block';
-                setTimeout(() => { msg.style.display = 'none'; }, 5000);
             }
+        }
+
+        function ocultarMensaje() {
+            const msg = document.getElementById('mensaje');
+            if (msg) msg.style.display = 'none';
         }
 
         // Verificar autenticación al cargar
