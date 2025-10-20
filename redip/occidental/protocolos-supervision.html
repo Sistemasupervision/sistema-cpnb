@@ -57,46 +57,40 @@
             color: #2d3748;
         }
         /* === Estilos mejorados para los desplegables (select) === */
-select {
-    width: 100%;
-    padding: 12px;
-    background: #edf2f7; /* Color de fondo coherente con otros inputs */
-    border: 2px solid #e2e8f0; /* Borde suave */
-    border-radius: 10px; /* Bordes redondeados */
-    font-weight: bold;
-    color: #2d3748; /* Color de texto oscuro */
-    cursor: pointer;
-    -webkit-appearance: none; /* Elimina el estilo nativo de Webkit */
-    -moz-appearance: none; /* Elimina el estilo nativo de Firefox */
-    appearance: none; /* Elimina el estilo nativo estándar */
-    position: relative;
-}
-
-/* Estilo para el ícono de flecha descendente */
-select::after {
-    content: '▼';
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: #2d3748;
-    font-size: 12px;
-    font-weight: normal;
-}
-
-/* Efecto hover */
-select:hover {
-    background: #e2e8f0;
-    border-color: #bee3f8;
-}
-
-/* Estado cuando está deshabilitado */
-select:disabled {
-    background: #f7fafc;
-    color: #a0aec0;
-    cursor: not-allowed;
-}
+        select {
+            width: 100%;
+            padding: 12px;
+            background: #edf2f7;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-weight: bold;
+            color: #2d3748;
+            cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            position: relative;
+        }
+        select::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #2d3748;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        select:hover {
+            background: #e2e8f0;
+            border-color: #bee3f8;
+        }
+        select:disabled {
+            background: #f7fafc;
+            color: #a0aec0;
+            cursor: not-allowed;
+        }
         .input-group-btn {
             width: 100%;
             padding: 12px;
@@ -232,7 +226,6 @@ select:disabled {
             width: 0%;
             transition: width 0.3s ease;
         }
-
         /* === Estilos para pestañas === */
         .tabs {
             display: flex;
@@ -269,7 +262,7 @@ select:disabled {
         <h1 class="title">Protocolos de Supervisión</h1>
         <div class="input-group">
             <label for="redipSelect">Seleccione REDIP:</label>
-            <select id="redipSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+            <select id="redipSelect" required>
                 <option value="">-- Elija una REDIP --</option>
                 <option value="occidental">REDIP OCCIDENTAL</option>
                 <option value="capital">REDIP CAPITAL</option>
@@ -287,7 +280,6 @@ select:disabled {
                 <option value="">-- Primero seleccione REDIP --</option>
             </select>
         </div>
-
         <!-- Pestañas -->
         <div class="input-group">
             <label>Seleccione el tipo de unidad:</label>
@@ -296,12 +288,10 @@ select:disabled {
                 <button id="tabServicio" class="tab-btn">📋 Servicio Administrativo</button>
             </div>
         </div>
-
         <!-- Contenido dinámico según pestaña -->
         <div id="seleccionActiva">
             <!-- Se rellenará con JS -->
         </div>
-
         <!-- Contenedor común de protocolos -->
         <div id="protocolosContainer"></div>
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
@@ -310,7 +300,6 @@ select:disabled {
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
         <div id="mensaje" class="mensaje" style="display: none;"></div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -346,7 +335,7 @@ select:disabled {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
             ccpSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
-            document.getElementById('tabEstacion').click(); // Reiniciar vista
+            document.getElementById('tabEstacion').click();
             if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
@@ -367,10 +356,6 @@ select:disabled {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const habilitar = redip && ccp;
-            // Solo habilitamos visualmente; la lógica se maneja en las pestañas
-            if (habilitar) {
-                // No habilitamos botones aquí; se maneja en renderPestana
-            }
         });
 
         // === Cerrar dropdowns al hacer clic fuera ===
@@ -392,8 +377,13 @@ select:disabled {
             const ccp = document.getElementById('ccpSelect').value;
             const habilitar = redip && ccp;
 
+            // ✅ LIMPIAR protocolos al cambiar de pestaña
+            document.getElementById('protocolosContainer').innerHTML = '';
+            document.getElementById('btnDescargarTodo').disabled = true;
+
             // Actualizar estado visual de pestañas
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
+
             if (tipo === 'estacion') {
                 document.getElementById('tabEstacion').classList.add('activo');
                 tipoActivo = null;
@@ -506,7 +496,7 @@ select:disabled {
         // Iniciar con Estación Policial
         renderPestana('estacion');
 
-        // === Resto de funciones (sin cambios) ===
+        // === Resto de funciones ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -665,6 +655,7 @@ select:disabled {
                 alert('Error al verificar sesión.');
             }
         }
+
         verificarAutenticacion();
     </script>
 </body>
