@@ -6,8 +6,6 @@
     <title>Estadísticas de Inspecciones - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -70,8 +68,7 @@
             margin-bottom: 25px;
             flex-wrap: wrap;
         }
-        .back-btn,
-        .pdf-btn {
+        .back-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
@@ -81,17 +78,10 @@
             align-items: center;
             gap: 8px;
             font-weight: bold;
-        }
-        .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
         }
-        .pdf-btn {
-            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
-            color: white;
-        }
-        .back-btn:hover,
-        .pdf-btn:hover {
+        .back-btn:hover {
             opacity: 0.9;
         }
         .filtro-container {
@@ -155,7 +145,7 @@
             overflow-y: auto;
         }
         .chart-wrapper {
-            height: 600px;
+            height: 500px;
             position: relative;
             min-width: 800px;
         }
@@ -473,16 +463,12 @@
             const paginacionDiv = document.getElementById('paginacion');
 
             function actualizar() {
-                // Filtrar ítems
                 itemsFiltrados = todosLosItems.filter(key => {
                     const nombre = nombresItems[key];
                     return nombre.toLowerCase().includes(filtro.value.toLowerCase());
                 });
-
-                // Reiniciar a página 1 si el filtro cambia drásticamente
                 paginaActual = 1;
 
-                // Calcular página actual
                 const inicio = (paginaActual - 1) * itemsPorPagina;
                 const fin = inicio + itemsPorPagina;
                 const itemsPagina = itemsFiltrados.slice(inicio, fin);
@@ -516,7 +502,7 @@
                         labels: labelsNumericos,
                         datasets: [{
                             label: '% de Cumplimiento Promedio',
-                            data: data,
+                             data,
                             backgroundColor: 'rgba(49, 130, 206, 0.8)',
                             borderColor: 'rgba(49, 130, 206, 1)',
                             borderWidth: 1,
@@ -563,7 +549,7 @@
 
                 document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
 
-                // Renderizar paginación
+                // Paginación
                 paginacionDiv.innerHTML = '';
                 const totalPaginas = Math.ceil(itemsFiltrados.length / itemsPorPagina);
                 if (totalPaginas > 1) {
@@ -609,10 +595,6 @@
             document.getElementById('tablaItems').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
             document.getElementById('paginacion').innerHTML = '';
-        }
-
-        async function exportarEstadisticasAPDF() {
-            alert('Exportación a PDF no implementada en esta versión mejorada.\nPuedes usar la función de impresión del navegador (Ctrl+P).');
         }
     </script>
 </body>
