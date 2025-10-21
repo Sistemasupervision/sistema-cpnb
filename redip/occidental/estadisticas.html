@@ -343,6 +343,7 @@
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
         const todosLosItems = Object.keys(nombresItems);
+
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
@@ -371,11 +372,13 @@
                 alert('Error al cargar las estaciones');
             }
         });
+
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
             if (!estacionId) return;
             await cargarEstadisticas(estacionId);
         });
+
         async function cargarEstadisticas(estacionId) {
             const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
             document.getElementById('seleccionContainer').style.display = 'none';
@@ -416,6 +419,7 @@
                 document.getElementById('mensajeSinDatos').style.display = 'block';
             }
         }
+
         function calcularEstadisticas(items) {
             const resultado = {};
             todosLosItems.forEach(item => {
@@ -439,17 +443,25 @@
             });
             return resultado;
         }
+
+        // ✅ FUNCIÓN ACTUALIZADA: Gráfico con números en eje Y y tooltip con nombre completo
         function renderizarGrafico(estadisticas, nombreEstacion) {
             const ctx = document.getElementById('cumplimientoChart').getContext('2d');
             if (chartInstance) {
                 chartInstance.destroy();
             }
-            const labels = todosLosItems.map(k => nombresItems[k]);
+
+            // Etiquetas numéricas: ["1", "2", ..., "67"]
+            const labelsNumericos = todosLosItems.map((_, index) => (index + 1).toString());
+            // Datos: porcentaje de cumplimiento en el mismo orden
             const data = todosLosItems.map(k => estadisticas[k] || 0);
+            // Nombres completos para el tooltip
+            const nombresCompletos = todosLosItems.map(k => nombresItems[k]);
+
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: labelsNumericos,
                     datasets: [{
                         label: '% de Cumplimiento Promedio',
                         data: data,
@@ -461,22 +473,24 @@
                     }]
                 },
                 options: {
-                    indexAxis: 'y', // ← Hace el gráfico HORIZONTAL (mejor para muchos ítems)
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { 
                             position: 'top',
                             labels: {
-                                font: {
-                                    size: 13
-                                }
+                                font: { size: 13 }
                             }
                         },
                         tooltip: {
                             callbacks: {
+                                title: function(context) {
+                                    return `Ítem ${context[0].label}`;
+                                },
                                 label: function(context) {
-                                    return `${context.dataset.label}: ${context.parsed.x}%`;
+                                    const nombreCompleto = nombresCompletos[context.dataIndex];
+                                    return `${nombreCompleto}: ${context.parsed.x}%`;
                                 }
                             }
                         }
@@ -489,9 +503,7 @@
                                 callback: function(value) {
                                     return value + '%';
                                 },
-                                font: {
-                                    size: 12
-                                }
+                                font: { size: 12 }
                             },
                             grid: {
                                 color: 'rgba(0,0,0,0.05)'
@@ -499,9 +511,7 @@
                         },
                         y: {
                             ticks: {
-                                font: {
-                                    size: 10
-                                },
+                                font: { size: 11 },
                                 autoSkip: false
                             },
                             grid: {
@@ -511,8 +521,10 @@
                     }
                 }
             });
+
             document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
         }
+
         function renderizarTabla(estadisticas) {
             const tbody = document.getElementById('tablaItems');
             const filtro = document.getElementById('filtroItems');
@@ -537,6 +549,7 @@
             filtro.addEventListener('input', actualizarTabla);
             actualizarTabla();
         }
+
         function volverASeleccion() {
             document.getElementById('seleccionContainer').style.display = 'block';
             document.getElementById('resultadosContainer').style.display = 'none';
@@ -549,6 +562,7 @@
             document.getElementById('tablaItems').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
         }
+
         async function exportarEstadisticasAPDF() {
             alert('Exportación a PDF no implementada en esta versión mejorada.\nPuedes usar la función de impresión del navegador (Ctrl+P).');
         }
