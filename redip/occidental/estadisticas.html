@@ -357,6 +357,8 @@
         let paginaActual = 1;
         const itemsPorPagina = 15;
         let itemsFiltrados = [...todosLosItems];
+        let estadisticasGlobales = {};
+        let nombreEstacionActual = '';
 
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
@@ -458,130 +460,137 @@
         }
 
         function renderizarTablaYGráfico(estadisticas, nombreEstacion) {
-            const tbody = document.getElementById('tablaItems');
+            estadisticasGlobales = estadisticas;
+            nombreEstacionActual = nombreEstacion;
+            itemsFiltrados = [...todosLosItems];
+            paginaActual = 1;
             const filtro = document.getElementById('filtroItems');
+            filtro.value = '';
+            renderizarPaginaActual();
+        }
+
+        function renderizarPaginaActual() {
+            const tbody = document.getElementById('tablaItems');
             const paginacionDiv = document.getElementById('paginacion');
+            const filtroInput = document.getElementById('filtroItems');
 
-            function actualizar() {
-                itemsFiltrados = todosLosItems.filter(key => {
-                    const nombre = nombresItems[key];
-                    return nombre.toLowerCase().includes(filtro.value.toLowerCase());
-                });
-                paginaActual = 1;
+            const termino = filtroInput.value.toLowerCase();
+            const itemsFiltradosTemporal = termino
+                ? todosLosItems.filter(key => nombresItems[key].toLowerCase().includes(termino))
+                : [...todosLosItems];
+            itemsFiltrados = itemsFiltradosTemporal;
 
-                const inicio = (paginaActual - 1) * itemsPorPagina;
-                const fin = inicio + itemsPorPagina;
-                const itemsPagina = itemsFiltrados.slice(inicio, fin);
+            const inicio = (paginaActual - 1) * itemsPorPagina;
+            const fin = inicio + itemsPorPagina;
+            const itemsPagina = itemsFiltrados.slice(inicio, fin);
 
-                // Renderizar tabla
-                tbody.innerHTML = '';
-                itemsPagina.forEach(key => {
-                    const nombre = nombresItems[key];
-                    const porcentaje = estadisticas[key] || 0;
-                    const tr = document.createElement('tr');
-                    let clase = 'alto';
-                    if (porcentaje < 50) clase = 'bajo';
-                    else if (porcentaje < 80) clase = 'medio';
-                    tr.innerHTML = `
-                        <td>${nombre}</td>
-                        <td class="porcentaje-valor ${clase}">${porcentaje}%</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+            tbody.innerHTML = '';
+            itemsPagina.forEach(key => {
+                const nombre = nombresItems[key];
+                const porcentaje = estadisticasGlobales[key] || 0;
+                const tr = document.createElement('tr');
+                let clase = 'alto';
+                if (porcentaje < 50) clase = 'bajo';
+                else if (porcentaje < 80) clase = 'medio';
+                tr.innerHTML = `
+                    <td>${nombre}</td>
+                    <td class="porcentaje-valor ${clase}">${porcentaje}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-                // Renderizar gráfico
-                if (chartInstance) chartInstance.destroy();
-                const ctx = document.getElementById('cumplimientoChart').getContext('2d');
-                const labelsNumericos = itemsPagina.map((_, i) => (i + 1).toString());
-                const data = itemsPagina.map(k => estadisticas[k] || 0);
-                const nombresCompletos = itemsPagina.map(k => nombresItems[k]);
+            if (chartInstance) chartInstance.destroy();
+            const ctx = document.getElementById('cumplimientoChart').getContext('2d');
+            const labelsNumericos = itemsPagina.map((_, i) => (i + 1).toString());
+            const data = itemsPagina.map(k => estadisticasGlobales[k] || 0);
+            const nombresCompletos = itemsPagina.map(k => nombresItems[k]);
 
-                chartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labelsNumericos,
-                        datasets: [{
-                            label: '% de Cumplimiento Promedio',
-                             data,
-                            backgroundColor: 'rgba(49, 130, 206, 0.8)',
-                            borderColor: 'rgba(49, 130, 206, 1)',
-                            borderWidth: 1,
-                            borderRadius: 6,
-                            borderSkipped: false
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { 
-                                position: 'top',
-                                labels: { font: { size: 13 } }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    title: context => `Ítem ${context[0].label}`,
-                                    label: context => {
-                                        const nombre = nombresCompletos[context.dataIndex];
-                                        return `${nombre}: ${context.parsed.x}%`;
-                                    }
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                 {
+                    labels: labelsNumericos,
+                    datasets: [{
+                        label: '% de Cumplimiento Promedio',
+                         data,
+                        backgroundColor: 'rgba(49, 130, 206, 0.8)',
+                        borderColor: 'rgba(49, 130, 206, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'top',
+                            labels: { font: { size: 13 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: context => `Ítem ${context[0].label}`,
+                                label: context => {
+                                    const nombre = nombresCompletos[context.dataIndex];
+                                    return `${nombre}: ${context.parsed.x}%`;
                                 }
                             }
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: {
-                                    callback: v => v + '%',
-                                    font: { size: 12 }
-                                },
-                                grid: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: v => v + '%',
+                                font: { size: 12 }
                             },
-                            y: {
-                                ticks: { font: { size: 11 }, autoSkip: false },
-                                grid: { display: false }
-                            }
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            ticks: { font: { size: 11 }, autoSkip: false },
+                            grid: { display: false }
                         }
                     }
-                });
+                }
+            });
 
-                document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
+            document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacionActual}`;
 
-                // Paginación
-                paginacionDiv.innerHTML = '';
-                const totalPaginas = Math.ceil(itemsFiltrados.length / itemsPorPagina);
-                if (totalPaginas > 1) {
-                    if (paginaActual > 1) {
-                        const btnAnterior = document.createElement('button');
-                        btnAnterior.textContent = '« Anterior';
-                        btnAnterior.onclick = () => {
-                            paginaActual--;
-                            actualizar();
-                        };
-                        paginacionDiv.appendChild(btnAnterior);
-                    }
+            paginacionDiv.innerHTML = '';
+            const totalPaginas = Math.ceil(itemsFiltrados.length / itemsPorPagina);
+            if (totalPaginas > 1) {
+                if (paginaActual > 1) {
+                    const btnAnterior = document.createElement('button');
+                    btnAnterior.textContent = '« Anterior';
+                    btnAnterior.onclick = () => {
+                        paginaActual--;
+                        renderizarPaginaActual();
+                    };
+                    paginacionDiv.appendChild(btnAnterior);
+                }
 
-                    const info = document.createElement('span');
-                    info.textContent = `Página ${paginaActual} de ${totalPaginas}`;
-                    paginacionDiv.appendChild(info);
+                const info = document.createElement('span');
+                info.textContent = `Página ${paginaActual} de ${totalPaginas}`;
+                paginacionDiv.appendChild(info);
 
-                    if (paginaActual < totalPaginas) {
-                        const btnSiguiente = document.createElement('button');
-                        btnSiguiente.textContent = 'Siguiente »';
-                        btnSiguiente.onclick = () => {
-                            paginaActual++;
-                            actualizar();
-                        };
-                        paginacionDiv.appendChild(btnSiguiente);
-                    }
+                if (paginaActual < totalPaginas) {
+                    const btnSiguiente = document.createElement('button');
+                    btnSiguiente.textContent = 'Siguiente »';
+                    btnSiguiente.onclick = () => {
+                        paginaActual++;
+                        renderizarPaginaActual();
+                    };
+                    paginacionDiv.appendChild(btnSiguiente);
                 }
             }
-
-            filtro.oninput = actualizar;
-            actualizar();
         }
+
+        document.getElementById('filtroItems').oninput = function() {
+            paginaActual = 1;
+            renderizarPaginaActual();
+        };
 
         function volverASeleccion() {
             document.getElementById('seleccionContainer').style.display = 'block';
