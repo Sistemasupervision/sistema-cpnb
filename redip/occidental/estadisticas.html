@@ -197,6 +197,26 @@
         .porcentaje-valor.bajo { color: #e53e3e; }
         .porcentaje-valor.medio { color: #dd6b20; }
         .porcentaje-valor.alto { color: #38a169; }
+        #paginacion {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        #paginacion button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: #2c5282;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #paginacion span {
+            align-self: center;
+            color: #2d3748;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -255,6 +275,7 @@
                     </thead>
                     <tbody id="tablaItems"></tbody>
                 </table>
+                <div id="paginacion"></div>
             </div>
         </div>
         <div id="mensajeCarga" class="loading" style="display: none;">Cargando estadísticas...</div>
@@ -343,6 +364,9 @@
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
         const todosLosItems = Object.keys(nombresItems);
+        let paginaActual = 1;
+        const itemsPorPagina = 15;
+        let itemsFiltrados = [...todosLosItems];
 
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
@@ -408,8 +432,7 @@
                     return;
                 }
                 const estadisticas = calcularEstadisticas(items);
-                renderizarGrafico(estadisticas, estacionNombre);
-                renderizarTabla(estadisticas);
+                renderizarTablaYGráfico(estadisticas, estacionNombre);
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
             } catch (error) {
@@ -444,110 +467,134 @@
             return resultado;
         }
 
-        // ✅ FUNCIÓN ACTUALIZADA: Gráfico con números en eje Y y tooltip con nombre completo
-        function renderizarGrafico(estadisticas, nombreEstacion) {
-            const ctx = document.getElementById('cumplimientoChart').getContext('2d');
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-
-            // Etiquetas numéricas: ["1", "2", ..., "67"]
-            const labelsNumericos = todosLosItems.map((_, index) => (index + 1).toString());
-            // Datos: porcentaje de cumplimiento en el mismo orden
-            const data = todosLosItems.map(k => estadisticas[k] || 0);
-            // Nombres completos para el tooltip
-            const nombresCompletos = todosLosItems.map(k => nombresItems[k]);
-
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labelsNumericos,
-                    datasets: [{
-                        label: '% de Cumplimiento Promedio',
-                        data: data,
-                        backgroundColor: 'rgba(49, 130, 206, 0.8)',
-                        borderColor: 'rgba(49, 130, 206, 1)',
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        borderSkipped: false
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { 
-                            position: 'top',
-                            labels: {
-                                font: { size: 13 }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    return `Ítem ${context[0].label}`;
-                                },
-                                label: function(context) {
-                                    const nombreCompleto = nombresCompletos[context.dataIndex];
-                                    return `${nombreCompleto}: ${context.parsed.x}%`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                },
-                                font: { size: 12 }
-                            },
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                font: { size: 11 },
-                                autoSkip: false
-                            },
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-
-            document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
-        }
-
-        function renderizarTabla(estadisticas) {
+        function renderizarTablaYGráfico(estadisticas, nombreEstacion) {
             const tbody = document.getElementById('tablaItems');
             const filtro = document.getElementById('filtroItems');
-            function actualizarTabla() {
+            const paginacionDiv = document.getElementById('paginacion');
+
+            function actualizar() {
+                // Filtrar ítems
+                itemsFiltrados = todosLosItems.filter(key => {
+                    const nombre = nombresItems[key];
+                    return nombre.toLowerCase().includes(filtro.value.toLowerCase());
+                });
+
+                // Reiniciar a página 1 si el filtro cambia drásticamente
+                paginaActual = 1;
+
+                // Calcular página actual
+                const inicio = (paginaActual - 1) * itemsPorPagina;
+                const fin = inicio + itemsPorPagina;
+                const itemsPagina = itemsFiltrados.slice(inicio, fin);
+
+                // Renderizar tabla
                 tbody.innerHTML = '';
-                todosLosItems.forEach(key => {
+                itemsPagina.forEach(key => {
                     const nombre = nombresItems[key];
                     const porcentaje = estadisticas[key] || 0;
-                    if (nombre.toLowerCase().includes(filtro.value.toLowerCase())) {
-                        const tr = document.createElement('tr');
-                        let clase = 'alto';
-                        if (porcentaje < 50) clase = 'bajo';
-                        else if (porcentaje < 80) clase = 'medio';
-                        tr.innerHTML = `
-                            <td>${nombre}</td>
-                            <td class="porcentaje-valor ${clase}">${porcentaje}%</td>
-                        `;
-                        tbody.appendChild(tr);
+                    const tr = document.createElement('tr');
+                    let clase = 'alto';
+                    if (porcentaje < 50) clase = 'bajo';
+                    else if (porcentaje < 80) clase = 'medio';
+                    tr.innerHTML = `
+                        <td>${nombre}</td>
+                        <td class="porcentaje-valor ${clase}">${porcentaje}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Renderizar gráfico
+                if (chartInstance) chartInstance.destroy();
+                const ctx = document.getElementById('cumplimientoChart').getContext('2d');
+                const labelsNumericos = itemsPagina.map((_, i) => (i + 1).toString());
+                const data = itemsPagina.map(k => estadisticas[k] || 0);
+                const nombresCompletos = itemsPagina.map(k => nombresItems[k]);
+
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsNumericos,
+                        datasets: [{
+                            label: '% de Cumplimiento Promedio',
+                            data: data,
+                            backgroundColor: 'rgba(49, 130, 206, 0.8)',
+                            borderColor: 'rgba(49, 130, 206, 1)',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'top',
+                                labels: { font: { size: 13 } }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: context => `Ítem ${context[0].label}`,
+                                    label: context => {
+                                        const nombre = nombresCompletos[context.dataIndex];
+                                        return `${nombre}: ${context.parsed.x}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: v => v + '%',
+                                    font: { size: 12 }
+                                },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            y: {
+                                ticks: { font: { size: 11 }, autoSkip: false },
+                                grid: { display: false }
+                            }
+                        }
                     }
                 });
+
+                document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacion}`;
+
+                // Renderizar paginación
+                paginacionDiv.innerHTML = '';
+                const totalPaginas = Math.ceil(itemsFiltrados.length / itemsPorPagina);
+                if (totalPaginas > 1) {
+                    if (paginaActual > 1) {
+                        const btnAnterior = document.createElement('button');
+                        btnAnterior.textContent = '« Anterior';
+                        btnAnterior.onclick = () => {
+                            paginaActual--;
+                            actualizar();
+                        };
+                        paginacionDiv.appendChild(btnAnterior);
+                    }
+
+                    const info = document.createElement('span');
+                    info.textContent = `Página ${paginaActual} de ${totalPaginas}`;
+                    paginacionDiv.appendChild(info);
+
+                    if (paginaActual < totalPaginas) {
+                        const btnSiguiente = document.createElement('button');
+                        btnSiguiente.textContent = 'Siguiente »';
+                        btnSiguiente.onclick = () => {
+                            paginaActual++;
+                            actualizar();
+                        };
+                        paginacionDiv.appendChild(btnSiguiente);
+                    }
+                }
             }
-            filtro.addEventListener('input', actualizarTabla);
-            actualizarTabla();
+
+            filtro.oninput = actualizar;
+            actualizar();
         }
 
         function volverASeleccion() {
@@ -561,6 +608,7 @@
             }
             document.getElementById('tablaItems').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
+            document.getElementById('paginacion').innerHTML = '';
         }
 
         async function exportarEstadisticasAPDF() {
