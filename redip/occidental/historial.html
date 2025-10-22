@@ -1058,8 +1058,19 @@
                     html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
                     itemsArray.forEach(item => {
                         const nombre = nombresAmigables[item.item_nombre] || item.item_nombre.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                        const clase = item.cumple ? 'si' : 'no';
-                        const texto = item.cumple ? 'Sí' : 'No';
+                       let texto = 'No Aplica';
+let clase = 'no_aplica';
+
+if (item.estado === 'si') {
+    texto = 'Sí';
+    clase = 'si';
+} else if (item.estado === 'no') {
+    texto = 'No';
+    clase = 'no';
+} else if (item.estado === 'no_aplica') {
+    texto = 'No Aplica';
+    clase = 'no_aplica';
+}
                         const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
                         html += `
                             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
