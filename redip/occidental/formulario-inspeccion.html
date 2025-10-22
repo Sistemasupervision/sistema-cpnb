@@ -19,6 +19,7 @@
     <div id="container" class="container" style="max-width: 1000px; padding: 40px;">
         <!-- El contenido se generará dinámicamente -->
     </div>
+
     <!-- Loading overlay -->
     <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
         <div style="background: white; padding: 20px 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
@@ -26,26 +27,31 @@
             <p style="font-size: 18px; font-weight: bold; color: #0c2440; margin: 0;">Guardando inspección...</p>
         </div>
     </div>
+
     <style>
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
     </style>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
         const estacionId = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre');
+
         if (!ccpId || !estacionId || !estacionNombre) {
             alert('⚠️ Datos incompletos. Redirigiendo...');
             window.history.back();
         }
 
+        // === DEFINICIÓN DE ÍTEMS ===
         const items = [
             "nombramiento_comandante",
             "acta_entrega_recepcion",
@@ -186,6 +192,7 @@
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
 
+        // === RENDERIZAR FORMULARIO ===
         function renderForm() {
             const hoy = new Date().toISOString().split('T')[0];
             let formHtml = `
@@ -205,10 +212,10 @@
                     <div class="item-card" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                         <label style="font-weight: bold; color: #0c2440; font-size:13px; margin-bottom:10px; display:block;">${nombres[item]}</label>
                         <select class="cumple-select" data-item="${item}" style="width:100%; padding:10px; border:2px solid #cbd5e0; border-radius:8px; font-size:14px;">
-                            <option value="">-- Seleccione --</option>
-                            <option value="si">Sí</option>
-                            <option value="no">No</option>
-                            <option value="no_aplica">No Aplica</option>
+                            <option value="null">-- Seleccione --</option>
+                            <option value="true">Sí</option>
+                            <option value="false">No</option>
+                            <option value="na">No Aplica</option>
                         </select>
                         <textarea class="observacion-text" data-item="${item}" 
                             placeholder="Observaciones" 
@@ -222,7 +229,8 @@
                                 <input type="range" class="porcentaje-slider" data-item="${item}" 
                                     min="0" max="100" value="0"
                                     style="width:100%; height:8px; -webkit-appearance: none; background: #e2e8f0; border-radius:4px; outline:none;"
-                                    oninput="this.nextElementSibling.value = this.value + '%'">
+                                    oninput="this.nextElementSibling.value = this.value + '%'"
+                                >
                                 <output class="porcentaje-output" style="display:block; text-align:center; font-size:13px; color:#2d3748; font-weight:bold; margin-top:6px;">0%</output>
                             </div>
                         </div>
@@ -267,7 +275,7 @@
 
             document.getElementById('container').innerHTML = formHtml;
 
-            // Eventos
+            // === EVENTOS DINÁMICOS ===
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -275,10 +283,12 @@
                     const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
                     const fotosContainer = document.querySelector(`.fotos-container[data-item="${item}"]`);
                     const archivoContainer = document.querySelector(`.archivo-container[data-item="${item}"]`);
+                    const fotoConfirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
+                    const archivoConfirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
 
-                    textarea.style.display = this.value ? 'block' : 'none';
+                    textarea.style.display = this.value !== 'null' ? 'block' : 'none';
 
-                    if (this.value === 'si') {
+                    if (this.value === 'true') {
                         porcentajeContainer.style.display = 'block';
                         fotosContainer.style.display = 'block';
                         archivoContainer.style.display = 'block';
@@ -288,15 +298,12 @@
                         archivoContainer.style.display = 'none';
                         document.querySelectorAll(`.foto-input[data-item="${item}"]`).forEach(input => input.value = '');
                         document.querySelector(`.archivo-input[data-item="${item}"]`).value = '';
-                        const fotoConf = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
-                        const archConf = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
-                        if (fotoConf) fotoConf.style.display = 'none';
-                        if (archConf) archConf.style.display = 'none';
+                        if (fotoConfirmacion) fotoConfirmacion.style.display = 'none';
+                        if (archivoConfirmacion) archivoConfirmacion.style.display = 'none';
                     }
                 });
             });
 
-            // Eventos de archivos
             document.querySelectorAll('.foto-input').forEach(input => {
                 input.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -316,7 +323,11 @@
                 input.addEventListener('change', function () {
                     const item = this.dataset.item;
                     const confirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
-                    confirmacion.style.display = this.files.length > 0 ? 'block' : 'none';
+                    if (this.files.length > 0) {
+                        confirmacion.style.display = 'block';
+                    } else {
+                        confirmacion.style.display = 'none';
+                    }
                 });
             });
 
@@ -330,7 +341,9 @@
 
                 try {
                     const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) throw new Error('Debe estar autenticado.');
+                    if (!user) {
+                        throw new Error('Debe estar autenticado.');
+                    }
 
                     const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                     const observacionesGenerales = document.getElementById('observacionesGenerales').value || null;
@@ -346,17 +359,23 @@
                         .select()
                         .single();
 
-                    if (inspError) throw new Error(inspError.message || 'Error al crear la inspección.');
+                    if (inspError) {
+                        throw new Error(inspError.message || 'Error al crear la inspección.');
+                    }
 
                     const itemsToInsert = [];
                     for (const item of items) {
                         const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                         const valor = select.value;
-                        if (!valor) continue;
+                        if (valor === 'null') continue;
+
+                        let cumple = null;
+                        if (valor === 'true') cumple = true;
+                        if (valor === 'false') cumple = false;
 
                         const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                         let porcentaje = 0;
-                        if (valor === 'si') {
+                        if (cumple === true) {
                             const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                             porcentaje = parseInt(slider?.value) || 0;
                         }
@@ -367,7 +386,7 @@
                         const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
 
                         if (file1) {
-                            const cleanName = file1.name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
+                            const cleanName = file1.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
                             const path = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${cleanName}`;
                             const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file1, { upsert: true });
                             if (!error) {
@@ -376,7 +395,7 @@
                             }
                         }
                         if (file2) {
-                            const cleanName = file2.name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
+                            const cleanName = file2.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
                             const path = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${cleanName}`;
                             const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file2, { upsert: true });
                             if (!error) {
@@ -385,11 +404,11 @@
                             }
                         }
 
-                        // Subir archivo
+                        // Subir archivo adjunto
                         let archivo_url = null;
                         const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
                         if (archivoFile) {
-                            const cleanName = archivoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
+                            const cleanName = archivoFile.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
                             const path = `inspecciones/${inspeccionData.id}/${item}_archivo_${Date.now()}_${cleanName}`;
                             const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, archivoFile, { upsert: true });
                             if (!error) {
@@ -401,7 +420,7 @@
                         itemsToInsert.push({
                             inspeccion_id: inspeccionData.id,
                             item_nombre: item,
-                            estado: valor, // ← ¡Ahora usamos 'estado'!
+                            cumple: cumple,
                             observacion: observacion,
                             porcentaje_cumplimiento: porcentaje,
                             foto1_url: foto1_url,
@@ -434,6 +453,7 @@
             });
         }
 
+        // === INICIAR ===
         renderForm();
     </script>
 </body>
