@@ -56,7 +56,6 @@
             font-weight: bold;
             color: #2d3748;
         }
-        /* === Estilos mejorados para los desplegables (select) === */
         select {
             width: 100%;
             padding: 12px;
@@ -69,27 +68,6 @@
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
-            position: relative;
-        }
-        select::after {
-            content: '▼';
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-            color: #2d3748;
-            font-size: 12px;
-            font-weight: normal;
-        }
-        select:hover {
-            background: #e2e8f0;
-            border-color: #bee3f8;
-        }
-        select:disabled {
-            background: #f7fafc;
-            color: #a0aec0;
-            cursor: not-allowed;
         }
         .input-group-btn {
             width: 100%;
@@ -200,7 +178,6 @@
             margin-top: 20px;
             text-align: center;
         }
-        /* === Mensaje de éxito/error por item === */
         .mensaje-item {
             margin-top: 10px;
             padding: 8px;
@@ -229,7 +206,6 @@
             width: 0%;
             transition: width 0.3s ease;
         }
-        /* === Estilos para pestañas === */
         .tabs {
             display: flex;
             gap: 10px;
@@ -283,7 +259,6 @@
                 <option value="">-- Primero seleccione REDIP --</option>
             </select>
         </div>
-        <!-- Pestañas -->
         <div class="input-group">
             <label>Seleccione el tipo de unidad:</label>
             <div class="tabs">
@@ -291,18 +266,12 @@
                 <button id="tabServicio" class="tab-btn">📋 Servicio Administrativo</button>
             </div>
         </div>
-        <!-- Contenido dinámico según pestaña -->
-        <div id="seleccionActiva">
-            <!-- Se rellenará con JS -->
-        </div>
-        <!-- Contenedor común de protocolos -->
+        <div id="seleccionActiva"></div>
         <div id="protocolosContainer"></div>
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
         </button>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
-        <!-- ❌ Eliminado el contenedor global de mensajes -->
-        <!-- <div id="mensaje" class="mensaje" style="display: none;"></div> -->
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -334,7 +303,6 @@
         let tipoActivo = null;
         let idActivo = null;
 
-        // === REDIP y CCP ===
         document.getElementById('redipSelect').addEventListener('change', () => {
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
@@ -356,13 +324,6 @@
             }
         });
 
-        document.getElementById('ccpSelect').addEventListener('change', () => {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const habilitar = redip && ccp;
-        });
-
-        // === Cerrar dropdowns al hacer clic fuera ===
         document.addEventListener('click', (e) => {
             const dropdownEstacion = document.getElementById('dropdownEstacion');
             const dropdownServicio = document.getElementById('dropdownServicio');
@@ -374,20 +335,14 @@
             }
         });
 
-        // === Renderizado de pestañas ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const habilitar = redip && ccp;
-
-            // ✅ Limpiar protocolos al cambiar de pestaña
             document.getElementById('protocolosContainer').innerHTML = '';
             document.getElementById('btnDescargarTodo').disabled = true;
-
-            // Actualizar estado visual de pestañas
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
-
             if (tipo === 'estacion') {
                 document.getElementById('tabEstacion').classList.add('activo');
                 tipoActivo = null;
@@ -493,14 +448,9 @@
             }
         }
 
-        // === Eventos de pestañas ===
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
-
-        // Iniciar con Estación Policial
         renderPestana('estacion');
-
-        // === Resto de funciones ===
 
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
@@ -517,13 +467,12 @@
                     </div>
                     <div class="botones-item">
                         <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
-                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
+                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')">🔄 Actualizar</button>
                         <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
                     </div>
                     <div class="progress-container" id="progress_${proto.id}">
                         <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
                     </div>
-                    <!-- ✅ Contenedor para mensajes específicos de este ítem -->
                     <div class="mensaje-item" id="mensaje_${proto.id}"></div>
                 `;
                 container.appendChild(div);
@@ -543,46 +492,31 @@
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
-                        document.querySelector(`#input_${proto.id}`).disabled = true;
+                        document.querySelector(`#input_${proto.id}`).disabled = false; // ✅ Siempre habilitado
                         document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
                     } else {
                         estadoArchivos[proto.id] = { existe: false };
                         document.querySelector(`#input_${proto.id}`).disabled = false;
                         document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
                         document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
                     }
                 } catch {
                     estadoArchivos[proto.id] = { existe: false };
                     document.querySelector(`#input_${proto.id}`).disabled = false;
                     document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
                     document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
                 }
             }
             document.getElementById('btnDescargarTodo').disabled = !existen;
         }
 
-        function resetBotones(id) {
-            document.querySelector(`#input_${id}`).disabled = false;
-            document.querySelector(`#aviso_${id}`).style.display = 'none';
-            document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
-            document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
-            document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
-        }
-
-        // ✅ Función modificada para mostrar mensaje en el contenedor específico del ítem
         function mostrarMensajeItem(id, texto, tipo) {
             const msg = document.getElementById(`mensaje_${id}`);
             msg.textContent = texto;
             msg.className = `mensaje-item ${tipo}`;
             msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 5000); // Desaparece después de 5 segundos
+            setTimeout(() => msg.style.display = 'none', 5000);
         }
 
         async function subirArchivo(id) {
@@ -603,7 +537,6 @@
                 if (error) throw error;
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
-                // ✅ Mostrar mensaje justo debajo del ítem
                 mostrarMensajeItem(id, '✅ Archivo subido exitosamente', 'exito');
                 input.value = '';
                 await verificarArchivosExistentes();
@@ -615,57 +548,75 @@
             }
         }
 
+        // ✅ FUNCIÓN CORREGIDA: actualiza y sube en un solo paso
         async function actualizarArchivo(id) {
-    const input = document.getElementById(`input_${id}`);
-    const archivo = input.files[0];
-    if (!archivo) {
-        return mostrarMensajeItem(id, '⚠️ Seleccione un archivo nuevo para reemplazar.', 'error');
-    }
+            const input = document.getElementById(`input_${id}`);
+            const archivo = input.files[0];
+            if (!archivo) {
+                return mostrarMensajeItem(id, '⚠️ Seleccione un archivo nuevo para reemplazar.', 'error');
+            }
 
-    const redip = document.getElementById('redipSelect').value;
-    const ccp = document.getElementById('ccpSelect').value;
-    if (!redip || !ccp || !tipoActivo || !idActivo) {
-        return mostrarMensajeItem(id, '⚠️ Seleccione REDIP, CCP y una unidad válida.', 'error');
-    }
+            const redip = document.getElementById('redipSelect').value;
+            const ccp = document.getElementById('ccpSelect').value;
+            if (!redip || !ccp || !tipoActivo || !idActivo) {
+                return mostrarMensajeItem(id, '⚠️ Seleccione REDIP, CCP y una unidad válida.', 'error');
+            }
 
-    const proto = protocolos.find(p => p.id === id);
-    const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            const proto = protocolos.find(p => p.id === id);
+            const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
 
-    const progressBar = document.getElementById(`progress_${id}`);
-    const fillBar = document.getElementById(`fill_${id}`);
-    progressBar.style.display = 'block';
-    fillBar.style.width = '0%';
+            const progressBar = document.getElementById(`progress_${id}`);
+            const fillBar = document.getElementById(`fill_${id}`);
+            progressBar.style.display = 'block';
+            fillBar.style.width = '0%';
 
-    try {
-        // 1. Eliminar el archivo antiguo
-        await supabase.storage.from('protocolos-supervision').remove([ruta]);
+            try {
+                // 1. Eliminar el archivo antiguo
+                await supabase.storage.from('protocolos-supervision').remove([ruta]);
 
-        // 2. Subir el nuevo archivo
-        const { error: uploadError } = await supabase.storage
-            .from('protocolos-supervision')
-            .upload(ruta, archivo, { upsert: true });
+                // 2. Subir el nuevo archivo
+                const { error: uploadError } = await supabase.storage
+                    .from('protocolos-supervision')
+                    .upload(ruta, archivo, { upsert: true });
 
-        if (uploadError) throw uploadError;
+                if (uploadError) throw uploadError;
 
-        // Simular progreso visual
-        fillBar.style.width = '100%';
-        await new Promise(r => setTimeout(r, 300));
+                fillBar.style.width = '100%';
+                await new Promise(r => setTimeout(r, 300));
 
-        // Mostrar éxito
-        mostrarMensajeItem(id, '✅ Archivo actualizado exitosamente', 'exito');
-        input.value = ''; // Limpiar input
+                mostrarMensajeItem(id, '✅ Archivo actualizado exitosamente', 'exito');
+                input.value = '';
 
-        // Refrescar estado
-        await verificarArchivosExistentes();
+                // Refrescar estado
+                await verificarArchivosExistentes();
 
-    } catch (e) {
-        console.error('Error en actualización:', e);
-        mostrarMensajeItem(id, '❌ Error al actualizar el archivo', 'error');
-    } finally {
-        progressBar.style.display = 'none';
-    }
-}
-            // Para el botón "Descargar Todo", mostramos el mensaje en la parte inferior, ya que afecta a todos los ítems.
+            } catch (e) {
+                console.error('Error en actualización:', e);
+                mostrarMensajeItem(id, '❌ Error al actualizar el archivo', 'error');
+            } finally {
+                progressBar.style.display = 'none';
+            }
+        }
+
+        async function descargarArchivo(id) {
+            const archivo = estadoArchivos[id]?.data;
+            if (!archivo) return mostrarMensajeItem(id, '❌ Archivo no disponible', 'error');
+            const proto = protocolos.find(p => p.id === id);
+            const url = URL.createObjectURL(archivo);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = proto.archivo;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function descargarTodo() {
+            for (const proto of protocolos) {
+                if (estadoArchivos[proto.id]?.existe) {
+                    await descargarArchivo(proto.id);
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
             const msg = document.createElement('div');
             msg.className = 'mensaje-item exito';
             msg.textContent = '✅ Todos los archivos descargados';
