@@ -369,9 +369,10 @@
                         const valor = select.value;
                         if (valor === 'null') continue;
 
-                        let cumple = null;
-                        if (valor === 'true') cumple = true;
-                        if (valor === 'false') cumple = false;
+                       let estado = 'no_aplica'; // valor por defecto
+if (valor === 'true') estado = 'si';
+if (valor === 'false') estado = 'no';
+if (valor === 'na') estado = 'no_aplica';
 
                         const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                         let porcentaje = 0;
@@ -416,17 +417,16 @@
                                 archivo_url = data.publicUrl;
                             }
                         }
-
-                        itemsToInsert.push({
-                            inspeccion_id: inspeccionData.id,
-                            item_nombre: item,
-                            cumple: cumple,
-                            observacion: observacion,
-                            porcentaje_cumplimiento: porcentaje,
-                            foto1_url: foto1_url,
-                            foto2_url: foto2_url,
-                            archivo_url: archivo_url
-                        });
+itemsToInsert.push({
+    inspeccion_id: inspeccionData.id,
+    item_nombre: item,
+    estado: estado, // ← nueva columna
+    observacion: observacion,
+    porcentaje_cumplimiento: porcentaje,
+    foto1_url: foto1_url,
+    foto2_url: foto2_url,
+    archivo_url: archivo_url
+});
                     }
 
                     if (itemsToInsert.length === 0) {
