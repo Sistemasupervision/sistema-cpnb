@@ -301,8 +301,6 @@
             📥 Descargar Todos los Protocolos
         </button>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
-        <!-- ❌ Eliminado el contenedor global de mensajes -->
-        <!-- <div id="mensaje" class="mensaje" style="display: none;"></div> -->
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -380,14 +378,11 @@
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const habilitar = redip && ccp;
-
             // ✅ Limpiar protocolos al cambiar de pestaña
             document.getElementById('protocolosContainer').innerHTML = '';
             document.getElementById('btnDescargarTodo').disabled = true;
-
             // Actualizar estado visual de pestañas
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
-
             if (tipo === 'estacion') {
                 document.getElementById('tabEstacion').classList.add('activo');
                 tipoActivo = null;
@@ -501,7 +496,6 @@
         renderPestana('estacion');
 
         // === Resto de funciones ===
-
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -550,19 +544,11 @@
                         document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
                     } else {
                         estadoArchivos[proto.id] = { existe: false };
-                        document.querySelector(`#input_${proto.id}`).disabled = false;
-                        document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
-                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                        resetBotones(proto.id);
                     }
                 } catch {
                     estadoArchivos[proto.id] = { existe: false };
-                    document.querySelector(`#input_${proto.id}`).disabled = false;
-                    document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
-                    document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
+                    resetBotones(proto.id);
                 }
             }
             document.getElementById('btnDescargarTodo').disabled = !existen;
@@ -576,13 +562,12 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // ✅ Función modificada para mostrar mensaje en el contenedor específico del ítem
         function mostrarMensajeItem(id, texto, tipo) {
             const msg = document.getElementById(`mensaje_${id}`);
             msg.textContent = texto;
             msg.className = `mensaje-item ${tipo}`;
             msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 5000); // Desaparece después de 5 segundos
+            setTimeout(() => msg.style.display = 'none', 5000);
         }
 
         async function subirArchivo(id) {
@@ -592,21 +577,37 @@
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
+
             const proto = protocolos.find(p => p.id === id);
             const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+
             const progressBar = document.getElementById(`progress_${id}`);
             const fillBar = document.getElementById(`fill_${id}`);
             progressBar.style.display = 'block';
             fillBar.style.width = '0%';
+
             try {
                 const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
                 if (error) throw error;
+
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
-                // ✅ Mostrar mensaje justo debajo del ítem
+
+                // ✅ Actualizar estado LOCALMENTE sin descargar
+                estadoArchivos[id] = { existe: true };
+                document.querySelector(`#input_${id}`).disabled = true;
+                document.querySelector(`#aviso_${id}`).style.display = 'block';
+                document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'inline-block';
+                document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'inline-block';
+                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'none';
+
                 mostrarMensajeItem(id, '✅ Archivo subido exitosamente', 'exito');
                 input.value = '';
-                await verificarArchivosExistentes();
+
+                // Habilitar "Descargar Todo" si todos los archivos existen
+                const todosExisten = protocolos.every(p => estadoArchivos[p.id]?.existe);
+                document.getElementById('btnDescargarTodo').disabled = !todosExisten;
+
             } catch (e) {
                 console.error(e);
                 mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
@@ -624,6 +625,7 @@
                 await supabase.storage.from('protocolos-supervision').remove([ruta]);
                 resetBotones(id);
                 mostrarMensajeItem(id, '✅ Archivo eliminado. Suba uno nuevo.', 'exito');
+                delete estadoArchivos[id];
             } catch (e) {
                 console.error(e);
                 mostrarMensajeItem(id, '❌ Error al eliminar archivo', 'error');
@@ -649,7 +651,6 @@
                     await new Promise(r => setTimeout(r, 500));
                 }
             }
-            // Para el botón "Descargar Todo", mostramos el mensaje en la parte inferior, ya que afecta a todos los ítems.
             const msg = document.createElement('div');
             msg.className = 'mensaje-item exito';
             msg.textContent = '✅ Todos los archivos descargados';
