@@ -197,6 +197,7 @@
         .porcentaje-valor.bajo { color: #e53e3e; }
         .porcentaje-valor.medio { color: #dd6b20; }
         .porcentaje-valor.alto { color: #38a169; }
+
         .pagination-controls {
             display: flex;
             justify-content: center;
@@ -265,6 +266,7 @@
                     </thead>
                     <tbody id="tablaItems"></tbody>
                 </table>
+
                 <!-- Controles de paginación -->
                 <div class="pagination-controls">
                     <button id="btnAnterior" class="back-btn" disabled>« Anterior</button>
@@ -284,6 +286,7 @@
             </div>
         </div>
     </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -396,16 +399,10 @@
         });
 
         document.getElementById('estacionFilter').addEventListener('change', async () => {
-    const estacionIdStr = document.getElementById('estacionFilter').value;
-    const estacionId = parseInt(estacionIdStr, 10); // ✅ Conversión explícita a número
-    if (isNaN(estacionId)) {
-        console.error('ID de estación inválido:', estacionIdStr);
-        document.getElementById('mensajeCarga').style.display = 'none';
-        document.getElementById('mensajeSinDatos').style.display = 'block';
-        return;
-    }
-    await cargarEstadisticas(estacionId);
-});
+            const estacionId = document.getElementById('estacionFilter').value;
+            if (!estacionId) return;
+            await cargarEstadisticas(estacionId);
+        });
 
         // === Cargar estadísticas ===
         async function cargarEstadisticas(estacionId) {
@@ -417,12 +414,22 @@
             document.getElementById('mensajeSinDatos').style.display = 'none';
 
             try {
-                // ✅ Consulta DIRECTA con JOIN implícito
+                const { data: inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id')
+                    .eq('estacion_id', estacionId);
+                if (inspError) throw inspError;
+                if (!inspecciones || inspecciones.length === 0) {
+                    document.getElementById('mensajeCarga').style.display = 'none';
+                    document.getElementById('mensajeSinDatos').style.display = 'block';
+                    return;
+                }
+
+                const idsInspecciones = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
-                    .select('item_nombre, cumple')
-                    .eq('inspeccion.estacion_id', estacionId); // ← JOIN con 'inspecciones'
-
+                    .select('item_nombre, cumple, porcentaje_cumplimiento')
+                    .in('inspeccion_id', idsInspecciones);
                 if (itemsError) throw itemsError;
                 if (!items || items.length === 0) {
                     document.getElementById('mensajeCarga').style.display = 'none';
@@ -436,7 +443,6 @@
                 actualizarVista();
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
-
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
                 document.getElementById('mensajeCarga').style.display = 'none';
@@ -445,34 +451,27 @@
             }
         }
 
-        // ✅ FUNCIÓN CORREGIDA: calcula % como (Sí / Total)
         function calcularEstadisticas(items) {
-            const conteoTotal = {};
-            const conteoCumplidos = {};
-
-            // Inicializar contadores
-            todosLosItems.forEach(item => {
-                conteoTotal[item] = 0;
-                conteoCumplidos[item] = 0;
-            });
-
-            // Contar respuestas
-            items.forEach(item => {
-                if (!todosLosItems.includes(item.item_nombre)) return;
-                conteoTotal[item.item_nombre]++;
-                if (item.cumple === true) {
-                    conteoCumplidos[item.item_nombre]++;
-                }
-            });
-
-            // Calcular porcentaje
             const resultado = {};
             todosLosItems.forEach(item => {
-                const total = conteoTotal[item];
-                const cumplidos = conteoCumplidos[item];
-                resultado[item] = total > 0 ? parseFloat(((cumplidos / total) * 100).toFixed(1)) : 0;
+                resultado[item] = 0;
             });
-
+            const agrupado = {};
+            items.forEach(item => {
+                if (item.cumple === true) {
+                    if (!agrupado[item.item_nombre]) {
+                        agrupado[item.item_nombre] = [];
+                    }
+                    agrupado[item.item_nombre].push(item.porcentaje_cumplimiento || 0);
+                }
+            });
+            Object.keys(agrupado).forEach(item => {
+                const valores = agrupado[item];
+                if (valores.length > 0) {
+                    const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+                    resultado[item] = parseFloat(promedio.toFixed(1));
+                }
+            });
             return resultado;
         }
 
@@ -481,10 +480,13 @@
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
             const itemsPagina = todosLosItems.slice(inicio, fin);
+
             // Actualizar gráfico
             renderizarGrafico(itemsPagina);
+
             // Actualizar tabla
             renderizarTabla(itemsPagina);
+
             // Actualizar controles de paginación
             document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
             document.getElementById('btnAnterior').disabled = paginaActual === 1;
@@ -496,6 +498,7 @@
             if (chartInstance) {
                 chartInstance.destroy();
             }
+
             // Extraer solo los números del ítem (ej. "1", "2", ...)
             const labels = itemsPagina.map(k => {
                 const texto = nombresItems[k];
@@ -503,6 +506,7 @@
                 return num;
             });
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
+
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -553,6 +557,7 @@
                     }
                 }
             });
+
             document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacionActual} (Ítems ${(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–${Math.min(paginaActual * ITEMS_POR_PAGINA, todosLosItems.length)} de ${todosLosItems.length})`;
         }
 
@@ -560,6 +565,7 @@
             const tbody = document.getElementById('tablaItems');
             const filtro = document.getElementById('filtroItems');
             tbody.innerHTML = '';
+
             itemsPagina.forEach(key => {
                 const nombre = nombresItems[key];
                 const porcentaje = estadisticasTotales[key] || 0;
@@ -584,6 +590,7 @@
                 actualizarVista();
             }
         });
+
         document.getElementById('btnSiguiente').addEventListener('click', () => {
             if (paginaActual < totalPaginas) {
                 paginaActual++;
@@ -591,7 +598,7 @@
             }
         });
 
-        // === Filtro en tabla ===
+        // === Filtro en tabla (solo afecta la tabla, no el gráfico ni la paginación) ===
         document.getElementById('filtroItems').addEventListener('input', () => {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
