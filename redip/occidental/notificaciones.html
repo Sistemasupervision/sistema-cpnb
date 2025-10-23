@@ -233,86 +233,79 @@ async function cargarNotificaciones() {
     const hoy = new Date().toISOString().split('T')[0];
     const container = document.getElementById('alertasContainer');
     try {
-        // === 1. Cargar estaciones policiales del REDIP OCCIDENTAL ===
+        // === 1. Cargar estaciones del REDIP OCCIDENTAL ===
         const { data: estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
             .select('id, nombre, ccp_id')
             .in('ccp_id', ccpOcidental);
-        if (estError) throw new Error(`Error al cargar estaciones: ${estError.message}`);
+        if (estError) throw estError;
         const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
 
-        // === 2. Cargar servicios administrativos del REDIP OCCIDENTAL ===
+        // === 2. Cargar servicios del REDIP OCCIDENTAL ===
         const { data: servicios, error: servError } = await supabase
             .from('servicios_administrativos')
             .select('id, nombre, ccp_id')
             .in('ccp_id', ccpOcidental);
-        if (servError) throw new Error(`Error al cargar servicios: ${servError.message}`);
+        if (servError) throw servError;
         const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
-        // === 3. Consultar inspecciones vencidas de estaciones ===
+        // === 3. Inspecciones vencidas de estaciones ===
         let inspeccionesEstaciones = [];
         if (idsEstaciones.length > 0) {
             const { data, error } = await supabase
                 .from('inspecciones')
-                .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
+                .select('id, proxima_inspeccion, created_at, estacion_id')
                 .in('estacion_id', idsEstaciones)
                 .lte('proxima_inspeccion', hoy)
                 .order('proxima_inspeccion', { ascending: true });
             if (error) throw error;
-            inspeccionesEstaciones = data || [];
+            // Agregar info de la estación manualmente
+            inspeccionesEstaciones = data.map(insp => ({
+                ...insp,
+                tipo: 'estacion',
+                nombre_unidad: estaciones.find(e => e.id === insp.estacion_id)?.nombre || 'Estación desconocida',
+                ccp_id: estaciones.find(e => e.id === insp.estacion_id)?.ccp_id || ''
+            }));
         }
 
-        // === 4. Consultar inspecciones vencidas de servicios ===
+        // === 4. Inspecciones vencidas de servicios ===
         let inspeccionesServicios = [];
         if (idsServicios.length > 0) {
             const { data, error } = await supabase
                 .from('inspecciones')
-                .select('id, proxima_inspeccion, created_at, servicio_id, servicios_administrativos!inner(nombre, ccp_id)')
+                .select('id, proxima_inspeccion, created_at, servicio_id')
                 .in('servicio_id', idsServicios)
                 .lte('proxima_inspeccion', hoy)
                 .order('proxima_inspeccion', { ascending: true });
             if (error) throw error;
-            inspeccionesServicios = data || [];
+            // Agregar info del servicio manualmente
+            inspeccionesServicios = data.map(insp => ({
+                ...insp,
+                tipo: 'servicio',
+                nombre_unidad: servicios.find(s => s.id === insp.servicio_id)?.nombre || 'Servicio desconocido',
+                ccp_id: servicios.find(s => s.id === insp.servicio_id)?.ccp_id || ''
+            }));
         }
 
         // === 5. Combinar y mostrar ===
-        const todasInspecciones = [
-            ...inspeccionesEstaciones.map(i => ({ ...i, tipo: 'estacion' })),
-            ...inspeccionesServicios.map(i => ({ ...i, tipo: 'servicio' }))
-        ];
-
+        const todasInspecciones = [...inspeccionesEstaciones, ...inspeccionesServicios];
         if (todasInspecciones.length === 0) {
             container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
             return;
         }
 
-        // Ordenar por fecha de reinspección vencida (más antigua primero)
         todasInspecciones.sort((a, b) => new Date(a.proxima_inspeccion) - new Date(b.proxima_inspeccion));
 
         let html = '<div class="alertas-list">';
         todasInspecciones.forEach(insp => {
             const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
             const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
-
-            let nombreUnidad = '';
-            let ccpId = '';
-            let tipoLabel = '';
-
-            if (insp.tipo === 'estacion') {
-                nombreUnidad = insp.estaciones_policiales.nombre;
-                ccpId = insp.estaciones_policiales.ccp_id;
-                tipoLabel = '👮 Estación Policial';
-            } else {
-                nombreUnidad = insp.servicios_administrativos.nombre;
-                ccpId = insp.servicios_administrativos.ccp_id;
-                tipoLabel = '📋 Servicio Administrativo';
-            }
-
-            const ccpNombre = ccpNombres[ccpId] || ccpId;
+            const ccpNombre = ccpNombres[insp.ccp_id] || insp.ccp_id;
+            const tipoLabel = insp.tipo === 'estacion' ? '👮 Estación Policial' : '📋 Servicio Administrativo';
 
             html += `
                 <div class="alerta-card">
-                    <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
+                    <div class="alerta-titulo">${tipoLabel}: ${insp.nombre_unidad}</div>
                     <div class="alerta-detalles">
                         <span>Última inspección: ${fechaInspeccion}</span>
                         <span class="ccp-badge">${ccpNombre}</span>
