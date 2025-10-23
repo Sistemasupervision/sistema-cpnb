@@ -404,53 +404,64 @@
             await cargarEstadisticas(estacionId);
         });
 
-        // === Cargar estadísticas ===
-        async function cargarEstadisticas(estacionId) {
-            const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
-            nombreEstacionActual = estacionNombre;
-            document.getElementById('seleccionContainer').style.display = 'none';
-            document.getElementById('resultadosContainer').style.display = 'none';
-            document.getElementById('mensajeCarga').style.display = 'block';
-            document.getElementById('mensajeSinDatos').style.display = 'none';
+      async function cargarEstadisticas(estacionId) {
+    const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
+    nombreEstacionActual = estacionNombre;
+    document.getElementById('seleccionContainer').style.display = 'none';
+    document.getElementById('resultadosContainer').style.display = 'none';
+    document.getElementById('mensajeCarga').style.display = 'block';
+    document.getElementById('mensajeSinDatos').style.display = 'none';
+    try {
+        // ✅ PASO 1: Obtener los IDs de las inspecciones para la estación seleccionada
+        const { data: inspecciones, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('id') // Solo necesitamos el ID
+            .eq('estacion_id', estacionId); // Filtrar por estación
 
-            try {
-                const { data: inspecciones, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .select('id')
-                    .eq('estacion_id', estacionId);
-                if (inspError) throw inspError;
-                if (!inspecciones || inspecciones.length === 0) {
-                    document.getElementById('mensajeCarga').style.display = 'none';
-                    document.getElementById('mensajeSinDatos').style.display = 'block';
-                    return;
-                }
+        if (inspError) throw inspError;
 
-                const idsInspecciones = inspecciones.map(i => i.id);
-                const { data: items, error: itemsError } = await supabase
-                    .from('items_inspeccion')
-                    .select('item_nombre, cumple, porcentaje_cumplimiento')
-                    .in('inspeccion_id', idsInspecciones);
-                if (itemsError) throw itemsError;
-                if (!items || items.length === 0) {
-                    document.getElementById('mensajeCarga').style.display = 'none';
-                    document.getElementById('mensajeSinDatos').style.display = 'block';
-                    return;
-                }
-
-                estadisticasTotales = calcularEstadisticas(items);
-                totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
-                paginaActual = 1;
-                actualizarVista();
-                document.getElementById('mensajeCarga').style.display = 'none';
-                document.getElementById('resultadosContainer').style.display = 'block';
-            } catch (error) {
-                console.error('Error al cargar estadísticas:', error);
-                document.getElementById('mensajeCarga').style.display = 'none';
-                document.getElementById('mensajeSinDatos').textContent = 'Error al cargar los datos.';
-                document.getElementById('mensajeSinDatos').style.display = 'block';
-            }
+        // Si no hay inspecciones, mostrar mensaje
+        if (!inspecciones || inspecciones.length === 0) {
+            document.getElementById('mensajeCarga').style.display = 'none';
+            document.getElementById('mensajeSinDatos').style.display = 'block';
+            return;
         }
 
+        // Extraer los IDs en un arreglo
+        const idsInspecciones = inspecciones.map(i => i.id);
+
+        // ✅ PASO 2: Obtener los items de inspección usando los IDs obtenidos
+        const { data: items, error: itemsError } = await supabase
+            .from('items_inspeccion')
+            .select('item_nombre, cumple, porcentaje_cumplimiento') // Seleccionar los campos necesarios
+            .in('inspeccion_id', idsInspecciones); // Filtrar por los IDs de inspección
+
+        if (itemsError) throw itemsError;
+
+        // Si no hay items, mostrar mensaje
+        if (!items || items.length === 0) {
+            document.getElementById('mensajeCarga').style.display = 'none';
+            document.getElementById('mensajeSinDatos').style.display = 'block';
+            return;
+        }
+
+        // Calcular estadísticas
+        estadisticasTotales = calcularEstadisticas(items);
+        totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
+        paginaActual = 1;
+        actualizarVista();
+
+        // Mostrar resultados
+        document.getElementById('mensajeCarga').style.display = 'none';
+        document.getElementById('resultadosContainer').style.display = 'block';
+
+    } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+        document.getElementById('mensajeCarga').style.display = 'none';
+        document.getElementById('mensajeSinDatos').textContent = 'Error al cargar los datos.';
+        document.getElementById('mensajeSinDatos').style.display = 'block';
+    }
+}
         function calcularEstadisticas(items) {
             const resultado = {};
             todosLosItems.forEach(item => {
