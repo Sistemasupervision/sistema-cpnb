@@ -642,19 +642,38 @@
 }
 
         async function actualizarArchivo(id) {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            try {
-                await supabase.storage.from('protocolos-supervision').remove([ruta]);
-                resetBotones(id);
-                mostrarMensajeItem(id, '✅ Archivo eliminado. Suba uno nuevo.', 'exito');
-            } catch (e) {
-                console.error(e);
-                mostrarMensajeItem(id, '❌ Error al eliminar archivo', 'error');
-            }
-        }
+    const redip = document.getElementById('redipSelect').value;
+    const ccp = document.getElementById('ccpSelect').value;
+    const proto = protocolos.find(p => p.id === id);
+    const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+
+    try {
+        // Eliminar el archivo del bucket
+        await supabase.storage.from('protocolos-supervision').remove([ruta]);
+
+        // ✅ Deshabilitar todos los controles del ítem
+        const input = document.getElementById(`input_${id}`);
+        input.disabled = true;
+
+        const btnActualizar = document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`);
+        const btnSubir = document.querySelector(`button[onclick="subirArchivo('${id}')"]`);
+        const btnDescargar = document.querySelector(`button[onclick="descargarArchivo('${id}')"]`);
+
+        if (btnActualizar) btnActualizar.disabled = true;
+        if (btnSubir) btnSubir.disabled = true;
+        if (btnDescargar) btnDescargar.disabled = true;
+
+        // ✅ Mostrar mensaje de recarga obligatoria
+        mostrarMensajeItem(id, '✅ Archivo eliminado. Debe recargar la página para subir uno nuevo.', 'exito');
+
+        // ✅ Opcional: ocultar el aviso de reemplazo
+        document.querySelector(`#aviso_${id}`).style.display = 'none';
+
+    } catch (e) {
+        console.error(e);
+        mostrarMensajeItem(id, '❌ Error al eliminar archivo', 'error');
+    }
+}
 
         async function descargarArchivo(id) {
             const archivo = estadoArchivos[id]?.data;
