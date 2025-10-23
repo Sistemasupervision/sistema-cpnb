@@ -229,55 +229,90 @@
         let inspeccionIdActual = null;
         // Establecer fecha mínima (hoy)
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-       async function cargarNotificaciones() {
+async function cargarNotificaciones() {
     const hoy = new Date().toISOString().split('T')[0];
     const container = document.getElementById('alertasContainer');
     try {
+        // === 1. Cargar estaciones policiales del REDIP OCCIDENTAL ===
         const { data: estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
             .select('id, nombre, ccp_id')
             .in('ccp_id', ccpOcidental);
+        if (estError) throw new Error(`Error al cargar estaciones: ${estError.message}`);
+        const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
 
-        if (estError) {
-            console.error('Error al obtener estaciones:', estError);
-            throw new Error(`Error en la consulta de estaciones: ${estError.message}`);
+        // === 2. Cargar servicios administrativos del REDIP OCCIDENTAL ===
+        const { data: servicios, error: servError } = await supabase
+            .from('servicios_administrativos')
+            .select('id, nombre, ccp_id')
+            .in('ccp_id', ccpOcidental);
+        if (servError) throw new Error(`Error al cargar servicios: ${servError.message}`);
+        const idsServicios = servicios ? servicios.map(s => s.id) : [];
+
+        // === 3. Consultar inspecciones vencidas de estaciones ===
+        let inspeccionesEstaciones = [];
+        if (idsEstaciones.length > 0) {
+            const { data, error } = await supabase
+                .from('inspecciones')
+                .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
+                .in('estacion_id', idsEstaciones)
+                .lte('proxima_inspeccion', hoy)
+                .order('proxima_inspeccion', { ascending: true });
+            if (error) throw error;
+            inspeccionesEstaciones = data || [];
         }
 
-        // Verificar si 'estaciones' es un array válido
-        if (!Array.isArray(estaciones)) {
-            console.warn('No se encontraron estaciones o el resultado no es un array.');
-            container.innerHTML = '<div class="no-data">No se encontraron estaciones en REDIP OCCIDENTAL.</div>';
-            return;
+        // === 4. Consultar inspecciones vencidas de servicios ===
+        let inspeccionesServicios = [];
+        if (idsServicios.length > 0) {
+            const { data, error } = await supabase
+                .from('inspecciones')
+                .select('id, proxima_inspeccion, created_at, servicio_id, servicios_administrativos!inner(nombre, ccp_id)')
+                .in('servicio_id', idsServicios)
+                .lte('proxima_inspeccion', hoy)
+                .order('proxima_inspeccion', { ascending: true });
+            if (error) throw error;
+            inspeccionesServicios = data || [];
         }
 
-        const idsEstaciones = estaciones.map(e => e.id);
-        if (idsEstaciones.length === 0) {
-            container.innerHTML = '<div class="no-data">No hay estaciones en REDIP OCCIDENTAL.</div>';
-            return;
-        }
+        // === 5. Combinar y mostrar ===
+        const todasInspecciones = [
+            ...inspeccionesEstaciones.map(i => ({ ...i, tipo: 'estacion' })),
+            ...inspeccionesServicios.map(i => ({ ...i, tipo: 'servicio' }))
+        ];
 
-        const { data: inspecciones, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('id, proxima_inspeccion, created_at, estacion_id, estaciones_policiales!inner(nombre, ccp_id)')
-            .in('estacion_id', idsEstaciones)
-            .lte('proxima_inspeccion', hoy)
-            .order('proxima_inspeccion', { ascending: true });
-
-        if (inspError) throw inspError;
-
-        if (!inspecciones || inspecciones.length === 0) {
+        if (todasInspecciones.length === 0) {
             container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
             return;
         }
 
+        // Ordenar por fecha de reinspección vencida (más antigua primero)
+        todasInspecciones.sort((a, b) => new Date(a.proxima_inspeccion) - new Date(b.proxima_inspeccion));
+
         let html = '<div class="alertas-list">';
-        inspecciones.forEach(insp => {
+        todasInspecciones.forEach(insp => {
             const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
             const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
-            const ccpNombre = ccpNombres[insp.estaciones_policiales.ccp_id] || insp.estaciones_policiales.ccp_id;
+
+            let nombreUnidad = '';
+            let ccpId = '';
+            let tipoLabel = '';
+
+            if (insp.tipo === 'estacion') {
+                nombreUnidad = insp.estaciones_policiales.nombre;
+                ccpId = insp.estaciones_policiales.ccp_id;
+                tipoLabel = '👮 Estación Policial';
+            } else {
+                nombreUnidad = insp.servicios_administrativos.nombre;
+                ccpId = insp.servicios_administrativos.ccp_id;
+                tipoLabel = '📋 Servicio Administrativo';
+            }
+
+            const ccpNombre = ccpNombres[ccpId] || ccpId;
+
             html += `
                 <div class="alerta-card">
-                    <div class="alerta-titulo">${insp.estaciones_policiales.nombre}</div>
+                    <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
                     <div class="alerta-detalles">
                         <span>Última inspección: ${fechaInspeccion}</span>
                         <span class="ccp-badge">${ccpNombre}</span>
@@ -297,7 +332,7 @@
         container.innerHTML = html;
     } catch (error) {
         console.error('Error al cargar notificaciones:', error);
-        container.innerHTML = '<div class="no-data">Error al cargar las notificaciones.</div>';
+        container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
     }
 }
         function abrirModalFecha(inspeccionId) {
