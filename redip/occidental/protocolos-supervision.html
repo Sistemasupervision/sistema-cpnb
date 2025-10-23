@@ -506,7 +506,7 @@
                         resetBotones(proto.id);
                     }
                 } catch (err) {
-                    console.error('Error al verificar:', err);
+                    console.error('Error al verificar existencia:', err);
                     estadoArchivos[proto.id] = { existe: false };
                     resetBotones(proto.id);
                 }
@@ -522,7 +522,7 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // ✅ Subir y actualizar UI sin verificar descarga
+        // ✅ Subir archivo y actualizar UI directamente
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
@@ -546,7 +546,7 @@
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
 
-                // ✅ Actualizar interfaz directamente
+                // ✅ Actualizar interfaz directamente (sin verificar descarga)
                 estadoArchivos[id] = { existe: true };
                 document.querySelector(`#input_${id}`).disabled = true;
                 document.querySelector(`#aviso_${id}`).style.display = 'block';
@@ -581,7 +581,7 @@
             }
         }
 
-        // ✅ Descargar siempre desde Supabase (sin caché local)
+        // ✅ Descargar DIRECTAMENTE desde Supabase (sin usar estadoArchivos.data)
         async function descargarArchivo(id) {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -590,7 +590,7 @@
 
             try {
                 const { data, error } = await supabase.storage.from('protocolos-supervision').download(ruta);
-                if (error || !data) throw new Error('No disponible');
+                if (error || !data) throw new Error('Archivo no disponible');
 
                 const url = URL.createObjectURL(data);
                 const a = document.createElement('a');
