@@ -300,7 +300,7 @@
             const redip = document.getElementById('redipSelect').value;
             const ccpSelect = document.getElementById('ccpSelect');
             ccpSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
-            document.getElementById('tabEstacion').click(); // Reiniciar vista
+            document.getElementById('tabEstacion').click();
             if (!redip) return;
             const ccps = redipCcpMap[redip] || [];
             if (ccps.length === 0) {
@@ -321,12 +321,8 @@
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
             const habilitar = redip && ccp;
-            if (habilitar) {
-                // No habilitamos botones aquí; se maneja en renderPestana
-            }
         });
 
-        // === Cerrar dropdowns al hacer clic fuera ===
         document.addEventListener('click', (e) => {
             const dropdownEstacion = document.getElementById('dropdownEstacion');
             const dropdownServicio = document.getElementById('dropdownServicio');
@@ -338,7 +334,6 @@
             }
         });
 
-        // === Renderizado de pestañas ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
             const redip = document.getElementById('redipSelect').value;
@@ -455,7 +450,6 @@
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
         renderPestana('estacion');
 
-        // === Renderizar protocolos ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -482,7 +476,7 @@
             });
         }
 
-        // ✅ NUEVA función: verificar existencia SIN descargar
+        // ✅ Verificar existencia SIN descargar
         async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -498,7 +492,7 @@
                         .from('protocolos-supervision')
                         .list(folder, { search: proto.archivo });
 
-                    const existe = data && data.some(file => file.name === proto.archivo);
+                    const existe = data && data.some(f => f.name === proto.archivo);
                     estadoArchivos[proto.id] = { existe };
 
                     if (existe) {
@@ -512,7 +506,7 @@
                         resetBotones(proto.id);
                     }
                 } catch (err) {
-                    console.error('Error al verificar archivo:', err);
+                    console.error('Error al verificar:', err);
                     estadoArchivos[proto.id] = { existe: false };
                     resetBotones(proto.id);
                 }
@@ -528,7 +522,7 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // ✅ NUEVA función: subir sin verificar descarga
+        // ✅ Subir y actualizar UI sin verificar descarga
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
@@ -552,7 +546,7 @@
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
 
-                // ✅ Actualizar UI directamente
+                // ✅ Actualizar interfaz directamente
                 estadoArchivos[id] = { existe: true };
                 document.querySelector(`#input_${id}`).disabled = true;
                 document.querySelector(`#aviso_${id}`).style.display = 'block';
@@ -587,7 +581,7 @@
             }
         }
 
-        // ✅ Descargar directamente desde storage (sin depender de cache local)
+        // ✅ Descargar siempre desde Supabase (sin caché local)
         async function descargarArchivo(id) {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -596,7 +590,7 @@
 
             try {
                 const { data, error } = await supabase.storage.from('protocolos-supervision').download(ruta);
-                if (error || !data) throw new Error('Archivo no disponible');
+                if (error || !data) throw new Error('No disponible');
 
                 const url = URL.createObjectURL(data);
                 const a = document.createElement('a');
