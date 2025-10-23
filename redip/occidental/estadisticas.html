@@ -401,77 +401,76 @@
             await cargarEstadisticas(estacionId);
         });
 
-   async function cargarEstadisticas(estacionId) {
-    const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
-    nombreEstacionActual = estacionNombre;
-    document.getElementById('seleccionContainer').style.display = 'none';
-    document.getElementById('resultadosContainer').style.display = 'none';
-    document.getElementById('mensajeCarga').style.display = 'block';
-    document.getElementById('mensajeSinDatos').style.display = 'none';
+        // === Cargar estadísticas ===
+        async function cargarEstadisticas(estacionId) {
+            const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
+            nombreEstacionActual = estacionNombre;
+            document.getElementById('seleccionContainer').style.display = 'none';
+            document.getElementById('resultadosContainer').style.display = 'none';
+            document.getElementById('mensajeCarga').style.display = 'block';
+            document.getElementById('mensajeSinDatos').style.display = 'none';
 
-    try {
-        // ✅ Consulta DIRECTA: obtener todos los ítems de inspecciones para esta estación
-        const { data: items, error: itemsError } = await supabase
-            .from('items_inspeccion')
-            .select('item_nombre, cumple')
-            .eq('inspeccion.estacion_id', estacionId); // ← JOIN implícito con 'inspecciones'
+            try {
+                // ✅ Consulta DIRECTA con JOIN implícito
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple')
+                    .eq('inspeccion.estacion_id', estacionId); // ← JOIN con 'inspecciones'
 
-        if (itemsError) {
-            throw itemsError;
+                if (itemsError) throw itemsError;
+                if (!items || items.length === 0) {
+                    document.getElementById('mensajeCarga').style.display = 'none';
+                    document.getElementById('mensajeSinDatos').style.display = 'block';
+                    return;
+                }
+
+                estadisticasTotales = calcularEstadisticas(items);
+                totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
+                paginaActual = 1;
+                actualizarVista();
+                document.getElementById('mensajeCarga').style.display = 'none';
+                document.getElementById('resultadosContainer').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+                document.getElementById('mensajeCarga').style.display = 'none';
+                document.getElementById('mensajeSinDatos').textContent = 'Error al cargar los datos.';
+                document.getElementById('mensajeSinDatos').style.display = 'block';
+            }
         }
 
-        if (!items || items.length === 0) {
-            document.getElementById('mensajeCarga').style.display = 'none';
-            document.getElementById('mensajeSinDatos').style.display = 'block';
-            return;
+        // ✅ FUNCIÓN CORREGIDA: calcula % como (Sí / Total)
+        function calcularEstadisticas(items) {
+            const conteoTotal = {};
+            const conteoCumplidos = {};
+
+            // Inicializar contadores
+            todosLosItems.forEach(item => {
+                conteoTotal[item] = 0;
+                conteoCumplidos[item] = 0;
+            });
+
+            // Contar respuestas
+            items.forEach(item => {
+                if (!todosLosItems.includes(item.item_nombre)) return;
+                conteoTotal[item.item_nombre]++;
+                if (item.cumple === true) {
+                    conteoCumplidos[item.item_nombre]++;
+                }
+            });
+
+            // Calcular porcentaje
+            const resultado = {};
+            todosLosItems.forEach(item => {
+                const total = conteoTotal[item];
+                const cumplidos = conteoCumplidos[item];
+                resultado[item] = total > 0 ? parseFloat(((cumplidos / total) * 100).toFixed(1)) : 0;
+            });
+
+            return resultado;
         }
 
-        // ✅ Calcular estadísticas: % de "Sí" sobre total de respuestas por ítem
-        estadisticasTotales = calcularEstadisticas(items);
-        totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
-        paginaActual = 1;
-        actualizarVista();
-        document.getElementById('mensajeCarga').style.display = 'none';
-        document.getElementById('resultadosContainer').style.display = 'block';
-
-    } catch (error) {
-        console.error('Error al cargar estadísticas:', error);
-        document.getElementById('mensajeCarga').style.display = 'none';
-        document.getElementById('mensajeSinDatos').textContent = 'Error: ' + (error.message || 'No se pudieron cargar los datos.');
-        document.getElementById('mensajeSinDatos').style.display = 'block';
-    }
-}
-function calcularEstadisticas(items) {
-    const conteoTotal = {};
-    const conteoCumplidos = {};
-
-    // Inicializar contadores para todos los ítems
-    todosLosItems.forEach(item => {
-        conteoTotal[item] = 0;
-        conteoCumplidos[item] = 0;
-    });
-
-    // Contar respuestas
-    items.forEach(item => {
-        const nombre = item.item_nombre;
-        if (!todosLosItems.includes(nombre)) return; // Saltar ítems desconocidos
-
-        conteoTotal[nombre]++;
-        if (item.cumple === true) {
-            conteoCumplidos[nombre]++;
-        }
-    });
-
-    // Calcular porcentaje: (cumplidos / total) * 100
-    const resultado = {};
-    todosLosItems.forEach(item => {
-        const total = conteoTotal[item];
-        const cumplidos = conteoCumplidos[item];
-        resultado[item] = total > 0 ? parseFloat(((cumplidos / total) * 100).toFixed(1)) : 0;
-    });
-
-    return resultado;
-}        // === Actualizar vista (gráfico + tabla + paginación) ===
+        // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
@@ -586,7 +585,7 @@ function calcularEstadisticas(items) {
             }
         });
 
-        // === Filtro en tabla (solo afecta la tabla, no el gráfico ni la paginación) ===
+        // === Filtro en tabla ===
         document.getElementById('filtroItems').addEventListener('input', () => {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
