@@ -585,35 +585,61 @@
             setTimeout(() => msg.style.display = 'none', 5000); // Desaparece después de 5 segundos
         }
 
-        async function subirArchivo(id) {
-            const input = document.getElementById(`input_${id}`);
-            const archivo = input.files[0];
-            if (!archivo) return mostrarMensajeItem(id, `⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
-            const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            const progressBar = document.getElementById(`progress_${id}`);
-            const fillBar = document.getElementById(`fill_${id}`);
-            progressBar.style.display = 'block';
-            fillBar.style.width = '0%';
-            try {
-                const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
-                if (error) throw error;
-                fillBar.style.width = '100%';
-                await new Promise(r => setTimeout(r, 300));
-                // ✅ Mostrar mensaje justo debajo del ítem
-                mostrarMensajeItem(id, '✅ Archivo subido exitosamente', 'exito');
-                input.value = '';
-                await verificarArchivosExistentes();
-            } catch (e) {
-                console.error(e);
-                mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
-            } finally {
-                progressBar.style.display = 'none';
-            }
-        }
+      async function subirArchivo(id) {
+    const input = document.getElementById(`input_${id}`);
+    const archivo = input.files[0];
+    if (!archivo) return mostrarMensajeItem(id, `⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
+    const redip = document.getElementById('redipSelect').value;
+    const ccp = document.getElementById('ccpSelect').value;
+    if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
+
+    const proto = protocolos.find(p => p.id === id);
+    const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+    const progressBar = document.getElementById(`progress_${id}`);
+    const fillBar = document.getElementById(`fill_${id}`);
+    progressBar.style.display = 'block';
+    fillBar.style.width = '0%';
+
+    try {
+        // Subir el archivo
+        const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
+        if (error) throw error;
+
+        fillBar.style.width = '100%';
+        await new Promise(r => setTimeout(r, 300));
+
+        // ✅ Esperar unos segundos para que el nuevo archivo esté disponible en el CDN
+        mostrarMensajeItem(id, '✅ Archivo subido. Verificando disponibilidad...', 'exito');
+        await new Promise(r => setTimeout(r, 4000)); // Espera de 4 segundos
+
+        // ✅ Descargar el archivo recién subido (no usar caché anterior)
+        const { data: nuevoArchivo, error: downloadError } = await supabase.storage.from('protocolos-supervision').download(ruta);
+        if (downloadError || !nuevoArchivo) throw new Error('No se pudo recuperar el archivo recién subido');
+
+        // Actualizar el estado con el archivo nuevo
+        estadoArchivos[id] = { existe: true, data: nuevoArchivo };
+
+        // Actualizar la UI
+        input.value = '';
+        document.querySelector(`#input_${id}`).disabled = true;
+        document.querySelector(`#aviso_${id}`).style.display = 'block';
+        document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'inline-block';
+        document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'inline-block';
+        document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'none';
+
+        mostrarMensajeItem(id, '✅ Archivo listo para descargar', 'exito');
+
+        // Habilitar botón "Descargar Todo" si todos los archivos existen
+        const existenTodos = protocolos.every(p => estadoArchivos[p.id]?.existe);
+        document.getElementById('btnDescargarTodo').disabled = !existenTodos;
+
+    } catch (e) {
+        console.error(e);
+        mostrarMensajeItem(id, '❌ Error al subir o recuperar el archivo', 'error');
+    } finally {
+        progressBar.style.display = 'none';
+    }
+}
 
         async function actualizarArchivo(id) {
             const redip = document.getElementById('redipSelect').value;
