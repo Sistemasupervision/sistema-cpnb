@@ -179,29 +179,57 @@
                 mostrarOpcionesCCP(ccpId, ccpNombre);
             }
         }
-        async function contarReinspeccionesVencidas() {
-            try {
-                const hoy = new Date().toISOString().split('T')[0];
-                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
-                const { data: estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw estError;
-                const idsEstaciones = estaciones.map(e => e.id);
-                if (idsEstaciones.length === 0) return 0;
-                const { count, error: countError } = await supabase
-                    .from('inspecciones')
-                    .select('*', { count: 'exact', head: true })
-                    .in('estacion_id', idsEstaciones)
-                    .lte('proxima_inspeccion', hoy);
-                if (countError) throw countError;
-                return count || 0;
-            } catch (error) {
-                console.error('Error al contar notificaciones:', error);
-                return 0;
-            }
+      async function contarReinspeccionesVencidas() {
+    try {
+        const hoy = new Date().toISOString().split('T')[0];
+        const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
+
+        // 1. Obtener IDs de estaciones policiales
+        const { data: estaciones, error: estError } = await supabase
+            .from('estaciones_policiales')
+            .select('id')
+            .in('ccp_id', ccpOcidental);
+        if (estError) throw estError;
+        const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
+
+        // 2. Obtener IDs de servicios administrativos
+        const { data: servicios, error: servError } = await supabase
+            .from('servicios_administrativos')
+            .select('id')
+            .in('ccp_id', ccpOcidental);
+        if (servError) throw servError;
+        const idsServicios = servicios ? servicios.map(s => s.id) : [];
+
+        // 3. Contar inspecciones vencidas de estaciones
+        let countEstaciones = 0;
+        if (idsEstaciones.length > 0) {
+            const { count, error: countError } = await supabase
+                .from('inspecciones')
+                .select('*', { count: 'exact', head: true })
+                .in('estacion_id', idsEstaciones)
+                .lte('proxima_inspeccion', hoy);
+            if (countError) throw countError;
+            countEstaciones = count || 0;
         }
+
+        // 4. Contar inspecciones vencidas de servicios
+        let countServicios = 0;
+        if (idsServicios.length > 0) {
+            const { count, error: countError } = await supabase
+                .from('inspecciones')
+                .select('*', { count: 'exact', head: true })
+                .in('servicio_id', idsServicios)
+                .lte('proxima_inspeccion', hoy);
+            if (countError) throw countError;
+            countServicios = count || 0;
+        }
+
+        return countEstaciones + countServicios;
+    } catch (error) {
+        console.error('Error al contar notificaciones:', error);
+        return 0;
+    }
+}
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
