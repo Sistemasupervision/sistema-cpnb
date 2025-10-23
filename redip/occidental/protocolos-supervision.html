@@ -518,7 +518,7 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // ✅ Subir y actualizar UI directamente (sin volver a verificar con descarga)
+        // ✅ Subir y actualizar UI directamente (sin guardar data)
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
