@@ -442,35 +442,36 @@
     }
 }
 function calcularEstadisticas(items) {
-    const conteo = {};
-    const cumplidos = {};
+    const conteoTotal = {};
+    const conteoCumplidos = {};
 
-    // Inicializar
+    // Inicializar contadores para todos los ítems
     todosLosItems.forEach(item => {
-        conteo[item] = 0;
-        cumplidos[item] = 0;
+        conteoTotal[item] = 0;
+        conteoCumplidos[item] = 0;
     });
 
     // Contar respuestas
     items.forEach(item => {
-        if (!todosLosItems.includes(item.item_nombre)) return;
-        conteo[item.item_nombre]++;
+        const nombre = item.item_nombre;
+        if (!todosLosItems.includes(nombre)) return; // Saltar ítems desconocidos
+
+        conteoTotal[nombre]++;
         if (item.cumple === true) {
-            cumplidos[item.item_nombre]++;
+            conteoCumplidos[nombre]++;
         }
     });
 
-    // Calcular porcentaje
+    // Calcular porcentaje: (cumplidos / total) * 100
     const resultado = {};
     todosLosItems.forEach(item => {
-        const total = conteo[item];
-        const ok = cumplidos[item];
-        resultado[item] = total > 0 ? parseFloat(((ok / total) * 100).toFixed(1)) : 0;
+        const total = conteoTotal[item];
+        const cumplidos = conteoCumplidos[item];
+        resultado[item] = total > 0 ? parseFloat(((cumplidos / total) * 100).toFixed(1)) : 0;
     });
 
     return resultado;
-}
-        // === Actualizar vista (gráfico + tabla + paginación) ===
+}        // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
