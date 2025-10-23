@@ -615,20 +615,64 @@
             }
         }
 
-        async function actualizarArchivo(id) {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            try {
-                await supabase.storage.from('protocolos-supervision').remove([ruta]);
-                resetBotones(id);
-                mostrarMensajeItem(id, '✅ Archivo eliminado. Suba uno nuevo.', 'exito');
-            } catch (e) {
-                console.error(e);
-                mostrarMensajeItem(id, '❌ Error al eliminar archivo', 'error');
-            }
+       async function actualizarArchivo(id) {
+    const redip = document.getElementById('redipSelect').value;
+    const ccp = document.getElementById('ccpSelect').value;
+    const proto = protocolos.find(p => p.id === id);
+    const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+    
+    try {
+        await supabase.storage.from('protocolos-supervision').remove([ruta]);
+
+        // Deshabilitar todos los botones e inputs del ítem
+        const itemDiv = document.querySelector(`.protocolo-item:nth-of-type(${protocolos.findIndex(p => p.id === id) + 1})`);
+        if (itemDiv) {
+            const botones = itemDiv.querySelectorAll('button, input[type="file"]');
+            botones.forEach(btn => btn.disabled = true);
         }
+
+        // Mostrar mensaje de recarga
+        mostrarMensajeItem(id, '✅ Archivo eliminado. Debe recargar la página para subir uno nuevo.', 'exito');
+
+    } catch (e) {
+        console.error(e);
+        mostrarMensajeItem(id, '❌ Error al eliminar archivo', 'error');
+    }
+}
+
+async function subirArchivo(id) {
+    const input = document.getElementById(`input_${id}`);
+    const archivo = input.files[0];
+    if (!archivo) return mostrarMensajeItem(id, `⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
+    const redip = document.getElementById('redipSelect').value;
+    const ccp = document.getElementById('ccpSelect').value;
+    if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
+    const proto = protocolos.find(p => p.id === id);
+    const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+    const progressBar = document.getElementById(`progress_${id}`);
+    const fillBar = document.getElementById(`fill_${id}`);
+    progressBar.style.display = 'block';
+    fillBar.style.width = '0%';
+
+    try {
+        const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
+        if (error) throw error;
+        fillBar.style.width = '100%';
+        await new Promise(r => setTimeout(r, 300));
+
+        // ✅ Esperar 8 segundos antes de verificar archivos existentes
+        mostrarMensajeItem(id, '✅ Archivo subido. Esperando sincronización con el servidor...', 'exito');
+        await new Promise(r => setTimeout(r, 8000));
+
+        input.value = '';
+        await verificarArchivosExistentes();
+    } catch (e) {
+        console.error(e);
+        mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
+    } finally {
+        progressBar.style.display = 'none';
+    }
+}
 
         async function descargarArchivo(id) {
             const archivo = estadoArchivos[id]?.data;
