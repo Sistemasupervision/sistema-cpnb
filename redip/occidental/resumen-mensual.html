@@ -330,59 +330,84 @@
             mesesComp.value = hoy.getMonth() === 0 ? 11 : hoy.getMonth() - 1;
             aniosComp.value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
         }
-        async function cargarDatosPorCCP(anio, mes) {
-            const rango = rangoMes(anio, mes);
-            const { data: estaciones, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('id, ccp_id')
-                .in('ccp_id', ccpOcidental);
-            if (estError) throw estError;
-            if (estaciones.length === 0) return {};
-            const idsEstaciones = estaciones.map(e => e.id);
-            const estacionCCPMap = {};
-            estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
-            const { data: inspecciones, error: inspError } = await supabase
-                .from('inspecciones')
-                .select('id, estacion_id')
-                .in('estacion_id', idsEstaciones)
-                .gte('created_at', rango.desde)
-                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
-            if (inspError) throw inspError;
-            if (inspecciones.length === 0) return {};
-            const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
-                .from('items_inspeccion')
-                .select('inspeccion_id, cumple')
-                .in('inspeccion_id', idsInspecciones);
-            if (itemsError) throw itemsError;
-            const itemsPorInspeccion = {};
-            items.forEach(item => {
-                if (!itemsPorInspeccion[item.inspeccion_id]) {
-                    itemsPorInspeccion[item.inspeccion_id] = [];
-                }
-                itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
-            });
-            const metricasPorCCP = {};
-            inspecciones.forEach(insp => {
-                const ccp = estacionCCPMap[insp.estacion_id];
-                if (!metricasPorCCP[ccp]) {
-                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
-                }
-                metricasPorCCP[ccp].totalInspecciones++;
-                const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
-                metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
-                metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
-            });
-            const resultado = {};
-            Object.keys(metricasPorCCP).forEach(ccp => {
-                const m = metricasPorCCP[ccp];
-                resultado[ccp] = {
-                    inspecciones: m.totalInspecciones,
-                    porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
-                };
-            });
-            return resultado;
+      async function cargarDatosPorCCP(anio, mes) {
+    const rango = rangoMes(anio, mes);
+    const { data: estaciones, error: estError } = await supabase
+        .from('estaciones_policiales')
+        .select('id, ccp_id')
+        .in('ccp_id', ccpOcidental);
+    if (estError) throw estError;
+    if (estaciones.length === 0) return {};
+
+    const idsEstaciones = estaciones.map(e => e.id);
+    const estacionCCPMap = {};
+    estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
+
+    const { data: inspecciones, error: inspError } = await supabase
+        .from('inspecciones')
+        .select('id, estacion_id')
+        .in('estacion_id', idsEstaciones)
+        .gte('created_at', rango.desde)
+        .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+    if (inspError) throw inspError;
+    if (inspecciones.length === 0) return {};
+
+    const idsInspecciones = inspecciones.map(i => i.id);
+
+    // Obtener todos los ítems de inspección
+    const { data: items, error: itemsError } = await supabase
+        .from('items_inspeccion')
+        .select('inspeccion_id, cumple')
+        .in('inspeccion_id', idsInspecciones);
+    if (itemsError) throw itemsError;
+
+    // Agrupar ítems por inspección
+    const itemsPorInspeccion = {};
+    items.forEach(item => {
+        if (!itemsPorInspeccion[item.inspeccion_id]) {
+            itemsPorInspeccion[item.inspeccion_id] = [];
         }
+        itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
+    });
+
+    // Calcular el porcentaje de cumplimiento por inspección
+    const porcentajesPorInspeccion = {};
+    for (const inspId of idsInspecciones) {
+        const itemsInspeccion = itemsPorInspeccion[inspId] || [];
+        const totalItems = itemsInspeccion.length;
+        if (totalItems > 0) {
+            const cumplidos = itemsInspeccion.filter(c => c === true).length;
+            porcentajesPorInspeccion[inspId] = Math.round((cumplidos / totalItems) * 100);
+        } else {
+            porcentajesPorInspeccion[inspId] = 0;
+        }
+    }
+
+    // Calcular métricas por CCP
+    const metricasPorCCP = {};
+    inspecciones.forEach(insp => {
+        const ccp = estacionCCPMap[insp.estacion_id];
+        if (!metricasPorCCP[ccp]) {
+            metricasPorCCP[ccp] = { totalInspecciones: 0, totalPorcentaje: 0 };
+        }
+        metricasPorCCP[ccp].totalInspecciones++;
+        // Sumar el porcentaje de cumplimiento de esta inspección
+        metricasPorCCP[ccp].totalPorcentaje += porcentajesPorInspeccion[insp.id] || 0;
+    });
+
+    // Calcular el promedio por CCP
+    const resultado = {};
+    Object.keys(metricasPorCCP).forEach(ccp => {
+        const m = metricasPorCCP[ccp];
+        const promedio = m.totalInspecciones > 0 ? Math.round(m.totalPorcentaje / m.totalInspecciones) : 0;
+        resultado[ccp] = {
+            inspecciones: m.totalInspecciones,
+            porcentaje: promedio
+        };
+    });
+
+    return resultado;
+}
         async function cargarResumen() {
             const container = document.getElementById('resumenContainer');
             try {
