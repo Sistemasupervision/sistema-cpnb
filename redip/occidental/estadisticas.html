@@ -451,29 +451,41 @@
             }
         }
 
-        function calcularEstadisticas(items) {
-            const resultado = {};
-            todosLosItems.forEach(item => {
-                resultado[item] = 0;
-            });
-            const agrupado = {};
-            items.forEach(item => {
-                if (item.cumple === true) {
-                    if (!agrupado[item.item_nombre]) {
-                        agrupado[item.item_nombre] = [];
-                    }
-                    agrupado[item.item_nombre].push(item.porcentaje_cumplimiento || 0);
-                }
-            });
-            Object.keys(agrupado).forEach(item => {
-                const valores = agrupado[item];
-                if (valores.length > 0) {
-                    const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
-                    resultado[item] = parseFloat(promedio.toFixed(1));
-                }
-            });
-            return resultado;
+       function calcularEstadisticas(items) {
+    const resultado = {};
+    const conteo = {};
+    const suma = {};
+
+    // Inicializar
+    todosLosItems.forEach(item => {
+        conteo[item] = 0;
+        suma[item] = 0;
+    });
+
+    // Procesar cada respuesta
+    items.forEach(item => {
+        const nombre = item.item_nombre;
+        if (!todosLosItems.includes(nombre)) return; // Saltar ítems desconocidos
+
+        conteo[nombre]++; // Cada respuesta cuenta, incluso "No" o "No Aplica"
+
+        if (item.cumple === true) {
+            suma[nombre] += item.porcentaje_cumplimiento || 0;
         }
+        // Si cumple = false o null, suma 0 (ya está en 0)
+    });
+
+    // Calcular promedio
+    todosLosItems.forEach(item => {
+        if (conteo[item] > 0) {
+            resultado[item] = parseFloat((suma[item] / conteo[item]).toFixed(1));
+        } else {
+            resultado[item] = 0;
+        }
+    });
+
+    return resultado;
+}
 
         // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
