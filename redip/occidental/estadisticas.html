@@ -445,42 +445,49 @@
             }
         }
 
-        // ✅ FUNCIÓN CORREGIDA: calcula promedio sobre todas las respuestas
-        function calcularEstadisticas(items) {
-            const conteo = {};
-            const suma = {};
+function calcularEstadisticas(items) {
+    const resultado = {};
+    // Inicializar todos los ítems a 0%
+    todosLosItems.forEach(item => {
+        resultado[item] = 0;
+    });
 
-            // Inicializar
-            todosLosItems.forEach(item => {
-                conteo[item] = 0;
-                suma[item] = 0;
-            });
+    // Contar respuestas por ítem
+    const conteo = {};
+    const cumplidos = {};
 
-            // Procesar cada respuesta
-            items.forEach(item => {
-                const nombre = item.item_nombre;
-                if (!todosLosItems.includes(nombre)) return;
+    // Inicializar contadores
+    todosLosItems.forEach(item => {
+        conteo[item] = 0;
+        cumplidos[item] = 0;
+    });
 
-                conteo[nombre]++; // Cada respuesta cuenta
+    // Procesar cada respuesta
+    items.forEach(item => {
+        const nombre = item.item_nombre;
+        if (!todosLosItems.includes(nombre)) return; // Saltar ítems desconocidos
 
-                if (item.cumple === true) {
-                    suma[nombre] += item.porcentaje_cumplimiento || 0;
-                }
-                // Si cumple = false o null, suma 0 (ya está en 0)
-            });
-
-            // Calcular promedio
-            const resultado = {};
-            todosLosItems.forEach(item => {
-                if (conteo[item] > 0) {
-                    resultado[item] = parseFloat((suma[item] / conteo[item]).toFixed(1));
-                } else {
-                    resultado[item] = 0;
-                }
-            });
-
-            return resultado;
+        // Incrementar el conteo total para este ítem
+        conteo[nombre]++;
+        
+        // Si la respuesta es "Sí", incrementar el contador de cumplidos
+        if (item.cumple === true) {
+            cumplidos[nombre]++;
         }
+        // Si la respuesta es "No" o "No Aplica", no se suma a cumplidos (queda en 0)
+    });
+
+    // Calcular el porcentaje promedio para cada ítem
+    todosLosItems.forEach(item => {
+        if (conteo[item] > 0) {
+            resultado[item] = parseFloat((cumplidos[item] / conteo[item] * 100).toFixed(1));
+        } else {
+            resultado[item] = 0; // Si no hay respuestas, 0%
+        }
+    });
+
+    return resultado;
+}
 
         // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
