@@ -476,7 +476,7 @@
             });
         }
 
-        // ✅ Verificar existencia SIN descargar
+        // ✅ Verificar existencia SIN descargar ni guardar datos
         async function verificarArchivosExistentes() {
             const redip = document.getElementById('redipSelect').value;
             const ccp = document.getElementById('ccpSelect').value;
@@ -486,13 +486,10 @@
             let existen = false;
 
             for (const proto of protocolos) {
-                const folder = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/`;
+                const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
                 try {
-                    const { data, error } = await supabase.storage
-                        .from('protocolos-supervision')
-                        .list(folder, { search: proto.archivo });
-
-                    const existe = data && data.some(f => f.name === proto.archivo);
+                    const { error } = await supabase.storage.from('protocolos-supervision').download(ruta);
+                    const existe = !error;
                     estadoArchivos[proto.id] = { existe };
 
                     if (existe) {
@@ -505,8 +502,7 @@
                     } else {
                         resetBotones(proto.id);
                     }
-                } catch (err) {
-                    console.error('Error al verificar existencia:', err);
+                } catch {
                     estadoArchivos[proto.id] = { existe: false };
                     resetBotones(proto.id);
                 }
@@ -522,7 +518,7 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
-        // ✅ Subir archivo y actualizar UI directamente
+        // ✅ Subir y actualizar UI directamente (sin volver a verificar con descarga)
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
@@ -546,7 +542,7 @@
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
 
-                // ✅ Actualizar interfaz directamente (sin verificar descarga)
+                // ✅ Actualizar interfaz directamente
                 estadoArchivos[id] = { existe: true };
                 document.querySelector(`#input_${id}`).disabled = true;
                 document.querySelector(`#aviso_${id}`).style.display = 'block';
