@@ -396,10 +396,16 @@
         });
 
         document.getElementById('estacionFilter').addEventListener('change', async () => {
-            const estacionId = document.getElementById('estacionFilter').value;
-            if (!estacionId) return;
-            await cargarEstadisticas(estacionId);
-        });
+    const estacionIdStr = document.getElementById('estacionFilter').value;
+    const estacionId = parseInt(estacionIdStr, 10); // ✅ Conversión explícita a número
+    if (isNaN(estacionId)) {
+        console.error('ID de estación inválido:', estacionIdStr);
+        document.getElementById('mensajeCarga').style.display = 'none';
+        document.getElementById('mensajeSinDatos').style.display = 'block';
+        return;
+    }
+    await cargarEstadisticas(estacionId);
+});
 
         // === Cargar estadísticas ===
         async function cargarEstadisticas(estacionId) {
