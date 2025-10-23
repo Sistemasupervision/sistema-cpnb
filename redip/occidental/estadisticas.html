@@ -447,48 +447,40 @@
 
 function calcularEstadisticas(items) {
     const resultado = {};
-    // Inicializar todos los ítems a 0%
-    todosLosItems.forEach(item => {
-        resultado[item] = 0;
-    });
-
-    // Contar respuestas por ítem
-    const conteo = {};
-    const cumplidos = {};
+    const conteoTotal = {};
+    const conteoSatisfactorio = {};
 
     // Inicializar contadores
     todosLosItems.forEach(item => {
-        conteo[item] = 0;
-        cumplidos[item] = 0;
+        conteoTotal[item] = 0;
+        conteoSatisfactorio[item] = 0;
+        resultado[item] = 0;
     });
 
-    // Procesar cada respuesta
+    // Contar respuestas
     items.forEach(item => {
         const nombre = item.item_nombre;
-        if (!todosLosItems.includes(nombre)) return; // Saltar ítems desconocidos
+        if (!todosLosItems.includes(nombre)) return;
 
-        // Incrementar el conteo total para este ítem
-        conteo[nombre]++;
-        
-        // Si la respuesta es "Sí", incrementar el contador de cumplidos
+        conteoTotal[nombre]++;
+
+        // Solo se considera "cumplido" si cumple = true
         if (item.cumple === true) {
-            cumplidos[nombre]++;
+            conteoSatisfactorio[nombre]++;
         }
-        // Si la respuesta es "No" o "No Aplica", no se suma a cumplidos (queda en 0)
     });
 
-    // Calcular el porcentaje promedio para cada ítem
+    // Calcular porcentaje: (cumplidos / total) * 100
     todosLosItems.forEach(item => {
-        if (conteo[item] > 0) {
-            resultado[item] = parseFloat((cumplidos[item] / conteo[item] * 100).toFixed(1));
+        if (conteoTotal[item] > 0) {
+            resultado[item] = parseFloat(((conteoSatisfactorio[item] / conteoTotal[item]) * 100).toFixed(1));
         } else {
-            resultado[item] = 0; // Si no hay respuestas, 0%
+            resultado[item] = 0;
         }
     });
 
     return resultado;
 }
-
         // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
