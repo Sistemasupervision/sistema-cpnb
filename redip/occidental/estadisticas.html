@@ -197,7 +197,6 @@
         .porcentaje-valor.bajo { color: #e53e3e; }
         .porcentaje-valor.medio { color: #dd6b20; }
         .porcentaje-valor.alto { color: #38a169; }
-
         .pagination-controls {
             display: flex;
             justify-content: center;
@@ -266,7 +265,6 @@
                     </thead>
                     <tbody id="tablaItems"></tbody>
                 </table>
-
                 <!-- Controles de paginación -->
                 <div class="pagination-controls">
                     <button id="btnAnterior" class="back-btn" disabled>« Anterior</button>
@@ -286,7 +284,6 @@
             </div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -412,7 +409,6 @@
             document.getElementById('resultadosContainer').style.display = 'none';
             document.getElementById('mensajeCarga').style.display = 'block';
             document.getElementById('mensajeSinDatos').style.display = 'none';
-
             try {
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
@@ -424,7 +420,6 @@
                     document.getElementById('mensajeSinDatos').style.display = 'block';
                     return;
                 }
-
                 const idsInspecciones = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -436,7 +431,6 @@
                     document.getElementById('mensajeSinDatos').style.display = 'block';
                     return;
                 }
-
                 estadisticasTotales = calcularEstadisticas(items);
                 totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
                 paginaActual = 1;
@@ -451,54 +445,52 @@
             }
         }
 
-       function calcularEstadisticas(items) {
-    const resultado = {};
-    const conteo = {};
-    const suma = {};
+        // ✅ FUNCIÓN CORREGIDA: calcula promedio sobre todas las respuestas
+        function calcularEstadisticas(items) {
+            const conteo = {};
+            const suma = {};
 
-    // Inicializar
-    todosLosItems.forEach(item => {
-        conteo[item] = 0;
-        suma[item] = 0;
-    });
+            // Inicializar
+            todosLosItems.forEach(item => {
+                conteo[item] = 0;
+                suma[item] = 0;
+            });
 
-    // Procesar cada respuesta
-    items.forEach(item => {
-        const nombre = item.item_nombre;
-        if (!todosLosItems.includes(nombre)) return; // Saltar ítems desconocidos
+            // Procesar cada respuesta
+            items.forEach(item => {
+                const nombre = item.item_nombre;
+                if (!todosLosItems.includes(nombre)) return;
 
-        conteo[nombre]++; // Cada respuesta cuenta, incluso "No" o "No Aplica"
+                conteo[nombre]++; // Cada respuesta cuenta
 
-        if (item.cumple === true) {
-            suma[nombre] += item.porcentaje_cumplimiento || 0;
+                if (item.cumple === true) {
+                    suma[nombre] += item.porcentaje_cumplimiento || 0;
+                }
+                // Si cumple = false o null, suma 0 (ya está en 0)
+            });
+
+            // Calcular promedio
+            const resultado = {};
+            todosLosItems.forEach(item => {
+                if (conteo[item] > 0) {
+                    resultado[item] = parseFloat((suma[item] / conteo[item]).toFixed(1));
+                } else {
+                    resultado[item] = 0;
+                }
+            });
+
+            return resultado;
         }
-        // Si cumple = false o null, suma 0 (ya está en 0)
-    });
-
-    // Calcular promedio
-    todosLosItems.forEach(item => {
-        if (conteo[item] > 0) {
-            resultado[item] = parseFloat((suma[item] / conteo[item]).toFixed(1));
-        } else {
-            resultado[item] = 0;
-        }
-    });
-
-    return resultado;
-}
 
         // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
             const itemsPagina = todosLosItems.slice(inicio, fin);
-
             // Actualizar gráfico
             renderizarGrafico(itemsPagina);
-
             // Actualizar tabla
             renderizarTabla(itemsPagina);
-
             // Actualizar controles de paginación
             document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
             document.getElementById('btnAnterior').disabled = paginaActual === 1;
@@ -510,7 +502,6 @@
             if (chartInstance) {
                 chartInstance.destroy();
             }
-
             // Extraer solo los números del ítem (ej. "1", "2", ...)
             const labels = itemsPagina.map(k => {
                 const texto = nombresItems[k];
@@ -518,7 +509,6 @@
                 return num;
             });
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
-
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -569,7 +559,6 @@
                     }
                 }
             });
-
             document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacionActual} (Ítems ${(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–${Math.min(paginaActual * ITEMS_POR_PAGINA, todosLosItems.length)} de ${todosLosItems.length})`;
         }
 
@@ -577,7 +566,6 @@
             const tbody = document.getElementById('tablaItems');
             const filtro = document.getElementById('filtroItems');
             tbody.innerHTML = '';
-
             itemsPagina.forEach(key => {
                 const nombre = nombresItems[key];
                 const porcentaje = estadisticasTotales[key] || 0;
@@ -602,7 +590,6 @@
                 actualizarVista();
             }
         });
-
         document.getElementById('btnSiguiente').addEventListener('click', () => {
             if (paginaActual < totalPaginas) {
                 paginaActual++;
