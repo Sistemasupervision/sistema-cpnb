@@ -462,29 +462,42 @@
         document.getElementById('mensajeSinDatos').style.display = 'block';
     }
 }
-        function calcularEstadisticas(items) {
-            const resultado = {};
-            todosLosItems.forEach(item => {
-                resultado[item] = 0;
-            });
-            const agrupado = {};
-            items.forEach(item => {
-                if (item.cumple === true) {
-                    if (!agrupado[item.item_nombre]) {
-                        agrupado[item.item_nombre] = [];
-                    }
-                    agrupado[item.item_nombre].push(item.porcentaje_cumplimiento || 0);
-                }
-            });
-            Object.keys(agrupado).forEach(item => {
-                const valores = agrupado[item];
-                if (valores.length > 0) {
-                    const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
-                    resultado[item] = parseFloat(promedio.toFixed(1));
-                }
-            });
-            return resultado;
+    // ✅ FUNCIÓN CORREGIDA: calcula % como (Sí / Total)
+function calcularEstadisticas(items) {
+    const conteoTotal = {};
+    const conteoCumplidos = {};
+
+    // Inicializar contadores para todos los ítems
+    todosLosItems.forEach(item => {
+        conteoTotal[item] = 0;
+        conteoCumplidos[item] = 0;
+    });
+
+    // Contar respuestas para cada ítem
+    items.forEach(item => {
+        // Asegurarse de que el item_nombre exista en nuestra lista de ítems
+        if (!todosLosItems.includes(item.item_nombre)) return;
+
+        // Incrementar el contador total
+        conteoTotal[item.item_nombre]++;
+
+        // Incrementar el contador de cumplidos si la respuesta es 'true'
+        if (item.cumple === true) {
+            conteoCumplidos[item.item_nombre]++;
         }
+    });
+
+    // Calcular el porcentaje de cumplimiento para cada ítem
+    const resultado = {};
+    todosLosItems.forEach(item => {
+        const total = conteoTotal[item];
+        const cumplidos = conteoCumplidos[item];
+        // Si no hay respuestas, el porcentaje es 0
+        resultado[item] = total > 0 ? parseFloat(((cumplidos / total) * 100).toFixed(1)) : 0;
+    });
+
+    return resultado;
+}
 
         // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
