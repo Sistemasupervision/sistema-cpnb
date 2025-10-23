@@ -564,6 +564,7 @@
             document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
         }
 
+        // ✅ Nueva función para mensajes persistentes
         function mostrarMensajeItem(id, texto, tipo, persistente = false) {
             const msg = document.getElementById(`mensaje_${id}`);
             msg.textContent = texto;
@@ -597,15 +598,17 @@
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
 
-                // ✅ Esperar 8 segundos
+                // ✅ Esperar 10 segundos para sincronización
                 mostrarMensajeItem(id, '✅ Archivo subido. Esperando sincronización...', 'exito');
-                await new Promise(r => setTimeout(r, 8000));
+                await new Promise(r => setTimeout(r, 10000));
 
-                // ✅ Deshabilitar botones y mostrar mensaje persistente
+                // ✅ Deshabilitar todos los controles del ítem
                 input.disabled = true;
+                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).disabled = true;
                 document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).disabled = true;
                 document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).disabled = true;
 
+                // ✅ Mostrar mensaje PERSISTENTE
                 mostrarMensajeItem(id, '✅ Archivo subido. Debe actualizar la página para poder actualizar un archivo nuevamente.', 'exito', true);
 
                 // ❌ No llamar a verificarArchivosExistentes()
@@ -626,7 +629,7 @@
             try {
                 await supabase.storage.from('protocolos-supervision').remove([ruta]);
 
-                // ✅ Solo habilitar "Subir"
+                // ✅ Limpiar mensaje y habilitar SOLO "Subir"
                 const msg = document.getElementById(`mensaje_${id}`);
                 msg.style.display = 'none';
 
@@ -635,6 +638,10 @@
                 document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
                 document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
                 document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
+
+                // Asegurar que estén habilitados
+                document.querySelector(`#input_${id}`).disabled = false;
+                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).disabled = false;
 
                 mostrarMensajeItem(id, '✅ Archivo eliminado. Puede subir uno nuevo.', 'exito');
             } catch (e) {
