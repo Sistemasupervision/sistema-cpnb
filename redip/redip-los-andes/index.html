@@ -24,7 +24,6 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-    <!-- Vista principal: REDIP LOS ANDES -->
     <div id="rediAndesContainer" class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -76,7 +75,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === 1. Verificar acceso ===
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -100,13 +98,12 @@
             }
         }
 
-        // === 2. Cargar solo los CCPs de LOS ANDES ===
         async function cargarCCPs() {
             try {
                 const { data: ccps, error } = await supabase
                     .from('ccps')
                     .select('id, nombre')
-                    .in('id', ['merida', 'trujillo', 'tachira']) // 👈 Tus CCPs reales
+                    .in('id', ['merida', 'trujillo', 'tachira'])
                     .order('nombre', { ascending: true });
                 if (error) throw error;
                 const select = document.getElementById('ccpSelectModal');
@@ -127,7 +124,6 @@
             }
         }
 
-        // === 3. Eventos ===
         document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'block';
             cargarCCPs();
@@ -186,17 +182,14 @@
             };
         }
 
-        // === 4. Historial ===
         document.getElementById('btnHistorial').addEventListener('click', () => {
             window.location.href = 'seleccion-ccp-historial.html';
         });
 
-        // === 5. Volver al menú principal ===
         document.getElementById('backToDashboardBtn').addEventListener('click', () => {
             window.location.href = '../../index.html';
         });
 
-        // === 6. Inicializar ===
         verificarAcceso();
     </script>
 </body>
