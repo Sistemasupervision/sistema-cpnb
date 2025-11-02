@@ -24,6 +24,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+    <!-- Vista principal: REDIP LOS ANDES -->
     <div id="rediAndesContainer" class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -59,7 +60,7 @@
         <div class="input-group">
             <label for="ccpSelectModal">Seleccione CCP:</label>
             <select id="ccpSelectModal" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
-                <option value="">-- Elija un CCP --</option>
+                <option value="">-- Cargando... --</option>
             </select>
         </div>
         <div style="text-align:center; margin-top: 30px;">
@@ -75,6 +76,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // === 1. Verificar acceso ===
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -98,16 +100,21 @@
             }
         }
 
+        // === 2. Cargar solo los CCPs de LOS ANDES ===
         async function cargarCCPs() {
             try {
                 const { data: ccps, error } = await supabase
                     .from('ccps')
                     .select('id, nombre')
-                    .in('id', ['merida', 'trujillo', 'tachira']) // 👈 Tus CCPs reales de LOS ANDES
+                    .in('id', ['merida', 'trujillo', 'tachira']) // 👈 Tus CCPs reales
                     .order('nombre', { ascending: true });
                 if (error) throw error;
                 const select = document.getElementById('ccpSelectModal');
                 select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+                if (!ccps || ccps.length === 0) {
+                    select.innerHTML = '<option value="">No hay CCPs disponibles</option>';
+                    return;
+                }
                 ccps.forEach(ccp => {
                     const opt = document.createElement('option');
                     opt.value = ccp.id;
@@ -120,6 +127,7 @@
             }
         }
 
+        // === 3. Eventos ===
         document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'block';
             cargarCCPs();
@@ -178,15 +186,17 @@
             };
         }
 
+        // === 4. Historial ===
         document.getElementById('btnHistorial').addEventListener('click', () => {
             window.location.href = 'seleccion-ccp-historial.html';
         });
 
+        // === 5. Volver al menú principal ===
         document.getElementById('backToDashboardBtn').addEventListener('click', () => {
             window.location.href = '../../index.html';
         });
 
-        // Inicializar
+        // === 6. Inicializar ===
         verificarAcceso();
     </script>
 </body>
