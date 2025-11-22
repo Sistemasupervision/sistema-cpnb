@@ -97,26 +97,27 @@
                 window.location.href = '../../index.html';
             }
         }
-        async function cargarCCPs() {
-            try {
-                const { data: ccps, error } = await supabase
-                    .from('ccps')
-                    .select('id, nombre')
-                    .order('nombre', { ascending: true });
-                if (error) throw error;
-                const select = document.getElementById('ccpSelectModal');
-                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
-                ccps.forEach(ccp => {
-                    const opt = document.createElement('option');
-                    opt.value = ccp.id;
-                    opt.textContent = ccp.nombre;
-                    select.appendChild(opt);
-                });
-            } catch (error) {
-                console.error('Error al cargar CCPs:', error);
-                alert('Error al cargar los CCPs.');
-            }
-        }
+ async function cargarCCPs() {
+    try {
+        const { data: ccps, error } = await supabase
+            .from('ccps')
+            .select('id, nombre')
+            .eq('redip', '{nombre}')   // ← ¡Este es el cambio clave!
+            .order('nombre', { ascending: true });
+        if (error) throw error;
+        const select = document.getElementById('ccpSelectModal');
+        select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+        ccps.forEach(ccp => {
+            const opt = document.createElement('option');
+            opt.value = ccp.id;
+            opt.textContent = ccp.nombre;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Error al cargar CCPs:', error);
+        alert('Error al cargar los CCPs.');
+    }
+}
         document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'block';
             cargarCCPs();
