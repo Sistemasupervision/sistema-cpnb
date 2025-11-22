@@ -939,10 +939,6 @@
             window.history.back();
         }
 
-        // === FUNCIONES EXISTENTES (mostrarDetalle, exportar, etc.) ===
-        // (mantenemos tus funciones originales de detalle, PDF, reinspección, etc.)
-
-        // Inicialización
         verificarAcceso().then(redip => {
             if (redip) {
                 cargarCCPsPorRedip().then(() => {
@@ -953,16 +949,6 @@
             }
         });
 
-        // === FUNCIONES EXISTENTES DE MODAL Y PDF ===
-        // (mantenemos tu lógica de mostrarDetalle(), exportarInspeccionAPDF(), etc.)
-        // [Insertar aquí tus funciones originales de detalle, reinspección y exportación]
-        // Por brevedad, no las repito, pero debes conservarlas.
-        // Solo reemplaza el bloque final con tus funciones actuales de:
-        // - mostrarDetalle()
-        // - cerrarModal()
-        // - exportarInspeccionAPDF()
-        // - abrirModalFecha(), cerrarModalFecha(), confirmarNuevaFecha()
-        // - exportarHistorialAPDF()
 
     </script>
 </body>
