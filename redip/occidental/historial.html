@@ -1336,21 +1336,17 @@
             }
         }
 
-        // === INICIALIZAR ===
-        verificarAcceso().then(async () => {
-            const desde = hace30Dias.toISOString().split('T')[0];
-            const hasta = hoy.toISOString().split('T')[0];
-
-            if (ccpIdDesdeUrl) {
-                document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
-                document.getElementById('ccpFilter').disabled = true;
-                // ✅ Cargar estaciones y servicios del CCP seleccionado
-                await cargarEstacionesYServicios(ccpIdDesdeUrl);
-                cargarHistorial(desde, hasta, ccpIdDesdeUrl);
-            } else {
-                cargarHistorial(desde, hasta);
-            }
-        });
+verificarAcceso().then(async () => {
+    const desde = hace30Dias.toISOString().split('T')[0];
+    const hasta = hoy.toISOString().split('T')[0];
+    if (ccpIdDesdeUrl) {
+        document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
+        await cargarEstacionesYServicios(ccpIdDesdeUrl);
+        cargarHistorial(desde, hasta, ccpIdDesdeUrl);
+    } else {
+        cargarHistorial(desde, hasta);
+    }
+});
     </script>
 </body>
 </html>
