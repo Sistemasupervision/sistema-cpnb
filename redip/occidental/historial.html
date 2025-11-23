@@ -7,9 +7,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- Tus estilos principales -->
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        /* === (Mismos estilos que tu Historial.html original) === */
+        /* Estilos específicos para esta página */
         .container {
             max-width: 1000px;
             padding: 40px;
@@ -441,7 +442,7 @@
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Historial de Inspecciones</h1>
-            <p class="ccp-info" id="ccpNombreDisplay" style="display:none;">Cargando...</p>
+            <p class="ccp-info" id="ccpNombreDisplay">Cargando...</p>
         </div>
         <div class="actions-row">
             <button class="back-btn" onclick="volverAIndex()">
@@ -466,7 +467,13 @@
                 <div class="input-group" style="flex: 1; min-width: 300px;">
                     <label for="ccpFilter">Filtrar por CCP:</label>
                     <select id="ccpFilter" class="filter-select">
-                        <option value="">Cargando CCPs...</option>
+                        <option value="">Todos los CCP</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="col">CCPE COL</option>
+                        <option value="lara">CCPE LARA</option>
+                        <option value="falcon">CCPE FALCÓN</option>
                     </select>
                 </div>
                 <div class="input-group" style="flex: 1; min-width: 300px;">
@@ -510,128 +517,104 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
+        const ccpNombres = {
+            "metropolitano": "CCP METROPOLITANO",
+            "sur-del-lago": "CCP SUR DEL LAGO",
+            "guajira": "CCP GUAJIRA",
+            "col": "CCPE COL",
+            "lara": "CCPE LARA",
+            "falcon": "CCPE FALCÓN"
+        };
+        // === PARÁMETROS DE URL ===
+        const urlParams = new URLSearchParams(window.location.search);
+        const ccpIdDesdeUrl = urlParams.get('ccpId');
+        const ccpNombreDesdeUrl = urlParams.get('ccpNombre');
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
         document.getElementById('fechaHasta').valueAsDate = hoy;
         document.getElementById('fechaDesde').valueAsDate = hace30Dias;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-
         let inspeccionesCache = [];
         let paginaActual = 1;
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
 
-        // === VERIFICAR ACCESO Y OBTENER REDIP ===
+        // Mostrar nombre del CCP en el encabezado
+        if (ccpNombreDesdeUrl) {
+            document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombreDesdeUrl)}`;
+        } else {
+            document.getElementById('ccpNombreDisplay').style.display = 'none';
+        }
+
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión para acceder a esta página.');
                 window.location.href = 'index.html';
-                return null;
+                return;
             }
-
             try {
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-
                 if (error || !data) {
                     alert('Error al verificar sus permisos.');
                     window.location.href = 'index.html';
-                    return null;
+                    return;
                 }
-
                 if (data.redip !== 'occidental' && data.redip !== 'admin') {
                     alert('⚠️ No tiene permisos para acceder a esta sección.');
                     window.location.href = 'index.html';
-                    return null;
+                    return;
                 }
-
-                return data.redip;
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
                 alert('Error al verificar sus permisos.');
                 window.location.href = 'index.html';
-                return null;
             }
         }
 
-        // ✅ CARGAR CCPs DE LA REDIP ACTUAL
-        async function cargarCCPsPorRedip(redipActual) {
-            try {
-                const { data: ccps, error } = await supabase
-                    .from('ccps')
-                    .select('id, nombre')
-                    .eq('redip', redipActual)
-                    .order('nombre', { ascending: true });
-
-                if (error) throw error;
-
-                const select = document.getElementById('ccpFilter');
-                select.innerHTML = '<option value="">Todos los CCP</option>';
-                ccps.forEach(ccp => {
-                    const opt = document.createElement('option');
-                    opt.value = ccp.id;
-                    opt.textContent = ccp.nombre;
-                    select.appendChild(opt);
-                });
-
-                select.addEventListener('change', cargarEntidadesPorCCP);
-            } catch (error) {
-                console.error('Error al cargar CCPs:', error);
-                document.getElementById('ccpFilter').innerHTML = '<option value="">Error al cargar</option>';
-            }
-        }
-
-        // Cargar estaciones/servicios al cambiar CCP
-        async function cargarEntidadesPorCCP() {
+        document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
             const servicioSelect = document.getElementById('servicioFilter');
-
             estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
             servicioSelect.innerHTML = '<option value="">Todos los servicios</option>';
-
             if (!ccpId) return;
-
             try {
-                // Estaciones
-                const {  estaciones } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre')
+                    .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
+                if (error) throw error;
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.id;
                     opt.textContent = est.nombre;
                     estacionSelect.appendChild(opt);
                 });
-
-                // Servicios
-                const {  servicios } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
-                    .select('id, nombre')
+                    .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
+                if (servError) throw servError;
                 servicios.forEach(serv => {
                     const opt = document.createElement('option');
                     opt.value = serv.id;
                     opt.textContent = serv.nombre;
                     servicioSelect.appendChild(opt);
                 });
-
             } catch (error) {
-                console.error('Error al cargar entidades:', error);
-                alert('Error al cargar estaciones o servicios.');
+                console.error('Error al cargar estaciones o servicios:', error);
+                alert('Error al cargar las estaciones o servicios');
             }
-        }
+        });
 
-        // === CARGAR HISTORIAL (igual que antes) ===
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
                 // Cargar estaciones y servicios
@@ -648,7 +631,6 @@
                 const servicioMap = {};
                 const ccpEstaciones = {};
                 const ccpServicios = {};
-
                 todasEstaciones.forEach(est => {
                     estacionMap[est.id] = { nombre: est.nombre, ccp_id: est.ccp_id };
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
@@ -660,7 +642,7 @@
                     ccpServicios[serv.ccp_id].push(serv.id);
                 });
 
-                // Consultar inspecciones
+                // Consultar inspecciones (estaciones + servicios)
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
@@ -676,7 +658,6 @@
 
                 let idsEstacionPermitidos = null;
                 let idsServicioPermitidos = null;
-
                 if (estacionId) {
                     idsEstacionPermitidos = [parseInt(estacionId)];
                 } else if (servicioId) {
@@ -758,7 +739,6 @@
                 paginaActual = 1;
                 renderizarLista();
                 renderizarPaginacion();
-
             } catch (error) {
                 console.error('Error al cargar historial:', error);
                 document.getElementById('inspeccionesList').innerHTML = 
@@ -768,18 +748,15 @@
             }
         }
 
-        // === FUNCIONES DE RENDERIZADO (igual que tu archivo original) ===
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
             const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
             const contenedor = document.getElementById('inspeccionesList');
-
             if (!inspeccionesCache || inspeccionesCache.length === 0) {
                 contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
                 return;
             }
-
             contenedor.innerHTML = '';
             inspeccionesPagina.forEach(insp => {
                 const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
@@ -789,7 +766,6 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 const hoy = new Date();
@@ -805,7 +781,6 @@
                         estadoClase = 'estado-amarillo';
                     }
                 }
-
                 let claseCumplimiento = 'cumplimiento-bajo';
                 if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
                 else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
@@ -823,6 +798,7 @@
                 }
                 botonesHTML += `</div>`;
 
+                // ✅ Ícono actualizado: documento para servicios
                 const tipoIcono = insp.tipo === 'servicio' ? '📄' : '👮';
                 const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
 
@@ -862,14 +838,12 @@
             const paginacionDiv = document.getElementById('pagination');
             paginacionDiv.innerHTML = '';
             if (totalPaginas <= 1) return;
-
             const maxVisible = 5;
             let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2));
             let end = Math.min(totalPaginas, start + maxVisible - 1);
             if (end - start + 1 < maxVisible) {
                 start = Math.max(1, end - maxVisible + 1);
             }
-
             const prevBtn = document.createElement('button');
             prevBtn.textContent = '«';
             prevBtn.disabled = paginaActual === 1;
@@ -881,7 +855,6 @@
                 }
             };
             paginacionDiv.appendChild(prevBtn);
-
             for (let i = start; i <= end; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
@@ -893,7 +866,6 @@
                 };
                 paginacionDiv.appendChild(btn);
             }
-
             const nextBtn = document.createElement('button');
             nextBtn.textContent = '»';
             nextBtn.disabled = paginaActual === totalPaginas;
@@ -913,28 +885,383 @@
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionId = document.getElementById('estacionFilter').value;
             const servicioId = document.getElementById('servicioFilter').value;
-
             if (desde && hasta && new Date(desde) > new Date(hasta)) {
                 alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta".');
                 return;
             }
-
             cargarHistorial(desde, hasta, ccpId, estacionId, servicioId);
         }
 
-        function volverAIndex() {
-            window.history.back();
+        // === ✅ FUNCIÓN CORREGIDA: carga detalles SIN depender del caché ===
+        async function mostrarDetalle(inspeccionId) {
+            try {
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+                    .eq('inspeccion_id', inspeccionId)
+                    .order('item_nombre', { ascending: true });
+
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
+                    .eq('id', inspeccionId)
+                    .single();
+
+                if (itemsError || inspError) {
+                    console.error('Error cargando datos:', itemsError || inspError);
+                    alert('No se pudieron cargar los detalles.');
+                    return;
+                }
+
+                let nombreEntidad = 'Entidad no disponible';
+                let tipo = 'desconocido';
+
+                if (inspeccion.estacion_id) {
+                    const { data: estacionData, error: estError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('nombre')
+                        .eq('id', inspeccion.estacion_id)
+                        .single();
+                    if (!estError && estacionData) {
+                        nombreEntidad = estacionData.nombre;
+                        tipo = 'estacion';
+                    }
+                } else if (inspeccion.servicio_id) {
+                    const { data: servicioData, error: servError } = await supabase
+                        .from('servicios_administrativos')
+                        .select('nombre')
+                        .eq('id', inspeccion.servicio_id)
+                        .single();
+                    if (!servError && servicioData) {
+                        nombreEntidad = servicioData.nombre;
+                        tipo = 'servicio';
+                    }
+                }
+
+                const nombresAmigables = {
+                    nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
+                    acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+                    dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+                    conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+                    conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+                    conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+                    estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+                    manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+                    plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+                    infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+                    direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+                    oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+                    documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+                    uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+                    practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+                    entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+                    talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+                    conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+                    acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+                    conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+                    instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+                    talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+                    conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+                    cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+                    cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+                    dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+                    practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+                    numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+                    personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+                    servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+                    publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+                    libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+                    libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+                    libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+                    archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+                    libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+                    supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+                    cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+                    bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+                    resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+                    equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+                    equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+                    plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+                    calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+                    plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+                    servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+                    unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+                    areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+                    vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+                    placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+                    vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+                    vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+                    accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+                    necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+                    identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+                    informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+                    supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+                    vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+                    despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+                    supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+                    planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+                    conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+                    registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+                    rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+                    archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+                    informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
+                    estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
+                };
+
+                let fechaFormateada = 'Fecha no disponible';
+                if (inspeccion.created_at) {
+                    const fechaObj = new Date(inspeccion.created_at);
+                    if (!isNaN(fechaObj.getTime())) {
+                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="exportarInspeccionAPDF(${inspeccionId})" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
+                            <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
+                        </div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">${tipo === 'servicio' ? 'Servicio' : 'Estación'}:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${nombreEntidad}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? new Date(inspeccion.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const itemsArray = Array.isArray(items) ? items : [];
+                if (itemsArray.length > 0) {
+                    html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
+                    itemsArray.forEach(item => {
+                        const nombre = nombresAmigables[item.item_nombre] || item.item_nombre.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        const clase = item.cumple ? 'si' : 'no';
+                        const texto = item.cumple ? 'Sí' : 'No';
+                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
+                        html += `
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
+                                    <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
+                                        ${texto}${porcentajeTexto}
+                                    </span>
+                                </div>
+                                ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                                    <strong>Observación:</strong> ${item.observacion}
+                                </div>` : ''}
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
+                }
+
+                if (inspeccion.observaciones_generales) {
+                    html += `
+                        <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
+                            <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('detalleContenido').innerHTML = html;
+                document.getElementById('detalleModal').style.display = 'flex';
+                // Guardar el ID actual para la exportación PDF
+                inspeccionIdActual = inspeccionId;
+            } catch (error) {
+                console.error('Error al cargar detalles:', error);
+                alert('Error al cargar los detalles de la inspección.');
+            }
         }
 
-        // === FUNCIONES EXISTENTES (mostrarDetalle, exportar, reinspección) ===
-        // [Incluye aquí tus funciones originales de mostrarDetalle(), exportarInspeccionAPDF(), etc.]
+        function cerrarModal() {
+            document.getElementById('detalleModal').style.display = 'none';
+        }
+
+        document.getElementById('detalleModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detalleModal') cerrarModal();
+        });
+
+        async function exportarInspeccionAPDF(inspeccionId) {
+            if (!inspeccionId) {
+                alert('⚠️ No se ha seleccionado una inspección.');
+                return;
+            }
+
+            try {
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('estacion_id, servicio_id')
+                    .eq('id', inspeccionId)
+                    .single();
+                if (inspError) throw inspError;
+
+                let tipo = 'desconocido';
+                if (inspeccion.estacion_id) {
+                    tipo = 'estacion';
+                } else if (inspeccion.servicio_id) {
+                    tipo = 'servicio';
+                }
+
+                const { data: nuevoReporte, error: insertError } = await supabase
+                    .from('reportes')
+                    .insert({ inspeccion_id: inspeccionId })
+                    .select('id, fecha_generacion')
+                    .single();
+                if (insertError) {
+                    console.error('Error al crear reporte:', insertError);
+                    alert('⚠️ No se pudo generar el número de reporte.');
+                    return;
+                }
+
+                const fechaGen = new Date(nuevoReporte.fecha_generacion);
+                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
+                await supabase
+                    .from('reportes')
+                    .update({ numero_reporte: numeroReporte })
+                    .eq('id', nuevoReporte.id);
+
+                const content = document.getElementById('detalleContenido');
+                if (!content || !content.innerHTML.trim()) {
+                    alert('No hay contenido para exportar.');
+                    return;
+                }
+
+                const htmlContent = `
+    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="../../assets/img/LOGO-PNB.png" 
+                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+        </div>
+        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación...
+            <!-- texto introductorio igual que antes -->
+        </div>
+        ${content.innerHTML}
+        <div style="margin-top: 50px; page-break-inside: avoid;">
+            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
+            <!-- firmas igual que antes -->
+        </div>
+        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+        </div>
+    </div>
+`;
+
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+
+                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+                document.body.removeChild(printDiv);
+                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('❌ Error al generar el reporte.');
+            }
+        }
+
+        function abrirModalFecha(inspeccionId) {
+            inspeccionIdActual = inspeccionId;
+            document.getElementById('modalFecha').style.display = 'flex';
+        }
+
+        function cerrarModalFecha() {
+            document.getElementById('modalFecha').style.display = 'none';
+            document.getElementById('nuevaFechaInput').value = '';
+        }
+
+        async function confirmarNuevaFecha() {
+            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
+            if (!nuevaFecha) {
+                alert("Por favor seleccione una fecha.");
+                return;
+            }
+            try {
+                const { error } = await supabase
+                    .from('inspecciones')
+                    .update({ proxima_inspeccion: nuevaFecha })
+                    .eq('id', inspeccionIdActual);
+                if (error) throw error;
+                alert("✅ Reinspección actualizada correctamente.");
+                cerrarModalFecha();
+                const desde = document.getElementById('fechaDesde').value;
+                const hasta = document.getElementById('fechaHasta').value;
+                const ccpId = document.getElementById('ccpFilter').value;
+                const estacionId = document.getElementById('estacionFilter').value;
+                const servicioId = document.getElementById('servicioFilter').value;
+                cargarHistorial(desde || null, hasta || null, ccpId || null, estacionId || null, servicioId || null);
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                alert("❌ Error al actualizar la reinspección.");
+            }
+        }
+
+        function volverAIndex() {
+            if (ccpIdDesdeUrl && ccpNombreDesdeUrl) {
+                window.location.href = `index.html?ccpId=${encodeURIComponent(ccpIdDesdeUrl)}&ccpNombre=${encodeURIComponent(ccpNombreDesdeUrl)}`;
+            } else {
+                window.history.back();
+            }
+        }
 
         // === INICIALIZAR ===
-        verificarAcceso().then(redip => {
-            if (redip) {
-                cargarCCPsPorRedip(redip);
-                const desde = hace30Dias.toISOString().split('T')[0];
-                const hasta = hoy.toISOString().split('T')[0];
+        verificarAcceso().then(() => {
+            const desde = hace30Dias.toISOString().split('T')[0];
+            const hasta = hoy.toISOString().split('T')[0];
+
+            // ✅ Si viene ccpId en la URL, usarlo y bloquear el selector
+            if (ccpIdDesdeUrl) {
+                document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
+                document.getElementById('ccpFilter').disabled = true;
+                cargarHistorial(desde, hasta, ccpIdDesdeUrl);
+            } else {
                 cargarHistorial(desde, hasta);
             }
         });
