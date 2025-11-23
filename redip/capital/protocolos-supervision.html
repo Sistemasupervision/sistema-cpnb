@@ -245,7 +245,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ Verificar acceso
+        // ✅ Verificar acceso a REDIP CAPITAL
         async function verificarAcceso() {
             const {  { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -293,102 +293,102 @@
         });
 
         // === Renderizado de pestañas ===
-       function renderPestana(tipo) {
-    const contenedor = document.getElementById('seleccionActiva');
-    const habilitar = !!ccpSeleccionado;
-    document.getElementById('protocolosContainer').innerHTML = '';
-    document.getElementById('btnDescargarTodo').disabled = true;
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
-    if (tipo === 'estacion') {
-        document.getElementById('tabEstacion').classList.add('activo');
-        tipoActivo = 'estacion';
-        idActivo = null;
-        contenedor.innerHTML = `
-            <div class="input-group">
-                <label>Estación Policial:</label>
-                <select id="estacionSelect" ${habilitar ? '' : 'disabled'}>
-                    <option value="">${habilitar ? '-- Elija una estación --' : '-- Seleccione CCP primero --'}</option>
-                </select>
-            </div>
-        `;
-        if (habilitar) {
-            (async () => {
-                try {
-                    const { data: estaciones, error } = await supabase
-                        .from('estaciones_policiales')
-                        .select('id, nombre')
-                        .eq('ccp_id', ccpSeleccionado)
-                        .order('nombre', { ascending: true });
-                    if (error) throw error;
-                    const select = document.getElementById('estacionSelect');
-                    select.innerHTML = '<option value="">-- Elija una estación --</option>';
-                    estaciones.forEach(est => {
-                        const opt = document.createElement('option');
-                        opt.value = est.id;
-                        opt.textContent = est.nombre;
-                        select.appendChild(opt);
-                    });
-                    select.addEventListener('change', (e) => {
-                        idActivo = e.target.value || null;
-                        if (idActivo) {
-                            renderizarProtocolos();
-                            verificarArchivosExistentes();
-                        } else {
-                            document.getElementById('protocolosContainer').innerHTML = '';
+        function renderPestana(tipo) {
+            const contenedor = document.getElementById('seleccionActiva');
+            const habilitar = !!ccpSeleccionado;
+            document.getElementById('protocolosContainer').innerHTML = '';
+            document.getElementById('btnDescargarTodo').disabled = true;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
+            if (tipo === 'estacion') {
+                document.getElementById('tabEstacion').classList.add('activo');
+                tipoActivo = 'estacion';
+                idActivo = null;
+                contenedor.innerHTML = `
+                    <div class="input-group">
+                        <label>Estación Policial:</label>
+                        <select id="estacionSelect" ${habilitar ? '' : 'disabled'}>
+                            <option value="">${habilitar ? '-- Elija una estación --' : '-- Seleccione CCP primero --'}</option>
+                        </select>
+                    </div>
+                `;
+                if (habilitar) {
+                    (async () => {
+                        try {
+                            const {  estaciones, error } = await supabase
+                                .from('estaciones_policiales')
+                                .select('id, nombre')
+                                .eq('ccp_id', ccpSeleccionado)
+                                .order('nombre', { ascending: true });
+                            if (error) throw error;
+                            const select = document.getElementById('estacionSelect');
+                            select.innerHTML = '<option value="">-- Elija una estación --</option>';
+                            estaciones.forEach(est => {
+                                const opt = document.createElement('option');
+                                opt.value = est.id;
+                                opt.textContent = est.nombre;
+                                select.appendChild(opt);
+                            });
+                            select.addEventListener('change', (e) => {
+                                idActivo = e.target.value || null;
+                                if (idActivo) {
+                                    renderizarProtocolos();
+                                    verificarArchivosExistentes();
+                                } else {
+                                    document.getElementById('protocolosContainer').innerHTML = '';
+                                }
+                            });
+                        } catch (err) {
+                            console.error('Error al cargar estaciones:', err);
+                            document.getElementById('estacionSelect').innerHTML = '<option value="">Error al cargar</option>';
                         }
-                    });
-                } catch (err) {
-                    console.error('Error al cargar estaciones:', err);
-                    document.getElementById('estacionSelect').innerHTML = '<option value="">Error al cargar</option>';
+                    })();
                 }
-            })();
-        }
-    } else {
-        document.getElementById('tabServicio').classList.add('activo');
-        tipoActivo = 'servicio';
-        idActivo = null;
-        contenedor.innerHTML = `
-            <div class="input-group">
-                <label>Servicio Administrativo:</label>
-                <select id="servicioSelect" ${habilitar ? '' : 'disabled'}>
-                    <option value="">${habilitar ? '-- Elija un servicio --' : '-- Seleccione CCP primero --'}</option>
-                </select>
-            </div>
-        `;
-        if (habilitar) {
-            (async () => {
-                try {
-                    const { data: servicios, error } = await supabase
-                        .from('servicios_administrativos')
-                        .select('id, nombre')
-                        .eq('ccp_id', ccpSeleccionado)
-                        .order('nombre', { ascending: true });
-                    if (error) throw error;
-                    const select = document.getElementById('servicioSelect');
-                    select.innerHTML = '<option value="">-- Elija un servicio --</option>';
-                    servicios.forEach(serv => {
-                        const opt = document.createElement('option');
-                        opt.value = serv.id;
-                        opt.textContent = serv.nombre;
-                        select.appendChild(opt);
-                    });
-                    select.addEventListener('change', (e) => {
-                        idActivo = e.target.value || null;
-                        if (idActivo) {
-                            renderizarProtocolos();
-                            verificarArchivosExistentes();
-                        } else {
-                            document.getElementById('protocolosContainer').innerHTML = '';
+            } else {
+                document.getElementById('tabServicio').classList.add('activo');
+                tipoActivo = 'servicio';
+                idActivo = null;
+                contenedor.innerHTML = `
+                    <div class="input-group">
+                        <label>Servicio Administrativo:</label>
+                        <select id="servicioSelect" ${habilitar ? '' : 'disabled'}>
+                            <option value="">${habilitar ? '-- Elija un servicio --' : '-- Seleccione CCP primero --'}</option>
+                        </select>
+                    </div>
+                `;
+                if (habilitar) {
+                    (async () => {
+                        try {
+                            const {  servicios, error } = await supabase
+                                .from('servicios_administrativos')
+                                .select('id, nombre')
+                                .eq('ccp_id', ccpSeleccionado)
+                                .order('nombre', { ascending: true });
+                            if (error) throw error;
+                            const select = document.getElementById('servicioSelect');
+                            select.innerHTML = '<option value="">-- Elija un servicio --</option>';
+                            servicios.forEach(serv => {
+                                const opt = document.createElement('option');
+                                opt.value = serv.id;
+                                opt.textContent = serv.nombre;
+                                select.appendChild(opt);
+                            });
+                            select.addEventListener('change', (e) => {
+                                idActivo = e.target.value || null;
+                                if (idActivo) {
+                                    renderizarProtocolos();
+                                    verificarArchivosExistentes();
+                                } else {
+                                    document.getElementById('protocolosContainer').innerHTML = '';
+                                }
+                            });
+                        } catch (err) {
+                            console.error('Error al cargar servicios:', err);
+                            document.getElementById('servicioSelect').innerHTML = '<option value="">Error al cargar</option>';
                         }
-                    });
-                } catch (err) {
-                    console.error('Error al cargar servicios:', err);
-                    document.getElementById('servicioSelect').innerHTML = '<option value="">Error al cargar</option>';
+                    })();
                 }
-            })();
+            }
         }
-    }
-}
 
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
@@ -428,7 +428,7 @@
             let existen = false;
             const rutaBase = `protocolos-supervision/capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`;
             for (const proto of protocolos) {
-                const ruta = `${rutaBase}${proto.archivo}`;
+                const ruta = `${rutaBase}/${proto.archivo}`;
                 try {
                     const {  data } = await supabase.storage.from('protocolos-supervision').download(ruta);
                     if (data) {
