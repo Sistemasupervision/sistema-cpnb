@@ -1328,14 +1328,9 @@
             }
         }
 
-        function volverAIndex() {
-            if (ccpIdDesdeUrl && ccpNombreDesdeUrl) {
-                window.location.href = `index.html?ccpId=${encodeURIComponent(ccpIdDesdeUrl)}&ccpNombre=${encodeURIComponent(ccpNombreDesdeUrl)}`;
-            } else {
-                window.history.back();
-            }
-        }
-
+function volverAIndex() {
+    window.location.href = 'index.html';
+}
 verificarAcceso().then(async () => {
     const desde = hace30Dias.toISOString().split('T')[0];
     const hasta = hoy.toISOString().split('T')[0];
