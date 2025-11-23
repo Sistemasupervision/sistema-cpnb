@@ -101,7 +101,7 @@
 
         async function cargarCCPs() {
             try {
-                const ccpIdsCapital = ['altos-mirandinos', 'ciudad-fajardo', 'distrito-capital', 'la-guaira', 'valles-del-tuy'];
+                const ccpIdsCapital = ['altos-mirandinos', 'ciudad-fajardo', 'distrito-capital', 'la-guaira', 'valles-del-tuy', 'barlovento'];
                 const { data: ccps, error } = await supabase
                     .from('ccps')
                     .select('id, nombre')
@@ -191,7 +191,7 @@
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
-                const ccpCapital = ['altos-mirandinos', 'ciudad-fajardo', 'distrito-capital', 'la-guaira', 'valles-del-tuy','barlovento'];
+                const ccpCapital = ['altos-mirandinos', 'ciudad-fajardo', 'distrito-capital', 'la-guaira', 'valles-del-tuy', 'barlovento'];
                 // 1. Estaciones
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
