@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial - Seleccionar CCP</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="../../assets/css/styles.css">
+</head>
+<body>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+    <div id="container" class="container" style="max-width: 600px; padding: 50px;">
+        <div class="logo-container">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Historial de Inspecciones</h1>
+        </div>
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                <option value="">-- Elija un CCP --</option>
+                <option value="altos-mirandinos">CCP ALTOS MIRANDINOS</option>
+                <option value="ciudad-fajardo">CCP CIUDAD FAJARDO</option>
+                <option value="distrito-capital">CCP DISTRITO CAPITAL</option>
+                <option value="la-guaira">CCP LA GUAIRA</option>
+                <option value="valles-del-tuy">CCP VALLES DEL TUY</option>
+            </select>
+        </div>
+        <button id="btnContinuar" class="action-btn" style="margin-top: 25px; padding: 14px; font-size: 16px; width: 100%;">
+            Ver Historial
+        </button>
+        <button id="btnVolver" class="back-btn" style="margin-top: 15px; padding: 10px 20px; width: 100%;">
+            ← Volver a REDIP CAPITAL
+        </button>
+    </div>
+    <script>
+        document.getElementById('btnContinuar').addEventListener('click', () => {
+            const ccpId = document.getElementById('ccpSelect').value;
+            if (!ccpId) {
+                alert('Seleccione un CCP.');
+                return;
+            }
+            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
+            window.location.href = `Historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+        });
+        document.getElementById('btnVolver').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>
