@@ -327,76 +327,97 @@
             }
         }
 
-        // === CARGAR DATOS (CORREGIDO) ===
-        async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
-            const contenedor = document.getElementById('galeriaContainer');
-            contenedor.innerHTML = '<div class="loading">Cargando...</div>';
-            try {
-                console.log('🔍 Iniciando carga para estación ID:', estacionId);
-                let query = supabase
-                    .from('inspecciones')
-                    .select('id, created_at')
-                    .eq('estacion_id', estacionId)
-                    .order('created_at', { ascending: false });
-                if (fechaDesde) {
-                    console.log('📅 Filtrando desde:', fechaDesde);
-                    query = query.gte('created_at', new Date(fechaDesde).toISOString());
+       // === CARGAR DATOS (CORREGIDO) ===
+async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
+    const contenedor = document.getElementById('galeriaContainer');
+    contenedor.innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+        console.log('🔍 Iniciando carga para estación ID:', estacionId);
+        let query = supabase
+            .from('inspecciones')
+            .select('id, created_at')
+            .eq('estacion_id', estacionId)
+            .order('created_at', { ascending: false });
+        if (fechaDesde) {
+            console.log('📅 Filtrando desde:', fechaDesde);
+            query = query.gte('created_at', new Date(fechaDesde).toISOString());
+        }
+        if (fechaHasta) {
+            const hasta = new Date(fechaHasta);
+            hasta.setUTCHours(23, 59, 59, 999);
+            console.log('📅 Filtrando hasta:', hasta.toISOString());
+            query = query.lte('created_at', hasta.toISOString());
+        }
+        const {  inspecciones, error: inspError } = await query;
+        if (inspError) {
+            throw new Error(`Error en inspecciones: ${inspError.message}`);
+        }
+        // ✅ Manejar el caso en que no hay inspecciones
+        const listaInspecciones = inspecciones || [];
+        console.log('✅ Inspecciones encontradas:', listaInspecciones.length);
+        if (listaInspecciones.length === 0) {
+            contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
+            document.getElementById('paginacionContainer').style.display = 'none';
+            return;
+        }
+        const entradasPorFecha = {};
+        for (const insp of listaInspecciones) {
+            console.log('🔍 Procesando inspección ID:', insp.id);
+            const {  items, error: itemError } = await supabase
+                .from('items_inspeccion')
+                .select('item_nombre, foto1_url, foto2_url, archivo_url')
+                .eq('inspeccion_id', insp.id)
+                .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
+            if (itemError) {
+                console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
+                continue;
+            }
+            // ✅ Manejar items correctamente
+            const listaItems = items || [];
+            if (listaItems.length === 0) {
+                console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
+                continue;
+            }
+            const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            if (!entradasPorFecha[fechaHora]) {
+                entradasPorFecha[fechaHora] = {};
+            }
+            for (const item of listaItems) {
+                const key = item.item_nombre;
+                if (!entradasPorFecha[fechaHora][key]) {
+                    entradasPorFecha[fechaHora][key] = {
+                        fotos: [],
+                        archivo_url: null
+                    };
                 }
-                if (fechaHasta) {
-                    const hasta = new Date(fechaHasta);
-                    hasta.setUTCHours(23, 59, 59, 999);
-                    console.log('📅 Filtrando hasta:', hasta.toISOString());
-                    query = query.lte('created_at', hasta.toISOString());
-                }
-                const {  inspecciones, error: inspError } = await query;
-                if (inspError) {
-                    throw new Error(`Error en inspecciones: ${inspError.message}`);
-                }
-                console.log('✅ Inspecciones encontradas:', inspecciones.length);
-                if (inspecciones.length === 0) {
-                    contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
-                    document.getElementById('paginacionContainer').style.display = 'none';
-                    return;
-                }
-                const entradasPorFecha = {};
-                for (const insp of inspecciones) {
-                    console.log('🔍 Procesando inspección ID:', insp.id);
-                    const {  items, error: itemError } = await supabase
-                        .from('items_inspeccion')
-                        .select('item_nombre, foto1_url, foto2_url, archivo_url')
-                        .eq('inspeccion_id', insp.id)
-                        .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
-                    if (itemError) {
-                        console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
-                        continue;
-                    }
-                    if (!items || items.length === 0) {
-                        console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
-                        continue;
-                    }
-                    const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    if (!entradasPorFecha[fechaHora]) {
-                        entradasPorFecha[fechaHora] = {};
-                    }
-                    for (const item of items) {
-                        const key = item.item_nombre;
-                        if (!entradasPorFecha[fechaHora][key]) {
-                            entradasPorFecha[fechaHora][key] = {
-                                fotos: [],
-                                archivo_url: null
-                            };
-                        }
-                        if (item.foto1_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto1_url);
-                        if (item.foto2_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto2_url);
-                        if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
-                    }
-                }
+                if (item.foto1_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto1_url);
+                if (item.foto2_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto2_url);
+                if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
+            }
+        }
+        // Convertir a array
+        todasLasEntradas = [];
+        for (const [fecha, items] of Object.entries(entradasPorFecha)) {
+            for (const [itemNombre, datos] of Object.entries(items)) {
+                todasLasEntradas.push({ fecha, itemNombre, ...datos });
+            }
+        }
+        console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
+        paginaActual = 1;
+        mostrarPagina();
+        actualizarPaginacion();
+        document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+    } catch (err) {
+        console.error('❌ Error completo:', err);
+        contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+    }
+}
                 // Convertir a array
                 todasLasEntradas = [];
                 for (const [fecha, items] of Object.entries(entradasPorFecha)) {
