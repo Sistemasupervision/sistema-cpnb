@@ -45,21 +45,21 @@
             🔔 Notificaciones
         </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-            📊 Resumen Mensual 
+            📊 Resumen Mensual
         </button>
-        <button onclick="window.location.href='protocolos.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+        <button onclick="window.location.href='protocolos-supervision.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             📑 Protocolos de Supervisión
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
 
-    <!-- Modal CCP -->
+    <!-- Modal para seleccionar CCP -->
     <div id="modalSeleccionCCP" class="container" style="display:none; max-width: 600px; padding: 50px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 20px; overflow: hidden;">
         <h1 class="title" style="margin-bottom: 20px; text-align: center;">Crear Nueva Inspección</h1>
         <div class="input-group">
             <label for="ccpSelectModal">Seleccione CCP:</label>
             <select id="ccpSelectModal" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
-                <option value="">-- Cargando... --</option>
+                <option value="">-- Elija un CCP --</option>
             </select>
         </div>
         <div style="text-align:center; margin-top: 30px;">
@@ -69,9 +69,8 @@
             <button id="btnCancelarCCP" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px; width: 100%;">Cancelar</button>
         </div>
     </div>
-
     <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
-
+    
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
@@ -90,23 +89,23 @@
                     .eq('user_id', user.id)
                     .single();
                 if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
+                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
                     window.location.href = '../../index.html';
                 }
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error al verificar su acceso.');
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
                 window.location.href = '../../index.html';
             }
         }
 
-        // ✅ CARGAR SOLO CCPs DE CAPITAL
         async function cargarCCPs() {
             try {
+                const ccpIdsCapital = ['capital', 'valles-del-tuy', 'altamira', 'libertador', 'costa-de-barlovento'];
                 const { data: ccps, error } = await supabase
                     .from('ccps')
                     .select('id, nombre')
-                    .eq('redip', 'capital')  // 🔑 FILTRO POR REDIP
+                    .in('id', ccpIdsCapital)
                     .order('nombre', { ascending: true });
                 if (error) throw error;
                 const select = document.getElementById('ccpSelectModal');
@@ -119,7 +118,7 @@
                 });
             } catch (error) {
                 console.error('Error al cargar CCPs:', error);
-                alert('Error al cargar los CCPs.');
+                alert('Error al cargar los CCPs de REDIP CAPITAL.');
             }
         }
 
@@ -138,46 +137,97 @@
             }
             const ccpNombre = document.getElementById('ccpSelectModal').options[document.getElementById('ccpSelectModal').selectedIndex].text;
             document.getElementById('modalSeleccionCCP').style.display = 'none';
-            window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            mostrarOpcionesCCP(ccpId, ccpNombre);
         });
 
-        // ✅ HISTORIAL: ir directamente a historial.html
-        document.getElementById('btnHistorial').addEventListener('click', () => {
-            window.location.href = 'Historial.html';
-        });
+        function mostrarOpcionesCCP(ccpId, ccpNombre) {
+            const dynamicView = document.getElementById('dynamicView');
+            dynamicView.innerHTML = `
+                <div class="logo-container">
+                    <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+                    <h1 class="title">Opciones para ${ccpNombre}</h1>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
+                    <button id="btnEstaciones" class="action-btn" style="padding:16px; font-size:18px; width: 100%;">
+                        🏢 Estaciones Policiales
+                    </button>
+                    <button id="btnServiciosAdmin" class="action-btn servicios-admin" style="padding:16px; font-size:18px; width: 100%;">
+                        📋 Servicios Administrativos
+                    </button>
+                    <button id="btnUbicaciones" class="action-btn ubicaciones" style="padding:16px; font-size:18px; width: 100%;">
+                        📍 Ubicaciones
+                    </button>
+                    <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
+                </div>
+            `;
+            document.getElementById('rediCapitalContainer').style.display = 'none';
+            dynamicView.style.display = 'block';
+
+            document.getElementById('btnEstaciones').onclick = () => {
+                window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            };
+            document.getElementById('btnServiciosAdmin').onclick = () => {
+                window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            };
+            document.getElementById('btnUbicaciones').onclick = () => {
+                window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            };
+            document.getElementById('backToCcpBtn').onclick = () => {
+                document.getElementById('rediCapitalContainer').style.display = 'block';
+                dynamicView.style.display = 'none';
+            };
+        }
+
+        function manejarParametrosURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ccpId = urlParams.get('ccpId');
+            const ccpNombre = urlParams.get('ccpNombre');
+            if (ccpId && ccpNombre) {
+                mostrarOpcionesCCP(ccpId, ccpNombre);
+            }
+        }
 
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
-                const ccpCapital = ['distrito-capital', 'la-guaira', 'ciudad-fajardo', 'valles-del-tuy', 'altos-mirandinos'];
+                const ccpCapital = ['capital', 'valles-del-tuy', 'altamira', 'libertador', 'costa-de-barlovento'];
+                // 1. Estaciones
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpCapital);
+                if (estError) throw estError;
                 const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
+                // 2. Servicios
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id')
                     .in('ccp_id', ccpCapital);
+                if (servError) throw servError;
                 const idsServicios = servicios ? servicios.map(s => s.id) : [];
-                let total = 0;
+                // 3. Contar vencidas en estaciones
+                let countEstaciones = 0;
                 if (idsEstaciones.length > 0) {
-                    const { count } = await supabase
+                    const { count, error: countError } = await supabase
                         .from('inspecciones')
                         .select('*', { count: 'exact', head: true })
                         .in('estacion_id', idsEstaciones)
                         .lte('proxima_inspeccion', hoy);
-                    total += count || 0;
+                    if (countError) throw countError;
+                    countEstaciones = count || 0;
                 }
+                // 4. Contar vencidas en servicios
+                let countServicios = 0;
                 if (idsServicios.length > 0) {
-                    const { count } = await supabase
+                    const { count, error: countError } = await supabase
                         .from('inspecciones')
                         .select('*', { count: 'exact', head: true })
                         .in('servicio_id', idsServicios)
                         .lte('proxima_inspeccion', hoy);
-                    total += count || 0;
+                    if (countError) throw countError;
+                    countServicios = count || 0;
                 }
-                return total;
+                return countEstaciones + countServicios;
             } catch (error) {
                 console.error('Error al contar notificaciones:', error);
                 return 0;
@@ -197,6 +247,11 @@
                 window.location.href = '../../index.html';
             });
             contarYMostrarNotificaciones();
+            manejarParametrosURL();
+        });
+
+        document.getElementById('btnHistorial').addEventListener('click', () => {
+            window.location.href = 'seleccion-ccp-historial.html';
         });
     </script>
 </body>
