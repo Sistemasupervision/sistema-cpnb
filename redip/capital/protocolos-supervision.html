@@ -467,19 +467,37 @@
             }
         }
 
-        async function actualizarArchivo(id) {
-            const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            try {
-                const { error } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
-                if (error) throw error;
-                mostrarMensajeItem(id, '✅ Archivo eliminado. Puede subir uno nuevo.', 'exito');
-                await verificarArchivosExistentes();
-            } catch (e) {
-                console.error('Error al eliminar:', e);
-                mostrarMensajeItem(id, '❌ Error al eliminar el archivo', 'error');
-            }
+  async function actualizarArchivo(id) {
+    if (!ccpSeleccionado || !tipoActivo || !idActivo) {
+        mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad primero.', 'error');
+        return;
+    }
+    const proto = protocolos.find(p => p.id === id);
+    if (!proto) {
+        mostrarMensajeItem(id, '❌ Protocolo no encontrado.', 'error');
+        return;
+    }
+    const ruta = `protocolos-supervision/capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+    try {
+        // ✅ 1. Eliminar el archivo del bucket
+        const { error: deleteError } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
+        if (deleteError && !deleteError.message.includes('The specified key does not exist')) {
+            throw new Error('No se pudo eliminar el archivo anterior.');
         }
+        // ✅ 2. Eliminar del estado local
+        delete estadoArchivos[id];
+        // ✅ 3. Actualizar la interfaz
+        renderizarProtocolos();
+        // ✅ 4. Habilitar el botón "Descargar Todo" si hay archivos
+        const existenArchivos = Object.values(estadoArchivos).some(a => a.existe);
+        document.getElementById('btnDescargarTodo').disabled = !existenArchivos;
+        // ✅ 5. Mostrar mensaje de éxito
+        mostrarMensajeItem(id, '✅ Archivo anterior eliminado. Puede subir uno nuevo.', 'exito');
+    } catch (e) {
+        console.error('Error al actualizar archivo:', e);
+        mostrarMensajeItem(id, `❌ Error: ${e.message || 'No se pudo eliminar el archivo.'}`, 'error');
+    }
+}
 
         async function descargarArchivo(id) {
             const archivo = estadoArchivos[id]?.data;
