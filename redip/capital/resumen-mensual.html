@@ -524,6 +524,7 @@
                 const fechaGen = new Date(nuevoReporte.fecha_generacion);
                 const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
                 const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+                // ✅ Número de reporte corregido para REDIP CAPITAL
                 const numeroReporte = `CPNB-REDIP-CAPITAL-${fechaStr}-${consecutivo}`;
                 await supabase
                     .from('reportes')
@@ -590,7 +591,7 @@
                 alert('❌ Error al generar el reporte.');
             }
         }
-        // === Verificar acceso ===
+        // === Verificar acceso a REDIP CAPITAL ===
         async function verificarAcceso() {
             const {  { user } } = await supabase.auth.getUser();
             if (!user) {
