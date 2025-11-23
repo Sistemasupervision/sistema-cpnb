@@ -3,65 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seleccionar Estación para Galería</title>
+    <title>Seleccionar Estación - Galería</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
-    <style>
-        .container {
-            max-width: 600px;
-            padding: 50px;
-        }
-        .logo-container {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .logo-img {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-            margin: 0 auto 15px;
-        }
-        .title {
-            color: #0c2440;
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .ccp-info {
-            text-align: center;
-            color: #2d3748;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-        .input-group {
-            margin: 25px 0;
-        }
-        .input-group label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .input-group select {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            background: white;
-        }
-        .back-btn {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #2c5282, #1a365d);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            cursor: pointer;
-            width: 100%;
-        }
-    </style>
 </head>
 <body>
     <div class="vector-bg">
@@ -72,104 +16,95 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-    <div class="container">
+    <div id="container" class="container" style="max-width: 600px; padding: 50px;">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Seleccionar Estación para Galería</h1>
         </div>
-        <div class="ccp-info" id="ccpInfo"></div>
-        <div class="input-group">
-            <label for="estacionSelect">Seleccione una estación:</label>
-            <select id="estacionSelect" disabled>
-                <option value="">Cargando...</option>
-            </select>
+        <div id="content">
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                    <option value="">-- Elija un CCP --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>
+                    <option value="falcon">CCPE FALCÓN</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="estacionSelect">Seleccione Estación Policial:</label>
+                <select id="estacionSelect" disabled style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                    <option value="">-- Primero seleccione un CCP --</option>
+                </select>
+            </div>
+            <button id="btnCargarGaleria" class="action-btn" style="margin-top: 25px; padding: 14px; font-size: 16px; width: 100%;">
+                🖼️ Cargar Galería de Inspección
+            </button>
+            <button id="btnVolver" class="back-btn" style="margin-top: 15px; padding: 10px 20px; width: 100%;">
+                ← Volver al Menú
+            </button>
         </div>
-        <button id="btnVerGaleria" class="action-btn" style="width:100%; padding:14px; font-size:16px;" disabled>
-            🖼️ Ver Galería de Inspección
-        </button>
-        <button class="back-btn" onclick="window.history.back()">
-            ← Volver
-        </button>
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ CCPs de REDIP OCCIDENTAL
-        const CCPs_OCCIDENTAL = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
-
-        const ccpNombres = {
-            "metropolitano": "CCP METROPOLITANO",
-            "sur-del-lago": "CCP SUR DEL LAGO",
-            "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL",
-            "lara": "CCPE LARA",
-            "falcon": "CCPE FALCÓN"
-        };
-
-        // === OBTENER PARÁMETROS DE URL ===
-        const urlParams = new URLSearchParams(window.location.search);
-        const ccpId = urlParams.get('ccpId');
-        const ccpNombre = urlParams.get('ccpNombre') || ccpNombres[ccpId] || ccpId;
-
-        if (!ccpId || !CCPs_OCCIDENTAL.includes(ccpId)) {
-            alert('⚠️ CCP no válido o no pertenece a REDIP OCCIDENTAL.');
-            window.history.back();
-        }
-
-        document.getElementById('ccpInfo').textContent = `CCP: ${ccpNombre}`;
-
-        const selectEstacion = document.getElementById('estacionSelect');
-        const btnVerGaleria = document.getElementById('btnVerGaleria');
-
-        async function cargarEstaciones() {
+        // Cargar estaciones cuando se elige un CCP
+        document.getElementById('ccpSelect').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpSelect').value;
+            const estacionSelect = document.getElementById('estacionSelect');
+            const btnCargar = document.getElementById('btnCargarGaleria');
+            if (!ccpId) {
+                estacionSelect.disabled = true;
+                estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
+                btnCargar.disabled = true;
+                return;
+            }
             try {
-                // ✅ Filtrar solo estaciones del CCP recibido (y que pertenezca a OCCIDENTAL)
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-
-                if (error || !estaciones || estaciones.length === 0) {
-                    selectEstacion.innerHTML = '<option value="">No hay estaciones disponibles</option>';
-                    selectEstacion.disabled = true;
-                    return;
-                }
-
-                selectEstacion.innerHTML = '<option value="">-- Elija una estación --</option>';
+                if (error) throw error;
+                estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.id;
                     opt.textContent = est.nombre;
-                    selectEstacion.appendChild(opt);
+                    estacionSelect.appendChild(opt);
                 });
-                selectEstacion.disabled = false;
-            } catch (error) {
-                console.error('Error al cargar estaciones:', error);
-                selectEstacion.innerHTML = '<option value="">Error al cargar</option>';
-                selectEstacion.disabled = true;
+                estacionSelect.disabled = false;
+                btnCargar.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar estaciones:', err);
+                alert('Error al cargar las estaciones policiales.');
             }
-        }
-
-        selectEstacion.addEventListener('change', () => {
-            btnVerGaleria.disabled = !selectEstacion.value;
         });
 
-        btnVerGaleria.addEventListener('click', () => {
-            const estacionId = selectEstacion.value;
-            const estacionNombre = selectEstacion.options[selectEstacion.selectedIndex].text;
-            if (!estacionId) {
-                alert('Por favor seleccione una estación.');
+        document.getElementById('estacionSelect').addEventListener('change', () => {
+            document.getElementById('btnCargarGaleria').disabled = !document.getElementById('estacionSelect').value;
+        });
+
+        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
+            const ccpId = document.getElementById('ccpSelect').value;
+            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
+            const estacionId = document.getElementById('estacionSelect').value;
+            const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+            if (!ccpId || !estacionId) {
+                alert('Por favor seleccione un CCP y una estación.');
                 return;
             }
-            // Redirigir a la galería con los parámetros correctos
-            window.location.href = `Galeria.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            window.location.href = `Galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
         });
 
-        // Cargar al iniciar
-        cargarEstaciones();
+        document.getElementById('btnVolver').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
     </script>
 </body>
 </html>
