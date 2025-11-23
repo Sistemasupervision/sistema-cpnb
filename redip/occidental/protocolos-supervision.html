@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Protocolos de Supervisión - CPNB</title>
+    <title>Protocolos de Supervisión - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
         body {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
             min-height: 100vh;
@@ -20,7 +25,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.4);
             width: 100%;
-            max-width: 800px;
+            max-width: 700px;
             padding: 40px;
             position: relative;
         }
@@ -48,139 +53,22 @@
             margin-bottom: 30px;
         }
         .input-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .input-group label {
             display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        /* === Estilos mejorados para los desplegables (select) === */
-        select {
-            width: 100%;
-            padding: 12px;
-            background: #edf2f7;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-weight: bold;
-            color: #2d3748;
-            cursor: pointer;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            position: relative;
-        }
-        select::after {
-            content: '▼';
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-            color: #2d3748;
-            font-size: 12px;
-            font-weight: normal;
-        }
-        select:hover {
-            background: #e2e8f0;
-            border-color: #bee3f8;
-        }
-        select:disabled {
-            background: #f7fafc;
-            color: #a0aec0;
-            cursor: not-allowed;
-        }
-        .input-group-btn {
-            width: 100%;
-            padding: 12px;
-            background: #edf2f7;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            text-align: left;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .input-group-btn:hover:not(:disabled) {
-            background: #e2e8f0;
-        }
-        .input-group-btn:disabled {
-            background: #f7fafc;
-            color: #a0aec0;
-            cursor: not-allowed;
-        }
-        .dropdown-menu {
-            border: 1px solid #e2e8f0;
-            border-top: none;
-            max-height: 200px;
-            overflow-y: auto;
-            background: white;
-            border-radius: 0 0 10px 10px;
-            z-index: 10;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .dropdown-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #edf2f7;
-            transition: background 0.2s;
-        }
-        .dropdown-item:hover {
-            background: #ebf8ff;
-        }
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-        .protocolo-item {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 20px;
-        }
-        .protocolo-titulo {
+            margin-bottom: 8px;
             font-weight: bold;
             color: #0c2440;
-            margin-bottom: 12px;
-            font-size: 16px;
         }
-        .archivo-input {
+        .input-group select,
+        .input-group input[type="file"] {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #cbd5e0;
-            border-radius: 8px;
-            margin-bottom: 12px;
-        }
-        .aviso-actualizacion {
-            background: #fff5f5;
-            border-left: 4px solid #e53e3e;
-            padding: 10px 14px;
-            margin: 12px 0;
-            border-radius: 0 6px 6px 0;
-            color: #c53030;
-            font-weight: bold;
-            font-size: 14px;
-            display: none;
-        }
-        .botones-item {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
         }
         .btn {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .btn-subir { background: #3182ce; color: white; }
-        .btn-actualizar { background: #dd6b20; color: white; }
-        .btn-descargar { background: #38a169; color: white; }
-        .btn-descargar-todo {
             width: 100%;
             padding: 14px;
             background: linear-gradient(135deg, #0c2440, #1a365d);
@@ -188,8 +76,10 @@
             border: none;
             border-radius: 12px;
             font-weight: bold;
-            margin-top: 20px;
+            cursor: pointer;
+            margin-top: 10px;
         }
+        .btn:hover { opacity: 0.9; }
         .back-btn {
             background: #2c5282;
             padding: 10px 20px;
@@ -200,62 +90,12 @@
             margin-top: 20px;
             text-align: center;
         }
-        /* === Mensaje de éxito/error por item === */
-        .mensaje-item {
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 6px;
-            text-align: center;
+        .archivo-indicador {
+            font-size: 13px;
+            color: #38a169;
             font-weight: bold;
-            font-size: 14px;
+            margin-top: 6px;
             display: none;
-        }
-        .mensaje-item.exito { background: #c6f6d5; color: #22543d; }
-        .mensaje-item.error { background: #fed7d7; color: #9b2c2c; }
-        .progress-container {
-            display: none;
-            margin-top: 15px;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e2e8f0;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3182ce, #0c2440);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        /* === Estilos para pestañas === */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-top: 8px;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            background: #f8fafc;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
-        }
-        .tab-btn.activo {
-            background: #ebf8ff;
-            color: #2c5282;
-            border-color: #bee3f8;
-        }
-        .tab-btn:hover:not(.activo) {
-            background: #edf2f7;
-        }
-        #seleccionActiva {
-            margin-top: 16px;
         }
     </style>
 </head>
@@ -263,438 +103,104 @@
     <div class="container">
         <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
-        <div class="input-group">
-            <label for="redipSelect">Seleccione REDIP:</label>
-            <select id="redipSelect" required>
-                <option value="">-- Elija una REDIP --</option>
-                <option value="occidental">REDIP OCCIDENTAL</option>
-                <option value="capital">REDIP CAPITAL</option>
-                <option value="central">REDIP CENTRAL</option>
-                <option value="andes">REDIP LOS ANDES</option>
-                <option value="oriental">REDIP ORIENTAL</option>
-                <option value="llanos">REDIP LOS LLANOS</option>
-                <option value="guayana">REDIP GUAYANA</option>
-                <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label for="ccpSelect">Seleccione CCP:</label>
-            <select id="ccpSelect" disabled required>
-                <option value="">-- Primero seleccione REDIP --</option>
-            </select>
-        </div>
-        <!-- Pestañas -->
-        <div class="input-group">
-            <label>Seleccione el tipo de unidad:</label>
-            <div class="tabs">
-                <button id="tabEstacion" class="tab-btn activo">📍 Estación Policial</button>
-                <button id="tabServicio" class="tab-btn">📋 Servicio Administrativo</button>
+        <form id="protocolosForm">
+            <!-- ✅ Eliminado el selector de REDIP -->
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required>
+                    <option value="">-- Elija un CCP --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="col">CCPE COL</option>
+                    <option value="lara">CCPE LARA</option>
+                    <option value="falcon">CCPE FALCÓN</option>
+                </select>
             </div>
-        </div>
-        <!-- Contenido dinámico según pestaña -->
-        <div id="seleccionActiva">
-            <!-- Se rellenará con JS -->
-        </div>
-        <!-- Contenedor común de protocolos -->
-        <div id="protocolosContainer"></div>
-        <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
-            📥 Descargar Todos los Protocolos
-        </button>
+            <div class="input-group">
+                <label for="estacionSelect">Seleccione Estación Policial:</label>
+                <select id="estacionSelect" disabled required>
+                    <option value="">-- Primero seleccione CCP --</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="guia">Guía de Inspección (PDF)</label>
+                <input type="file" id="guia" accept=".pdf">
+                <div class="archivo-indicador" id="guia-indicador">✅ Archivo seleccionado</div>
+            </div>
+            <div class="input-group">
+                <label for="vademecum">Vademécum (PDF)</label>
+                <input type="file" id="vademecum" accept=".pdf">
+                <div class="archivo-indicador" id="vademecum-indicador">✅ Archivo seleccionado</div>
+            </div>
+            <div class="input-group">
+                <label for="fotograma">Fotograma (PDF)</label>
+                <input type="file" id="fotograma" accept=".pdf">
+                <div class="archivo-indicador" id="fotograma-indicador">✅ Archivo seleccionado</div>
+            </div>
+            <div class="input-group">
+                <label for="plan">Plan de Acción y Reacción (PDF)</label>
+                <input type="file" id="plan" accept=".pdf">
+                <div class="archivo-indicador" id="plan-indicador">✅ Archivo seleccionado</div>
+            </div>
+            <div class="acciones">
+                <button type="button" class="btn" onclick="subirProtocolos()">📤 Subir Protocolos</button>
+                <button type="button" class="btn" onclick="descargarProtocolos()">📥 Descargar Protocolos</button>
+            </div>
+        </form>
         <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        const redipCcpMap = {
-            occidental: [
-                { value: 'metropolitano', text: 'CCP METROPOLITANO' },
-                { value: 'sur-del-lago', text: 'CCP SUR DEL LAGO' },
-                { value: 'guajira', text: 'CCP GUAJIRA' },
-                { value: 'col', text: 'CCPE COL' },
-                { value: 'lara', text: 'CCPE LARA' },
-                { value: 'falcon', text: 'CCPE FALCÓN' }
-            ],
-            capital: [
-                { value: 'ccp_1', text: 'CCP 1' },
-                { value: 'ccp_2', text: 'CCP 2' },
-                { value: 'ccp_3', text: 'CCP 3' }
-            ],
-            central: [], andes: [], oriental: [], llanos: [], guayana: [], maritima: []
-        };
-        const protocolos = [
-            { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
-            { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf' },
-            { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
-            { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
-        ];
-        let estadoArchivos = {};
-        let tipoActivo = null;
-        let idActivo = null;
 
-        // === REDIP y CCP ===
-        document.getElementById('redipSelect').addEventListener('change', () => {
-            const redip = document.getElementById('redipSelect').value;
-            const ccpSelect = document.getElementById('ccpSelect');
-            ccpSelect.innerHTML = '<option value="">-- Seleccione CCP --</option>';
-            document.getElementById('tabEstacion').click();
-            if (!redip) return;
-            const ccps = redipCcpMap[redip] || [];
-            if (ccps.length === 0) {
-                ccpSelect.innerHTML = '<option value="">No hay CCPs</option>';
-                ccpSelect.disabled = true;
-            } else {
-                ccps.forEach(ccp => {
-                    const opt = document.createElement('option');
-                    opt.value = ccp.value;
-                    opt.textContent = ccp.text;
-                    ccpSelect.appendChild(opt);
-                });
-                ccpSelect.disabled = false;
+        // ✅ Cargar estaciones/servicios al cambiar el CCP
+        document.getElementById('ccpSelect').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpSelect').value;
+            const estacionSelect = document.getElementById('estacionSelect');
+            estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+            estacionSelect.disabled = true;
+            if (!ccpId) {
+                estacionSelect.innerHTML = '<option value="">-- Primero seleccione CCP --</option>';
+                return;
             }
-        });
-
-        document.getElementById('ccpSelect').addEventListener('change', () => {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const habilitar = redip && ccp;
-        });
-
-        // === Cerrar dropdowns al hacer clic fuera ===
-        document.addEventListener('click', (e) => {
-            const dropdownEstacion = document.getElementById('dropdownEstacion');
-            const dropdownServicio = document.getElementById('dropdownServicio');
-            if (dropdownEstacion && !e.target.closest('#btnEstacion') && !e.target.closest('#dropdownEstacion')) {
-                dropdownEstacion.style.display = 'none';
-            }
-            if (dropdownServicio && !e.target.closest('#btnServicio') && !e.target.closest('#dropdownServicio')) {
-                dropdownServicio.style.display = 'none';
-            }
-        });
-
-        // === Renderizado de pestañas ===
-        function renderPestana(tipo) {
-            const contenedor = document.getElementById('seleccionActiva');
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const habilitar = redip && ccp;
-            document.getElementById('protocolosContainer').innerHTML = '';
-            document.getElementById('btnDescargarTodo').disabled = true;
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
-            if (tipo === 'estacion') {
-                document.getElementById('tabEstacion').classList.add('activo');
-                tipoActivo = null;
-                idActivo = null;
-                contenedor.innerHTML = `
-                    <div class="input-group">
-                        <label>Estación Policial:</label>
-                        <button id="btnEstacion" class="input-group-btn" ${habilitar ? '' : 'disabled'}>
-                            📍 Seleccionar Estación Policial
-                        </button>
-                        <div id="dropdownEstacion" class="dropdown-menu" style="display: none;"></div>
-                    </div>
-                `;
-                if (habilitar) {
-                    document.getElementById('btnEstacion').addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        const otro = document.getElementById('dropdownServicio');
-                        if (otro) otro.style.display = 'none';
-                        const dropdown = document.getElementById('dropdownEstacion');
-                        dropdown.style.display = 'block';
-                        dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
-                        try {
-                            const { data: estaciones, error } = await supabase
-                                .from('estaciones_policiales')
-                                .select('id, nombre')
-                                .eq('ccp_id', ccp)
-                                .order('nombre', { ascending: true });
-                            dropdown.innerHTML = '';
-                            if (error || !estaciones?.length) {
-                                dropdown.innerHTML = '<div class="dropdown-item">No hay estaciones</div>';
-                            } else {
-                                estaciones.forEach(est => {
-                                    const div = document.createElement('div');
-                                    div.className = 'dropdown-item';
-                                    div.textContent = est.nombre;
-                                    div.onclick = () => {
-                                        document.getElementById('btnEstacion').textContent = `📍 ${est.nombre}`;
-                                        dropdown.style.display = 'none';
-                                        tipoActivo = 'estacion';
-                                        idActivo = est.id;
-                                        renderizarProtocolos();
-                                        verificarArchivosExistentes();
-                                    };
-                                    dropdown.appendChild(div);
-                                });
-                            }
-                        } catch (err) {
-                            dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
-                        }
-                    });
-                }
-            } else if (tipo === 'servicio') {
-                document.getElementById('tabServicio').classList.add('activo');
-                tipoActivo = null;
-                idActivo = null;
-                contenedor.innerHTML = `
-                    <div class="input-group">
-                        <label>Servicio Administrativo:</label>
-                        <button id="btnServicio" class="input-group-btn" ${habilitar ? '' : 'disabled'}>
-                            📋 Seleccionar Servicio Administrativo
-                        </button>
-                        <div id="dropdownServicio" class="dropdown-menu" style="display: none;"></div>
-                    </div>
-                `;
-                if (habilitar) {
-                    document.getElementById('btnServicio').addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        const otro = document.getElementById('dropdownEstacion');
-                        if (otro) otro.style.display = 'none';
-                        const dropdown = document.getElementById('dropdownServicio');
-                        dropdown.style.display = 'block';
-                        dropdown.innerHTML = '<div class="dropdown-item">Cargando...</div>';
-                        try {
-                            const { data: servicios, error } = await supabase
-                                .from('servicios_administrativos')
-                                .select('id, nombre')
-                                .eq('ccp_id', ccp)
-                                .order('nombre', { ascending: true });
-                            dropdown.innerHTML = '';
-                            if (error || !servicios?.length) {
-                                dropdown.innerHTML = '<div class="dropdown-item">No hay servicios</div>';
-                            } else {
-                                servicios.forEach(serv => {
-                                    const div = document.createElement('div');
-                                    div.className = 'dropdown-item';
-                                    div.textContent = serv.nombre;
-                                    div.onclick = () => {
-                                        document.getElementById('btnServicio').textContent = `📋 ${serv.nombre}`;
-                                        dropdown.style.display = 'none';
-                                        tipoActivo = 'servicio';
-                                        idActivo = serv.id;
-                                        renderizarProtocolos();
-                                        verificarArchivosExistentes();
-                                    };
-                                    dropdown.appendChild(div);
-                                });
-                            }
-                        } catch (err) {
-                            dropdown.innerHTML = '<div class="dropdown-item">Error al cargar</div>';
-                        }
-                    });
-                }
-            }
-        }
-
-        document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
-        document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
-        renderPestana('estacion');
-
-        // === Resto de funciones ===
-        function renderizarProtocolos() {
-            const container = document.getElementById('protocolosContainer');
-            container.innerHTML = '';
-            protocolos.forEach(proto => {
-                const div = document.createElement('div');
-                div.className = 'protocolo-item';
-                const tipoLabel = tipoActivo === 'estacion' ? 'Estación' : 'Servicio';
-                div.innerHTML = `
-                    <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
-                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
-                    <div class="aviso-actualizacion" id="aviso_${proto.id}">
-                      ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
-                    </div>
-                    <div class="botones-item">
-                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
-                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
-                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
-                    </div>
-                    <div class="progress-container" id="progress_${proto.id}">
-                        <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
-                    </div>
-                    <div class="mensaje-item" id="mensaje_${proto.id}"></div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        async function verificarArchivosExistentes() {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            if (!redip || !ccp || !tipoActivo || !idActivo) return;
-            estadoArchivos = {};
-            let existen = false;
-            for (const proto of protocolos) {
-                const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-                try {
-                    const { data, error } = await supabase.storage.from('protocolos-supervision').download(ruta);
-                    if (data) {
-                        estadoArchivos[proto.id] = { existe: true, data };
-                        existen = true;
-                        document.querySelector(`#input_${proto.id}`).disabled = true;
-                        document.querySelector(`#aviso_${proto.id}`).style.display = 'block';
-                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'none';
-                    } else {
-                        estadoArchivos[proto.id] = { existe: false };
-                        document.querySelector(`#input_${proto.id}`).disabled = false;
-                        document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
-                        document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                        document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                    }
-                } catch {
-                    estadoArchivos[proto.id] = { existe: false };
-                    document.querySelector(`#input_${proto.id}`).disabled = false;
-                    document.querySelector(`#aviso_${proto.id}`).style.display = 'none';
-                    document.querySelector(`button[onclick="descargarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="actualizarArchivo('${proto.id}')"]`).style.display = 'none';
-                    document.querySelector(`button[onclick="subirArchivo('${proto.id}')"]`).style.display = 'inline-block';
-                }
-            }
-            document.getElementById('btnDescargarTodo').disabled = !existen;
-        }
-
-        function resetBotones(id) {
-            document.querySelector(`#input_${id}`).disabled = false;
-            document.querySelector(`#aviso_${id}`).style.display = 'none';
-            document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
-            document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
-            document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
-        }
-
-        // ✅ Nueva función para mensajes persistentes
-        function mostrarMensajeItem(id, texto, tipo, persistente = false) {
-            const msg = document.getElementById(`mensaje_${id}`);
-            msg.textContent = texto;
-            msg.className = `mensaje-item ${tipo}`;
-            msg.style.display = 'block';
-            if (!persistente) {
-                setTimeout(() => {
-                    if (msg.textContent === texto) {
-                        msg.style.display = 'none';
-                    }
-                }, 5000);
-            }
-        }
-
-        async function subirArchivo(id) {
-            const input = document.getElementById(`input_${id}`);
-            const archivo = input.files[0];
-            if (!archivo) return mostrarMensajeItem(id, `⚠️ Seleccione archivo para ${protocolos.find(p => p.id === id).nombre}`, 'error');
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            if (!redip || !ccp || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione REDIP, CCP y una opción válida.', 'error');
-            const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            const progressBar = document.getElementById(`progress_${id}`);
-            const fillBar = document.getElementById(`fill_${id}`);
-            progressBar.style.display = 'block';
-            fillBar.style.width = '0%';
             try {
-                const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
+                const {  estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
                 if (error) throw error;
-                fillBar.style.width = '100%';
-                await new Promise(r => setTimeout(r, 300));
-
-                // ✅ Esperar 10 segundos para sincronización
-                mostrarMensajeItem(id, '✅ Archivo subido. Esperando sincronización...', 'exito');
-                await new Promise(r => setTimeout(r, 10000));
-
-                // ✅ Deshabilitar todos los controles del ítem
-                input.disabled = true;
-                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).disabled = true;
-                document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).disabled = true;
-                document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).disabled = true;
-
-                // ✅ Mostrar mensaje PERSISTENTE
-                mostrarMensajeItem(id, '✅ Archivo subido. Debe actualizar la página para poder actualizar un archivo nuevamente.', 'exito', true);
-
-                // ❌ No llamar a verificarArchivosExistentes()
-
-            } catch (e) {
-                console.error(e);
-                mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
-            } finally {
-                progressBar.style.display = 'none';
-            }
-        }
-
-        async function actualizarArchivo(id) {
-            const redip = document.getElementById('redipSelect').value;
-            const ccp = document.getElementById('ccpSelect').value;
-            const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/${redip}/${ccp}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            try {
-                await supabase.storage.from('protocolos-supervision').remove([ruta]);
-
-                // ✅ Limpiar mensaje y habilitar SOLO "Subir"
-                const msg = document.getElementById(`mensaje_${id}`);
-                msg.style.display = 'none';
-
-                document.querySelector(`#input_${id}`).disabled = false;
-                document.querySelector(`#aviso_${id}`).style.display = 'none';
-                document.querySelector(`button[onclick="descargarArchivo('${id}')"]`).style.display = 'none';
-                document.querySelector(`button[onclick="actualizarArchivo('${id}')"]`).style.display = 'none';
-                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).style.display = 'inline-block';
-
-                // Asegurar que estén habilitados
-                document.querySelector(`#input_${id}`).disabled = false;
-                document.querySelector(`button[onclick="subirArchivo('${id}')"]`).disabled = false;
-
-                mostrarMensajeItem(id, '✅ Archivo eliminado. Puede subir uno nuevo.', 'exito');
-            } catch (e) {
-                console.error(e);
-                mostrarMensajeItem(id, '❌ Error al eliminar archivo', 'error');
-            }
-        }
-
-        async function descargarArchivo(id) {
-            const archivo = estadoArchivos[id]?.data;
-            if (!archivo) return mostrarMensajeItem(id, '❌ Archivo no disponible', 'error');
-            const proto = protocolos.find(p => p.id === id);
-            const url = URL.createObjectURL(archivo);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = proto.archivo;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        async function descargarTodo() {
-            for (const proto of protocolos) {
-                if (estadoArchivos[proto.id]?.existe) {
-                    await descargarArchivo(proto.id);
-                    await new Promise(r => setTimeout(r, 500));
-                }
-            }
-            const msg = document.createElement('div');
-            msg.className = 'mensaje-item exito';
-            msg.textContent = '✅ Todos los archivos descargados';
-            msg.style.position = 'fixed';
-            msg.style.bottom = '20px';
-            msg.style.left = '50%';
-            msg.style.transform = 'translateX(-50%)';
-            msg.style.zIndex = '1000';
-            document.body.appendChild(msg);
-            setTimeout(() => document.body.removeChild(msg), 5000);
-        }
-
-        async function verificarAutenticacion() {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    alert('Debe iniciar sesión.');
-                    window.location.href = 'index.html';
-                }
+                estacionSelect.innerHTML = '<option value="">-- Seleccione Estación --</option>';
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.id;
+                    opt.textContent = est.nombre;
+                    estacionSelect.appendChild(opt);
+                });
+                estacionSelect.disabled = false;
             } catch (error) {
-                console.error('Error de autenticación:', error);
-                alert('Error al verificar sesión.');
+                console.error('Error al cargar estaciones:', error);
+                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
             }
-        }
+        });
 
-        verificarAutenticacion();
+        // ✅ Manejo de indicadores de archivos
+        ['guia', 'vademecum', 'fotograma', 'plan'].forEach(id => {
+            document.getElementById(id).addEventListener('change', function() {
+                const indicador = document.getElementById(`${id}-indicador`);
+                indicador.style.display = this.files.length > 0 ? 'block' : 'none';
+            });
+        });
+
+        // ✅ Funciones de subir/descargar (puedes mantener tu lógica actual)
+        async function subirProtocolos() {
+            alert('Función de subir protocolos no implementada en este ejemplo.');
+        }
+        async function descargarProtocolos() {
+            alert('Función de descargar protocolos no implementada en este ejemplo.');
+        }
     </script>
 </body>
 </html>
