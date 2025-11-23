@@ -348,7 +348,7 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
             console.log('📅 Filtrando hasta:', hasta.toISOString());
             query = query.lte('created_at', hasta.toISOString());
         }
-        const { data: inspecciones, error: inspError } = await query;
+        const {  inspecciones, error: inspError } = await query;
         if (inspError) {
             throw new Error(`Error en inspecciones: ${inspError.message}`);
         }
@@ -361,7 +361,7 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
         const entradasPorFecha = {};
         for (const insp of inspecciones) {
             console.log('🔍 Procesando inspección ID:', insp.id);
-            const { data: items, error: itemError } = await supabase
+            const {  items, error: itemError } = await supabase
                 .from('items_inspeccion')
                 .select('item_nombre, foto1_url, foto2_url, archivo_url')
                 .eq('inspeccion_id', insp.id)
@@ -397,6 +397,23 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
                 if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
             }
         }
+        // Convertir a array
+        todasLasEntradas = [];
+        for (const [fecha, items] of Object.entries(entradasPorFecha)) {
+            for (const [itemNombre, datos] of Object.entries(items)) {
+                todasLasEntradas.push({ fecha, itemNombre, ...datos });
+            }
+        }
+        console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
+        paginaActual = 1;
+        mostrarPagina();
+        actualizarPaginacion();
+        document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+    } catch (err) {
+        console.error('❌ Error completo:', err);
+        contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+    }
+}
         // Convertir a array
         todasLasEntradas = [];
         for (const [fecha, items] of Object.entries(entradasPorFecha)) {
