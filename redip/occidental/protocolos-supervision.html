@@ -65,9 +65,6 @@
             font-weight: bold;
             color: #2d3748;
             cursor: pointer;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
         }
         select:hover {
             background: #e2e8f0;
@@ -207,7 +204,7 @@
     <div class="container">
         <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
-        <!-- ✅ CCP directo (solo de OCCIDENTAL) -->
+        <!-- ✅ Eliminado el selector de REDIP -->
         <div class="input-group">
             <label for="ccpSelect">Seleccione CCP:</label>
             <select id="ccpSelect" required>
@@ -228,16 +225,11 @@
                 <button id="tabServicio" class="tab-btn">📋 Servicio Administrativo</button>
             </div>
         </div>
-        <!-- Contenido dinámico -->
+        <!-- Contenido dinámico según pestaña -->
         <div id="seleccionActiva">
-            <div class="input-group">
-                <label>Estación Policial:</label>
-                <select id="estacionSelect" disabled>
-                    <option value="">-- Seleccione CCP primero --</option>
-                </select>
-            </div>
+            <!-- Se rellenará con JS -->
         </div>
-        <!-- Protocolos -->
+        <!-- Contenedor común de protocolos -->
         <div id="protocolosContainer"></div>
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
@@ -254,76 +246,27 @@
             { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
-        let tipoActivo = 'estacion';
+        let estadoArchivos = {};
+        let tipoActivo = null;
         let idActivo = null;
         let ccpSeleccionado = null;
+
         // === Cargar estaciones/servicios al cambiar el CCP ===
-        document.getElementById('ccpSelect').addEventListener('change', async () => {
-            const ccp = document.getElementById('ccpSelect').value;
-            ccpSeleccionado = ccp;
-            const estacionSelect = document.getElementById('estacionSelect');
-            const servicioSelect = document.getElementById('servicioSelect');
-            if (!ccp) {
-                estacionSelect.innerHTML = '<option value="">-- Seleccione CCP primero --</option>';
-                estacionSelect.disabled = true;
-                if (servicioSelect) {
-                    servicioSelect.innerHTML = '<option value="">-- Seleccione CCP primero --</option>';
-                    servicioSelect.disabled = true;
-                }
-                return;
-            }
-            try {
-                // Cargar estaciones
-                const { data: estaciones, error: errEst } = await supabase
-                    .from('estaciones_policiales')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccp)
-                    .order('nombre', { ascending: true });
-                if (errEst) throw errEst;
-                estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
-                estaciones.forEach(est => {
-                    const opt = document.createElement('option');
-                    opt.value = est.id;
-                    opt.textContent = est.nombre;
-                    estacionSelect.appendChild(opt);
-                });
-                estacionSelect.disabled = false;
-                // Cargar servicios si está visible
-                if (tipoActivo === 'servicio' && servicioSelect) {
-                    const { data: servicios, error: errServ } = await supabase
-                        .from('servicios_administrativos')
-                        .select('id, nombre')
-                        .eq('ccp_id', ccp)
-                        .order('nombre', { ascending: true });
-                    if (errServ) throw errServ;
-                    servicioSelect.innerHTML = '<option value="">-- Elija un servicio --</option>';
-                    servicios.forEach(serv => {
-                        const opt = document.createElement('option');
-                        opt.value = serv.id;
-                        opt.textContent = serv.nombre;
-                        servicioSelect.appendChild(opt);
-                    });
-                    servicioSelect.disabled = false;
-                }
-                // Limpiar selección actual
-                idActivo = null;
-                document.getElementById('protocolosContainer').innerHTML = '';
-                document.getElementById('btnDescargarTodo').disabled = true;
-            } catch (error) {
-                console.error('Error al cargar:', error);
-                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
-                estacionSelect.disabled = true;
-                if (servicioSelect) {
-                    servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
-                    servicioSelect.disabled = true;
-                }
+        document.getElementById('ccpSelect').addEventListener('change', () => {
+            ccpSeleccionado = document.getElementById('ccpSelect').value;
+            if (tipoActivo === 'estacion') {
+                document.getElementById('tabEstacion').click();
+            } else {
+                document.getElementById('tabServicio').click();
             }
         });
-        // === Manejo de pestañas ===
+
+        // === Renderizado de pestañas ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
-            const ccp = document.getElementById('ccpSelect').value;
-            const habilitar = !!ccp;
+            const habilitar = !!ccpSeleccionado;
+            document.getElementById('protocolosContainer').innerHTML = '';
+            document.getElementById('btnDescargarTodo').disabled = true;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
             if (tipo === 'estacion') {
                 document.getElementById('tabEstacion').classList.add('activo');
@@ -332,17 +275,41 @@
                 contenedor.innerHTML = `
                     <div class="input-group">
                         <label>Estación Policial:</label>
-                        <select id="estacionSelect" ${habilitar ? '' : 'disabled'}>
+                        <select id="estacionSelect" ${habilitar ? '' : 'disabled'} style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-weight:bold;">
                             <option value="">${habilitar ? '-- Elija una estación --' : '-- Seleccione CCP primero --'}</option>
                         </select>
                     </div>
                 `;
                 if (habilitar) {
-                    document.getElementById('estacionSelect').addEventListener('change', (e) => {
-                        idActivo = e.target.value || null;
-                        if (idActivo) renderizarProtocolos();
-                        else document.getElementById('protocolosContainer').innerHTML = '';
-                    });
+                    (async () => {
+                        try {
+                            const { data: estaciones, error } = await supabase
+                                .from('estaciones_policiales')
+                                .select('id, nombre')
+                                .eq('ccp_id', ccpSeleccionado)
+                                .order('nombre', { ascending: true });
+                            const select = document.getElementById('estacionSelect');
+                            select.innerHTML = '<option value="">-- Elija una estación --</option>';
+                            estaciones.forEach(est => {
+                                const opt = document.createElement('option');
+                                opt.value = est.id;
+                                opt.textContent = est.nombre;
+                                select.appendChild(opt);
+                            });
+                            select.addEventListener('change', (e) => {
+                                idActivo = e.target.value || null;
+                                if (idActivo) {
+                                    renderizarProtocolos();
+                                    verificarArchivosExistentes();
+                                } else {
+                                    document.getElementById('protocolosContainer').innerHTML = '';
+                                }
+                            });
+                        } catch (err) {
+                            console.error('Error al cargar estaciones:', err);
+                            document.getElementById('estacionSelect').innerHTML = '<option value="">Error al cargar</option>';
+                        }
+                    })();
                 }
             } else {
                 document.getElementById('tabServicio').classList.add('activo');
@@ -351,19 +318,18 @@
                 contenedor.innerHTML = `
                     <div class="input-group">
                         <label>Servicio Administrativo:</label>
-                        <select id="servicioSelect" ${habilitar ? '' : 'disabled'}>
+                        <select id="servicioSelect" ${habilitar ? '' : 'disabled'} style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-weight:bold;">
                             <option value="">${habilitar ? '-- Elija un servicio --' : '-- Seleccione CCP primero --'}</option>
                         </select>
                     </div>
                 `;
                 if (habilitar) {
-                    // Cargar servicios para el CCP actual
                     (async () => {
                         try {
                             const { data: servicios, error } = await supabase
                                 .from('servicios_administrativos')
                                 .select('id, nombre')
-                                .eq('ccp_id', ccp)
+                                .eq('ccp_id', ccpSeleccionado)
                                 .order('nombre', { ascending: true });
                             const select = document.getElementById('servicioSelect');
                             select.innerHTML = '<option value="">-- Elija un servicio --</option>';
@@ -375,8 +341,12 @@
                             });
                             select.addEventListener('change', (e) => {
                                 idActivo = e.target.value || null;
-                                if (idActivo) renderizarProtocolos();
-                                else document.getElementById('protocolosContainer').innerHTML = '';
+                                if (idActivo) {
+                                    renderizarProtocolos();
+                                    verificarArchivosExistentes();
+                                } else {
+                                    document.getElementById('protocolosContainer').innerHTML = '';
+                                }
                             });
                         } catch (err) {
                             console.error('Error al cargar servicios:', err);
@@ -386,9 +356,14 @@
                 }
             }
         }
+
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
-        // === Protocolos ===
+
+        // === Iniciar en Estaciones ===
+        renderPestana('estacion');
+
+        // === Renderizar protocolos ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -398,12 +373,14 @@
                 const tipoLabel = tipoActivo === 'estacion' ? 'Estación' : 'Servicio';
                 div.innerHTML = `
                     <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
-                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}">
-                    <div class="aviso-actualizacion" id="aviso_${proto.id}">⚠️ Al subir un nuevo archivo, el anterior será eliminado.</div>
+                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}" ${estadoArchivos[proto.id]?.existe ? 'disabled' : ''}>
+                    <div class="aviso-actualizacion" id="aviso_${proto.id}" style="${estadoArchivos[proto.id]?.existe ? 'display:block;' : 'display:none;'}">
+                      ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
+                    </div>
                     <div class="botones-item">
-                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
-                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
-                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
+                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? 'style="display:none;"' : ''}>📤 Subir</button>
+                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? '' : 'style="display:none;"'}>🔄 Actualizar</button>
+                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? '' : 'style="display:none;"'}>📥 Descargar</button>
                     </div>
                     <div class="progress-container" id="progress_${proto.id}">
                         <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
@@ -413,12 +390,29 @@
                 container.appendChild(div);
             });
         }
-        // === Funciones para archivos ===
+
+        // === Verificar archivos existentes ===
         async function verificarArchivosExistentes() {
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
-            // (Puedes implementar esta parte si lo deseas más adelante)
-            document.getElementById('btnDescargarTodo').disabled = false;
+            estadoArchivos = {};
+            let existen = false;
+            for (const proto of protocolos) {
+                const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+                try {
+                    const { data, error } = await supabase.storage.from('protocolos-supervision').download(ruta);
+                    if (data) {
+                        estadoArchivos[proto.id] = { existe: true, data };
+                        existen = true;
+                    }
+                } catch (e) {
+                    // Archivo no existe, no hacer nada
+                }
+            }
+            renderizarProtocolos();
+            document.getElementById('btnDescargarTodo').disabled = !existen;
         }
+
+        // === Funciones de archivo ===
         function mostrarMensajeItem(id, texto, tipo) {
             const msg = document.getElementById(`mensaje_${id}`);
             msg.textContent = texto;
@@ -426,30 +420,82 @@
             msg.style.display = 'block';
             setTimeout(() => { msg.style.display = 'none'; }, 5000);
         }
+
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
             if (!archivo) return mostrarMensajeItem(id, '⚠️ Seleccione un archivo PDF', 'error');
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad', 'error');
-            mostrarMensajeItem(id, '📤 Subiendo...', 'exito');
-            // Aquí iría la lógica con Supabase Storage
-            setTimeout(() => {
-                mostrarMensajeItem(id, '✅ Archivo subido (simulado)', 'exito');
-                verificarArchivosExistentes();
-            }, 1000);
+            const proto = protocolos.find(p => p.id === id);
+            const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            const progressBar = document.getElementById(`progress_${id}`);
+            const fillBar = document.getElementById(`fill_${id}`);
+            progressBar.style.display = 'block';
+            fillBar.style.width = '0%';
+            try {
+                const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
+                if (error) throw error;
+                fillBar.style.width = '100%';
+                await new Promise(r => setTimeout(r, 300));
+                mostrarMensajeItem(id, '✅ Archivo subido con éxito', 'exito');
+                await verificarArchivosExistentes();
+            } catch (e) {
+                console.error('Error al subir:', e);
+                mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
+            } finally {
+                progressBar.style.display = 'none';
+            }
         }
+
         async function actualizarArchivo(id) {
-            // Simular actualización
-            mostrarMensajeItem(id, '✅ Archivo actualizado (simulado)', 'exito');
+            const proto = protocolos.find(p => p.id === id);
+            const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            try {
+                await supabase.storage.from('protocolos-supervision').remove([ruta]);
+                mostrarMensajeItem(id, '✅ Archivo eliminado. Puede subir uno nuevo.', 'exito');
+                await verificarArchivosExistentes();
+            } catch (e) {
+                console.error('Error al eliminar:', e);
+                mostrarMensajeItem(id, '❌ Error al eliminar el archivo', 'error');
+            }
         }
+
         async function descargarArchivo(id) {
-            mostrarMensajeItem(id, '📥 Descargando... (simulado)', 'exito');
+            const archivo = estadoArchivos[id]?.data;
+            if (!archivo) return mostrarMensajeItem(id, '❌ Archivo no disponible', 'error');
+            const proto = protocolos.find(p => p.id === id);
+            const url = URL.createObjectURL(archivo);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = proto.archivo;
+            a.click();
+            URL.revokeObjectURL(url);
         }
+
         async function descargarTodo() {
-            alert('✅ Descargando todos los protocolos (simulado)');
+            for (const proto of protocolos) {
+                if (estadoArchivos[proto.id]?.existe) {
+                    await descargarArchivo(proto.id);
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
+            alert('✅ Todos los archivos descargados');
         }
-        // === Inicial ===
-        renderPestana('estacion');
+
+        async function verificarAutenticacion() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert('Debe iniciar sesión.');
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Error de autenticación:', error);
+                alert('Error al verificar sesión.');
+            }
+        }
+
+        verificarAutenticacion();
     </script>
 </body>
 </html>
