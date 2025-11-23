@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Inspección</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 900px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+        }
+        .title {
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        #estacionInfo {
+            text-align: center;
+            color: #2d3748;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        #filtroFechas {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+        .galeria-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .item-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .item-label {
+            text-align: center;
+            font-size: 13px;
+            color: #2d3748;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+        .foto-item {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin: 6px 0;
+            border: 1px solid #cbd5e0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .foto-item:hover {
+            transform: scale(1.02);
+        }
+        .inspeccion-header {
+            grid-column: span 3;
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .no-fotos, .loading {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            padding: 40px;
+            grid-column: span 3;
+        }
+        #paginacionContainer {
+            display: flex;
+            justify-content: center;
+            margin-top: 25px;
+            gap: 10px;
+        }
+        .download-btn {
+            margin-top: 6px;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn-foto { background: #3182ce; color: white; }
+        .btn-archivo { background: #805ad5; color: white; margin-top: 6px; }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282, #1a365d);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        #zoomModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        #zoomImage {
+            max-width: 90%;
+            max-height: 90%;
+            border: 3px solid white;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+        #closeZoom {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Galería de Inspección - REDIP CAPITAL</h1>
+            <div id="estacionInfo"></div>
+        </div>
+        <div id="filtroFechas">
+            <h3 style="text-align:center; margin-bottom:15px; color:#0c2440;">Filtrar por Fecha</h3>
+            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <label for="fechaDesde">Desde:</label>
+                    <input type="date" id="fechaDesde" style="width:100%; padding:10px; border:1px solid #cbd5e0; border-radius:8px;">
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <label for="fechaHasta">Hasta:</label>
+                    <input type="date" id="fechaHasta" style="width:100%; padding:10px; border:1px solid #cbd5e0; border-radius:8px;">
+                </div>
+                <div style="display:flex; align-items:end;">
+                    <button id="aplicarFiltroBtn" class="back-btn" style="padding:10px; font-size:14px;">Aplicar</button>
+                </div>
+            </div>
+        </div>
+        <div id="galeriaContainer" class="galeria-container">
+            <div class="loading">Cargando galería...</div>
+        </div>
+        <div id="paginacionContainer" style="display:none;"></div>
+        <button id="btnVolver" class="back-btn">← Volver a Selección</button>
+    </div>
+    <div id="zoomModal">
+        <span id="closeZoom">&times;</span>
+        <img id="zoomImage" alt="Vista ampliada">
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // === OBJETO CON LOS 67 ÍTEMS ===
+        const nombres = {
+            nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
+            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+            dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+            conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+            conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+            conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+            estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+            manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+            plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+            infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+            direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+            oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+            documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+            uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+            practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+            entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+            talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+            conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+            acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+            conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+            instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+            talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+            conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+            cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+            cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+            dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+            practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+            numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+            personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+            servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+            publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+            libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+            libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+            libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+            archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+            libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+            supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+            cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+            bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+            resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+            equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+            equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+            plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+            calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+            plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+            servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+            unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+            areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+            vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+            placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+            vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+            vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+            accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+            necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+            identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+            informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+            supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+            vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+            despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+            supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+            planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+            conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+            registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+            rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+            archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+            informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
+            estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
+        };
+        // === OBTENER PARÁMETROS DE URL ===
+        const urlParams = new URLSearchParams(window.location.search);
+        const estacionIdStr = urlParams.get('estacionId');
+        const estacionNombre = urlParams.get('estacionNombre') || 'Desconocida';
+        const ccpNombre = urlParams.get('ccpNombre') || 'Desconocido';
+        if (!estacionIdStr || isNaN(estacionIdStr)) {
+            alert('⚠️ Estación no válida. Redirigiendo...');
+            window.history.back();
+        }
+        const estacionId = parseInt(estacionIdStr, 10);
+        document.getElementById('estacionInfo').textContent = `Estación: ${estacionNombre} | CCP: ${ccpNombre}`;
+        document.getElementById('fechaHasta').valueAsDate = new Date();
+        let todasLasEntradas = [];
+        let paginaActual = 1;
+        const entradasPorPagina = 12;
+
+        // === Verificar acceso a REDIP CAPITAL ===
+        async function verificarAcceso() {
+            const {  { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                window.location.href = '../../index.html';
+                return false;
+            }
+        }
+
+// === CARGAR DATOS ===
+async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
+    const contenedor = document.getElementById('galeriaContainer');
+    contenedor.innerHTML = '<div class="loading">Cargando...</div>';
+    try {
+        console.log('🔍 Iniciando carga para estación ID:', estacionId);
+        let query = supabase
+            .from('inspecciones')
+            .select('id, created_at')
+            .eq('estacion_id', estacionId)
+            .order('created_at', { ascending: false });
+        if (fechaDesde) {
+            console.log('📅 Filtrando desde:', fechaDesde);
+            query = query.gte('created_at', new Date(fechaDesde).toISOString());
+        }
+        if (fechaHasta) {
+            const hasta = new Date(fechaHasta);
+            hasta.setUTCHours(23, 59, 59, 999);
+            console.log('📅 Filtrando hasta:', hasta.toISOString());
+            query = query.lte('created_at', hasta.toISOString());
+        }
+        const { data: inspecciones, error: inspError } = await query;
+        if (inspError) {
+            throw new Error(`Error en inspecciones: ${inspError.message}`);
+        }
+        console.log('✅ Inspecciones encontradas:', inspecciones.length);
+        if (inspecciones.length === 0) {
+            contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
+            document.getElementById('paginacionContainer').style.display = 'none';
+            return;
+        }
+        const entradasPorFecha = {};
+        for (const insp of inspecciones) {
+            console.log('🔍 Procesando inspección ID:', insp.id);
+            const { data: items, error: itemError } = await supabase
+                .from('items_inspeccion')
+                .select('item_nombre, foto1_url, foto2_url, archivo_url')
+                .eq('inspeccion_id', insp.id)
+                .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
+            if (itemError) {
+                console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
+                continue;
+            }
+            if (!items || items.length === 0) {
+                console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
+                continue;
+            }
+            const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            if (!entradasPorFecha[fechaHora]) {
+                entradasPorFecha[fechaHora] = {};
+            }
+            for (const item of items) {
+                const key = item.item_nombre;
+                if (!entradasPorFecha[fechaHora][key]) {
+                    entradasPorFecha[fechaHora][key] = {
+                        fotos: [],
+                        archivo_url: null
+                    };
+                }
+                if (item.foto1_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto1_url);
+                if (item.foto2_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto2_url);
+                if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
+            }
+        }
+        // Convertir a array
+        todasLasEntradas = [];
+        for (const [fecha, items] of Object.entries(entradasPorFecha)) {
+            for (const [itemNombre, datos] of Object.entries(items)) {
+                todasLasEntradas.push({ fecha, itemNombre, ...datos });
+            }
+        }
+        console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
+        paginaActual = 1;
+        mostrarPagina();
+        actualizarPaginacion();
+        document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+    } catch (err) {
+        console.error('❌ Error completo:', err);
+        contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+    }
+}
+        function mostrarPagina() {
+            const inicio = (paginaActual - 1) * entradasPorPagina;
+            const fin = inicio + entradasPorPagina;
+            const entradas = todasLasEntradas.slice(inicio, fin);
+            const contenedor = document.getElementById('galeriaContainer');
+            if (entradas.length === 0) {
+                contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
+                return;
+            }
+            const porFecha = {};
+            entradas.forEach(e => {
+                if (!porFecha[e.fecha]) porFecha[e.fecha] = [];
+                porFecha[e.fecha].push(e);
+            });
+            contenedor.innerHTML = '';
+            Object.entries(porFecha).forEach(([fecha, items]) => {
+                const header = document.createElement('div');
+                header.className = 'inspeccion-header';
+                header.textContent = `Inspección del ${fecha}`;
+                contenedor.appendChild(header);
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    const label = document.createElement('div');
+                    label.className = 'item-label';
+                    label.textContent = nombres[item.itemNombre] || item.itemNombre;
+                    card.appendChild(label);
+                    item.fotos.forEach(fotoUrl => {
+                        const img = document.createElement('img');
+                        img.src = fotoUrl;
+                        img.className = 'foto-item';
+                        img.onclick = () => {
+                            document.getElementById('zoomImage').src = fotoUrl;
+                            document.getElementById('zoomModal').style.display = 'flex';
+                        };
+                        card.appendChild(img);
+                    });
+                    item.fotos.forEach((_, i) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'download-btn btn-foto';
+                        btn.textContent = `📥 Descargar Foto ${i + 1}`;
+                        btn.onclick = async () => await descargar(item.fotos[i], item.itemNombre, 'foto');
+                        card.appendChild(btn);
+                    });
+                    if (item.archivo_url) {
+                        const btn = document.createElement('button');
+                        btn.className = 'download-btn btn-archivo';
+                        btn.textContent = '📎 Descargar Archivo';
+                        btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
+                        card.appendChild(btn);
+                    }
+                    contenedor.appendChild(card);
+                });
+            });
+        }
+            async function descargar(url, item, tipo) {
+            try {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                const ext = url.split('.').pop().split('?')[0] || 'bin';
+                const nombreItem = (nombres[item] || item).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                a.download = `${tipo}_${nombreItem}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            } catch (err) {
+                console.error('Error al descargar:', err);
+                alert('No se pudo descargar el archivo. Verifica la conexión o el enlace.');
+            }
+        }
+        function actualizarPaginacion() {
+            const totalPaginas = Math.ceil(todasLasEntradas.length / entradasPorPagina);
+            const contenedor = document.getElementById('paginacionContainer');
+            contenedor.innerHTML = '';
+            if (totalPaginas <= 1) return;
+            for (let i = 1; i <= totalPaginas; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.style.padding = '8px 12px';
+                btn.style.border = '1px solid #cbd5e0';
+                btn.style.borderRadius = '6px';
+                btn.style.background = i === paginaActual ? '#3182ce' : 'white';
+                btn.style.color = i === paginaActual ? 'white' : '#2d3748';
+                btn.onclick = () => {
+                    paginaActual = i;
+                    mostrarPagina();
+                };
+                contenedor.appendChild(btn);
+            }
+        }
+        // === EVENTOS ===
+        document.getElementById('aplicarFiltroBtn').addEventListener('click', () => {
+            const desde = document.getElementById('fechaDesde').value;
+            const hasta = document.getElementById('fechaHasta').value;
+            if (desde && new Date(desde) > new Date(hasta)) {
+                alert('La fecha "Desde" no puede ser mayor que "Hasta".');
+                return;
+            }
+            cargarGaleria(desde || null, hasta || null);
+        });
+        document.getElementById('btnVolver').addEventListener('click', () => {
+            window.history.back();
+        });
+        document.getElementById('closeZoom').addEventListener('click', () => {
+            document.getElementById('zoomModal').style.display = 'none';
+        });
+        // === CARGAR INICIAL ===
+        verificarAcceso().then(permitido => {
+            if (permitido) {
+                cargarGaleria();
+            }
+        });
+    </script>
+</body>
+</html>
