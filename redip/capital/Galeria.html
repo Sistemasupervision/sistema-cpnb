@@ -431,6 +431,23 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
         contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
     }
 }
+        // Convertir a array
+        todasLasEntradas = [];
+        for (const [fecha, items] of Object.entries(entradasPorFecha)) {
+            for (const [itemNombre, datos] of Object.entries(items)) {
+                todasLasEntradas.push({ fecha, itemNombre, ...datos });
+            }
+        }
+        console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
+        paginaActual = 1;
+        mostrarPagina();
+        actualizarPaginacion();
+        document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+    } catch (err) {
+        console.error('❌ Error completo:', err);
+        contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+    }
+}
         function mostrarPagina() {
             const inicio = (paginaActual - 1) * entradasPorPagina;
             const fin = inicio + entradasPorPagina;
