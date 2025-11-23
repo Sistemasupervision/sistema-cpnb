@@ -89,12 +89,12 @@
                     .eq('user_id', user.id)
                     .single();
                 if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.\nPor favor contacte al administrador.');
+                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
                     window.location.href = '../../index.html';
                 }
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+                alert('⚠️ Error de acceso.');
                 window.location.href = '../../index.html';
             }
         }
@@ -191,43 +191,39 @@
             try {
                 const hoy = new Date().toISOString().split('T')[0];
                 const ccpCapital = ['capital', 'valles-del-tuy', 'altamira', 'libertador', 'costa-de-barlovento'];
-                // 1. Estaciones
+                // Estaciones
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpCapital);
                 if (estError) throw estError;
                 const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
-                // 2. Servicios
+                // Servicios
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id')
                     .in('ccp_id', ccpCapital);
                 if (servError) throw servError;
                 const idsServicios = servicios ? servicios.map(s => s.id) : [];
-                // 3. Contar vencidas en estaciones
-                let countEstaciones = 0;
+                // Contar vencidas
+                let count = 0;
                 if (idsEstaciones.length > 0) {
-                    const { count, error: countError } = await supabase
+                    const { count: c1, error } = await supabase
                         .from('inspecciones')
                         .select('*', { count: 'exact', head: true })
                         .in('estacion_id', idsEstaciones)
                         .lte('proxima_inspeccion', hoy);
-                    if (countError) throw countError;
-                    countEstaciones = count || 0;
+                    if (!error) count += c1 || 0;
                 }
-                // 4. Contar vencidas en servicios
-                let countServicios = 0;
                 if (idsServicios.length > 0) {
-                    const { count, error: countError } = await supabase
+                    const { count: c2, error } = await supabase
                         .from('inspecciones')
                         .select('*', { count: 'exact', head: true })
                         .in('servicio_id', idsServicios)
                         .lte('proxima_inspeccion', hoy);
-                    if (countError) throw countError;
-                    countServicios = count || 0;
+                    if (!error) count += c2 || 0;
                 }
-                return countEstaciones + countServicios;
+                return count;
             } catch (error) {
                 console.error('Error al contar notificaciones:', error);
                 return 0;
