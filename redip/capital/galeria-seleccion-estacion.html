@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería de Inspección - REDIP CAPITAL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="../../assets/css/styles.css">
+</head>
+<body>
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+    <div id="container" class="container" style="max-width: 600px; padding: 50px;">
+        <div class="logo-container">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Galería de Inspección - REDIP CAPITAL</h1>
+        </div>
+        <div id="content">
+            <p style="text-align: center; color: #4a5568; margin-bottom: 20px; font-size: 16px;">
+                Seleccione una estación para ver su galería de inspecciones.
+            </p>
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                    <option value="">-- Elija un CCP --</option>
+                    <option value="altos-mirandinos">CCP ALTOS MIRANDINOS</option>
+                    <option value="ciudad-fajardo">CCP CIUDAD FAJARDO</option>
+                    <option value="distrito-capital">CCP DISTRITO CAPITAL</option>
+                    <option value="la-guaira">CCP LA GUAIRA</option>
+                    <option value="valles-del-tuy">CCP VALLES DEL TUY</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="estacionSelect">Seleccione Estación:</label>
+                <select id="estacionSelect" disabled style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                    <option value="">-- Primero seleccione un CCP --</option>
+                </select>
+            </div>
+            <button id="btnVerGaleria" class="action-btn" style="margin-top: 25px; padding: 14px; font-size: 16px; width: 100%;">
+                🖼️ Ver Galería
+            </button>
+            <button id="btnVolver" class="back-btn" style="margin-top: 15px; padding: 10px 20px; width: 100%;">
+                ← Volver a REDIP CAPITAL
+            </button>
+        </div>
+    </div>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // Verificar acceso
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                window.location.href = '../../index.html';
+                return false;
+            }
+        }
+        // Cargar estaciones al cambiar CCP
+        document.getElementById('ccpSelect').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpSelect').value;
+            const estacionSelect = document.getElementById('estacionSelect');
+            estacionSelect.innerHTML = '<option value="">-- Cargando estaciones... --</option>';
+            estacionSelect.disabled = !ccpId;
+            if (!ccpId) return;
+            try {
+                const { data: estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                if (!estaciones || estaciones.length === 0) {
+                    estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
+                    return;
+                }
+                estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.id;
+                    opt.textContent = est.nombre;
+                    estacionSelect.appendChild(opt);
+                });
+                estacionSelect.disabled = false;
+            } catch (error) {
+                console.error('Error al cargar estaciones:', error);
+                alert('Error al cargar las estaciones.');
+                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
+            }
+        });
+        // Ver galería
+        document.getElementById('btnVerGaleria').addEventListener('click', () => {
+            const estacionId = document.getElementById('estacionSelect').value;
+            const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+            const ccpId = document.getElementById('ccpSelect').value;
+            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
+            if (!estacionId) {
+                alert('Por favor seleccione una estación.');
+                return;
+            }
+            window.location.href = `Galeria.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+        });
+        // Volver
+        document.getElementById('btnVolver').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+        // Iniciar
+        verificarAcceso();
+    </script>
+</body>
+</html>
