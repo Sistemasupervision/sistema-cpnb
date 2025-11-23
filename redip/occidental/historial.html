@@ -7,10 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <!-- Tus estilos principales -->
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        /* Estilos específicos para esta página */
         .container {
             max-width: 1000px;
             padding: 40px;
@@ -314,43 +312,12 @@
             cursor: pointer;
             color: #666;
         }
-        .detalle-item {
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .detalle-item:last-child {
-            border-bottom: none;
-        }
-        .item-nombre {
+        .modal-title {
+            font-size: 18px;
             font-weight: bold;
             color: #0c2440;
-        }
-        .item-respuesta {
-            display: inline-block;
-            margin-left: 10px;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-        }
-        .item-respuesta.si {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-        .item-respuesta.no {
-            background: #fed7d7;
-            color: #9b2c2c;
-        }
-        .item-observacion {
-            margin-top: 6px;
-            font-size: 14px;
-            color: #4a5568;
-            font-style: italic;
-        }
-        .observaciones-generales {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+            text-align: center;
         }
         #modalFecha {
             display: none;
@@ -371,13 +338,6 @@
             width: 90%;
             max-width: 400px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #0c2440;
-            margin-bottom: 20px;
-            text-align: center;
         }
         .modal-input {
             width: 100%;
@@ -525,7 +485,6 @@
             "lara": "CCPE LARA",
             "falcon": "CCPE FALCÓN"
         };
-        // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpIdDesdeUrl = urlParams.get('ccpId');
         const ccpNombreDesdeUrl = urlParams.get('ccpNombre');
@@ -540,7 +499,6 @@
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
 
-        // Mostrar nombre del CCP en el encabezado
         if (ccpNombreDesdeUrl) {
             document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombreDesdeUrl)}`;
         } else {
@@ -617,7 +575,6 @@
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
-                // Cargar estaciones y servicios
                 const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
@@ -642,7 +599,6 @@
                     ccpServicios[serv.ccp_id].push(serv.id);
                 });
 
-                // Consultar inspecciones (estaciones + servicios)
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
@@ -656,38 +612,25 @@
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
 
-                let idsEstacionPermitidos = null;
-                let idsServicioPermitidos = null;
                 if (estacionId) {
-                    idsEstacionPermitidos = [parseInt(estacionId)];
+                    query = query.eq('estacion_id', estacionId);
                 } else if (servicioId) {
-                    idsServicioPermitidos = [parseInt(servicioId)];
+                    query = query.eq('servicio_id', servicioId);
                 } else if (ccpId) {
-                    idsEstacionPermitidos = ccpEstaciones[ccpId] || [];
-                    idsServicioPermitidos = ccpServicios[ccpId] || [];
-                }
+                    const idsEstaciones = ccpEstaciones[ccpId] || [];
+                    const idsServicios = ccpServicios[ccpId] || [];
 
-                if (idsEstacionPermitidos !== null || idsServicioPermitidos !== null) {
                     const condiciones = [];
-                    if (idsEstacionPermitidos && idsEstacionPermitidos.length > 0) {
-                        condiciones.push(`estacion_id.in.(${idsEstacionPermitidos.join(',')})`);
+                    if (idsEstaciones.length > 0) condiciones.push(`estacion_id.in.(${idsEstaciones.join(',')})`);
+                    if (idsServicios.length > 0) condiciones.push(`servicio_id.in.(${idsServicios.join(',')})`);
+                    if (condiciones.length > 0) {
+                        query = query.or(condiciones.join(','));
                     }
-                    if (idsServicioPermitidos && idsServicioPermitidos.length > 0) {
-                        condiciones.push(`servicio_id.in.(${idsServicioPermitidos.join(',')})`);
-                    }
-                    if (condiciones.length === 0) {
-                        document.getElementById('inspeccionesList').innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones para ese CCP.</div>';
-                        inspeccionesCache = [];
-                        renderizarPaginacion();
-                        return;
-                    }
-                    query = query.or(condiciones.join(','));
                 }
 
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
 
-                // Cargar ítems por inspección
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -798,7 +741,6 @@
                 }
                 botonesHTML += `</div>`;
 
-                // ✅ Ícono actualizado: documento para servicios
                 const tipoIcono = insp.tipo === 'servicio' ? '📄' : '👮';
                 const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
 
@@ -892,7 +834,6 @@
             cargarHistorial(desde, hasta, ccpId, estacionId, servicioId);
         }
 
-        // === ✅ FUNCIÓN CORREGIDA: carga detalles SIN depender del caché ===
         async function mostrarDetalle(inspeccionId) {
             try {
                 const { data: items, error: itemsError } = await supabase
@@ -1085,7 +1026,6 @@
 
                 document.getElementById('detalleContenido').innerHTML = html;
                 document.getElementById('detalleModal').style.display = 'flex';
-                // Guardar el ID actual para la exportación PDF
                 inspeccionIdActual = inspeccionId;
             } catch (error) {
                 console.error('Error al cargar detalles:', error);
@@ -1116,22 +1056,15 @@
                 if (inspError) throw inspError;
 
                 let tipo = 'desconocido';
-                if (inspeccion.estacion_id) {
-                    tipo = 'estacion';
-                } else if (inspeccion.servicio_id) {
-                    tipo = 'servicio';
-                }
+                if (inspeccion.estacion_id) tipo = 'estacion';
+                else if (inspeccion.servicio_id) tipo = 'servicio';
 
                 const { data: nuevoReporte, error: insertError } = await supabase
                     .from('reportes')
                     .insert({ inspeccion_id: inspeccionId })
                     .select('id, fecha_generacion')
                     .single();
-                if (insertError) {
-                    console.error('Error al crear reporte:', insertError);
-                    alert('⚠️ No se pudo generar el número de reporte.');
-                    return;
-                }
+                if (insertError) throw insertError;
 
                 const fechaGen = new Date(nuevoReporte.fecha_generacion);
                 const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
@@ -1144,33 +1077,197 @@
                     .eq('id', nuevoReporte.id);
 
                 const content = document.getElementById('detalleContenido');
-                if (!content || !content.innerHTML.trim()) {
-                    alert('No hay contenido para exportar.');
-                    return;
-                }
-
                 const htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="../../assets/img/LOGO-PNB.png" 
-                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
             <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
             <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
             <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
         </div>
         <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
             La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación...
-            <!-- texto introductorio igual que antes -->
         </div>
         ${content.innerHTML}
         <div style="margin-top: 50px; page-break-inside: avoid;">
             <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
-            <!-- firmas igual que antes -->
         </div>
         <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
             Fecha de generación: ${new Date().toLocaleString('es-ES')}
         </div>
     </div>
+`;
+
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+
+                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= 297;
+                while (heightLeft >= 0) {
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, heightLeft - imgHeight, imgWidth, imgHeight);
+                    heightLeft -= 297;
+                }
+
+                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+                document.body.removeChild(printDiv);
+                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('❌ Error al generar el reporte.');
+            }
+        }
+
+        async function exportarHistorialAPDF() {
+            try {
+                const desde = document.getElementById('fechaDesde').value;
+                const hasta = document.getElementById('fechaHasta').value;
+                const ccpId = document.getElementById('ccpFilter').value;
+                const estacionId = document.getElementById('estacionFilter').value;
+                const servicioId = document.getElementById('servicioFilter').value;
+
+                let query = supabase
+                    .from('inspecciones')
+                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
+                    .order('created_at', { ascending: false });
+
+                if (desde && hasta) {
+                    const desdeISO = new Date(desde).toISOString().split('T')[0];
+                    const hastaISO = new Date(hasta).toISOString().split('T')[0];
+                    query = query
+                        .gte('created_at', desdeISO)
+                        .lte('created_at', hastaISO + 'T23:59:59.999Z');
+                }
+
+                if (estacionId) {
+                    query = query.eq('estacion_id', estacionId);
+                } else if (servicioId) {
+                    query = query.eq('servicio_id', servicioId);
+                } else if (ccpId) {
+                    const { data: estaciones, error: estError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('id')
+                        .eq('ccp_id', ccpId);
+                    const { data: servicios, error: servError } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id')
+                        .eq('ccp_id', ccpId);
+                    if (estError || servError) throw new Error('Error al cargar entidades.');
+
+                    const idsEst = estaciones?.map(e => e.id) || [];
+                    const idsServ = servicios?.map(s => s.id) || [];
+                    const condiciones = [];
+                    if (idsEst.length > 0) condiciones.push(`estacion_id.in.(${idsEst.join(',')})`);
+                    if (idsServ.length > 0) condiciones.push(`servicio_id.in.(${idsServ.join(',')})`);
+                    if (condiciones.length > 0) {
+                        query = query.or(condiciones.join(','));
+                    }
+                }
+
+                const { data: inspecciones, error } = await query;
+                if (error) throw error;
+                if (!inspecciones || inspecciones.length === 0) {
+                    alert('No hay inspecciones para exportar con los filtros actuales.');
+                    return;
+                }
+
+                const { data: todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('id, nombre');
+                const { data: todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('id, nombre');
+                if (estError || servError) throw new Error('Error al cargar nombres.');
+                const estMap = {};
+                const servMap = {};
+                todasEstaciones.forEach(e => estMap[e.id] = e.nombre);
+                todosServicios.forEach(s => servMap[s.id] = s.nombre);
+
+                const ids = inspecciones.map(i => i.id);
+                const { data: items } = await supabase
+                    .from('items_inspeccion')
+                    .select('inspeccion_id, cumple')
+                    .in('inspeccion_id', ids);
+
+                const statsPorInspeccion = {};
+                items?.forEach(item => {
+                    if (!statsPorInspeccion[item.inspeccion_id]) {
+                        statsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
+                    }
+                    statsPorInspeccion[item.inspeccion_id].total++;
+                    if (item.cumple) statsPorInspeccion[item.inspeccion_id].cumplidos++;
+                });
+
+                let htmlContent = `
+    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
+            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">Fechas: ${desde || 'Sin filtro'} - ${hasta || 'Sin filtro'}</p>
+            ${ccpId ? `<p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">CCP: ${ccpNombres[ccpId]}</p>` : ''}
+        </div>
+        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
+            La seguridad ciudadana es un pilar fundamental...
+        </div>
+        <div style="margin-top: 30px; font-size: 14px; line-height: 1.6; color: #2d3748;">
+            <h2 style="color: #0c2440; margin-bottom: 15px;">Resumen de Inspecciones</h2>
+            <p>Se muestran ${inspecciones.length} inspecciones.</p>
+        </div>
+`;
+
+                inspecciones.forEach(insp => {
+                    let nombre = 'Desconocido';
+                    let tipo = 'desconocido';
+                    if (insp.estacion_id) {
+                        nombre = estMap[insp.estacion_id] || 'Estación desconocida';
+                        tipo = 'estacion';
+                    } else if (insp.servicio_id) {
+                        nombre = servMap[insp.servicio_id] || 'Servicio desconocido';
+                        tipo = 'servicio';
+                    }
+                    const stats = statsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
+                    const pct = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+                    const fechaStr = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const tipoIcono = tipo === 'servicio' ? '📄' : '👮';
+                    const tipoTexto = tipo === 'servicio' ? 'Servicio' : 'Estación';
+                    htmlContent += `
+<div style="margin-top: 20px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div><strong style="color: #0c2440; font-size: 16px;">${tipoIcono} ${tipoTexto}: ${nombre}</strong></div>
+        <div style="font-size: 14px; color: #2d3748;"><strong>Fecha:</strong> ${fechaStr}</div>
+    </div>
+    <div style="margin-top: 10px; display: flex; gap: 15px; font-size: 14px; color: #2d3748;">
+        <div><strong>Inspector:</strong> ${insp.inspector_email}</div>
+        <div><strong>Cumplimiento:</strong> ${pct}%</div>
+        <div><strong>Próxima:</strong> ${insp.proxima_inspeccion ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES') : 'No programada'}</div>
+    </div>
+    ${insp.observaciones_generales ? `<div style="margin-top: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; font-size: 14px; color: #2d3748; font-style: italic;">
+        <strong>Observaciones:</strong> ${insp.observaciones_generales}
+    </div>` : ''}
+</div>
+`;
+                });
+
+                htmlContent += `
+    <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
+        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+    </div>
+</div>
 `;
 
                 const printDiv = document.createElement('div');
@@ -1198,12 +1295,12 @@
                     heightLeft -= pageHeight;
                 }
 
-                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+                pdf.save(`historial_inspecciones_${ccpId || 'todos'}_${new Date().toISOString().slice(0, 10)}.pdf`);
                 document.body.removeChild(printDiv);
-                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('❌ Error al generar el reporte.');
+                alert(`✅ Historial exportado (${inspecciones.length} registros).`);
+            } catch (err) {
+                console.error('Error al exportar PDF:', err);
+                alert('❌ Error al generar el PDF del historial.');
             }
         }
 
@@ -1251,12 +1348,10 @@
             }
         }
 
-        // === INICIALIZAR ===
         verificarAcceso().then(() => {
             const desde = hace30Dias.toISOString().split('T')[0];
             const hasta = hoy.toISOString().split('T')[0];
 
-            // ✅ Si viene ccpId en la URL, usarlo y bloquear el selector
             if (ccpIdDesdeUrl) {
                 document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
                 document.getElementById('ccpFilter').disabled = true;
