@@ -231,9 +231,10 @@
         let inspeccionIdActual = null;
         // Establecer fecha mínima (hoy)
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-        // ✅ Verificar acceso
+        
+        // ✅ VERIFICAR ACCESO
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 window.location.href = 'index.html';
                 return false;
@@ -256,19 +257,20 @@
                 return false;
             }
         }
+
         async function cargarNotificaciones() {
             const hoy = new Date().toISOString().split('T')[0];
             const container = document.getElementById('alertasContainer');
             try {
                 // === 1. Cargar IDs de estaciones policiales del REDIP CAPITAL ===
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpCapital);
                 if (estError) throw estError;
                 const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
                 // === 2. Cargar IDs de servicios administrativos del REDIP CAPITAL ===
-                const {  servicios, error: servError } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpCapital);
@@ -277,26 +279,26 @@
                 // === 3. Consultar inspecciones vencidas de ESTACIONES ===
                 let inspeccionesEstaciones = [];
                 if (idsEstaciones.length > 0) {
-                    const {  data, error } = await supabase
+                    const { data: dataEst, error: errorEst } = await supabase
                         .from('inspecciones')
                         .select('id, proxima_inspeccion, created_at, estacion_id')
                         .in('estacion_id', idsEstaciones)
                         .lte('proxima_inspeccion', hoy)
                         .order('proxima_inspeccion', { ascending: true });
-                    if (error) throw error;
-                    inspeccionesEstaciones = data || [];
+                    if (errorEst) throw errorEst;
+                    inspeccionesEstaciones = dataEst || [];
                 }
                 // === 4. Consultar inspecciones vencidas de SERVICIOS ===
                 let inspeccionesServicios = [];
                 if (idsServicios.length > 0) {
-                    const {  data, error } = await supabase
+                    const { data: dataServ, error: errorServ } = await supabase
                         .from('inspecciones')
                         .select('id, proxima_inspeccion, created_at, servicio_id')
                         .in('servicio_id', idsServicios)
                         .lte('proxima_inspeccion', hoy)
                         .order('proxima_inspeccion', { ascending: true });
-                    if (error) throw error;
-                    inspeccionesServicios = data || [];
+                    if (errorServ) throw errorServ;
+                    inspeccionesServicios = dataServ || [];
                 }
                 // === 5. Combinar y mostrar todas las inspecciones vencidas ===
                 const todasInspecciones = [
@@ -353,6 +355,7 @@
                 container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
             }
         }
+
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
@@ -381,6 +384,8 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
+
+        // ✅ Inicializar
         verificarAcceso().then(permitido => {
             if (permitido) {
                 cargarNotificaciones();
