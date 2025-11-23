@@ -312,14 +312,28 @@
         let paginaActual = 1;
         const entradasPorPagina = 12;
 
-// === CARGAR DATOS ===
 async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
     const contenedor = document.getElementById('galeriaContainer');
     contenedor.innerHTML = '<div class="loading">Cargando...</div>';
-
     try {
         console.log('🔍 Iniciando carga para estación ID:', estacionId);
 
+        // ✅ Paso 1: Confirmar que la estación pertenece a un CCP de OCCIDENTAL
+        const { data: estacionData, error: estError } = await supabase
+            .from('estaciones_policiales')
+            .select('id, ccp_id')
+            .eq('id', estacionId)
+            .single();
+
+        if (estError || !estacionData) {
+            throw new Error('Estación no encontrada o no autorizada.');
+        }
+
+        if (!CCPs_OCCIDENTAL.includes(estacionData.ccp_id)) {
+            throw new Error('La estación no pertenece a REDIP OCCIDENTAL.');
+        }
+
+        // ✅ Paso 2: Cargar inspecciones solo de esa estación (ya validada)
         let query = supabase
             .from('inspecciones')
             .select('id, created_at')
@@ -341,9 +355,7 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
         if (inspError) {
             throw new Error(`Error en inspecciones: ${inspError.message}`);
         }
-
         console.log('✅ Inspecciones encontradas:', inspecciones.length);
-
         if (inspecciones.length === 0) {
             contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
             document.getElementById('paginacionContainer').style.display = 'none';
@@ -351,26 +363,21 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
         }
 
         const entradasPorFecha = {};
-
         for (const insp of inspecciones) {
             console.log('🔍 Procesando inspección ID:', insp.id);
-
             const { data: items, error: itemError } = await supabase
                 .from('items_inspeccion')
                 .select('item_nombre, foto1_url, foto2_url, archivo_url')
                 .eq('inspeccion_id', insp.id)
                 .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
-
             if (itemError) {
                 console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
                 continue;
             }
-
             if (!items || items.length === 0) {
                 console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
                 continue;
             }
-
             const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
                 day: '2-digit',
                 month: '2-digit',
@@ -378,11 +385,9 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-
             if (!entradasPorFecha[fechaHora]) {
                 entradasPorFecha[fechaHora] = {};
             }
-
             for (const item of items) {
                 const key = item.item_nombre;
                 if (!entradasPorFecha[fechaHora][key]) {
@@ -396,6 +401,24 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
                 if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
             }
         }
+
+        todasLasEntradas = [];
+        for (const [fecha, items] of Object.entries(entradasPorFecha)) {
+            for (const [itemNombre, datos] of Object.entries(items)) {
+                todasLasEntradas.push({ fecha, itemNombre, ...datos });
+            }
+        }
+
+        console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
+        paginaActual = 1;
+        mostrarPagina();
+        actualizarPaginacion();
+        document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+    } catch (err) {
+        console.error('❌ Error completo:', err);
+        contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+    }
+}
 
         // Convertir a array
         todasLasEntradas = [];
