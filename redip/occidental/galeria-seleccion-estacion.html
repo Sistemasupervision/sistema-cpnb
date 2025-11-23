@@ -99,8 +99,7 @@
                 alert('Por favor seleccione un CCP y una estación.');
                 return;
             }
-            window.location.href = `Galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
-        });
+           window.location.href = `Galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
 
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = 'index.html';
