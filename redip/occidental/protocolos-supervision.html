@@ -451,14 +451,28 @@
 
         async function actualizarArchivo(id) {
             const proto = protocolos.find(p => p.id === id);
+            if (!proto) return mostrarMensajeItem(id, '❌ Ítem no encontrado', 'error');
+
             const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            
             try {
-                await supabase.storage.from('protocolos-supervision').remove([ruta]);
-                mostrarMensajeItem(id, '✅ Archivo eliminado. Puede subir uno nuevo.', 'exito');
-                await verificarArchivosExistentes();
+                // ✅ Intentar eliminar el archivo
+                const { error: deleteError } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
+                
+                if (deleteError && !deleteError.message.includes('not found')) {
+                    throw new Error('No se pudo eliminar el archivo anterior.');
+                }
+
+                // ✅ Limpiar estado y UI
+                delete estadoArchivos[id];
+                renderizarProtocolos();
+                document.getElementById('btnDescargarTodo').disabled = Object.keys(estadoArchivos).length === 0;
+
+                mostrarMensajeItem(id, '✅ Archivo anterior eliminado. Puede subir uno nuevo.', 'exito');
+                
             } catch (e) {
-                console.error('Error al eliminar:', e);
-                mostrarMensajeItem(id, '❌ Error al eliminar el archivo', 'error');
+                console.error('Error al actualizar archivo:', e);
+                mostrarMensajeItem(id, `❌ Error: ${e.message || 'No se pudo eliminar el archivo.'}`, 'error');
             }
         }
 
