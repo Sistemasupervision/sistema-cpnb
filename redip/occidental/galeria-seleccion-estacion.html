@@ -27,6 +27,12 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
+        .ccp-info {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
         .input-group {
             margin: 25px 0;
         }
@@ -71,6 +77,7 @@
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Seleccionar Estación para Galería</h1>
         </div>
+        <div class="ccp-info" id="ccpInfo"></div>
         <div class="input-group">
             <label for="estacionSelect">Seleccione una estación:</label>
             <select id="estacionSelect" disabled>
@@ -101,20 +108,32 @@
             "falcon": "CCPE FALCÓN"
         };
 
+        // === OBTENER PARÁMETROS DE URL ===
+        const urlParams = new URLSearchParams(window.location.search);
+        const ccpId = urlParams.get('ccpId');
+        const ccpNombre = urlParams.get('ccpNombre') || ccpNombres[ccpId] || ccpId;
+
+        if (!ccpId || !CCPs_OCCIDENTAL.includes(ccpId)) {
+            alert('⚠️ CCP no válido o no pertenece a REDIP OCCIDENTAL.');
+            window.history.back();
+        }
+
+        document.getElementById('ccpInfo').textContent = `CCP: ${ccpNombre}`;
+
         const selectEstacion = document.getElementById('estacionSelect');
         const btnVerGaleria = document.getElementById('btnVerGaleria');
 
         async function cargarEstaciones() {
             try {
-                // ✅ Filtrar solo estaciones de REDIP OCCIDENTAL
+                // ✅ Filtrar solo estaciones del CCP recibido (y que pertenezca a OCCIDENTAL)
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre, ccp_id')
-                    .in('ccp_id', CCPs_OCCIDENTAL)
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
 
                 if (error || !estaciones || estaciones.length === 0) {
-                    selectEstacion.innerHTML = '<option value="">No hay estaciones disponibles en REDIP OCCIDENTAL</option>';
+                    selectEstacion.innerHTML = '<option value="">No hay estaciones disponibles</option>';
                     selectEstacion.disabled = true;
                     return;
                 }
@@ -123,14 +142,13 @@
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.id;
-                    // Opcional: muestra el CCP entre paréntesis
-                    opt.textContent = `${est.nombre} (${ccpNombres[est.ccp_id] || est.ccp_id})`;
+                    opt.textContent = est.nombre;
                     selectEstacion.appendChild(opt);
                 });
                 selectEstacion.disabled = false;
             } catch (error) {
                 console.error('Error al cargar estaciones:', error);
-                selectEstacion.innerHTML = '<option value="">Error al cargar estaciones</option>';
+                selectEstacion.innerHTML = '<option value="">Error al cargar</option>';
                 selectEstacion.disabled = true;
             }
         }
@@ -141,15 +159,12 @@
 
         btnVerGaleria.addEventListener('click', () => {
             const estacionId = selectEstacion.value;
-            const estacionNombre = selectEstacion.options[selectEstacion.selectedIndex].text.split(' (')[0];
-            const ccpId = selectEstacion.options[selectEstacion.selectedIndex].textContent.match(/\(([^)]+)\)/)?.[1] || '';
-            const ccpNombre = ccpNombres[ccpId] || ccpId;
-
+            const estacionNombre = selectEstacion.options[selectEstacion.selectedIndex].text;
             if (!estacionId) {
                 alert('Por favor seleccione una estación.');
                 return;
             }
-
+            // Redirigir a la galería con los parámetros correctos
             window.location.href = `Galeria.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
