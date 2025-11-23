@@ -256,7 +256,6 @@
         let idActivo = null;
         let ccpSeleccionado = null;
 
-        // === Cargar estaciones/servicios al cambiar el CCP ===
         document.getElementById('ccpSelect').addEventListener('change', () => {
             ccpSeleccionado = document.getElementById('ccpSelect').value;
             if (tipoActivo === 'estacion') {
@@ -266,7 +265,6 @@
             }
         });
 
-        // === Renderizado de pestañas ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
             const habilitar = !!ccpSeleccionado;
@@ -288,11 +286,13 @@
                 if (habilitar) {
                     (async () => {
                         try {
-                            const {  estaciones, error } = await supabase
+                            const { data: estaciones, error } = await supabase
                                 .from('estaciones_policiales')
                                 .select('id, nombre')
                                 .eq('ccp_id', ccpSeleccionado)
                                 .order('nombre', { ascending: true });
+                            if (error) throw error;
+
                             const select = document.getElementById('estacionSelect');
                             select.innerHTML = '<option value="">-- Elija una estación --</option>';
                             estaciones.forEach(est => {
@@ -331,11 +331,13 @@
                 if (habilitar) {
                     (async () => {
                         try {
-                            const {  servicios, error } = await supabase
+                            const { data: servicios, error } = await supabase
                                 .from('servicios_administrativos')
                                 .select('id, nombre')
                                 .eq('ccp_id', ccpSeleccionado)
                                 .order('nombre', { ascending: true });
+                            if (error) throw error;
+
                             const select = document.getElementById('servicioSelect');
                             select.innerHTML = '<option value="">-- Elija un servicio --</option>';
                             servicios.forEach(serv => {
@@ -365,7 +367,6 @@
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
 
-        // === Renderizar protocolos ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -393,7 +394,6 @@
             });
         }
 
-        // === Verificar archivos existentes ===
         async function verificarArchivosExistentes() {
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
@@ -402,20 +402,19 @@
             for (const proto of protocolos) {
                 const ruta = `${rutaBase}${proto.archivo}`;
                 try {
-                    const {  data } = await supabase.storage.from('protocolos-supervision').download(ruta);
+                    const { data } = await supabase.storage.from('protocolos-supervision').download(ruta);
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
                     }
                 } catch (e) {
-                    // Archivo no existe
+                    // Archivo no existe — se ignora
                 }
             }
             renderizarProtocolos();
             document.getElementById('btnDescargarTodo').disabled = !existen;
         }
 
-        // === Funciones de archivo ===
         function mostrarMensajeItem(id, texto, tipo) {
             const msg = document.getElementById(`mensaje_${id}`);
             msg.textContent = texto;
