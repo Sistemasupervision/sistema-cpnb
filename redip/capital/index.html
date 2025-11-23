@@ -147,44 +147,43 @@
             mostrarOpcionesCCP(ccpId, ccpNombre);
         });
 
-        function mostrarOpcionesCCP(ccpId, ccpNombre) {
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = `
-                <div class="logo-container">
-                    <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Opciones para ${ccpNombre}</h1>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
-                    <button id="btnEstaciones" class="action-btn" style="padding:16px; font-size:18px; width: 100%;">
-                        🏢 Estaciones Policiales
-                    </button>
-                    <button id="btnServiciosAdmin" class="action-btn servicios-admin" style="padding:16px; font-size:18px; width: 100%;">
-                        📋 Servicios Administrativos
-                    </button>
-                    <button id="btnUbicaciones" class="action-btn ubicaciones" style="padding:16px; font-size:18px; width: 100%;">
-                        📍 Ubicaciones
-                    </button>
-                    <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
-                </div>
-            `;
-            document.getElementById('rediCapitalContainer').style.display = 'none';
-            dynamicView.style.display = 'block';
+     function mostrarOpcionesCCP(ccpId, ccpNombre) {
+    const dynamicView = document.getElementById('dynamicView');
+    dynamicView.innerHTML = `
+        <div class="logo-container">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Opciones para ${ccpNombre}</h1>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
+            <button id="btnEstaciones" class="action-btn" style="padding:16px; font-size:18px; width: 100%;">
+                🏢 Estaciones Policiales
+            </button>
+            <button id="btnServiciosAdmin" class="action-btn servicios-admin" style="padding:16px; font-size:18px; width: 100%;">
+                📋 Servicios Administrativos
+            </button>
+            <button id="btnUbicaciones" class="action-btn ubicaciones" style="padding:16px; font-size:18px; width: 100%;">
+                📍 Ubicaciones
+            </button>
+            <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
+        </div>
+    `;
+    document.getElementById('rediCapitalContainer').style.display = 'none';
+    dynamicView.style.display = 'block';
 
-            document.getElementById('btnEstaciones').onclick = () => {
-                window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            };
-            document.getElementById('btnServiciosAdmin').onclick = () => {
-                window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            };
-            document.getElementById('btnUbicaciones').onclick = () => {
-                window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            };
-            document.getElementById('backToCcpBtn').onclick = () => {
-                document.getElementById('rediCapitalContainer').style.display = 'block';
-                dynamicView.style.display = 'none';
-            };
-        }
-
+    document.getElementById('btnEstaciones').onclick = () => {
+        window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+    };
+    document.getElementById('btnServiciosAdmin').onclick = () => {
+        window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+    };
+    document.getElementById('btnUbicaciones').onclick = () => {
+        window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+    };
+    document.getElementById('backToCcpBtn').onclick = () => {
+        document.getElementById('rediCapitalContainer').style.display = 'block';
+        dynamicView.style.display = 'none';
+    };
+}
         function manejarParametrosURL() {
             const urlParams = new URLSearchParams(window.location.search);
             const ccpId = urlParams.get('ccpId');
