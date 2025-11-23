@@ -185,7 +185,6 @@
             <h1 class="title">Galería de Inspección</h1>
             <div id="estacionInfo"></div>
         </div>
-
         <div id="filtroFechas">
             <h3 style="text-align:center; margin-bottom:15px; color:#0c2440;">Filtrar por Fecha</h3>
             <div style="display:flex; gap:15px; flex-wrap:wrap;">
@@ -202,26 +201,22 @@
                 </div>
             </div>
         </div>
-
         <div id="galeriaContainer" class="galeria-container">
             <div class="loading">Cargando galería...</div>
         </div>
-
         <div id="paginacionContainer" style="display:none;"></div>
-
         <button id="btnVolver" class="back-btn">← Volver a Selección</button>
     </div>
-
     <div id="zoomModal">
         <span id="closeZoom">&times;</span>
         <img id="zoomImage" alt="Vista ampliada">
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
+        // ✅ CCPs de REDIP OCCIDENTAL
+        const CCPs_OCCIDENTAL = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
         // === OBJETO CON LOS 67 ÍTEMS ===
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
@@ -292,188 +287,158 @@
             informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
-
         // === OBTENER PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const estacionIdStr = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre') || 'Desconocida';
         const ccpNombre = urlParams.get('ccpNombre') || 'Desconocido';
-
         if (!estacionIdStr || isNaN(estacionIdStr)) {
             alert('⚠️ Estación no válida. Redirigiendo...');
             window.history.back();
         }
-
         const estacionId = parseInt(estacionIdStr, 10);
         document.getElementById('estacionInfo').textContent = `Estación: ${estacionNombre} | CCP: ${ccpNombre}`;
         document.getElementById('fechaHasta').valueAsDate = new Date();
-
         let todasLasEntradas = [];
         let paginaActual = 1;
         const entradasPorPagina = 12;
 
-async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
-    const contenedor = document.getElementById('galeriaContainer');
-    contenedor.innerHTML = '<div class="loading">Cargando...</div>';
-    try {
-        console.log('🔍 Iniciando carga para estación ID:', estacionId);
+        // === CARGAR DATOS ===
+        async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
+            const contenedor = document.getElementById('galeriaContainer');
+            contenedor.innerHTML = '<div class="loading">Cargando...</div>';
+            try {
+                console.log('🔍 Iniciando carga para estación ID:', estacionId);
 
-        // ✅ Paso 1: Confirmar que la estación pertenece a un CCP de OCCIDENTAL
-        const { data: estacionData, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('id, ccp_id')
-            .eq('id', estacionId)
-            .single();
+                // ✅ Paso 1: Confirmar que la estación pertenece a un CCP de OCCIDENTAL
+                const { data: estacionData, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, ccp_id')
+                    .eq('id', estacionId)
+                    .single();
 
-        if (estError || !estacionData) {
-            throw new Error('Estación no encontrada o no autorizada.');
-        }
-
-        if (!CCPs_OCCIDENTAL.includes(estacionData.ccp_id)) {
-            throw new Error('La estación no pertenece a REDIP OCCIDENTAL.');
-        }
-
-        // ✅ Paso 2: Cargar inspecciones solo de esa estación (ya validada)
-        let query = supabase
-            .from('inspecciones')
-            .select('id, created_at')
-            .eq('estacion_id', estacionId)
-            .order('created_at', { ascending: false });
-
-        if (fechaDesde) {
-            console.log('📅 Filtrando desde:', fechaDesde);
-            query = query.gte('created_at', new Date(fechaDesde).toISOString());
-        }
-        if (fechaHasta) {
-            const hasta = new Date(fechaHasta);
-            hasta.setUTCHours(23, 59, 59, 999);
-            console.log('📅 Filtrando hasta:', hasta.toISOString());
-            query = query.lte('created_at', hasta.toISOString());
-        }
-
-        const { data: inspecciones, error: inspError } = await query;
-        if (inspError) {
-            throw new Error(`Error en inspecciones: ${inspError.message}`);
-        }
-        console.log('✅ Inspecciones encontradas:', inspecciones.length);
-        if (inspecciones.length === 0) {
-            contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
-            document.getElementById('paginacionContainer').style.display = 'none';
-            return;
-        }
-
-        const entradasPorFecha = {};
-        for (const insp of inspecciones) {
-            console.log('🔍 Procesando inspección ID:', insp.id);
-            const { data: items, error: itemError } = await supabase
-                .from('items_inspeccion')
-                .select('item_nombre, foto1_url, foto2_url, archivo_url')
-                .eq('inspeccion_id', insp.id)
-                .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
-            if (itemError) {
-                console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
-                continue;
-            }
-            if (!items || items.length === 0) {
-                console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
-                continue;
-            }
-            const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            if (!entradasPorFecha[fechaHora]) {
-                entradasPorFecha[fechaHora] = {};
-            }
-            for (const item of items) {
-                const key = item.item_nombre;
-                if (!entradasPorFecha[fechaHora][key]) {
-                    entradasPorFecha[fechaHora][key] = {
-                        fotos: [],
-                        archivo_url: null
-                    };
+                if (estError || !estacionData) {
+                    throw new Error('Estación no encontrada o no autorizada.');
                 }
-                if (item.foto1_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto1_url);
-                if (item.foto2_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto2_url);
-                if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
+
+                if (!CCPs_OCCIDENTAL.includes(estacionData.ccp_id)) {
+                    throw new Error('La estación no pertenece a REDIP OCCIDENTAL.');
+                }
+
+                // ✅ Paso 2: Cargar inspecciones solo de esa estación (ya validada)
+                let query = supabase
+                    .from('inspecciones')
+                    .select('id, created_at')
+                    .eq('estacion_id', estacionId)
+                    .order('created_at', { ascending: false });
+
+                if (fechaDesde) {
+                    console.log('📅 Filtrando desde:', fechaDesde);
+                    query = query.gte('created_at', new Date(fechaDesde).toISOString());
+                }
+                if (fechaHasta) {
+                    const hasta = new Date(fechaHasta);
+                    hasta.setUTCHours(23, 59, 59, 999);
+                    console.log('📅 Filtrando hasta:', hasta.toISOString());
+                    query = query.lte('created_at', hasta.toISOString());
+                }
+
+                const { data: inspecciones, error: inspError } = await query;
+                if (inspError) {
+                    throw new Error(`Error en inspecciones: ${inspError.message}`);
+                }
+                console.log('✅ Inspecciones encontradas:', inspecciones.length);
+                if (inspecciones.length === 0) {
+                    contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
+                    document.getElementById('paginacionContainer').style.display = 'none';
+                    return;
+                }
+
+                const entradasPorFecha = {};
+                for (const insp of inspecciones) {
+                    console.log('🔍 Procesando inspección ID:', insp.id);
+                    const { data: items, error: itemError } = await supabase
+                        .from('items_inspeccion')
+                        .select('item_nombre, foto1_url, foto2_url, archivo_url')
+                        .eq('inspeccion_id', insp.id)
+                        .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
+                    if (itemError) {
+                        console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
+                        continue;
+                    }
+                    if (!items || items.length === 0) {
+                        console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
+                        continue;
+                    }
+                    const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    if (!entradasPorFecha[fechaHora]) {
+                        entradasPorFecha[fechaHora] = {};
+                    }
+                    for (const item of items) {
+                        const key = item.item_nombre;
+                        if (!entradasPorFecha[fechaHora][key]) {
+                            entradasPorFecha[fechaHora][key] = {
+                                fotos: [],
+                                archivo_url: null
+                            };
+                        }
+                        if (item.foto1_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto1_url);
+                        if (item.foto2_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto2_url);
+                        if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
+                    }
+                }
+
+                todasLasEntradas = [];
+                for (const [fecha, items] of Object.entries(entradasPorFecha)) {
+                    for (const [itemNombre, datos] of Object.entries(items)) {
+                        todasLasEntradas.push({ fecha, itemNombre, ...datos });
+                    }
+                }
+
+                console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
+                paginaActual = 1;
+                mostrarPagina();
+                actualizarPaginacion();
+                document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+            } catch (err) {
+                console.error('❌ Error completo:', err);
+                contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
             }
         }
-
-        todasLasEntradas = [];
-        for (const [fecha, items] of Object.entries(entradasPorFecha)) {
-            for (const [itemNombre, datos] of Object.entries(items)) {
-                todasLasEntradas.push({ fecha, itemNombre, ...datos });
-            }
-        }
-
-        console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
-        paginaActual = 1;
-        mostrarPagina();
-        actualizarPaginacion();
-        document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
-    } catch (err) {
-        console.error('❌ Error completo:', err);
-        contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
-    }
-}
-
-        // Convertir a array
-        todasLasEntradas = [];
-        for (const [fecha, items] of Object.entries(entradasPorFecha)) {
-            for (const [itemNombre, datos] of Object.entries(items)) {
-                todasLasEntradas.push({ fecha, itemNombre, ...datos });
-            }
-        }
-
-        console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
-
-        paginaActual = 1;
-        mostrarPagina();
-        actualizarPaginacion();
-        document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
-
-    } catch (err) {
-        console.error('❌ Error completo:', err);
-        contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
-    }
-}
 
         function mostrarPagina() {
             const inicio = (paginaActual - 1) * entradasPorPagina;
             const fin = inicio + entradasPorPagina;
             const entradas = todasLasEntradas.slice(inicio, fin);
             const contenedor = document.getElementById('galeriaContainer');
-
             if (entradas.length === 0) {
                 contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
                 return;
             }
-
             const porFecha = {};
             entradas.forEach(e => {
                 if (!porFecha[e.fecha]) porFecha[e.fecha] = [];
                 porFecha[e.fecha].push(e);
             });
-
             contenedor.innerHTML = '';
             Object.entries(porFecha).forEach(([fecha, items]) => {
                 const header = document.createElement('div');
                 header.className = 'inspeccion-header';
                 header.textContent = `Inspección del ${fecha}`;
                 contenedor.appendChild(header);
-
                 items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'item-card';
-
                     const label = document.createElement('div');
                     label.className = 'item-label';
                     label.textContent = nombres[item.itemNombre] || item.itemNombre;
                     card.appendChild(label);
-
                     item.fotos.forEach(fotoUrl => {
                         const img = document.createElement('img');
                         img.src = fotoUrl;
@@ -484,7 +449,6 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
                         };
                         card.appendChild(img);
                     });
-
                     item.fotos.forEach((_, i) => {
                         const btn = document.createElement('button');
                         btn.className = 'download-btn btn-foto';
@@ -492,7 +456,6 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
                         btn.onclick = async () => await descargar(item.fotos[i], item.itemNombre, 'foto');
                         card.appendChild(btn);
                     });
-
                     if (item.archivo_url) {
                         const btn = document.createElement('button');
                         btn.className = 'download-btn btn-archivo';
@@ -500,13 +463,12 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
                         btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
                         card.appendChild(btn);
                     }
-
                     contenedor.appendChild(card);
                 });
             });
         }
 
-            async function descargar(url, item, tipo) {
+        async function descargar(url, item, tipo) {
             try {
                 const res = await fetch(url);
                 const blob = await res.blob();
@@ -529,9 +491,7 @@ async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
             const totalPaginas = Math.ceil(todasLasEntradas.length / entradasPorPagina);
             const contenedor = document.getElementById('paginacionContainer');
             contenedor.innerHTML = '';
-
             if (totalPaginas <= 1) return;
-
             for (let i = 1; i <= totalPaginas; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
