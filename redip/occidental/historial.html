@@ -506,7 +506,7 @@
         }
 
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión para acceder a esta página.');
                 window.location.href = 'index.html';
@@ -535,7 +535,7 @@
             }
         }
 
-        // === NUEVA FUNCIÓN: carga estaciones y servicios por CCP ===
+        // ✅ NUEVA FUNCIÓN: carga estaciones y servicios de un CCP
         async function cargarEstacionesYServicios(ccpId) {
             const estacionSelect = document.getElementById('estacionFilter');
             const servicioSelect = document.getElementById('servicioFilter');
@@ -544,7 +544,7 @@
             if (!ccpId) return;
 
             try {
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -557,7 +557,7 @@
                     estacionSelect.appendChild(opt);
                 });
 
-                const {  servicios, error: servError } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -575,7 +575,7 @@
             }
         }
 
-        // Evento para cuando el usuario cambia manualmente el CCP
+        // Evento manual de cambio de CCP
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             await cargarEstacionesYServicios(ccpId);
@@ -583,7 +583,7 @@
 
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
-                const {  todasEstaciones, error: estError } = await supabase
+                const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id');
                 if (estError) throw estError;
@@ -716,34 +716,18 @@
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 const hoy = new Date();
-                hoy.setHours(0, 0, 0, 0);
                 if (insp.proxima_inspeccion) {
                     const fechaProxima = new Date(insp.proxima_inspeccion);
-                    fechaProxima.setHours(0, 0, 0, 0);
-                    const diffDias = Math.ceil((fechaProxima - hoy) / (1000 * 60 * 60 * 24));
                     if (fechaProxima <= hoy) {
                         estadoClase = 'estado-rojo';
                         alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
-                    } else if (diffDias <= 7) {
+                    } else if (fechaProxima <= new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000)) {
                         estadoClase = 'estado-amarillo';
                     }
                 }
                 let claseCumplimiento = 'cumplimiento-bajo';
                 if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
                 else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
-
-                let botonesHTML = `
-                    <div class="botones-container">
-                        <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
-                `;
-                if (estadoClase === 'estado-rojo') {
-                    botonesHTML += `
-                        <button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">
-                            ✅ Marcar como reinspeccionada
-                        </button>
-                    `;
-                }
-                botonesHTML += `</div>`;
 
                 const tipoIcono = insp.tipo === 'servicio' ? '📄' : '👮';
                 const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
@@ -773,7 +757,10 @@
                             <span class="meta-value">${insp.inspector_email}</span>
                         </div>
                     </div>
-                    ${botonesHTML}
+                    <div class="botones-container">
+                        <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
+                        ${estadoClase === 'estado-rojo' ? `<button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">✅ Marcar como reinspeccionada</button>` : ''}
+                    </div>
                 `;
                 contenedor.appendChild(card);
             });
@@ -840,13 +827,13 @@
 
         async function mostrarDetalle(inspeccionId) {
             try {
-                const {  items, error: itemsError } = await supabase
+                const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
                     .eq('inspeccion_id', inspeccionId)
                     .order('item_nombre', { ascending: true });
 
-                const {  inspeccion, error: inspError } = await supabase
+                const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
@@ -862,7 +849,7 @@
                 let tipo = 'desconocido';
 
                 if (inspeccion.estacion_id) {
-                    const {  estacionData, error: estError } = await supabase
+                    const { data: estacionData, error: estError } = await supabase
                         .from('estaciones_policiales')
                         .select('nombre')
                         .eq('id', inspeccion.estacion_id)
@@ -872,7 +859,7 @@
                         tipo = 'estacion';
                     }
                 } else if (inspeccion.servicio_id) {
-                    const {  servicioData, error: servError } = await supabase
+                    const { data: servicioData, error: servError } = await supabase
                         .from('servicios_administrativos')
                         .select('nombre')
                         .eq('id', inspeccion.servicio_id)
@@ -1052,7 +1039,7 @@
             }
 
             try {
-                const {  inspeccion, error: inspError } = await supabase
+                const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('estacion_id, servicio_id')
                     .eq('id', inspeccionId)
@@ -1063,7 +1050,7 @@
                 if (inspeccion.estacion_id) tipo = 'estacion';
                 else if (inspeccion.servicio_id) tipo = 'servicio';
 
-                const {  nuevoReporte, error: insertError } = await supabase
+                const { data: nuevoReporte, error: insertError } = await supabase
                     .from('reportes')
                     .insert({ inspeccion_id: inspeccionId })
                     .select('id, fecha_generacion')
@@ -1134,8 +1121,7 @@
             }
         }
 
-        // === FUNCIONES DE EXPORTACIÓN COMPLETA Y CARGA INICIAL ===
-
+        // === Exportar historial completo ===
         async function exportarHistorialAPDF() {
             try {
                 const desde = document.getElementById('fechaDesde').value;
@@ -1162,11 +1148,11 @@
                 } else if (servicioId) {
                     query = query.eq('servicio_id', servicioId);
                 } else if (ccpId) {
-                    const {  estaciones, error: estError } = await supabase
+                    const { data: estaciones, error: estError } = await supabase
                         .from('estaciones_policiales')
                         .select('id')
                         .eq('ccp_id', ccpId);
-                    const {  servicios, error: servError } = await supabase
+                    const { data: servicios, error: servError } = await supabase
                         .from('servicios_administrativos')
                         .select('id')
                         .eq('ccp_id', ccpId);
@@ -1182,15 +1168,15 @@
                     }
                 }
 
-                const {  inspecciones, error } = await query;
+                const { data: inspecciones, error } = await query;
                 if (error) throw error;
                 if (!inspecciones || inspecciones.length === 0) {
                     alert('No hay inspecciones para exportar con los filtros actuales.');
                     return;
                 }
 
-                const {  todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('id, nombre');
-                const {  todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('id, nombre');
+                const { data: todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('id, nombre');
+                const { data: todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('id, nombre');
                 if (estError || servError) throw new Error('Error al cargar nombres.');
                 const estMap = {};
                 const servMap = {};
@@ -1198,7 +1184,7 @@
                 todosServicios.forEach(s => servMap[s.id] = s.nombre);
 
                 const ids = inspecciones.map(i => i.id);
-                const {  items } = await supabase
+                const { data: items } = await supabase
                     .from('items_inspeccion')
                     .select('inspeccion_id, cumple')
                     .in('inspeccion_id', ids);
@@ -1310,6 +1296,7 @@
             }
         }
 
+        // Modales reinspección
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
@@ -1334,12 +1321,7 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                const desde = document.getElementById('fechaDesde').value;
-                const hasta = document.getElementById('fechaHasta').value;
-                const ccpId = document.getElementById('ccpFilter').value;
-                const estacionId = document.getElementById('estacionFilter').value;
-                const servicioId = document.getElementById('servicioFilter').value;
-                cargarHistorial(desde || null, hasta || null, ccpId || null, estacionId || null, servicioId || null);
+                aplicarFiltro();
             } catch (error) {
                 console.error("Error al actualizar:", error);
                 alert("❌ Error al actualizar la reinspección.");
@@ -1362,7 +1344,7 @@
             if (ccpIdDesdeUrl) {
                 document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
                 document.getElementById('ccpFilter').disabled = true;
-                // ✅ Cargar estaciones y servicios del CCP automáticamente
+                // ✅ Cargar estaciones y servicios del CCP seleccionado
                 await cargarEstacionesYServicios(ccpIdDesdeUrl);
                 cargarHistorial(desde, hasta, ccpIdDesdeUrl);
             } else {
