@@ -204,7 +204,7 @@
     <div class="container">
         <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Protocolos de Supervisión</h1>
-        <!-- ✅ Eliminado el selector de REDIP -->
+        <!-- ✅ CCP directo (solo OCCIDENTAL) -->
         <div class="input-group">
             <label for="ccpSelect">Seleccione CCP:</label>
             <select id="ccpSelect" required>
@@ -225,11 +225,16 @@
                 <button id="tabServicio" class="tab-btn">📋 Servicio Administrativo</button>
             </div>
         </div>
-        <!-- Contenido dinámico según pestaña -->
+        <!-- Contenido dinámico -->
         <div id="seleccionActiva">
-            <!-- Se rellenará con JS -->
+            <div class="input-group">
+                <label>Estación Policial:</label>
+                <select id="estacionSelect" disabled>
+                    <option value="">-- Seleccione CCP primero --</option>
+                </select>
+            </div>
         </div>
-        <!-- Contenedor común de protocolos -->
+        <!-- Protocolos -->
         <div id="protocolosContainer"></div>
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
@@ -247,7 +252,7 @@
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
         let estadoArchivos = {};
-        let tipoActivo = null;
+        let tipoActivo = 'estacion';
         let idActivo = null;
         let ccpSeleccionado = null;
 
@@ -275,7 +280,7 @@
                 contenedor.innerHTML = `
                     <div class="input-group">
                         <label>Estación Policial:</label>
-                        <select id="estacionSelect" ${habilitar ? '' : 'disabled'} style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-weight:bold;">
+                        <select id="estacionSelect" ${habilitar ? '' : 'disabled'}>
                             <option value="">${habilitar ? '-- Elija una estación --' : '-- Seleccione CCP primero --'}</option>
                         </select>
                     </div>
@@ -283,7 +288,7 @@
                 if (habilitar) {
                     (async () => {
                         try {
-                            const { data: estaciones, error } = await supabase
+                            const {  estaciones, error } = await supabase
                                 .from('estaciones_policiales')
                                 .select('id, nombre')
                                 .eq('ccp_id', ccpSeleccionado)
@@ -318,7 +323,7 @@
                 contenedor.innerHTML = `
                     <div class="input-group">
                         <label>Servicio Administrativo:</label>
-                        <select id="servicioSelect" ${habilitar ? '' : 'disabled'} style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; font-weight:bold;">
+                        <select id="servicioSelect" ${habilitar ? '' : 'disabled'}>
                             <option value="">${habilitar ? '-- Elija un servicio --' : '-- Seleccione CCP primero --'}</option>
                         </select>
                     </div>
@@ -326,7 +331,7 @@
                 if (habilitar) {
                     (async () => {
                         try {
-                            const { data: servicios, error } = await supabase
+                            const {  servicios, error } = await supabase
                                 .from('servicios_administrativos')
                                 .select('id, nombre')
                                 .eq('ccp_id', ccpSeleccionado)
@@ -359,9 +364,6 @@
 
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
-
-        // === Iniciar en Estaciones ===
-        renderPestana('estacion');
 
         // === Renderizar protocolos ===
         function renderizarProtocolos() {
@@ -396,16 +398,17 @@
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
             let existen = false;
+            const rutaBase = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`;
             for (const proto of protocolos) {
-                const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+                const ruta = `${rutaBase}${proto.archivo}`;
                 try {
-                    const { data, error } = await supabase.storage.from('protocolos-supervision').download(ruta);
+                    const {  data } = await supabase.storage.from('protocolos-supervision').download(ruta);
                     if (data) {
                         estadoArchivos[proto.id] = { existe: true, data };
                         existen = true;
                     }
                 } catch (e) {
-                    // Archivo no existe, no hacer nada
+                    // Archivo no existe
                 }
             }
             renderizarProtocolos();
@@ -482,20 +485,8 @@
             alert('✅ Todos los archivos descargados');
         }
 
-        async function verificarAutenticacion() {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    alert('Debe iniciar sesión.');
-                    window.location.href = 'index.html';
-                }
-            } catch (error) {
-                console.error('Error de autenticación:', error);
-                alert('Error al verificar sesión.');
-            }
-        }
-
-        verificarAutenticacion();
+        // Iniciar
+        renderPestana('estacion');
     </script>
 </body>
 </html>
