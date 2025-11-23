@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seleccionar CCP - Historial</title>
+    <title>Seleccionar CCP para Historial - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
@@ -87,7 +87,7 @@
                 <option value="">-- Cargando... --</option>
             </select>
         </div>
-        <button id="btnContinuar" class="action-btn">Ver Historial</button>
+        <button id="btnCargarFormulario" class="action-btn">Ver Historial</button>
         <button id="btnVolver" class="back-btn">← Volver a REDIP OCCIDENTAL</button>
     </div>
     <script>
@@ -95,10 +95,10 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ Cargar SOLO los CCPs de REDIP OCCIDENTAL
+        // ✅ Cargar SOLO CCPs de REDIP OCCIDENTAL
         async function cargarCCPs() {
             try {
-                const { data: ccps, error } = await supabase
+                const {  ccps, error } = await supabase
                     .from('ccps')
                     .select('id, nombre')
                     .eq('redip', 'occidental')  // ← Solo OCCIDENTAL
@@ -118,14 +118,14 @@
             }
         }
 
-        document.getElementById('btnContinuar').addEventListener('click', () => {
+        document.getElementById('btnCargarFormulario').addEventListener('click', () => {
             const ccpId = document.getElementById('ccpSelect').value;
             if (!ccpId) {
                 alert('Por favor seleccione un CCP.');
                 return;
             }
             const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
-            // ✅ Redirigir a Historial.html con parámetros
+            // ✅ REDIRIGIR A Historial.html con parámetros
             window.location.href = `Historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
@@ -133,7 +133,6 @@
             window.location.href = 'index.html';
         });
 
-        // Inicializar
         cargarCCPs();
     </script>
 </body>
