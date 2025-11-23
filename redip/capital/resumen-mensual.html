@@ -329,31 +329,61 @@
             mesesComp.value = hoy.getMonth() === 0 ? 11 : hoy.getMonth() - 1;
             aniosComp.value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
         }
+        // ✅ FUNCIÓN CORREGIDA: incluye estaciones Y servicios
         async function cargarDatosPorCCP(anio, mes) {
             const rango = rangoMes(anio, mes);
-            const { data: estaciones, error: estError } = await supabase
+            // 1. Cargar estaciones de REDIP CAPITAL
+            const {  estaciones, error: estError } = await supabase
                 .from('estaciones_policiales')
                 .select('id, ccp_id')
                 .in('ccp_id', ccpCapital);
             if (estError) throw estError;
-            if (estaciones.length === 0) return {};
-            const idsEstaciones = estaciones.map(e => e.id);
-            const estacionCCPMap = {};
-            estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
-            const { data: inspecciones, error: inspError } = await supabase
-                .from('inspecciones')
-                .select('id, estacion_id')
-                .in('estacion_id', idsEstaciones)
-                .gte('created_at', rango.desde)
-                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
-            if (inspError) throw inspError;
-            if (inspecciones.length === 0) return {};
-            const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
+            // 2. Cargar servicios de REDIP CAPITAL
+            const {  servicios, error: servError } = await supabase
+                .from('servicios_administrativos')
+                .select('id, ccp_id')
+                .in('ccp_id', ccpCapital);
+            if (servError) throw servError;
+            const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
+            const idsServicios = servicios ? servicios.map(s => s.id) : [];
+            // 3. Cargar inspecciones de estaciones
+            let inspeccionesEstaciones = [];
+            if (idsEstaciones.length > 0) {
+                const {  inspEst, error: inspEstError } = await supabase
+                    .from('inspecciones')
+                    .select('id, estacion_id')
+                    .in('estacion_id', idsEstaciones)
+                    .gte('created_at', rango.desde)
+                    .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+                if (inspEstError) throw inspEstError;
+                inspeccionesEstaciones = inspEst || [];
+            }
+            // 4. Cargar inspecciones de servicios
+            let inspeccionesServicios = [];
+            if (idsServicios.length > 0) {
+                const {  inspServ, error: inspServError } = await supabase
+                    .from('inspecciones')
+                    .select('id, servicio_id')
+                    .in('servicio_id', idsServicios)
+                    .gte('created_at', rango.desde)
+                    .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+                if (inspServError) throw inspServError;
+                inspeccionesServicios = inspServ || [];
+            }
+            // 5. Combinar todas las inspecciones
+            const todasInspecciones = [
+                ...inspeccionesEstaciones.map(i => ({ ...i, tipo: 'estacion' })),
+                ...inspeccionesServicios.map(i => ({ ...i, tipo: 'servicio' }))
+            ];
+            if (todasInspecciones.length === 0) return {};
+            // 6. Cargar ítems
+            const idsInspecciones = todasInspecciones.map(i => i.id);
+            const {  items, error: itemsError } = await supabase
                 .from('items_inspeccion')
                 .select('inspeccion_id, cumple')
                 .in('inspeccion_id', idsInspecciones);
             if (itemsError) throw itemsError;
+            // Agrupar ítems por inspección
             const itemsPorInspeccion = {};
             items.forEach(item => {
                 if (!itemsPorInspeccion[item.inspeccion_id]) {
@@ -361,9 +391,22 @@
                 }
                 itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
             });
+            // Mapear CCP por inspección
+            const inspeccionCCPMap = {};
+            inspeccionesEstaciones.forEach(i => {
+                const est = estaciones.find(e => e.id === i.estacion_id);
+                if (est) inspeccionCCPMap[i.id] = est.ccp_id;
+            });
+            inspeccionesServicios.forEach(i => {
+                const serv = servicios.find(s => s.id === i.servicio_id);
+                if (serv) inspeccionCCPMap[i.id] = serv.ccp_id;
+            });
+            // Calcular métricas por CCP
             const metricasPorCCP = {};
-            inspecciones.forEach(insp => {
-                const ccp = estacionCCPMap[insp.estacion_id];
+            todasInspecciones.forEach(insp => {
+                const ccp = inspeccionCCPMap[insp.id];
+                if (!ccp || !ccpCapital.includes(ccp)) return; // ✅ solo CCPs de CAPITAL
+
                 if (!metricasPorCCP[ccp]) {
                     metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
                 }
@@ -433,13 +476,12 @@
                 const ctx = document.getElementById('ccpChart').getContext('2d');
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
+                     {
                         labels: labels,
                         datasets: [
                             {
                                 label: formatoMes(anioBase, mesBase),
-                                data: dataBase,
+                                 dataBase,
                                 backgroundColor: 'rgba(49, 130, 206, 0.85)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
@@ -448,7 +490,7 @@
                             },
                             {
                                 label: formatoMes(anioComp, mesComp),
-                                data: dataComp,
+                                 dataComp,
                                 backgroundColor: 'rgba(239, 68, 68, 0.75)',
                                 borderColor: 'rgba(220, 38, 38, 1)',
                                 borderWidth: 1,
@@ -506,7 +548,7 @@
                 return;
             }
             try {
-                const { data: nuevoReporte, error: insertError } = await supabase
+                const {  nuevoReporte, error: insertError } = await supabase
                     .from('reportes')
                     .insert({ tipo_reporte: 'RESUMEN_MENSUAL' })
                     .select('id, fecha_generacion')
