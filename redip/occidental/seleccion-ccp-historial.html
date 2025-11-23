@@ -3,69 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seleccionar CCP para Historial - REDIP OCCIDENTAL</title>
+    <title>Seleccionar CCP - Historial</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
-    <style>
-        .modal {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            max-width: 600px;
-            padding: 40px;
-            position: relative;
-            margin: 50px auto;
-        }
-        .modal::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
-        }
-        .input-group {
-            margin: 20px 0;
-        }
-        .input-group label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .input-group select {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-        }
-        .action-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #0c2440, #1a365d);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(12, 36, 64, 0.3);
-        }
-        .back-btn {
-            background: linear-gradient(135deg, #2c5282, #1a365d);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 20px;
-            width: auto;
-        }
-    </style>
 </head>
 <body>
     <div class="vector-bg">
@@ -76,64 +16,48 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-    <div class="modal">
+    <div id="container" class="container" style="max-width: 600px; padding: 50px;">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Seleccionar CCP para Historial</h1>
         </div>
-        <div class="input-group">
+        <div class="input-group" style="margin-top: 30px;">
             <label for="ccpSelect">Seleccione CCP:</label>
-            <select id="ccpSelect" required>
-                <option value="">-- Cargando... --</option>
+            <select id="ccpSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                <option value="">-- Elija un CCP --</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="col">CCPE COL</option>
+                <option value="lara">CCPE LARA</option>
+                <option value="falcon">CCPE FALCÓN</option>
             </select>
         </div>
-        <button id="btnCargarFormulario" class="action-btn">Ver Historial</button>
-        <button id="btnVolver" class="back-btn">← Volver a REDIP OCCIDENTAL</button>
+        <button id="btnIrHistorial" class="action-btn" style="margin-top: 25px; padding: 14px; font-size: 16px; width: 100%;">
+            📋 Ver Historial de Inspecciones
+        </button>
+        <button class="back-btn" style="margin-top: 15px; padding: 10px 20px; width: 100%;" onclick="window.history.back()">
+            ← Volver
+        </button>
     </div>
     <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-        // ✅ Cargar SOLO CCPs de REDIP OCCIDENTAL
-        async function cargarCCPs() {
-            try {
-                const {  ccps, error } = await supabase
-                    .from('ccps')
-                    .select('id, nombre')
-                    .eq('redip', 'occidental')  // ← Solo OCCIDENTAL
-                    .order('nombre', { ascending: true });
-                if (error) throw error;
-                const select = document.getElementById('ccpSelect');
-                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
-                ccps.forEach(ccp => {
-                    const opt = document.createElement('option');
-                    opt.value = ccp.id;
-                    opt.textContent = ccp.nombre;
-                    select.appendChild(opt);
-                });
-            } catch (error) {
-                console.error('Error al cargar CCPs:', error);
-                alert('Error al cargar los CCPs.');
-            }
-        }
-
-        document.getElementById('btnCargarFormulario').addEventListener('click', () => {
+        document.getElementById('btnIrHistorial').addEventListener('click', () => {
             const ccpId = document.getElementById('ccpSelect').value;
             if (!ccpId) {
                 alert('Por favor seleccione un CCP.');
                 return;
             }
-            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
-            // ✅ REDIRIGIR A Historial.html con parámetros
-            window.location.href = `Historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            const ccpNombres = {
+                "metropolitano": "CCP METROPOLITANO",
+                "sur-del-lago": "CCP SUR DEL LAGO",
+                "guajira": "CCP GUAJIRA",
+                "col": "CCPE COL",
+                "lara": "CCPE LARA",
+                "falcon": "CCPE FALCÓN"
+            };
+            const ccpNombre = ccpNombres[ccpId];
+            window.location.href = `historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
-
-        document.getElementById('btnVolver').addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
-
-        cargarCCPs();
     </script>
 </body>
 </html>
