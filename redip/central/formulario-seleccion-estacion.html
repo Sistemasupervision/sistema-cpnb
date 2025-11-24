@@ -46,17 +46,19 @@
         
         // Verificar acceso a REDIP CENTRAL
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
-            if (!user) {
-                window.location.href = '../../index.html';
-                return false;
-            }
             try {
+                const {  { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
+                    
                 if (error || !data || (data.redip !== 'central' && data.redip !== 'admin')) {
                     alert('⚠️ No tiene permisos para acceder a REDIP CENTRAL.');
                     window.location.href = '../../index.html';
@@ -85,29 +87,38 @@
         
         document.getElementById('ccpNombreDisplay').textContent = ccpNombre;
         
-        // Cargar estaciones desde Supabase
         async function cargarEstaciones() {
+            const select = document.getElementById('estacionSelect');
+            
             try {
-                // Verificar acceso antes de cargar datos
+                // ✅ Verificar acceso primero
                 const permitido = await verificarAcceso();
                 if (!permitido) return;
                 
+                console.log('🔍 Cargando estaciones para CCP ID:', ccpId);
+                
+                // ✅ Corregido: Sintaxis de Supabase query
                 const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-                    
-                const select = document.getElementById('estacionSelect');
                 
-                if (error) throw error;
+                console.log('✅ Estaciones consultadas:', estaciones?.length || 0);
+                
+                if (error) {
+                    console.error('❌ Error en consulta Supabase:', error);
+                    throw new Error(error.message || 'Error al consultar estaciones');
+                }
                 
                 if (!estaciones || estaciones.length === 0) {
-                    select.innerHTML = '<option value="">No hay estaciones disponibles</option>';
+                    select.innerHTML = '<option value="">No hay estaciones disponibles para este CCP</option>';
                     select.disabled = true;
+                    console.warn('⚠️ No se encontraron estaciones para el CCP:', ccpId);
                     return;
                 }
                 
+                // ✅ Limpiar y llenar el select
                 select.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
@@ -117,17 +128,14 @@
                 });
                 
                 select.disabled = false;
+                console.log(`✅ ${estaciones.length} estaciones cargadas correctamente`);
             } catch (error) {
-                console.error('Error al cargar estaciones:', error);
+                console.error('❌ Error general al cargar estaciones:', error);
                 alert(`Error al cargar las estaciones policiales: ${error.message || 'Error desconocido'}`);
-                const select = document.getElementById('estacionSelect');
                 select.innerHTML = '<option value="">Error al cargar las estaciones</option>';
                 select.disabled = true;
             }
         }
-        
-        // Inicializar
-        cargarEstaciones();
         
         // Evento: Cargar formulario de inspección
         document.getElementById('btnCargarFormulario').addEventListener('click', () => {
@@ -144,6 +152,11 @@
         // Evento: Volver a opciones
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+        });
+        
+        // ✅ Iniciar carga de estaciones
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEstaciones();
         });
     </script>
 </body>
