@@ -387,7 +387,7 @@
             estacionSelect.disabled = !ccpId;
             if (!ccpId) return;
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -397,7 +397,6 @@
                     estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
                     return;
                 }
-                estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.id;
@@ -411,32 +410,19 @@
         });
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
-            const ccpId = document.getElementById('ccpFilter').value;
-            if (!estacionId || !ccpId) return;
-            await cargarEstadisticas(estacionId, ccpId);
+            if (!estacionId) return;
+            await cargarEstadisticas(estacionId);
         });
         // === Cargar estadísticas ===
-        async function cargarEstadisticas(estacionId, ccpId) {
-            // ✅ Validar que la estación pertenezca al CCP
-            const {  estacion, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('nombre, ccp_id')
-                .eq('id', estacionId)
-                .single();
-            if (estError || !estacion || estacion.ccp_id !== ccpId) {
-                document.getElementById('mensajeCarga').style.display = 'none';
-                document.getElementById('mensajeSinDatos').textContent = 'La estación seleccionada no pertenece al CCP elegido.';
-                document.getElementById('mensajeSinDatos').style.display = 'block';
-                return;
-            }
-            const estacionNombre = estacion.nombre;
+        async function cargarEstadisticas(estacionId) {
+            const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
             nombreEstacionActual = estacionNombre;
             document.getElementById('seleccionContainer').style.display = 'none';
             document.getElementById('resultadosContainer').style.display = 'none';
             document.getElementById('mensajeCarga').style.display = 'block';
             document.getElementById('mensajeSinDatos').style.display = 'none';
             try {
-                const {  inspecciones, error: inspError } = await supabase
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .eq('estacion_id', estacionId);
@@ -447,7 +433,7 @@
                     return;
                 }
                 const idsInspecciones = inspecciones.map(i => i.id);
-                const {  items, error: itemsError } = await supabase
+                const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, porcentaje_cumplimiento')
                     .in('inspeccion_id', idsInspecciones);
@@ -624,6 +610,10 @@
             document.getElementById('statsHeader').textContent = '';
             document.getElementById('filtroItems').value = '';
         }
+        // Inicializar
+        document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+            window.location.href = '../../index.html';
+        });
     </script>
 </body>
 </html>
