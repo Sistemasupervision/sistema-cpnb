@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Inspecciones - CPNB</title>
+    <title>Historial de Inspecciones - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -401,7 +401,7 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Historial de Inspecciones</h1>
+            <h1 class="title">Historial de Inspecciones - REDIP OCCIDENTAL</h1>
             <p class="ccp-info" id="ccpNombreDisplay">Cargando...</p>
         </div>
         <div class="actions-row">
@@ -461,6 +461,7 @@
     <div id="detalleModal">
         <div class="modal-content">
             <div id="detalleContenido"></div>
+            <span class="close-modal" onclick="cerrarModal()">&times;</span>
         </div>
     </div>
     <div id="modalFecha">
@@ -477,6 +478,7 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
@@ -485,32 +487,36 @@
             "lara": "CCPE LARA",
             "falcon": "CCPE FALCÓN"
         };
+        
         const urlParams = new URLSearchParams(window.location.search);
         const ccpIdDesdeUrl = urlParams.get('ccpId');
         const ccpNombreDesdeUrl = urlParams.get('ccpNombre');
+        
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
+        
         document.getElementById('fechaHasta').valueAsDate = hoy;
         document.getElementById('fechaDesde').valueAsDate = hace30Dias;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+        
         let inspeccionesCache = [];
         let paginaActual = 1;
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
-
+        
         if (ccpNombreDesdeUrl) {
             document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombreDesdeUrl)}`;
         } else {
             document.getElementById('ccpNombreDisplay').style.display = 'none';
         }
-
+        
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión para acceder a esta página.');
                 window.location.href = 'index.html';
-                return;
+                return false;
             }
             try {
                 const { data, error } = await supabase
@@ -518,31 +524,25 @@
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-                if (error || !data) {
-                    alert('Error al verificar sus permisos.');
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a REDIP OCCIDENTAL.');
                     window.location.href = 'index.html';
-                    return;
+                    return false;
                 }
-                if (data.redip !== 'occidental' && data.redip !== 'admin') {
-                    alert('⚠️ No tiene permisos para acceder a esta sección.');
-                    window.location.href = 'index.html';
-                    return;
-                }
+                return true;
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
-                alert('Error al verificar sus permisos.');
                 window.location.href = 'index.html';
+                return false;
             }
         }
-
-        // ✅ NUEVA FUNCIÓN: carga estaciones y servicios de un CCP
+        
         async function cargarEstacionesYServicios(ccpId) {
             const estacionSelect = document.getElementById('estacionFilter');
             const servicioSelect = document.getElementById('servicioFilter');
             estacionSelect.innerHTML = '<option value="">Todas las estaciones</option>';
             servicioSelect.innerHTML = '<option value="">Todos los servicios</option>';
             if (!ccpId) return;
-
             try {
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
@@ -556,7 +556,6 @@
                     opt.textContent = est.nombre;
                     estacionSelect.appendChild(opt);
                 });
-
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
@@ -574,13 +573,12 @@
                 alert('Error al cargar las estaciones o servicios del CCP.');
             }
         }
-
-        // Evento manual de cambio de CCP
+        
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             await cargarEstacionesYServicios(ccpId);
         });
-
+        
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
                 const { data: todasEstaciones, error: estError } = await supabase
@@ -591,27 +589,29 @@
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id');
                 if (servError) throw servError;
-
+                
                 const estacionMap = {};
                 const servicioMap = {};
                 const ccpEstaciones = {};
                 const ccpServicios = {};
+                
                 todasEstaciones.forEach(est => {
                     estacionMap[est.id] = { nombre: est.nombre, ccp_id: est.ccp_id };
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
                     ccpEstaciones[est.ccp_id].push(est.id);
                 });
+                
                 todosServicios.forEach(serv => {
                     servicioMap[serv.id] = { nombre: serv.nombre, ccp_id: serv.ccp_id };
                     if (!ccpServicios[serv.ccp_id]) ccpServicios[serv.ccp_id] = [];
                     ccpServicios[serv.ccp_id].push(serv.id);
                 });
-
+                
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
-
+                
                 if (fechaDesde && fechaHasta) {
                     const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
                     const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
@@ -619,7 +619,7 @@
                         .gte('created_at', desdeISO)
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
-
+                
                 if (estacionId) {
                     query = query.eq('estacion_id', estacionId);
                 } else if (servicioId) {
@@ -627,7 +627,6 @@
                 } else if (ccpId) {
                     const idsEstaciones = ccpEstaciones[ccpId] || [];
                     const idsServicios = ccpServicios[ccpId] || [];
-
                     const condiciones = [];
                     if (idsEstaciones.length > 0) condiciones.push(`estacion_id.in.(${idsEstaciones.join(',')})`);
                     if (idsServicios.length > 0) condiciones.push(`servicio_id.in.(${idsServicios.join(',')})`);
@@ -635,10 +634,10 @@
                         query = query.or(condiciones.join(','));
                     }
                 }
-
+                
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
-
+                
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -656,7 +655,7 @@
                         });
                     }
                 }
-
+                
                 inspeccionesCache = inspecciones.map(insp => {
                     let nombreEntidad = 'Entidad no encontrada';
                     let tipo = 'desconocido';
@@ -682,7 +681,7 @@
                         porcentaje_cumplimiento: porcentaje
                     };
                 });
-
+                
                 paginaActual = 1;
                 renderizarLista();
                 renderizarPaginacion();
@@ -694,7 +693,7 @@
                 renderizarPaginacion();
             }
         }
-
+        
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
@@ -728,10 +727,8 @@
                 let claseCumplimiento = 'cumplimiento-bajo';
                 if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
                 else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
-
                 const tipoIcono = insp.tipo === 'servicio' ? '📄' : '👮';
                 const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
-
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
                 card.innerHTML = `
@@ -765,7 +762,7 @@
                 contenedor.appendChild(card);
             });
         }
-
+        
         function renderizarPaginacion() {
             const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
             const paginacionDiv = document.getElementById('pagination');
@@ -811,7 +808,7 @@
             };
             paginacionDiv.appendChild(nextBtn);
         }
-
+        
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -824,7 +821,7 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId, servicioId);
         }
-
+        
         async function mostrarDetalle(inspeccionId) {
             try {
                 const { data: items, error: itemsError } = await supabase
@@ -832,22 +829,18 @@
                     .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
                     .eq('inspeccion_id', inspeccionId)
                     .order('item_nombre', { ascending: true });
-
                 const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
                     .single();
-
                 if (itemsError || inspError) {
                     console.error('Error cargando datos:', itemsError || inspError);
                     alert('No se pudieron cargar los detalles.');
                     return;
                 }
-
                 let nombreEntidad = 'Entidad no disponible';
                 let tipo = 'desconocido';
-
                 if (inspeccion.estacion_id) {
                     const { data: estacionData, error: estError } = await supabase
                         .from('estaciones_policiales')
@@ -869,7 +862,6 @@
                         tipo = 'servicio';
                     }
                 }
-
                 const nombresAmigables = {
                     nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
                     acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -939,7 +931,6 @@
                     informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
                     estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
                 };
-
                 let fechaFormateada = 'Fecha no disponible';
                 if (inspeccion.created_at) {
                     const fechaObj = new Date(inspeccion.created_at);
@@ -953,7 +944,6 @@
                         });
                     }
                 }
-
                 let html = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
@@ -979,7 +969,6 @@
                         </div>
                     </div>
                 `;
-
                 const itemsArray = Array.isArray(items) ? items : [];
                 if (itemsArray.length > 0) {
                     html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
@@ -1005,7 +994,6 @@
                 } else {
                     html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
                 }
-
                 if (inspeccion.observaciones_generales) {
                     html += `
                         <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
@@ -1014,7 +1002,6 @@
                         </div>
                     `;
                 }
-
                 document.getElementById('detalleContenido').innerHTML = html;
                 document.getElementById('detalleModal').style.display = 'flex';
                 inspeccionIdActual = inspeccionId;
@@ -1023,105 +1010,141 @@
                 alert('Error al cargar los detalles de la inspección.');
             }
         }
-
+        
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
-
+        
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-
-        async function exportarInspeccionAPDF(inspeccionId) {
-            if (!inspeccionId) {
-                alert('⚠️ No se ha seleccionado una inspección.');
+        
+        async function exportarInspeccionAPDF() {
+            const content = document.getElementById('detalleContenido');
+            if (!content || !content.innerHTML.trim()) {
+                alert('No hay contenido para exportar.');
                 return;
             }
-
+            if (!inspeccionIdActual) {
+                alert('⚠️ Error: No se ha cargado una inspección válida.');
+                return;
+            }
             try {
                 const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('estacion_id, servicio_id')
-                    .eq('id', inspeccionId)
+                    .eq('id', inspeccionIdActual)
                     .single();
                 if (inspError) throw inspError;
-
                 let tipo = 'desconocido';
-                if (inspeccion.estacion_id) tipo = 'estacion';
-                else if (inspeccion.servicio_id) tipo = 'servicio';
-
+                if (inspeccion.estacion_id) {
+                    tipo = 'estacion';
+                } else if (inspeccion.servicio_id) {
+                    tipo = 'servicio';
+                }
                 const { data: nuevoReporte, error: insertError } = await supabase
                     .from('reportes')
-                    .insert({ inspeccion_id: inspeccionId })
+                    .insert({ inspeccion_id: inspeccionIdActual })
                     .select('id, fecha_generacion')
                     .single();
-                if (insertError) throw insertError;
-
+                if (insertError) {
+                    console.error('Error al crear reporte:', insertError);
+                    alert('⚠️ No se pudo generar el número de reporte.\nDetalles: ' + (insertError.message || 'Error desconocido'));
+                    return;
+                }
                 const fechaGen = new Date(nuevoReporte.fecha_generacion);
                 const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
                 const consecutivo = String(nuevoReporte.id).padStart(6, '0');
                 const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
-
                 await supabase
                     .from('reportes')
                     .update({ numero_reporte: numeroReporte })
                     .eq('id', nuevoReporte.id);
-
-                const content = document.getElementById('detalleContenido');
                 const htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <img src="../../assets/img/LOGO-PNB.png" 
+                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
             <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
             <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
             <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
         </div>
         <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
-            La seguridad ciudadana es un pilar fundamental...
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación</strong>: Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica</strong>: Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación</strong>: Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
         </div>
         ${content.innerHTML}
         <div style="margin-top: 50px; page-break-inside: avoid;">
-            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
+            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">
+                Firmas de conformidad
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-bottom: 40px;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Inspector</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de la ${tipo === 'servicio' ? 'Unidad' : 'Estación'}</div>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de CCP</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; margin: 0 auto 8px; width: 90%;"></div>
+                    <div style="font-weight: bold; color: #2d3748; font-size: 14px;">Jefe de REDIP</div>
+                </div>
+            </div>
         </div>
         <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
             Fecha de generación: ${new Date().toLocaleString('es-ES')}
         </div>
     </div>
 `;
-
                 const printDiv = document.createElement('div');
                 printDiv.innerHTML = htmlContent;
                 document.body.appendChild(printDiv);
                 printDiv.style.position = 'fixed';
                 printDiv.style.left = '-9999px';
-
-                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                const canvas = await html2canvas(printDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const imgWidth = 210;
+                const pageHeight = 297;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
-
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= 297;
+                heightLeft -= pageHeight;
                 while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
                     pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, heightLeft - imgHeight, imgWidth, imgHeight);
-                    heightLeft -= 297;
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
                 }
-
                 pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
                 document.body.removeChild(printDiv);
-                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+                alert(`✅ Reporte generado.
+N°: ${numeroReporte}`);
             } catch (error) {
                 console.error('Error al generar PDF:', error);
                 alert('❌ Error al generar el reporte.');
             }
         }
-
-        // === Exportar historial completo ===
+        
         async function exportarHistorialAPDF() {
             try {
                 const desde = document.getElementById('fechaDesde').value;
@@ -1129,12 +1152,10 @@
                 const ccpId = document.getElementById('ccpFilter').value;
                 const estacionId = document.getElementById('estacionFilter').value;
                 const servicioId = document.getElementById('servicioFilter').value;
-
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
-
                 if (desde && hasta) {
                     const desdeISO = new Date(desde).toISOString().split('T')[0];
                     const hastaISO = new Date(hasta).toISOString().split('T')[0];
@@ -1142,7 +1163,6 @@
                         .gte('created_at', desdeISO)
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
-
                 if (estacionId) {
                     query = query.eq('estacion_id', estacionId);
                 } else if (servicioId) {
@@ -1157,7 +1177,6 @@
                         .select('id')
                         .eq('ccp_id', ccpId);
                     if (estError || servError) throw new Error('Error al cargar entidades.');
-
                     const idsEst = estaciones?.map(e => e.id) || [];
                     const idsServ = servicios?.map(s => s.id) || [];
                     const condiciones = [];
@@ -1167,14 +1186,12 @@
                         query = query.or(condiciones.join(','));
                     }
                 }
-
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
                 if (!inspecciones || inspecciones.length === 0) {
                     alert('No hay inspecciones para exportar con los filtros actuales.');
                     return;
                 }
-
                 const { data: todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('id, nombre');
                 const { data: todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('id, nombre');
                 if (estError || servError) throw new Error('Error al cargar nombres.');
@@ -1182,13 +1199,11 @@
                 const servMap = {};
                 todasEstaciones.forEach(e => estMap[e.id] = e.nombre);
                 todosServicios.forEach(s => servMap[s.id] = s.nombre);
-
                 const ids = inspecciones.map(i => i.id);
                 const { data: items } = await supabase
                     .from('items_inspeccion')
                     .select('inspeccion_id, cumple')
                     .in('inspeccion_id', ids);
-
                 const statsPorInspeccion = {};
                 items?.forEach(item => {
                     if (!statsPorInspeccion[item.inspeccion_id]) {
@@ -1197,25 +1212,30 @@
                     statsPorInspeccion[item.inspeccion_id].total++;
                     if (item.cumple) statsPorInspeccion[item.inspeccion_id].cumplidos++;
                 });
-
                 let htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
-            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
+            <img src="../../assets/img/LOGO-PNB.png" 
+                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES - REDIP OCCIDENTAL</h1>
             <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
             <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">Fechas: ${desde || 'Sin filtro'} - ${hasta || 'Sin filtro'}</p>
             ${ccpId ? `<p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">CCP: ${ccpNombres[ccpId]}</p>` : ''}
         </div>
         <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
-            La seguridad ciudadana es un pilar fundamental...
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación</strong>: Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica</strong>: Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación</strong>: Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
         </div>
         <div style="margin-top: 30px; font-size: 14px; line-height: 1.6; color: #2d3748;">
             <h2 style="color: #0c2440; margin-bottom: 15px;">Resumen de Inspecciones</h2>
-            <p>Se muestran ${inspecciones.length} inspecciones.</p>
+            <p>Se muestran ${inspecciones.length} inspecciones filtradas.</p>
         </div>
 `;
-
                 inspecciones.forEach(insp => {
                     let nombre = 'Desconocido';
                     let tipo = 'desconocido';
@@ -1254,20 +1274,17 @@
 </div>
 `;
                 });
-
                 htmlContent += `
     <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
         Fecha de generación: ${new Date().toLocaleString('es-ES')}
     </div>
 </div>
 `;
-
                 const printDiv = document.createElement('div');
                 printDiv.innerHTML = htmlContent;
                 document.body.appendChild(printDiv);
                 printDiv.style.position = 'fixed';
                 printDiv.style.left = '-9999px';
-
                 const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
@@ -1277,7 +1294,6 @@
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
-
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
                 while (heightLeft >= 0) {
@@ -1286,8 +1302,7 @@
                     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
-
-                pdf.save(`historial_inspecciones_${ccpId || 'todos'}_${new Date().toISOString().slice(0, 10)}.pdf`);
+                pdf.save(`historial_inspecciones_redip_occidental_${new Date().toISOString().slice(0, 10)}.pdf`);
                 document.body.removeChild(printDiv);
                 alert(`✅ Historial exportado (${inspecciones.length} registros).`);
             } catch (err) {
@@ -1295,18 +1310,17 @@
                 alert('❌ Error al generar el PDF del historial.');
             }
         }
-
-        // Modales reinspección
+        
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
-
+        
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
-
+        
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha) {
@@ -1327,21 +1341,25 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
-
-function volverAIndex() {
-    window.location.href = 'index.html';
-}
-verificarAcceso().then(async () => {
-    const desde = hace30Dias.toISOString().split('T')[0];
-    const hasta = hoy.toISOString().split('T')[0];
-    if (ccpIdDesdeUrl) {
-        document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
-        await cargarEstacionesYServicios(ccpIdDesdeUrl);
-        cargarHistorial(desde, hasta, ccpIdDesdeUrl);
-    } else {
-        cargarHistorial(desde, hasta);
-    }
-});
+        
+        function volverAIndex() {
+            window.location.href = 'index.html';
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            const permitido = await verificarAcceso();
+            if (permitido) {
+                const desde = hace30Dias.toISOString().split('T')[0];
+                const hasta = hoy.toISOString().split('T')[0];
+                if (ccpIdDesdeUrl) {
+                    document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
+                    await cargarEstacionesYServicios(ccpIdDesdeUrl);
+                    cargarHistorial(desde, hasta, ccpIdDesdeUrl);
+                } else {
+                    cargarHistorial(desde, hasta);
+                }
+            }
+        });
     </script>
 </body>
 </html>
