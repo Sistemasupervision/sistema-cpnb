@@ -73,9 +73,9 @@
         }
         
         // Obtener parámetros de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const ccpId = urlParams.get('ccpId');
-        const ccpNombre = urlParams.get('ccpNombre');
+      const urlParams = new URLSearchParams(window.location.search);
+const ccpId = urlParams.get('ccpId'); // ← esto siempre es string
+const ccpNombre = urlParams.get('ccpNombre');
         
         // Validar CCP para REDIP CENTRAL
         const ccpCentralValidos = ['aragua', 'carabobo', 'yaracuy'];
