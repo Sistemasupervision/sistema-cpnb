@@ -47,14 +47,13 @@
         // Verificar acceso a REDIP CAPITAL
         async function verificarAcceso() {
             try {
-                // ✅ CORREGIDO: sintaxis válida
                 const { data, error } = await supabase.auth.getUser();
                 const user = data?.user;
                 if (!user) {
                     window.location.href = '../../index.html';
                     return false;
                 }
-                const { data: permisoData, error: permisoError } = await supabase
+                const {  permisoData, error: permisoError } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
@@ -77,14 +76,14 @@
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
 
-        // ✅ LISTA DE CCPs VÁLIDOS PARA REDIP CAPITAL (usando guiones bajos como en la URL)
+        // ✅ CORREGIDO: usar guiones normales (-), igual que en index.html
         const ccpCapitalValidos = [
-            'altos_mirandinos',
+            'altos-mirandinos',
             'barlovento',
-            'ciudad_fajardo',
-            'distrito_capital',
-            'la_guaira',
-            'valles_del_tuy'
+            'ciudad-fajardo',
+            'distrito-capital',
+            'la-guaira',
+            'valles-del-tuy'
         ];
 
         if (!ccpId || !ccpNombre || !ccpCapitalValidos.includes(ccpId)) {
@@ -102,14 +101,11 @@
 
                 console.log('🔍 Cargando estaciones para CCP ID:', ccpId);
 
-                // ✅ CORREGIDO: desestructuración válida de Supabase
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-
-                console.log('✅ Estaciones consultadas:', estaciones?.length || 0);
 
                 if (error) {
                     console.error('❌ Error en consulta Supabase:', error);
@@ -119,7 +115,6 @@
                 if (!estaciones || estaciones.length === 0) {
                     select.innerHTML = '<option value="">No hay estaciones disponibles para este CCP</option>';
                     select.disabled = true;
-                    console.warn('⚠️ No se encontraron estaciones para el CCP:', ccpId);
                     return;
                 }
 
@@ -131,7 +126,6 @@
                     select.appendChild(opt);
                 });
                 select.disabled = false;
-                console.log(`✅ ${estaciones.length} estaciones cargadas correctamente`);
 
             } catch (error) {
                 console.error('❌ Error general al cargar estaciones:', error);
@@ -141,7 +135,7 @@
             }
         }
 
-        // Evento: Cargar formulario de inspección
+        // Evento: Cargar formulario
         document.getElementById('btnCargarFormulario').addEventListener('click', () => {
             const estacionId = document.getElementById('estacionSelect').value;
             if (!estacionId) {
@@ -152,12 +146,12 @@
             window.location.href = `formulario-inspeccion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
         });
 
-        // Evento: Volver a opciones
+        // Evento: Volver
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
-        // Iniciar carga de estaciones
+        // Iniciar
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstaciones();
         });
