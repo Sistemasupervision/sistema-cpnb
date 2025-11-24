@@ -62,21 +62,34 @@
             font-weight: bold;
             margin-bottom: 25px;
         }
-        .back-btn {
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .back-btn,
+        .pdf-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
             font-size: 15px;
             cursor: pointer;
-            margin-bottom: 20px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             font-weight: bold;
+        }
+        .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
         }
-        .back-btn:hover {
+        .pdf-btn {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+        }
+        .back-btn:hover,
+        .pdf-btn:hover {
             opacity: 0.9;
         }
         .filtro-container {
@@ -210,11 +223,11 @@
                     <select id="ccpFilter">
                         <option value="">-- Elija un CCP --</option>
                         <option value="altos-mirandinos">CCP ALTOS MIRANDINOS</option>
+                        <option value="barlovento">CCP BARLOVENTO</option>
                         <option value="ciudad-fajardo">CCP CIUDAD FAJARDO</option>
                         <option value="distrito-capital">CCP DISTRITO CAPITAL</option>
                         <option value="la-guaira">CCP LA GUAIRA</option>
                         <option value="valles-del-tuy">CCP VALLES DEL TUY</option>
-                        <option value="valles-del-tuy">CCP BARLOVENTO</option>
                     </select>
                 </div>
                 <div class="input-group">
@@ -250,6 +263,7 @@
                     </thead>
                     <tbody id="tablaItems"></tbody>
                 </table>
+                <!-- Controles de paginación -->
                 <div class="pagination-controls">
                     <button id="btnAnterior" class="back-btn" disabled>« Anterior</button>
                     <span id="paginaActual" style="align-self: center; font-weight: bold; color: #2d3748;">Página 1</span>
@@ -272,6 +286,23 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // ✅ CCPs de REDIP CAPITAL (incluye barlovento)
+        const ccpCapital = [
+            'altos-mirandinos',
+            'barlovento',
+            'ciudad-fajardo',
+            'distrito-capital',
+            'la-guaira',
+            'valles-del-tuy'
+        ];
+        const ccpNombres = {
+            "altos-mirandinos": "CCP ALTOS MIRANDINOS",
+            "barlovento": "CCP BARLOVENTO",
+            "ciudad-fajardo": "CCP CIUDAD FAJARDO",
+            "distrito-capital": "CCP DISTRITO CAPITAL",
+            "la-guaira": "CCP LA GUAIRA",
+            "valles-del-tuy": "CCP VALLES DEL TUY"
+        };
         let chartInstance = null;
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
@@ -348,31 +379,6 @@
         let nombreEstacionActual = '';
         let paginaActual = 1;
         let totalPaginas = 1;
-        // === Verificar acceso ===
-        async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                window.location.href = '../../index.html';
-                return false;
-            }
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-                    alert('⚠️ No tiene permisos para acceder a esta sección.');
-                    window.location.href = 'index.html';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                window.location.href = 'index.html';
-                return false;
-            }
-        }
         // === Eventos de selección ===
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
@@ -381,7 +387,7 @@
             estacionSelect.disabled = !ccpId;
             if (!ccpId) return;
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -391,6 +397,7 @@
                     estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
                     return;
                 }
+                estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.id;
@@ -404,19 +411,32 @@
         });
         document.getElementById('estacionFilter').addEventListener('change', async () => {
             const estacionId = document.getElementById('estacionFilter').value;
-            if (!estacionId) return;
-            await cargarEstadisticas(estacionId);
+            const ccpId = document.getElementById('ccpFilter').value;
+            if (!estacionId || !ccpId) return;
+            await cargarEstadisticas(estacionId, ccpId);
         });
         // === Cargar estadísticas ===
-        async function cargarEstadisticas(estacionId) {
-            const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
+        async function cargarEstadisticas(estacionId, ccpId) {
+            // ✅ Validar que la estación pertenezca al CCP
+            const {  estacion, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('nombre, ccp_id')
+                .eq('id', estacionId)
+                .single();
+            if (estError || !estacion || estacion.ccp_id !== ccpId) {
+                document.getElementById('mensajeCarga').style.display = 'none';
+                document.getElementById('mensajeSinDatos').textContent = 'La estación seleccionada no pertenece al CCP elegido.';
+                document.getElementById('mensajeSinDatos').style.display = 'block';
+                return;
+            }
+            const estacionNombre = estacion.nombre;
             nombreEstacionActual = estacionNombre;
             document.getElementById('seleccionContainer').style.display = 'none';
             document.getElementById('resultadosContainer').style.display = 'none';
             document.getElementById('mensajeCarga').style.display = 'block';
             document.getElementById('mensajeSinDatos').style.display = 'none';
             try {
-                const { data: inspecciones, error: inspError } = await supabase
+                const {  inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .eq('estacion_id', estacionId);
@@ -427,7 +447,7 @@
                     return;
                 }
                 const idsInspecciones = inspecciones.map(i => i.id);
-                const { data: items, error: itemsError } = await supabase
+                const {  items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, porcentaje_cumplimiento')
                     .in('inspeccion_id', idsInspecciones);
@@ -473,13 +493,16 @@
             });
             return resultado;
         }
-        // === Actualizar vista ===
+        // === Actualizar vista (gráfico + tabla + paginación) ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
             const itemsPagina = todosLosItems.slice(inicio, fin);
+            // Actualizar gráfico
             renderizarGrafico(itemsPagina);
+            // Actualizar tabla
             renderizarTabla(itemsPagina);
+            // Actualizar controles de paginación
             document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
             document.getElementById('btnAnterior').disabled = paginaActual === 1;
             document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
@@ -489,6 +512,7 @@
             if (chartInstance) {
                 chartInstance.destroy();
             }
+            // Extraer solo los números del ítem (ej. "1", "2", ...)
             const labels = itemsPagina.map(k => {
                 const texto = nombresItems[k];
                 const num = texto.split('.')[0];
@@ -514,7 +538,10 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'top', labels: { font: { size: 13 } } },
+                        legend: { 
+                            position: 'top',
+                            labels: { font: { size: 13 } }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -564,7 +591,7 @@
                 }
             });
         }
-        // === Paginación ===
+        // === Eventos de paginación ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
             if (paginaActual > 1) {
                 paginaActual--;
@@ -577,6 +604,7 @@
                 actualizarVista();
             }
         });
+        // === Filtro en tabla (solo afecta la tabla, no el gráfico ni la paginación) ===
         document.getElementById('filtroItems').addEventListener('input', () => {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
@@ -596,12 +624,6 @@
             document.getElementById('statsHeader').textContent = '';
             document.getElementById('filtroItems').value = '';
         }
-        // === Iniciar ===
-        verificarAcceso().then(permitido => {
-            if (permitido) {
-                // Nada más por ahora
-            }
-        });
     </script>
 </body>
 </html>
