@@ -77,7 +77,7 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 window.location.href = '../../index.html';
                 return;
@@ -101,20 +101,24 @@
         
         async function cargarCCPs() {
             try {
-                const ccpIdsCentral = ['aragua', 'carabobo', 'yaracuy'];
-                const {  ccps, error } = await supabase
+                // ✅ Corregido: Consulta directa a los CCPs de REDIP CENTRAL
+                const { data: ccps, error } = await supabase
                     .from('ccps')
                     .select('id, nombre')
-                    .in('id', ccpIdsCentral)
+                    .in('id', ['aragua', 'carabobo', 'yaracuy'])
                     .order('nombre', { ascending: true });
                     
-                if (error) throw error;
+                if (error) {
+                    console.error('Error al cargar CCPs:', error);
+                    throw error;
+                }
                 
                 const select = document.getElementById('ccpSelectModal');
                 select.innerHTML = '<option value="">-- Elija un CCP --</option>';
                 
-                // Si no hay CCPs en la base de datos, usar los nombres predeterminados
                 if (!ccps || ccps.length === 0) {
+                    console.warn('No se encontraron CCPs para REDIP CENTRAL. Cargando valores por defecto.');
+                    // Valores por defecto si no hay datos en la base
                     const ccpPredeterminados = [
                         { id: 'aragua', nombre: 'CCPE ARAGUA' },
                         { id: 'carabobo', nombre: 'CCPE CARABOBO' },
@@ -128,6 +132,8 @@
                         select.appendChild(opt);
                     });
                 } else {
+                    // ✅ Mostrar los CCPs reales de la base de datos
+                    console.log('CCPs cargados:', ccps);
                     ccps.forEach(ccp => {
                         const opt = document.createElement('option');
                         opt.value = ccp.id;
@@ -138,7 +144,7 @@
             } catch (error) {
                 console.error('Error al cargar CCPs:', error);
                 alert('Error al cargar los CCPs de REDIP CENTRAL.');
-                // Cargar CCPs por defecto en caso de error
+                // ✅ Cargar CCPs por defecto en caso de error
                 const select = document.getElementById('ccpSelectModal');
                 select.innerHTML = `
                     <option value="">-- Elija un CCP --</option>
@@ -226,7 +232,7 @@
                 const ccpCentral = ['aragua', 'carabobo', 'yaracuy'];
                 
                 // 1. Obtener IDs de estaciones policiales
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('id')
                     .in('ccp_id', ccpCentral);
@@ -234,7 +240,7 @@
                 const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
                 
                 // 2. Obtener IDs de servicios administrativos
-                const {  servicios, error: servError } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id')
                     .in('ccp_id', ccpCentral);
@@ -284,12 +290,21 @@
             window.location.href = 'seleccion-ccp-historial.html';
         });
         
-        verificarAcceso().then(() => {
+        // ✅ CORREGIDO: Botón de volver al panel principal
+        document.addEventListener('DOMContentLoaded', async () => {
+            await verificarAcceso();
+            
+            // ✅ Configurar el botón de volver al panel principal
             document.getElementById('backToDashboardBtn').addEventListener('click', () => {
                 window.location.href = '../../index.html';
             });
+            
             contarYMostrarNotificaciones();
             manejarParametrosURL();
+            
+            // ✅ Forzar la carga de CCPs para verificar que funcionen
+            console.log('Intentando cargar CCPs de REDIP CENTRAL...');
+            await cargarCCPs();
         });
     </script>
 </body>
