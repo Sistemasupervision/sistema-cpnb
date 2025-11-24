@@ -35,33 +35,6 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === VERIFICAR ACCESO A REDIP CAPITAL ===
-        async function verificarAcceso() {
-            try {
-                const { data, error } = await supabase.auth.getUser();
-                const user = data?.user;
-                if (!user) {
-                    window.location.href = '../../index.html';
-                    return false;
-                }
-                const {  permisoData, error: permisoError } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (permisoError || !permisoData || (permisoData.redip !== 'capital' && permisoData.redip !== 'admin')) {
-                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
-                    window.location.href = '../../index.html';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                window.location.href = '../../index.html';
-                return false;
-            }
-        }
-
         // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
@@ -216,10 +189,7 @@
         };
 
         // === RENDERIZAR FORMULARIO ===
-        async function renderForm() {
-            const permitido = await verificarAcceso();
-            if (!permitido) return;
-
+        function renderForm() {
             const hoy = new Date().toISOString().split('T')[0];
             let formHtml = `
                 <div class="logo-container">
@@ -365,14 +335,15 @@
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
                 try {
-                    const { data, error } = await supabase.auth.getUser();
-                    const user = data?.user;
-                    if (!user) throw new Error('Debe estar autenticado.');
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                        throw new Error('Debe estar autenticado.');
+                    }
 
                     const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                     const observacionesGenerales = document.getElementById('observacionesGenerales').value || null;
 
-                    const {  inspeccionData, error: inspError } = await supabase
+                    const { data: inspeccionData, error: inspError } = await supabase
                         .from('inspecciones')
                         .insert({
                             estacion_id: estacionId,
@@ -383,7 +354,9 @@
                         .select()
                         .single();
 
-                    if (inspError) throw new Error(inspError.message || 'Error al crear la inspección.');
+                    if (inspError) {
+                        throw new Error(inspError.message || 'Error al crear la inspección.');
+                    }
 
                     const itemsToInsert = [];
                     for (const item of items) {
@@ -406,6 +379,7 @@
                         let foto1_url = null, foto2_url = null;
                         const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
                         const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
+
                         if (file1) {
                             const cleanName = file1.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
                             const path = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${cleanName}`;
@@ -450,13 +424,17 @@
                         });
                     }
 
-                    if (itemsToInsert.length === 0) throw new Error('Debe responder al menos un ítem.');
+                    if (itemsToInsert.length === 0) {
+                        throw new Error('Debe responder al menos un ítem.');
+                    }
 
                     const { error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .insert(itemsToInsert);
 
-                    if (itemsError) throw new Error(itemsError.message || 'Error al guardar los ítems.');
+                    if (itemsError) {
+                        throw new Error(itemsError.message || 'Error al guardar los ítems.');
+                    }
 
                     alert('✅ Inspección guardada con éxito.');
                     window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
@@ -471,7 +449,7 @@
         }
 
         // === INICIAR ===
-        document.addEventListener('DOMContentLoaded', renderForm);
+        renderForm();
     </script>
 </body>
 </html>
