@@ -44,10 +44,9 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Verificar acceso a REDIP CAPITAL
+        // === Verificar acceso a REDIP CAPITAL ===
         async function verificarAcceso() {
             try {
-                // ✅ Sintaxis CORRECTA (sin {{ }})
                 const { data, error } = await supabase.auth.getUser();
                 const user = data?.user;
                 if (!user) {
@@ -72,12 +71,12 @@
             }
         }
 
-        // Obtener parámetros de la URL
+        // === Parámetros de URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
 
-        // ✅ CORREGIDO: usar guiones normales (-), IGUAL que en la base de datos
+        // ✅ LISTA CORRECTA: guiones normales (-), igual que en index.html y Supabase
         const ccpCapitalValidos = [
             'altos-mirandinos',
             'barlovento',
@@ -87,35 +86,29 @@
             'valles-del-tuy'
         ];
 
+        // Validar CCP
         if (!ccpId || !ccpNombre || !ccpCapitalValidos.includes(ccpId)) {
             alert('⚠️ CCP no válido para REDIP CAPITAL.');
             window.location.href = 'index.html';
-            return;
+            // ❌ NO se usa "return" aquí (está en el cuerpo global)
         }
 
         document.getElementById('ccpNombreDisplay').textContent = ccpNombre;
 
+        // === Cargar estaciones ===
         async function cargarEstaciones() {
             const select = document.getElementById('estacionSelect');
             try {
                 const permitido = await verificarAcceso();
                 if (!permitido) return;
 
-                console.log('🔍 Cargando estaciones para CCP ID:', ccpId);
-
-                // ✅ Consulta correcta a Supabase
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
 
-                if (error) {
-                    console.error('❌ Error en consulta Supabase:', error);
-                    throw new Error('Error al consultar estaciones');
-                }
-
-                if (!estaciones || estaciones.length === 0) {
+                if (error || !estaciones || estaciones.length === 0) {
                     select.innerHTML = '<option value="">No hay estaciones disponibles para este CCP</option>';
                     select.disabled = true;
                     return;
@@ -131,14 +124,14 @@
                 select.disabled = false;
 
             } catch (error) {
-                console.error('❌ Error al cargar estaciones:', error);
-                alert(`Error al cargar las estaciones: ${error.message || 'Error desconocido'}`);
+                console.error('Error al cargar estaciones:', error);
+                alert('Error al cargar las estaciones policiales.');
                 select.innerHTML = '<option value="">Error al cargar</option>';
                 select.disabled = true;
             }
         }
 
-        // Cargar formulario de inspección
+        // === Eventos ===
         document.getElementById('btnCargarFormulario').addEventListener('click', () => {
             const estacionId = document.getElementById('estacionSelect').value;
             if (!estacionId) {
@@ -149,12 +142,11 @@
             window.location.href = `formulario-inspeccion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
         });
 
-        // Volver a opciones
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
-        // Iniciar
+        // === Iniciar ===
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstaciones();
         });
