@@ -163,8 +163,9 @@
             document.getElementById('rediCapitalContainer').style.display = 'none';
             dynamicView.style.display = 'block';
 
-            document.getElementById('btnEstaciones').onclick = () => {
-                window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+           document.getElementById('btnEstaciones').onclick = () => {
+    window.location.href = `formulario-seleccion-estacion-capital.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+};
             };
             document.getElementById('btnServiciosAdmin').onclick = () => {
                 window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
