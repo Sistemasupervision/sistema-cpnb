@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galería de Inspección</title>
+    <title>Galería de Inspección - REDIP CAPITAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
@@ -215,6 +215,17 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
+        // ✅ CCPs de REDIP Capital (corregido)
+        const ccpCapital = [
+            "altos-mirandinos", 
+            "barlovento", 
+            "ciudad-fajardo", 
+            "distrito-capital", 
+            "la-guaira", 
+            "valles-del-tuy"
+        ];
+        
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -284,32 +295,89 @@
             informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
+        
+        // ✅ FUNCION PARA VERIFICAR ACCESO A REDIP CAPITAL
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión para acceder a esta página.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                window.location.href = 'index.html';
+                return false;
+            }
+        }
+        
         const urlParams = new URLSearchParams(window.location.search);
         const estacionIdStr = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre') || 'Desconocida';
         const ccpNombre = urlParams.get('ccpNombre') || 'Desconocido';
+        const ccpId = urlParams.get('ccpId') || '';
+        
+        // ✅ VALIDAR QUE EL CCP PERTENEZCA A REDIP CAPITAL
+        if (!ccpCapital.includes(ccpId)) {
+            alert('⚠️ CCP no válido para REDIP CAPITAL. Redirigiendo...');
+            window.history.back();
+            throw new Error('CCP no válido para REDIP CAPITAL');
+        }
+        
         if (!estacionIdStr || isNaN(estacionIdStr)) {
             alert('⚠️ Estación no válida. Redirigiendo...');
             window.history.back();
         }
+        
         const estacionId = parseInt(estacionIdStr, 10);
         document.getElementById('estacionInfo').textContent = `Estación: ${estacionNombre} | CCP: ${ccpNombre}`;
         document.getElementById('fechaHasta').valueAsDate = new Date();
+        
         let todasLasEntradas = [];
         let paginaActual = 1;
         const entradasPorPagina = 12;
-
-        // === CARGAR DATOS ===
+        
+        // ✅ CARGAR DATOS CON FILTRO POR REDIP CAPITAL
         async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
             const contenedor = document.getElementById('galeriaContainer');
             contenedor.innerHTML = '<div class="loading">Cargando...</div>';
+            
+            // ✅ Verificar acceso antes de cargar datos
+            const permitido = await verificarAcceso();
+            if (!permitido) return;
+            
             try {
                 console.log('🔍 Iniciando carga para estación ID:', estacionId);
+                
+                // ✅ Primero verificar que la estación pertenezca a REDIP Capital
+                const { data: estacion, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('id, nombre, ccp_id')
+                    .eq('id', estacionId)
+                    .single();
+                
+                if (estError || !estacion || !ccpCapital.includes(estacion.ccp_id)) {
+                    throw new Error('Esta estación no pertenece a REDIP CAPITAL');
+                }
+                
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at')
                     .eq('estacion_id', estacionId)
                     .order('created_at', { ascending: false });
+                
                 if (fechaDesde) {
                     console.log('📅 Filtrando desde:', fechaDesde);
                     query = query.gte('created_at', new Date(fechaDesde).toISOString());
@@ -320,16 +388,19 @@
                     console.log('📅 Filtrando hasta:', hasta.toISOString());
                     query = query.lte('created_at', hasta.toISOString());
                 }
+                
                 const { data: inspecciones, error: inspError } = await query;
                 if (inspError) {
                     throw new Error(`Error en inspecciones: ${inspError.message}`);
                 }
                 console.log('✅ Inspecciones encontradas:', inspecciones.length);
+                
                 if (inspecciones.length === 0) {
                     contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
                     document.getElementById('paginacionContainer').style.display = 'none';
                     return;
                 }
+                
                 const entradasPorFecha = {};
                 for (const insp of inspecciones) {
                     console.log('🔍 Procesando inspección ID:', insp.id);
@@ -338,14 +409,17 @@
                         .select('item_nombre, foto1_url, foto2_url, archivo_url')
                         .eq('inspeccion_id', insp.id)
                         .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
+                    
                     if (itemError) {
                         console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
                         continue;
                     }
+                    
                     if (!items || items.length === 0) {
                         console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
                         continue;
                     }
+                    
                     const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
                         month: '2-digit',
@@ -353,9 +427,11 @@
                         hour: '2-digit',
                         minute: '2-digit'
                     });
+                    
                     if (!entradasPorFecha[fechaHora]) {
                         entradasPorFecha[fechaHora] = {};
                     }
+                    
                     for (const item of items) {
                         const key = item.item_nombre;
                         if (!entradasPorFecha[fechaHora][key]) {
@@ -369,12 +445,14 @@
                         if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
                     }
                 }
+                
                 todasLasEntradas = [];
                 for (const [fecha, items] of Object.entries(entradasPorFecha)) {
                     for (const [itemNombre, datos] of Object.entries(items)) {
                         todasLasEntradas.push({ fecha, itemNombre, ...datos });
                     }
                 }
+                
                 console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
                 paginaActual = 1;
                 mostrarPagina();
@@ -382,37 +460,43 @@
                 document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
             } catch (err) {
                 console.error('❌ Error completo:', err);
-                contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+                contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message || 'No se pudo cargar la galería.'}</div>`;
             }
         }
-
+        
         function mostrarPagina() {
             const inicio = (paginaActual - 1) * entradasPorPagina;
             const fin = inicio + entradasPorPagina;
             const entradas = todasLasEntradas.slice(inicio, fin);
             const contenedor = document.getElementById('galeriaContainer');
+            
             if (entradas.length === 0) {
                 contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
                 return;
             }
+            
             const porFecha = {};
             entradas.forEach(e => {
                 if (!porFecha[e.fecha]) porFecha[e.fecha] = [];
                 porFecha[e.fecha].push(e);
             });
+            
             contenedor.innerHTML = '';
             Object.entries(porFecha).forEach(([fecha, items]) => {
                 const header = document.createElement('div');
                 header.className = 'inspeccion-header';
                 header.textContent = `Inspección del ${fecha}`;
                 contenedor.appendChild(header);
+                
                 items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'item-card';
+                    
                     const label = document.createElement('div');
                     label.className = 'item-label';
                     label.textContent = nombres[item.itemNombre] || item.itemNombre;
                     card.appendChild(label);
+                    
                     item.fotos.forEach(fotoUrl => {
                         const img = document.createElement('img');
                         img.src = fotoUrl;
@@ -423,6 +507,7 @@
                         };
                         card.appendChild(img);
                     });
+                    
                     item.fotos.forEach((_, i) => {
                         const btn = document.createElement('button');
                         btn.className = 'download-btn btn-foto';
@@ -430,6 +515,7 @@
                         btn.onclick = async () => await descargar(item.fotos[i], item.itemNombre, 'foto');
                         card.appendChild(btn);
                     });
+                    
                     if (item.archivo_url) {
                         const btn = document.createElement('button');
                         btn.className = 'download-btn btn-archivo';
@@ -437,11 +523,12 @@
                         btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
                         card.appendChild(btn);
                     }
+                    
                     contenedor.appendChild(card);
                 });
             });
         }
-
+        
         async function descargar(url, item, tipo) {
             try {
                 const res = await fetch(url);
@@ -460,12 +547,14 @@
                 alert('No se pudo descargar el archivo. Verifica la conexión o el enlace.');
             }
         }
-
+        
         function actualizarPaginacion() {
             const totalPaginas = Math.ceil(todasLasEntradas.length / entradasPorPagina);
             const contenedor = document.getElementById('paginacionContainer');
             contenedor.innerHTML = '';
+            
             if (totalPaginas <= 1) return;
+            
             for (let i = 1; i <= totalPaginas; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
@@ -481,7 +570,7 @@
                 contenedor.appendChild(btn);
             }
         }
-
+        
         // === EVENTOS ===
         document.getElementById('aplicarFiltroBtn').addEventListener('click', () => {
             const desde = document.getElementById('fechaDesde').value;
@@ -492,15 +581,19 @@
             }
             cargarGaleria(desde || null, hasta || null);
         });
+        
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.history.back();
         });
+        
         document.getElementById('closeZoom').addEventListener('click', () => {
             document.getElementById('zoomModal').style.display = 'none';
         });
-
-        // === CARGAR INICIAL ===
-        cargarGaleria();
+        
+        // ✅ CARGAR INICIAL CON VERIFICACIÓN DE ACCESO
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarGaleria();
+        });
     </script>
 </body>
 </html>
