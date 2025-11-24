@@ -47,17 +47,19 @@
         // Verificar acceso a REDIP CAPITAL
         async function verificarAcceso() {
             try {
-                const {  { user } } = await supabase.auth.getUser();
+                // ✅ CORREGIDO: sintaxis válida
+                const { data, error } = await supabase.auth.getUser();
+                const user = data?.user;
                 if (!user) {
                     window.location.href = '../../index.html';
                     return false;
                 }
-                const { data, error } = await supabase
+                const { data: permisoData, error: permisoError } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                if (permisoError || !permisoData || (permisoData.redip !== 'capital' && permisoData.redip !== 'admin')) {
                     alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
                     window.location.href = '../../index.html';
                     return false;
@@ -75,7 +77,7 @@
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
 
-        // ✅ LISTA DE CCPs VÁLIDOS PARA REDIP CAPITAL
+        // ✅ LISTA DE CCPs VÁLIDOS PARA REDIP CAPITAL (usando guiones bajos como en la URL)
         const ccpCapitalValidos = [
             'altos_mirandinos',
             'barlovento',
@@ -100,8 +102,8 @@
 
                 console.log('🔍 Cargando estaciones para CCP ID:', ccpId);
 
-                // ✅ Corregido: sintaxis válida de Supabase
-                const {  estaciones, error } = await supabase
+                // ✅ CORREGIDO: desestructuración válida de Supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
@@ -150,7 +152,7 @@
             window.location.href = `formulario-inspeccion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
         });
 
-        // Evento: Volver a opciones → REDIRECCIÓN CORREGIDA A REDIP CAPITAL
+        // Evento: Volver a opciones
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
