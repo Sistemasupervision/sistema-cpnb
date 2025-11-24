@@ -44,33 +44,32 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Verificar acceso a REDIP CAPITAL
-        async function verificarAcceso() {
-            try {
-                const { data, error } = await supabase.auth.getUser();
-                const user = data?.user;
-                if (!user) {
-                    window.location.href = '../../index.html';
-                    return false;
-                }
-                const {  permisoData, error: permisoError } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (permisoError || !permisoData || (permisoData.redip !== 'capital' && permisoData.redip !== 'admin')) {
-                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
-                    window.location.href = '../../index.html';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                window.location.href = '../../index.html';
-                return false;
-            }
+     async function verificarAcceso() {
+    try {
+        // ✅ CORREGIDO: sintaxis válida
+        const { data, error } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (!user) {
+            window.location.href = '../../index.html';
+            return false;
         }
-
+        const { data: permisoData, error: permisoError } = await supabase
+            .from('usuarios_redip')
+            .select('redip')
+            .eq('user_id', user.id)
+            .single();
+        if (permisoError || !permisoData || (permisoData.redip !== 'capital' && permisoData.redip !== 'admin')) {
+            alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
+            window.location.href = '../../index.html';
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.error('Error al verificar acceso:', err);
+        window.location.href = '../../index.html';
+        return false;
+    }
+}
         // Obtener parámetros de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
