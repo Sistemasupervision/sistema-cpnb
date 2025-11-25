@@ -522,7 +522,7 @@
                     return;
                 }
                 if (data.redip !== 'capital' && data.redip !== 'admin') {
-                    alert('⚠️ No tiene permisos para acceder a esta sección.');
+                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
                     window.location.href = 'index.html';
                     return;
                 }
@@ -1024,33 +1024,57 @@
                     .from('reportes')
                     .update({ numero_reporte: numeroReporte })
                     .eq('id', nuevoReporte.id);
-                const content = document.getElementById('detalleContenido');
-                const htmlContent = `
-    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
-        </div>
-        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
-            La seguridad ciudadana es un pilar fundamental...
-        </div>
-        ${content.innerHTML}
-        <div style="margin-top: 50px; page-break-inside: avoid;">
-            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
-        </div>
-        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-            Fecha de generación: ${new Date().toLocaleString('es-ES')}
-        </div>
-    </div>
-`;
+                // ✅ Crear contenedor temporal visible para html2canvas
                 const printDiv = document.createElement('div');
-                printDiv.innerHTML = htmlContent;
+                printDiv.id = 'pdf-temp-container';
+                printDiv.style.position = 'absolute';
+                printDiv.style.left = '-10000px';
+                printDiv.style.top = '0';
+                printDiv.style.width = '770px';
+                printDiv.style.padding = '20px';
+                printDiv.style.fontFamily = 'Arial, sans-serif';
+                printDiv.style.backgroundColor = 'white';
+                printDiv.style.fontSize = '12px';
+                printDiv.style.lineHeight = '1.6';
+                printDiv.style.color = '#2d3748';
+                printDiv.innerHTML = `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                        <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                        <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                        <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+                    </div>
+                    <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
+                        La seguridad ciudadana es un pilar fundamental para el fortalecimiento de la convivencia pacífica y el respeto a los derechos humanos en nuestra sociedad.
+                    </div>
+                    ${document.getElementById('detalleContenido').innerHTML}
+                    <div style="margin-top: 50px; page-break-inside: avoid; text-align: center;">
+                        <h3 style="color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
+                        <div style="display: flex; justify-content: space-around; margin-top: 40px; font-size: 14px;">
+                            <div style="text-align: center;">
+                                <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
+                                <div>Inspector(a)</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
+                                <div>Jefe(a) de la Unidad</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                    </div>
+                `;
                 document.body.appendChild(printDiv);
-                printDiv.style.position = 'fixed';
-                printDiv.style.left = '-9999px';
-                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                // Esperar un ciclo para asegurar renderizado
+                await new Promise(r => setTimeout(r, 100));
+                const canvas = await html2canvas(printDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    allowTaint: true,
+                    backgroundColor: null
+                });
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
@@ -1141,7 +1165,7 @@
                     if (item.cumple) statsPorInspeccion[item.inspeccion_id].cumplidos++;
                 });
                 let htmlContent = `
-    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+    <div id="pdf-temp-container" style="font-family: Arial, sans-serif; padding: 20px; width: 770px; background: white; font-size: 12px; color: #2d3748; line-height: 1.6;">
         <div style="text-align: center; margin-bottom: 20px;">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
             <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES - REDIP CAPITAL</h1>
@@ -1150,7 +1174,7 @@
             ${ccpId ? `<p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">CCP: ${ccpNombres[ccpId]}</p>` : ''}
         </div>
         <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
-            La seguridad ciudadana es un pilar fundamental...
+            La seguridad ciudadana es un pilar fundamental para el fortalecimiento de la convivencia pacífica y el respeto a los derechos humanos en nuestra sociedad.
         </div>
         <div style="margin-top: 30px; font-size: 14px; line-height: 1.6; color: #2d3748;">
             <h2 style="color: #0c2440; margin-bottom: 15px;">Resumen de Inspecciones</h2>
@@ -1205,7 +1229,7 @@
                 printDiv.innerHTML = htmlContent;
                 document.body.appendChild(printDiv);
                 printDiv.style.position = 'fixed';
-                printDiv.style.left = '-9999px';
+                printDiv.style.left = '-10000px';
                 const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
