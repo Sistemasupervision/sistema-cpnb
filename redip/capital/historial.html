@@ -1024,7 +1024,6 @@
             .from('reportes')
             .update({ numero_reporte: numeroReporte })
             .eq('id', nuevoReporte.id);
-        // ✅ Crear contenedor temporal visible para html2canvas
         const printDiv = document.createElement('div');
         printDiv.id = 'pdf-temp-container';
         printDiv.style.position = 'absolute';
