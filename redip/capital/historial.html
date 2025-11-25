@@ -996,114 +996,166 @@
             if (e.target.id === 'detalleModal') cerrarModal();
         });
         async function exportarInspeccionAPDF(inspeccionId) {
-            if (!inspeccionId) {
-                alert('⚠️ No se ha seleccionado una inspección.');
-                return;
-            }
-            try {
-                const { data: inspeccion, error: inspError } = await supabase
-                    .from('inspecciones')
-                    .select('estacion_id, servicio_id')
-                    .eq('id', inspeccionId)
-                    .single();
-                if (inspError) throw inspError;
-                let tipo = 'desconocido';
-                if (inspeccion.estacion_id) tipo = 'estacion';
-                else if (inspeccion.servicio_id) tipo = 'servicio';
-                const { data: nuevoReporte, error: insertError } = await supabase
-                    .from('reportes')
-                    .insert({ inspeccion_id: inspeccionId })
-                    .select('id, fecha_generacion')
-                    .single();
-                if (insertError) throw insertError;
-                const fechaGen = new Date(nuevoReporte.fecha_generacion);
-                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
-                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
-                const numeroReporte = `CPNB-REDIP-CAPITAL-${fechaStr}-${consecutivo}`;
-                await supabase
-                    .from('reportes')
-                    .update({ numero_reporte: numeroReporte })
-                    .eq('id', nuevoReporte.id);
-                // ✅ Crear contenedor temporal visible
-                const printDiv = document.createElement('div');
-                printDiv.id = 'pdf-temp-container';
-                printDiv.style.position = 'absolute';
-                printDiv.style.left = '-10000px';
-                printDiv.style.top = '0';
-                printDiv.style.width = '770px';
-                printDiv.style.padding = '20px';
-                printDiv.style.fontFamily = 'Arial, sans-serif';
-                printDiv.style.backgroundColor = 'white';
-                printDiv.style.fontSize = '12px';
-                printDiv.style.lineHeight = '1.6';
-                printDiv.style.color = '#2d3748';
-                printDiv.innerHTML = `
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                        <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
-                        <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-                        <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+    if (!inspeccionId) {
+        alert('⚠️ No se ha seleccionado una inspección.');
+        return;
+    }
+    try {
+        const { data: inspeccion, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('estacion_id, servicio_id')
+            .eq('id', inspeccionId)
+            .single();
+        if (inspError) throw inspError;
+
+        let tipo = 'desconocido';
+        if (inspeccion.estacion_id) tipo = 'estacion';
+        else if (inspeccion.servicio_id) tipo = 'servicio';
+
+        const { data: nuevoReporte, error: insertError } = await supabase
+            .from('reportes')
+            .insert({ inspeccion_id: inspeccionId })
+            .select('id, fecha_generacion')
+            .single();
+        if (insertError) throw insertError;
+
+        const fechaGen = new Date(nuevoReporte.fecha_generacion);
+        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+        const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+        const numeroReporte = `CPNB-REDIP-CAPITAL-${fechaStr}-${consecutivo}`;
+
+        await supabase
+            .from('reportes')
+            .update({ numero_reporte: numeroReporte })
+            .eq('id', nuevoReporte.id);
+
+        // ✅ Texto institucional COMPLETO
+        const textoInstitucional = `
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un
+            compromiso ineludible del Estado venezolano y una misión primordial encomendada a
+            nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB),
+            como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia
+            y transparencia en todas sus actuaciones.<br><br>
+            La&nbsp;Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en
+            su&nbsp;Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y
+            control internos para garantizar la correcta prestación del servicio, el uso adecuado de los
+            recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que
+            todos los componentes operativos y administrativos de la PNB sean objeto de una revisión
+            constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de
+            Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación:</strong>&nbsp;Entendiendo que la
+            capacidad operativa de la PNB para salvaguardar la vida y los bienes de los
+            ciudadanos depende directamente de la calidad de su infraestructura y equipamiento.
+            La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos
+            para el desempeño policial y la atención al ciudadano, contribuyendo directamente a
+            fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica:</strong>&nbsp;Reconociendo que la
+            modernización y la innovación son herramientas indispensables en la lucha contra el
+            crimen y en la optimización del servicio policial. La supervisión del equipamiento
+            tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también
+            promover su actualización constante y el uso eficiente de las herramientas digitales
+            que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación.</strong>&nbsp;Un software de supervisión de
+            estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino
+            que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la
+            seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales
+            para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge
+            de la necesidad de establecer un modelo de gestión que asegure la operatividad,
+            funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la
+            correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta
+            su vital labor. A través de este programa, se busca fortalecer la capacidad institucional,
+            optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del
+            servicio policial para beneficio de todo el pueblo venezolano.
+        `;
+
+        // ✅ Contenedor temporal VISIBLE
+        const printDiv = document.createElement('div');
+        printDiv.id = 'pdf-temp-container';
+        printDiv.style.position = 'absolute';
+        printDiv.style.left = '-10000px';
+        printDiv.style.top = '0';
+        printDiv.style.width = '770px';
+        printDiv.style.padding = '20px';
+        printDiv.style.fontFamily = 'Arial, sans-serif';
+        printDiv.style.backgroundColor = 'white';
+        printDiv.style.fontSize = '12px';
+        printDiv.style.lineHeight = '1.6';
+        printDiv.style.color = '#2d3748';
+
+        printDiv.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+                <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+            </div>
+            <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
+                ${textoInstitucional}
+            </div>
+            ${document.getElementById('detalleContenido').innerHTML}
+            <div style="margin-top: 50px; page-break-inside: avoid; text-align: center;">
+                <h3 style="color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
+                <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; margin-top: 40px; font-size: 14px;">
+                    <div style="text-align: center; min-width: 140px;">
+                        <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
+                        <div>Inspector(a)</div>
                     </div>
-                    <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748;">
-                        La seguridad ciudadana es un pilar fundamental para el fortalecimiento de la convivencia pacífica y el respeto a los derechos humanos en nuestra sociedad.
+                    <div style="text-align: center; min-width: 140px;">
+                        <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
+                        <div>Jefe(a) de la Estación / Servicio</div>
                     </div>
-                    ${document.getElementById('detalleContenido').innerHTML}
-                    <div style="margin-top: 50px; page-break-inside: avoid; text-align: center;">
-                        <h3 style="color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de conformidad</h3>
-                        <div style="display: flex; justify-content: space-around; margin-top: 40px; flex-wrap: wrap; gap: 20px;">
-                            <div style="text-align: center; min-width: 150px;">
-                                <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
-                                <div>Inspector(a)</div>
-                            </div>
-                            <div style="text-align: center; min-width: 150px;">
-                                <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
-                                <div>Jefe(a) de la Unidad</div>
-                            </div>
-                            <div style="text-align: center; min-width: 150px;">
-                                <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
-                                <div>Coordinador(a) de la REDIP</div>
-                            </div>
-                            <div style="text-align: center; min-width: 150px;">
-                                <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
-                                <div>Responsable de la OTIC</div>
-                            </div>
-                        </div>
+                    <div style="text-align: center; min-width: 140px;">
+                        <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
+                        <div>Coordinador(a) del CCP</div>
                     </div>
-                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                    <div style="text-align: center; min-width: 140px;">
+                        <div style="width: 200px; height: 1px; background: #000; margin: 0 auto 10px;"></div>
+                        <div>Director(a) de la REDIP</div>
                     </div>
-                `;
-                document.body.appendChild(printDiv);
-                await new Promise(r => setTimeout(r, 100));
-                const canvas = await html2canvas(printDiv, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    allowTaint: true,
-                    backgroundColor: null
-                });
-                const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= 297;
-                while (heightLeft >= 0) {
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, heightLeft - imgHeight, imgWidth, imgHeight);
-                    heightLeft -= 297;
-                }
-                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
-                document.body.removeChild(printDiv);
-                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
-            } catch (error) {
-                console.error('Error al generar PDF:', error);
-                alert('❌ Error al generar el reporte.');
-            }
+                </div>
+            </div>
+            <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                Fecha de generación: ${new Date().toLocaleString('es-ES')}
+            </div>
+        `;
+
+        document.body.appendChild(printDiv);
+        await new Promise(r => setTimeout(r, 100));
+
+        const canvas = await html2canvas(printDiv, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: null
+        });
+
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297;
+        while (heightLeft >= 0) {
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, heightLeft - imgHeight, imgWidth, imgHeight);
+            heightLeft -= 297;
         }
+
+        pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+        document.body.removeChild(printDiv);
+        alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+    } catch (error) {
+        console.error('Error al generar PDF:', error);
+        alert('❌ Error al generar el reporte.');
+    }
+}
         async function exportarHistorialAPDF() {
             try {
                 const desde = document.getElementById('fechaDesde').value;
