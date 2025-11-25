@@ -34,7 +34,6 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
@@ -44,7 +43,6 @@
             alert('⚠️ Datos incompletos. Redirigiendo...');
             window.history.back();
         }
-        // === DEFINICIÓN DE ÍTEMS (67 ítems COMPLETOS y CORREGIDOS) ===
         const items = [
             "nombramiento_comandante",
             "acta_entrega_recepcion",
@@ -183,7 +181,6 @@
             informes_preliminares_actuacion: "66. Verificar la elaboración de los informes preliminares de actuación policial.",
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
-        // === RENDERIZAR FORMULARIO ===
         function renderForm() {
             const hoy = new Date().toISOString().split('T')[0];
             let formHtml = `
@@ -262,7 +259,6 @@
             </form>
             `;
             document.getElementById('container').innerHTML = formHtml;
-            // === EVENTOS DINÁMICOS ===
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -320,14 +316,14 @@
                 e.preventDefault();
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 try {
-                    const {  { user } } = await supabase.auth.getUser();
+                    // ✅ CORRECCIÓN AQUÍ: sintaxis correcta
+                    const { data: { user } } = await supabase.auth.getUser();
                     if (!user) {
                         throw new Error('Debe estar autenticado.');
                     }
                     const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                     const observacionesGenerales = document.getElementById('observacionesGenerales').value || null;
-                    // ✅ Guardar con servicio_id (no estacion_id)
-                    const {  inspeccionData, error: inspError } = await supabase
+                    const { data: inspeccionData, error: inspError } = await supabase
                         .from('inspecciones')
                         .insert({
                             servicio_id: servicioId,
@@ -354,7 +350,6 @@
                             const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                             porcentaje = parseInt(slider?.value) || 0;
                         }
-                        // Subir fotos
                         let foto1_url = null, foto2_url = null;
                         const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
                         const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
@@ -376,7 +371,6 @@
                                 foto2_url = data.publicUrl;
                             }
                         }
-                        // Subir archivo adjunto
                         let archivo_url = null;
                         const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
                         if (archivoFile) {
