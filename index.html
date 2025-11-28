@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
-    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ SIN 'defer' → se ejecuta antes del script interno -->
+    <!-- ✅ Credenciales centralizadas -->
     <script src="assets/js/config.js"></script>
-    <!-- Estilos reutilizables -->
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -75,7 +73,10 @@
     </div>
 
     <script>
-        // ✅ Supabase v2+ sintaxis correcta
+        /**
+         * ✅ Corregido para Supabase v2+: 
+         * getUser() devuelve { user, error }, NO { data: { user } }
+         */
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
@@ -146,27 +147,32 @@
             setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
-        // ✅ Función clave: verifica sesión al cargar
+        /**
+         * ✅ Corrección clave: manejo seguro de sesión al recargar
+         */
         async function checkAuth() {
             try {
                 const { user, error } = await supabase.auth.getUser();
                 if (error || !user) {
+                    // No hay sesión → mostrar login
                     document.getElementById('loginContainer').style.display = 'block';
                     document.getElementById('dashboardContainer').style.display = 'none';
                     return;
                 }
+                // Usuario autenticado → mostrar panel
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
                 await verificarYMostrarBotonAdmin();
             } catch (err) {
+                // Error inesperado → forzar login
                 console.error('Error en checkAuth:', err);
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('dashboardContainer').style.display = 'none';
             }
         }
 
-        // Eventos
+        // Inicializar eventos
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         checkAuth(); // ✅ Se ejecuta inmediatamente
