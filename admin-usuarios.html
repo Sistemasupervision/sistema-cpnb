@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Tus recursos centralizados -->
+    <!-- ✅ Tus recursos -->
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-    <!-- ✅ Fondo vectorial (igual que en tu index.html) -->
+    <!-- ✅ Fondo vectorial de tu estilos.txt -->
     <div class="vector-bg">
         <div class="vector-circle"></div>
         <div class="vector-circle"></div>
@@ -20,7 +20,8 @@
         <div class="vector-line"></div>
     </div>
 
-    <div class="container" style="max-width: 600px;">
+    <!-- ✅ Contenedor con tu estilo, pero ancho mayor para el admin -->
+    <div class="container" style="max-width: 600px; padding: 40px;">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Administrar Usuarios</h1>
@@ -28,22 +29,22 @@
 
         <!-- ✅ Pestañas con botones -->
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <button class="action-btn" style="flex: 1; padding: 12px; font-size: 16px;" onclick="mostrarSeccion('listado')">
+            <button class="action-btn" style="flex:1; padding:12px; font-size:16px;" onclick="mostrarSeccion('listado')">
                 👥 Listado de Usuarios
             </button>
-            <button class="action-btn" style="flex: 1; padding: 12px; font-size: 16px;" onclick="mostrarSeccion('formulario')">
+            <button class="action-btn" style="flex:1; padding:12px; font-size:16px;" onclick="mostrarSeccion('formulario')">
                 ➕ Crear Nuevo Usuario
             </button>
         </div>
 
-        <!-- ✅ Sección: Listado -->
+        <!-- ✅ Listado -->
         <div id="listadoUsuarios" style="display: block; margin-top: 20px;">
-            <div id="usuariosContenedor" style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; min-height: 100px;">
+            <div id="usuariosContenedor" style="padding:15px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; min-height:100px;">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
 
-        <!-- ✅ Sección: Formulario -->
+        <!-- ✅ Formulario -->
         <div id="formularioUsuario" style="display: none; margin-top: 20px;">
             <form id="userForm">
                 <input type="hidden" id="userId">
@@ -57,7 +58,7 @@
                 </div>
                 <div class="input-group">
                     <label for="redip">Asignar REDIP</label>
-                    <select id="redip" required style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px;">
+                    <select id="redip" required style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
                         <option value="">-- Seleccione --</option>
                         <option value="admin">ADMINISTRADOR</option>
                         <option value="andes">REDIP LOS ANDES</option>
@@ -70,12 +71,12 @@
                         <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
                     </select>
                 </div>
-                <button type="submit" class="action-btn">Crear Usuario</button>
+                <button type="submit" class="action-btn" style="margin-top:15px;">Crear Usuario</button>
             </form>
-            <div id="mensaje" class="mensaje" style="display: none; margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold;"></div>
+            <div id="mensaje" class="mensaje" style="display:none; margin-top:15px; padding:10px; border-radius:8px; text-align:center; font-weight:bold;"></div>
         </div>
 
-        <!-- ✅ Botón "Volver al inicio" -->
+        <!-- ✅ Botón "Volver al inicio" con tu estilo -->
         <button class="action-btn back-btn" onclick="window.location.href='index.html'">
             ← Volver al inicio
         </button>
@@ -84,33 +85,32 @@
     <script>
         let modoEdicion = false;
 
-      async function verificarAdmin() {
-    // ✅ Sintaxis segura
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
-    
-    if (!user) {
-        alert('Debe iniciar sesión.');
-        window.location.href = 'index.html';
-        return false;
-    }
+        // ✅ CORREGIDO: sintaxis segura + lógica correcta (usuarios_roles)
+        async function verificarAdmin() {
+            const { data } = await supabase.auth.getUser();
+            const user = data?.user;
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
 
-    // ✅ Corrección lógica: usar 'usuarios_roles', NO 'usuarios_redip'
-    const {  roles } = await supabase
-        .from('usuarios_roles')
-        .select('rol')
-        .eq('user_id', user.id)
-        .single();
+            // ✅ Verificar rol en 'usuarios_roles'
+            const {  roles } = await supabase
+                .from('usuarios_roles')
+                .select('rol')
+                .eq('user_id', user.id)
+                .single();
 
-    if (!roles || roles.rol !== 'admin') {
-        alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-        window.location.href = 'index.html';
-        return false;
-    }
-    return true;
-}
+            if (!roles || roles.rol !== 'admin') {
+                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
 
-        // ✅ Cargar usuarios (simulado con tus tablas actuales)
+        // ✅ Cargar usuarios (simulado con tablas actuales)
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
@@ -135,14 +135,14 @@
                         ? 'ADMINISTRADOR' 
                         : `REDIP ${u.redip.toUpperCase()}`;
                     html += `
-                        <div style="padding: 12px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="padding:12px; border-bottom:1px solid #edf2f7; display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <div style="font-weight: bold; color: #0c2440;">${u.email}</div>
-                                <div style="font-size: 13px; color: #4a5568;">${redipLabel}</div>
+                                <div style="font-weight:bold; color:#0c2440;">${u.email}</div>
+                                <div style="font-size:13px; color:#4a5568;">${redipLabel}</div>
                             </div>
                             <div>
-                                <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 2px;" onclick="editarUsuario('${u.user_id}', '${u.email}', '${u.redip}')">✏️</button>
-                                <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 2px; background: linear-gradient(135deg, #e53e3e, #c53030);" onclick="eliminarUsuario('${u.user_id}', '${u.email}')">🗑️</button>
+                                <button class="action-btn" style="padding:6px 12px; font-size:12px; margin:2px;" onclick="editarUsuario('${u.user_id}', '${u.email}', '${u.redip}')">✏️</button>
+                                <button class="action-btn" style="padding:6px 12px; font-size:12px; margin:2px; background:linear-gradient(135deg, #e53e3e, #c53030);" onclick="eliminarUsuario('${u.user_id}', '${u.email}')">🗑️</button>
                             </div>
                         </div>
                     `;
@@ -150,16 +150,20 @@
                 contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
             } catch (error) {
                 console.error('Error:', error);
-                contenedor.innerHTML = `<div style="color: #e53e3e; padding: 15px;">❌ Error al cargar usuarios.</div>`;
+                contenedor.innerHTML = `<div style="color:#e53e3e; padding:15px;">❌ Error al cargar usuarios.</div>`;
             }
         }
 
-        // === FUNCIONES DE API (asumen Edge Functions) ===
+        // ✅ FUNCIONES DE API (Edge Functions) - con sintaxis segura
         async function crearUsuario(email, password, redip) {
-            const {  { session } } = await supabase.auth.getSession();
+            const { data } = await supabase.auth.getSession();
+            const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ email, password, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -167,10 +171,14 @@
         }
 
         async function modificarUsuario(userId, redip) {
-            const {  { session } } = await supabase.auth.getSession();
+            const { data } = await supabase.auth.getSession();
+            const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ user_id: userId, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -178,17 +186,21 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const {  { session } } = await supabase.auth.getSession();
+            const { data } = await supabase.auth.getSession();
+            const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ user_id: userId })
             });
             if (!res.ok) throw new Error(await res.text());
             return await res.json();
         }
 
-        // === CONTROL DE PESTAÑAS ===
+        // ✅ CONTROL DE PANTALLAS
         function mostrarSeccion(seccion) {
             document.getElementById('listadoUsuarios').style.display = seccion === 'listado' ? 'block' : 'none';
             document.getElementById('formularioUsuario').style.display = seccion === 'formulario' ? 'block' : 'none';
