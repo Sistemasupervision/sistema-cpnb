@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Tus recursos -->
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
     <style>
-        /* Estilos específicos para este panel que no están en styles.css */
         .admin-container { max-width: 600px; }
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn {
@@ -70,7 +68,6 @@
     </style>
 </head>
 <body>
-    <!-- ✅ Fondo vectorial de styles.css -->
     <div class="vector-bg">
         <div class="vector-circle"></div>
         <div class="vector-circle"></div>
@@ -79,24 +76,20 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-
     <div class="container admin-container">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Administrar Usuarios</h1>
         </div>
-
         <div class="tabs">
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
-
         <div id="listadoUsuarios" class="list-section">
             <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
-
         <div id="formularioUsuario" class="form-section" style="display: none; margin-top: 20px;">
             <form id="userForm">
                 <input type="hidden" id="userId">
@@ -127,14 +120,11 @@
             </form>
             <div id="mensaje" class="mensaje"></div>
         </div>
-
         <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
-
     <script>
         let modoEdicion = false;
 
-        // ✅ CORREGIDO: usa usuarios_roles, no usuarios_redip
         async function verificarAdmin() {
             const { data } = await supabase.auth.getUser();
             const user = data?.user;
@@ -143,99 +133,102 @@
                 window.location.href = 'index.html';
                 return false;
             }
-
-const { data: roles, error } = await supabase
-    .from('usuarios_roles')
-    .select('rol')
-    .eq('user_id', user.id)
-    .maybeSingle(); // <-- Cambiado a maybeSingle()
-
-if (error) {
-    console.error('Error al verificar rol:', error);
-    alert('Acceso denegado. Error interno.');
-    window.location.href = 'index.html';
-    return false;
-}
-
-if (!roles || roles.rol !== 'admin') {
-    alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-    window.location.href = 'index.html';
-    return false;
-}
+            const {  roles, error } = await supabase
+                .from('usuarios_roles')
+                .select('rol')
+                .eq('user_id', user.id)
+                .maybeSingle(); // ✅ más seguro que .single()
+            
+            if (error || !roles || roles.rol !== 'admin') {
+                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+                window.location.href = 'index.html';
+                return false;
+            }
             return true;
         }
 
-      async function cargarUsuarios() {
-    const contenedor = document.getElementById('usuariosContenedor');
-    try {
-        const { data: roles, error: errorRoles } = await supabase.from('usuarios_roles').select('*');
-        const { data: redips, error: errorRedips } = await supabase.from('usuarios_redip').select('*');
+        async function cargarUsuarios() {
+            const contenedor = document.getElementById('usuariosContenedor');
+            try {
+                // ✅ Corregido: usar `{  roles }`, no `{ roles }`
+                const {  roles, error: errorRoles } = await supabase.from('usuarios_roles').select('*');
+                const {  redips, error: errorRedips } = await supabase.from('usuarios_redip').select('*');
 
-        if (errorRoles || errorRedips) {
-            throw new Error('Error al consultar roles o REDIPs');
-        }
+                if (errorRoles || errorRedips) {
+                    throw new Error('Error al consultar tablas de roles o REDIP');
+                }
 
-        const usuariosMap = {};
-        roles.forEach(r => {
-            if (r.rol === 'admin') {
-                usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: 'admin' };
-            }
-        });
-        redips.forEach(r => {
-            if (!usuariosMap[r.user_id]) {
-                usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: r.redip };
-            }
-        });
-
-        // Obtener correos reales de auth.users (opcional, mejora UX)
-        const userIds = Object.keys(usuariosMap);
-        if (userIds.length > 0) {
-            const { data: authUsers, error: authError } = await supabase
-                .from('auth.users')
-                .select('id, email')
-                .in('id', userIds);
-
-            if (!authError && authUsers) {
-                authUsers.forEach(u => {
-                    if (usuariosMap[u.id]) {
-                        usuariosMap[u.id].email = u.email;
+                const usuariosMap = {};
+                roles.forEach(r => {
+                    if (r.rol === 'admin') {
+                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: 'admin' };
                     }
                 });
+                redips.forEach(r => {
+                    if (!usuariosMap[r.user_id]) {
+                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: r.redip };
+                    }
+                });
+
+                // ✅ Cargar correos reales desde auth.users
+                const userIds = Object.keys(usuariosMap);
+                if (userIds.length > 0) {
+                    const {  authUsers, error: authError } = await supabase
+                        .from('auth.users')
+                        .select('id, email')
+                        .in('id', userIds);
+
+                    if (!authError && authUsers) {
+                        authUsers.forEach(u => {
+                            if (usuariosMap[u.id]) {
+                                usuariosMap[u.id].email = u.email;
+                            }
+                        });
+                    } else {
+                        // Si falla, usa un mensaje genérico (no rompe el UI)
+                        Object.values(usuariosMap).forEach(u => {
+                            u.email = 'Correo no disponible';
+                        });
+                    }
+                }
+
+                let html = '';
+                Object.values(usuariosMap).forEach(u => {
+                    const redipLabel = u.redip === 'admin' 
+                        ? 'ADMINISTRADOR' 
+                        : `REDIP ${u.redip.toUpperCase()}`;
+                    // Escapar comillas simples para evitar errores en onclick
+                    const emailEscaped = u.email.replace(/'/g, "\\'");
+                    html += `
+                        <div class="usuario-item">
+                            <div class="usuario-info">
+                                <div class="usuario-email">${u.email}</div>
+                                <div class="usuario-redip">${redipLabel}</div>
+                            </div>
+                            <div class="acciones">
+                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${emailEscaped}', '${u.redip}')">✏️</button>
+                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${emailEscaped}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
+            } catch (error) {
+                console.error('Error en cargarUsuarios:', error);
+                contenedor.innerHTML = `<div style="color:#e53e3e; padding:15px;">❌ Error al cargar usuarios.</div>`;
             }
         }
 
-        let html = '';
-        Object.values(usuariosMap).forEach(u => {
-            const redipLabel = u.redip === 'admin' 
-                ? 'ADMINISTRADOR' 
-                : `REDIP ${u.redip.toUpperCase()}`;
-            html += `
-                <div class="usuario-item">
-                    <div class="usuario-info">
-                        <div class="usuario-email">${u.email}</div>
-                        <div class="usuario-redip">${redipLabel}</div>
-                    </div>
-                    <div class="acciones">
-                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email.replace(/'/g, "\\'")}', '${u.redip}')">✏️</button>
-                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email.replace(/'/g, "\\'")}')">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-        contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
-    } catch (error) {
-        console.error('Error en cargarUsuarios:', error);
-        contenedor.innerHTML = `<div style="color:#e53e3e; padding:15px;">❌ Error al cargar usuarios.</div>`;
-    }
-}
-
-        // === API (asumen Edge Functions) ===
+        // === API (Edge Functions) ===
         async function crearUsuario(email, password, redip) {
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                headers: { 
+                    'Authorization': `Bearer ${session?.access_token}`, 
+                    'Content-Type': 'application/json' 
+                },
                 body: JSON.stringify({ email, password, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -247,7 +240,10 @@ if (!roles || roles.rol !== 'admin') {
             const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                headers: { 
+                    'Authorization': `Bearer ${session?.access_token}`, 
+                    'Content-Type': 'application/json' 
+                },
                 body: JSON.stringify({ user_id: userId, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -259,7 +255,10 @@ if (!roles || roles.rol !== 'admin') {
             const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                headers: { 
+                    'Authorization': `Bearer ${session?.access_token}`, 
+                    'Content-Type': 'application/json' 
+                },
                 body: JSON.stringify({ user_id: userId })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -270,7 +269,6 @@ if (!roles || roles.rol !== 'admin') {
         function mostrarSeccion(seccion) {
             document.querySelectorAll('.list-section, .form-section').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-
             if (seccion === 'listado') {
                 document.getElementById('listadoUsuarios').style.display = 'block';
                 document.querySelector('.tab-btn:first-child').classList.add('active');
@@ -320,7 +318,6 @@ if (!roles || roles.rol !== 'admin') {
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
             const msgDiv = document.getElementById('mensaje');
-
             try {
                 if (modoEdicion) {
                     await modificarUsuario(userId, redip);
