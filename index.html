@@ -137,29 +137,47 @@
             }
         }
 
-        function irARedip(nombreRedip) {
-            alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
-        }
+       async function irARedip(nombreRedip) {
+    // Verificar si el usuario es admin
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert('Sesión no válida.');
+        return;
+    }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-        }
+    const { data, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip, rol')
+        .eq('user_id', user.id)
+        .single();
 
-        // Verificar si ya hay sesión activa
-        async function checkAuth() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
-                // ✅ Verificar rol al cargar la página
-                await verificarYMostrarBotonAdmin();
-            }
-        }
+    if (error) {
+        console.error('Error al verificar acceso:', error);
+        alert('Error de autenticación.');
+        return;
+    }
 
+    // Si es admin, permitir acceso a cualquier REDIP
+    if (data.rol === 'admin') {
+        // Redirigir según el nombre de la REDIP
+        switch (nombreRedip) {
+            case 'occidental':
+                window.location.href = 'redip/occidental/index.html';
+                break;
+            default:
+                alert(`Acceso concedido a ${nombreRedip.toUpperCase()}. Próximamente disponible.`);
+                // Aquí podrías redirigir a redip/{nombreRedip}/index.html si lo creas
+        }
+    } else {
+        // Si no es admin, solo permitir su propia redip
+        if (data.redip === nombreRedip) {
+            alert(`Accediendo a ${nombreRedip.toUpperCase()}...`);
+            // Redirigir a su REDIP específica si existe
+        } else {
+            alert('Acceso denegado: no tiene permisos para esta REDIP.');
+        }
+    }
+}
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         checkAuth();
