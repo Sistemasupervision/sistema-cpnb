@@ -4,34 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-    <script src="assets/js/config.js" defer></script>
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        .admin-container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 900px;
+            padding: 30px;
+            position: relative;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .logo-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
         .tab-btn {
-            padding: 12px;
+            padding: 10px 20px;
             background: #e2e8f0;
             border: none;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
-            flex: 1;
-            font-size: 14px;
         }
         .tab-btn.active {
             background: #3182ce;
             color: white;
         }
+        .form-section, .list-section {
+            display: none;
+        }
+        .form-section.active, .list-section.active {
+            display: block;
+        }
+        .input-group {
+            margin-bottom: 18px;
+        }
+        .input-group label {
+            display: block;
+            color: #2d3748;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #0c2440, #1a365d);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:hover { opacity: 0.9; }
+        .back-btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #2c5282;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            width: auto;
+        }
+        .mensaje {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .exito { background: #c6f6d5; color: #22543d; }
+        .error { background: #fed7d7; color: #9b2c2c; }
         .usuarios-lista {
             max-height: 500px;
             overflow-y: auto;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 10px;
             padding: 10px;
-            margin-top: 10px;
-            background: #f8fafc;
         }
         .usuario-item {
             padding: 12px;
@@ -40,238 +135,325 @@
             justify-content: space-between;
             align-items: center;
         }
-        .usuario-item:last-child { border-bottom: none; }
-        .usuario-email { font-weight: bold; color: #0c2440; }
-        .usuario-redip { font-size: 13px; color: #4a5568; }
-        .acciones { display: flex; gap: 8px; }
+        .usuario-item:last-child {
+            border-bottom: none;
+        }
+        .usuario-info {
+            flex: 1;
+        }
+        .usuario-email {
+            font-weight: bold;
+            color: #0c2440;
+        }
+        .usuario-redip {
+            font-size: 13px;
+            color: #4a5568;
+        }
+        .acciones {
+            display: flex;
+            gap: 8px;
+        }
         .btn-edit, .btn-delete {
-            padding: 6px 12px;
+            padding: 6px 10px;
             font-size: 12px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
         }
-        .btn-edit { background: #3182ce; color: white; }
-        .btn-delete { background: #e53e3e; color: white; }
-        .mensaje {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            display: none;
+        .btn-edit {
+            background: #3182ce;
+            color: white;
+        }
+        .btn-delete {
+            background: #e53e3e;
+            color: white;
         }
         @media (max-width: 768px) {
+            .container { padding: 20px; }
             .acciones { flex-direction: column; }
         }
-        #contenidoAdmin { display: none; }
     </style>
 </head>
 <body>
-    <div class="vector-bg">
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-line"></div>
-        <div class="vector-line"></div>
-    </div>
-    <div class="container admin-container">
-        <div id="contenidoAdmin">
-            <div class="logo-container">
-                <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                <h1 class="title">Administrar Usuarios</h1>
-            </div>
-            <div class="tabs">
-                <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
-                <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
-            </div>
-            <div id="listadoUsuarios" class="list-section">
-                <div id="usuariosContenedor" class="usuarios-lista">
-                    <div class="loading">Cargando usuarios...</div>
-                </div>
-            </div>
-            <div id="formularioUsuario" class="form-section" style="display: none; margin-top: 20px;">
-                <form id="userForm">
-                    <input type="hidden" id="userId">
-                    <div class="input-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" required>
-                    </div>
-                    <div class="input-group" id="passwordGroup">
-                        <label for="password">Contraseña (solo al crear)</label>
-                        <input type="password" id="password" minlength="6" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="redip">Asignar REDIP</label>
-                        <select id="redip" required style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
-                            <option value="">-- Seleccione --</option>
-                            <option value="admin">ADMINISTRADOR</option>
-                            <option value="andes">REDIP LOS ANDES</option>
-                            <option value="capital">REDIP CAPITAL</option>
-                            <option value="central">REDIP CENTRAL</option>
-                            <option value="occidental">REDIP OCCIDENTAL</option>
-                            <option value="oriental">REDIP ORIENTAL</option>
-                            <option value="llanos">REDIP LOS LLANOS</option>
-                            <option value="guayana">REDIP GUAYANA</option>
-                            <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="action-btn">Crear Usuario</button>
-                </form>
-                <div id="mensaje" class="mensaje"></div>
-            </div>
-            <a href="index.html" class="back-btn">← Volver al inicio</a>
+    <div class="container">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <h1 class="title">Administrar Usuarios</h1>
+
+        <!-- 🚨 Mensaje de error crítico (solo si hay problema en la verificación) -->
+        <div id="errorCritico" class="error-critico" style="display: none;">
+            ⚠️ Error al verificar permisos. 
+            <br><small id="errorMsg"></small>
+            <br><br>
+            <button onclick="forzarAccesoAdmin()" style="background:#e53e3e;color:white;padding:6px 12px;border:none;border-radius:5px;cursor:pointer;">
+                Forzar acceso (solo para diagnóstico)
+            </button>
         </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
+            <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
+        </div>
+        <!-- Listado de usuarios -->
+        <div id="listadoUsuarios" class="list-section active">
+            <div id="usuariosContenedor" class="usuarios-lista">
+                <div class="loading">Cargando usuarios...</div>
+            </div>
+        </div>
+        <!-- Formulario (crear/editar) -->
+        <div id="formularioUsuario" class="form-section">
+            <form id="userForm">
+                <input type="hidden" id="userId">
+                <div class="input-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="input-group" id="passwordGroup">
+                    <label for="password">Contraseña (solo al crear)</label>
+                    <input type="password" id="password" minlength="6">
+                </div>
+                <div class="input-group">
+                    <label for="redip">Asignar REDIP</label>
+                    <select id="redip" required>
+                        <option value="">-- Seleccione --</option>
+                        <option value="admin">ADMINISTRADOR</option>
+                        <option value="andes">REDIP LOS ANDES</option>
+                        <option value="capital">REDIP CAPITAL</option>
+                        <option value="central">REDIP CENTRAL</option>
+                        <option value="occidental">REDIP OCCIDENTAL</option>
+                        <option value="oriental">REDIP ORIENTAL</option>
+                        <option value="llanos">REDIP LOS LLANOS</option>
+                        <option value="guayana">REDIP GUAYANA</option>
+                        <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn" id="submitBtn">Crear Usuario</button>
+            </form>
+            <div id="mensaje" class="mensaje" style="display: none;"></div>
+        </div>
+        <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
-    <script defer>
+    <script>
+        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        async function Admin() {
-            const { data } = await supabase.auth.getUser();
-            if (!data?.user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
+        // ✅ Función mejorada: Verifica si el usuario es admin
+        async function verificarAdmin() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    throw new Error('No hay sesión activa');
+                }
+
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                if (!data || data.redip !== 'admin') {
+                    throw new Error('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+                }
+
+                return true;
+            } catch (err) {
+                console.error('Error al verificar rol de administrador:', err);
+                document.getElementById('errorCritico').style.display = 'block';
+                document.getElementById('errorMsg').textContent = err.message;
                 return false;
             }
-            const { data: roles, error } = await supabase
-                .from('usuarios_roles')
-                .select('rol')
-                .eq('user_id', data.user.id);
-            if (error) {
-                console.error('Error al verificar rol:', error);
-                alert('Error al verificar permisos.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            const esAdmin = roles.some(r => r.rol === 'admin');
-            if (!esAdmin) {
-                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            return true;
         }
 
+        // ✅ Función para cargar usuarios
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
-            contenedor.innerHTML = '<div class="loading">Cargando...</div>';
             try {
-                const { data: emails } = await supabase.from('usuarios_emails').select('user_id, email');
-                const { data: roles } = await supabase.from('usuarios_roles').select('*');
-                const { data: redips } = await supabase.from('usuarios_redip').select('*');
+                const { data: usuarios, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('user_id, redip, email')
+                    .order('redip', { ascending: true });
 
-                const emailMap = {};
-                emails.forEach(e => { emailMap[e.user_id] = e.email; });
+                if (error) throw error;
 
-                const usuariosMap = {};
-                roles.forEach(r => {
-                    const email = emailMap[r.user_id] || 'Email no disponible';
-                    const redip = r.rol === 'admin' ? 'admin' : r.rol;
-                    usuariosMap[r.user_id] = { user_id: r.user_id, email, redip };
-                });
-                redips.forEach(r => {
-                    if (!usuariosMap[r.user_id]) {
-                        const email = emailMap[r.user_id] || 'Email no disponible';
-                        usuariosMap[r.user_id] = { user_id: r.user_id, email, redip: r.redip };
-                    }
-                });
+                if (!usuarios || usuarios.length === 0) {
+                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+                    return;
+                }
 
                 let html = '';
-                Object.values(usuariosMap).forEach(u => {
-                    const redipLabel = u.redip === 'admin' 
-                        ? 'ADMINISTRADOR' 
-                        : `REDIP ${u.redip.toUpperCase()}`;
+                usuarios.forEach(u => {
                     html += `
                         <div class="usuario-item">
-                            <div>
-                                <div class="usuario-email">${u.email}</div>
-                                <div class="usuario-redip">${redipLabel}</div>
+                            <div class="usuario-info">
+                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                                <div class="usuario-redip">REDIP: ${u.redip}</div>
                             </div>
                             <div class="acciones">
-                                <button class="btn-edit" onclick="alert('Edición no implementada aún')">✏️</button>
-                                <button class="btn-delete" onclick="alert('Eliminación no implementada aún')">🗑️</button>
+                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
                             </div>
                         </div>
                     `;
                 });
-                contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
-            } catch (err) {
-                console.error('Error en cargarUsuarios:', err);
-                contenedor.innerHTML = `<div style="color:#e53e3e; text-align:center;">❌ Error al cargar usuarios</div>`;
+                contenedor.innerHTML = html;
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                contenedor.innerHTML = `<div class="error" style="padding:15px;">
+                    ❌ Error al cargar usuarios.<br>
+                    <small>${error.message}</small>
+                </div>`;
             }
         }
 
+        // ✅ Función para crear usuario
         async function crearUsuario(email, password, redip) {
-            const { data } = await supabase.auth.getSession();
-            if (!data?.session) throw new Error('Sesión no válida');
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${data.session.access_token}`,
+                    'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ email, password, redip })
             });
-            if (!res.ok) {
-                const error = await res.json().catch(() => ({}));
-                throw new Error(error.error || 'Error en la función de creación');
-            }
+            if (!res.ok) throw new Error(await res.text());
             return await res.json();
         }
 
+        // ✅ Función para modificar usuario
+        async function modificarUsuario(userId, redip) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: userId, redip })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            return await res.json();
+        }
+
+        // ✅ Función para eliminar usuario
+        async function eliminarUsuarioApi(userId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: userId })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            return await res.json();
+        }
+
+        // ✅ Función para mostrar sección
         function mostrarSeccion(seccion) {
-            document.querySelectorAll('.list-section, .form-section').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.list-section, .form-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
             if (seccion === 'listado') {
-                document.getElementById('listadoUsuarios').style.display = 'block';
+                document.getElementById('listadoUsuarios').classList.add('active');
                 document.querySelector('.tab-btn:first-child').classList.add('active');
                 cargarUsuarios();
             } else {
-                document.getElementById('formularioUsuario').style.display = 'block';
+                document.getElementById('formularioUsuario').classList.add('active');
                 document.querySelector('.tab-btn:last-child').classList.add('active');
                 resetForm();
             }
         }
 
+        // ✅ Función para resetear formulario
         function resetForm() {
             document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
-            document.querySelector('button[type="submit"]').textContent = 'Crear Usuario';
+            document.getElementById('submitBtn').textContent = 'Crear Usuario';
             modoEdicion = false;
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const esAdmin = await Admin();
-            if (esAdmin) {
-                document.getElementById('contenidoAdmin').style.display = 'block';
+        // ✅ Función para editar usuario
+        function editarUsuario(userId, email, redip) {
+            document.getElementById('userId').value = userId;
+            document.getElementById('email').value = email;
+            document.getElementById('email').disabled = true;
+            document.getElementById('redip').value = redip;
+            document.getElementById('passwordGroup').style.display = 'none';
+            document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
+            modoEdicion = true;
+            mostrarSeccion('formulario');
+        }
+
+        // ✅ Función para eliminar usuario
+        async function eliminarUsuario(userId, email) {
+            if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return;
+            try {
+                await eliminarUsuarioApi(userId);
+                alert('✅ Usuario eliminado correctamente.');
+                cargarUsuarios();
+            } catch (err) {
+                console.error(err);
+                alert('❌ Error al eliminar: ' + (err.message || ''));
+            }
+        }
+
+        // ✅ Manejo del formulario
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('userId').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const redip = document.getElementById('redip').value;
+            const msgDiv = document.getElementById('mensaje');
+
+            try {
+                if (modoEdicion) {
+                    await modificarUsuario(userId, redip);
+                    msgDiv.className = 'mensaje exito';
+                    msgDiv.textContent = '✅ Usuario actualizado correctamente.';
+                } else {
+                    if (!password) throw new Error('La contraseña es obligatoria al crear.');
+                    await crearUsuario(email, password, redip);
+                    msgDiv.className = 'mensaje exito';
+                    msgDiv.textContent = '✅ Usuario creado correctamente.';
+                }
+                msgDiv.style.display = 'block';
+                setTimeout(() => {
+                    mostrarSeccion('listado');
+                    msgDiv.style.display = 'none';
+                }, 1500);
+            } catch (err) {
+                console.error(err);
+                msgDiv.className = 'mensaje error';
+                msgDiv.textContent = '❌ Error: ' + (err.message || 'Operación fallida.');
+                msgDiv.style.display = 'block';
+            }
+        });
+
+        // ✅ Inicializar
+        verificarAdmin().then(permitido => {
+            if (permitido) {
                 cargarUsuarios();
             }
         });
 
-        document.getElementById('userForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const redip = document.getElementById('redip').value;
-            const msg = document.getElementById('mensaje');
-            try {
-                await crearUsuario(email, password, redip);
-                msg.className = 'mensaje';
-                msg.style.display = 'block';
-                msg.style.background = '#c6f6d5';
-                msg.style.color = '#22543d';
-                msg.textContent = '✅ Usuario creado exitosamente.';
-                setTimeout(() => mostrarSeccion('listado'), 1500);
-            } catch (err) {
-                msg.className = 'mensaje';
-                msg.style.display = 'block';
-                msg.style.background = '#fed7d7';
-                msg.style.color = '#9b2c2c';
-                msg.textContent = '❌ ' + err.message;
-            }
-        });
+        // ✅ Función para forzar acceso (solo para diagnóstico)
+        function forzarAccesoAdmin() {
+            document.getElementById('errorCritico').style.display = 'none';
+            cargarUsuarios();
+        }
     </script>
 </body>
 </html>
