@@ -123,30 +123,43 @@
         <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
     <script>
-        let modoEdicion = false;
+   <script>
+    let modoEdicion = false;
 
-        async function verificarAdmin() {
-            const { data } = await supabase.auth.getUser();
-            const user = data?.user;
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            const {  roles, error } = await supabase
-                .from('usuarios_roles')
-                .select('rol')
-                .eq('user_id', user.id)
-                .maybeSingle(); // ✅ más seguro que .single()
-            
-            if (error || !roles || roles.rol !== 'admin') {
-                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            return true;
+    async function verificarAdmin() {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (!user) {
+            alert('Debe iniciar sesión.');
+            window.location.href = 'index.html';
+            return false;
         }
 
+        const {  rol, error } = await supabase
+            .from('usuarios_roles')
+            .select('rol')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error al verificar rol:', error);
+            alert('Acceso denegado. Error al consultar permisos.');
+            window.location.href = 'index.html';
+            return false;
+        }
+
+        if (!rol || rol.rol !== 'admin') {
+            alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+            window.location.href = 'index.html';
+            return false;
+        }
+
+        return true;
+    }
+
+    // ... resto del código sin cambios ...
+    verificarAdmin().then(permitido => permitido && cargarUsuarios());
+</script>
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
