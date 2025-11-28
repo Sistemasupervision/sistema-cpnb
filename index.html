@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- Configuración centralizada (incluye supabase client) -->
+    <script src="assets/js/config.js" defer></script>
+    <!-- Estilos globales -->
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -16,6 +20,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -42,6 +47,7 @@
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
+
     <!-- Panel Principal -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -68,12 +74,9 @@
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-    <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ NUEVA FUNCIÓN: Verifica si el usuario es admin y muestra/oculta el botón
+    <script>
+        // Función para verificar rol de administrador y mostrar/ocultar botón
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
@@ -84,14 +87,13 @@
                     adminBtn.style.display = 'none';
                     return;
                 }
-
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
 
-                if (!error && data && data.redip === 'admin') {
+                if (!error && data?.redip === 'admin') {
                     adminBtn.style.display = 'block';
                     adminBtn.onclick = () => {
                         window.location.href = 'admin-usuarios.html';
@@ -109,13 +111,14 @@
             e.preventDefault();
             const email = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
+
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
-                // ✅ Verificar rol inmediatamente después del login
                 await verificarYMostrarBotonAdmin();
             } catch (error) {
                 console.error('Error en login:', error);
@@ -127,12 +130,11 @@
             try {
                 const { error } = await supabase.auth.signOut();
                 if (error) throw error;
+
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
-                // ✅ Ocultar botón de admin al cerrar sesión
-                const adminBtn = document.getElementById('adminUsuariosBtn');
-                if (adminBtn) adminBtn.style.display = 'none';
+                document.getElementById('adminUsuariosBtn').style.display = 'none';
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
             }
@@ -149,21 +151,21 @@
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
 
-        // Verificar si ya hay sesión activa
-        async function checkAuth() {
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Verificar sesión existente
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
-                // ✅ Verificar rol al cargar la página
                 await verificarYMostrarBotonAdmin();
             }
-        }
 
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        checkAuth();
+            // Event listeners
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        });
     </script>
 </body>
 </html>
