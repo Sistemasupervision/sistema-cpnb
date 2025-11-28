@@ -248,21 +248,29 @@
         contenedor.innerHTML = `<div style="color:#e53e3e; text-align:center; padding:15px;">❌ Error al cargar la lista de usuarios: ${error.message}</div>`;
     }
 }
-        // === API (asumen Edge Functions) ===
-        async function crearUsuario(email, password, redip) {
-            const { data } = await supabase.auth.getSession();
-            const session = data?.session;
-            const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${session?.access_token}`, 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({ email, password, redip })
-            });
-            if (!res.ok) throw new Error(await res.text());
-            return await res.json();
-        }
+async function crearUsuario(email, password, redip) {
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
+    if (!session) throw new Error('Sesión no encontrada');
+
+    // ✅ Usamos supabaseUrl (definida en config.js)
+    const url = `${supabaseUrl}/functions/v1/crear-usuario`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password, redip })
+    });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Error desconocido al crear usuario');
+    }
+
+    return await res.json();
+}
         async function modificarUsuario(userId, redip) {
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
