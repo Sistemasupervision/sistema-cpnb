@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- Configuración centralizada -->
+    <script src="assets/js/config.js" defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body {
@@ -177,19 +180,19 @@
 </head>
 <body>
     <div class="container">
-        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Administrar Usuarios</h1>
         <div class="tabs">
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
-        <!-- Listado de usuarios -->
+        <!-- Listado -->
         <div id="listadoUsuarios" class="list-section active">
             <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
-        <!-- Formulario (crear/editar) -->
+        <!-- Formulario -->
         <div id="formularioUsuario" class="form-section">
             <form id="userForm">
                 <input type="hidden" id="userId">
@@ -199,7 +202,7 @@
                 </div>
                 <div class="input-group" id="passwordGroup">
                     <label for="password">Contraseña (solo al crear)</label>
-                    <input type="password" id="password" minlength="6">
+                    <input type="password" id="password" minlength="6" required>
                 </div>
                 <div class="input-group">
                     <label for="redip">Asignar REDIP</label>
@@ -222,75 +225,82 @@
         </div>
         <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
+
     <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        let modoEdicion = false;
+        // Esperar a que `supabase` esté disponible
+        async function init() {
+            // Verificar que el usuario es admin
+            const esAdmin = await verificarAdmin();
+            if (!esAdmin) return;
+
+            // Cargar usuarios
+            await cargarUsuarios();
+        }
 
         async function verificarAdmin() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('Debe iniciar sesión.');
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert('Debe iniciar sesión.');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error || !data || data.redip !== 'admin') {
+                    alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error en verificación de admin:', err);
+                alert('Error de autenticación. Redirigiendo...');
                 window.location.href = 'index.html';
                 return false;
             }
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-            if (error || !data || data.redip !== 'admin') {
-                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            return true;
         }
 
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                // ✅ Selecciona user_id, redip y email directamente
                 const { data: usuarios, error } = await supabase
                     .from('usuarios_redip')
                     .select('user_id, redip, email')
                     .order('redip', { ascending: true });
 
                 if (error) throw error;
-                if (!usuarios || usuarios.length === 0) {
+                if (!usuarios?.length) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
                     return;
                 }
 
-                let html = '';
-                usuarios.forEach(u => {
-                    html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                                <div class="usuario-redip">REDIP: ${u.redip}</div>
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                            </div>
+                contenedor.innerHTML = usuarios.map(u => `
+                    <div class="usuario-item">
+                        <div class="usuario-info">
+                            <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                            <div class="usuario-redip">REDIP: ${u.redip}</div>
                         </div>
-                    `;
-                });
-                contenedor.innerHTML = html;
+                        <div class="acciones">
+                            <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                            <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
             } catch (error) {
                 console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">
-                    ❌ Error al cargar usuarios.<br>
-                    <small>${error.message}</small>
-                </div>`;
+                contenedor.innerHTML = `<div class="error" style="padding:15px;">❌ Error al cargar usuarios.<br><small>${error.message}</small></div>`;
             }
         }
 
         async function crearUsuario(email, password, redip) {
             const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
@@ -302,41 +312,10 @@
             return await res.json();
         }
 
-        async function modificarUsuario(userId, redip) {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ user_id: userId, redip })
-            });
-            if (!res.ok) throw new Error(await res.text());
-            return await res.json();
-        }
-
-        async function eliminarUsuarioApi(userId) {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ user_id: userId })
-            });
-            if (!res.ok) throw new Error(await res.text());
-            return await res.json();
-        }
-
         function mostrarSeccion(seccion) {
-            document.querySelectorAll('.list-section, .form-section').forEach(el => {
-                el.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.list-section, .form-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
             if (seccion === 'listado') {
                 document.getElementById('listadoUsuarios').classList.add('active');
                 document.querySelector('.tab-btn:first-child').classList.add('active');
@@ -353,24 +332,26 @@
             document.getElementById('userId').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('submitBtn').textContent = 'Crear Usuario';
-            modoEdicion = false;
         }
 
         function editarUsuario(userId, email, redip) {
-            document.getElementById('userId').value = userId;
-            document.getElementById('email').value = email;
-            document.getElementById('email').disabled = true;
-            document.getElementById('redip').value = redip;
-            document.getElementById('passwordGroup').style.display = 'none';
-            document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
-            modoEdicion = true;
-            mostrarSeccion('formulario');
+            alert('La edición de usuarios está deshabilitada temporalmente por seguridad.');
+            // En una versión futura, puedes implementar modificar-usuario
         }
 
         async function eliminarUsuario(userId, email) {
             if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return;
             try {
-                await eliminarUsuarioApi(userId);
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch(`${SUPABASE_URL}/functions/v1/eliminar-usuario`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                if (!res.ok) throw new Error(await res.text());
                 alert('✅ Usuario eliminado correctamente.');
                 cargarUsuarios();
             } catch (err) {
@@ -381,23 +362,15 @@
 
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const userId = document.getElementById('userId').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
             const msgDiv = document.getElementById('mensaje');
 
             try {
-                if (modoEdicion) {
-                    await modificarUsuario(userId, redip);
-                    msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Usuario actualizado correctamente.';
-                } else {
-                    if (!password) throw new Error('La contraseña es obligatoria al crear.');
-                    await crearUsuario(email, password, redip);
-                    msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Usuario creado correctamente.';
-                }
+                await crearUsuario(email, password, redip);
+                msgDiv.className = 'mensaje exito';
+                msgDiv.textContent = '✅ Usuario creado correctamente.';
                 msgDiv.style.display = 'block';
                 setTimeout(() => {
                     mostrarSeccion('listado');
@@ -411,10 +384,16 @@
             }
         });
 
-        // Inicializar
-        verificarAdmin().then(permitido => {
-            if (permitido) {
-                cargarUsuarios();
+        // Iniciar cuando el DOM esté listo y `supabase` disponible
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof supabase !== 'undefined') {
+                init();
+            } else {
+                // Esperar un poco si config.js aún no ha cargado
+                setTimeout(() => {
+                    if (typeof supabase !== 'undefined') init();
+                    else console.error('Supabase no está disponible. Verifica config.js.');
+                }, 500);
             }
         });
     </script>
