@@ -209,21 +209,20 @@
 
         async function verificarAdmin() {
             try {
-                const {  { session } } = await supabase.auth.getSession();
-                if (!session) {
+                const { user, error } = await supabase.auth.getUser();
+                if (error || !user) {
                     alert('Debe iniciar sesión.');
                     window.location.href = 'index.html';
                     return false;
                 }
 
-                const user = session.user;
-                const {  data, error  } = await supabase
+                const { data, error: dbError } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
 
-                if (error || !data || data.redip !== 'admin') {
+                if (dbError || !data || data.redip !== 'admin') {
                     alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                     window.location.href = 'index.html';
                     return false;
@@ -237,20 +236,20 @@
             }
         }
 
-        // Resto de funciones (cargarUsuarios, crearUsuario, etc.) son las mismas
-        // Pero ahora usamos SUPABASE_URL desde config.js
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                const {  usuarios, error  } = await supabase
+                const { data: usuarios, error } = await supabase
                     .from('usuarios_redip')
                     .select('user_id, redip, email')
                     .order('redip', { ascending: true });
+
                 if (error) throw error;
                 if (!usuarios?.length) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
                     return;
                 }
+
                 contenedor.innerHTML = usuarios.map(u => `
                     <div class="usuario-item">
                         <div class="usuario-info">
@@ -270,7 +269,8 @@
         }
 
         async function crearUsuario(email, password, redip) {
-            const {  { session } } = await supabase.auth.getSession();
+            const {  session, error  } = await supabase.auth.getSession();
+            if (error || !session) throw new Error('Sesión no válida.');
             const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
@@ -306,14 +306,15 @@
         }
 
         function editarUsuario(userId, email, redip) {
-            alert('Edición temporalmente deshabilitada por seguridad.');
-            // Implementar después con función modificar-usuario
+            alert('Edición de usuarios deshabilitada temporalmente por seguridad.');
+            // Para habilitarla, implementa la función `modificar-usuario` en Supabase.
         }
 
         async function eliminarUsuario(userId, email) {
-            if (!confirm(`¿Eliminar al usuario ${email}?`)) return;
+            if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return;
             try {
-                const {  { session } } = await supabase.auth.getSession();
+                const {  session, error  } = await supabase.auth.getSession();
+                if (error || !session) throw new Error('Sesión no válida.');
                 const res = await fetch(`${SUPABASE_URL}/functions/v1/eliminar-usuario`, {
                     method: 'POST',
                     headers: {
@@ -323,11 +324,11 @@
                     body: JSON.stringify({ user_id: userId })
                 });
                 if (!res.ok) throw new Error(await res.text());
-                alert('✅ Usuario eliminado.');
+                alert('✅ Usuario eliminado correctamente.');
                 cargarUsuarios();
             } catch (err) {
                 console.error(err);
-                alert('❌ Error: ' + (err.message || ''));
+                alert('❌ Error al eliminar: ' + (err.message || ''));
             }
         }
 
@@ -356,7 +357,7 @@
             }
         });
 
-        // Inicializar
+        // Inicialización
         document.addEventListener('DOMContentLoaded', async () => {
             const esAdmin = await verificarAdmin();
             if (esAdmin) {
