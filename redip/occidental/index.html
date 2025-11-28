@@ -34,18 +34,18 @@
         <button id="btnCrearInspeccion" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🆕 Crear Nueva Inspección
         </button>
-      <button id="btnHistorial" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-    📋 Historial de Inspecciones
-</button>
+        <button id="btnHistorial" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            📋 Historial de Inspecciones
+        </button>
         <button onclick="window.location.href='estadisticas.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             Estadísticas
         </button>
-      <button onclick="window.location.href='galeria-seleccion-estacion.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-    🖼️ Galería de Inspección
-</button>
-<button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
-    🔔 Notificaciones
-</button>
+        <button onclick="window.location.href='galeria-seleccion-estacion.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🖼️ Galería de Inspección
+        </button>
+        <button id="botonNotificaciones" onclick="window.location.href='notificaciones.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
+            🔔 Notificaciones
+        </button>
         <button onclick="window.location.href='resumen-mensual.html'" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             📊 Resumen Mensual 
         </button>
@@ -74,15 +74,20 @@
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        const supabaseServiceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODc2MzIzNywiZXhwIjoyMDc0MzM5MjM3fQ.KVh-Nv-UX8x_9dR6O_HJiSfTNew8KYFyh00Ma4wbvPE; // 🔒 ¡REEMPLAZA ESTA CLAVE!
+        
+        const supabasePublic = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        const supabaseAdmin = window.supabase.createClient(supabaseUrl, supabaseServiceRoleKey);
+
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabasePublic.auth.getUser();
             if (!user) {
                 window.location.href = '../../index.html';
                 return;
             }
             try {
-                const { data, error } = await supabase
+                // ✅ Usar supabaseAdmin para leer usuarios_redip
+                const { data, error } = await supabaseAdmin
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
@@ -97,28 +102,30 @@
                 window.location.href = '../../index.html';
             }
         }
-  async function cargarCCPs() {
-    try {
-        const ccpIdsOccidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
-        const { data: ccps, error } = await supabase
-            .from('ccps')
-            .select('id, nombre')
-            .in('id', ccpIdsOccidental)
-            .order('nombre', { ascending: true });
-        if (error) throw error;
-        const select = document.getElementById('ccpSelectModal');
-        select.innerHTML = '<option value="">-- Elija un CCP --</option>';
-        ccps.forEach(ccp => {
-            const opt = document.createElement('option');
-            opt.value = ccp.id;
-            opt.textContent = ccp.nombre;
-            select.appendChild(opt);
-        });
-    } catch (error) {
-        console.error('Error al cargar CCPs:', error);
-        alert('Error al cargar los CCPs de REDIP OCCIDENTAL.');
-    }
-}
+
+        async function cargarCCPs() {
+            try {
+                const ccpIdsOccidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
+                const { data: ccps, error } = await supabasePublic
+                    .from('ccps')
+                    .select('id, nombre')
+                    .in('id', ccpIdsOccidental)
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                const select = document.getElementById('ccpSelectModal');
+                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+                ccps.forEach(ccp => {
+                    const opt = document.createElement('option');
+                    opt.value = ccp.id;
+                    opt.textContent = ccp.nombre;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar CCPs:', error);
+                alert('Error al cargar los CCPs de REDIP OCCIDENTAL.');
+            }
+        }
+
         document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'block';
             cargarCCPs();
@@ -136,6 +143,7 @@
             document.getElementById('modalSeleccionCCP').style.display = 'none';
             mostrarOpcionesCCP(ccpId, ccpNombre);
         });
+
         function mostrarOpcionesCCP(ccpId, ccpNombre) {
             const dynamicView = document.getElementById('dynamicView');
             dynamicView.innerHTML = `
@@ -161,18 +169,18 @@
             document.getElementById('btnEstaciones').onclick = () => {
                 window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             };
-           document.getElementById('btnServiciosAdmin').onclick = () => {
-    window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            document.getElementById('btnServiciosAdmin').onclick = () => {
+                window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             };
-        document.getElementById('btnUbicaciones').onclick = () => {
-    window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-};
+            document.getElementById('btnUbicaciones').onclick = () => {
+                window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            };
             document.getElementById('backToCcpBtn').onclick = () => {
                 document.getElementById('rediOccidentalContainer').style.display = 'block';
                 dynamicView.style.display = 'none';
             };
         }
-        // ✅ NUEVO: Manejar parámetros de URL para volver a opciones
+
         function manejarParametrosURL() {
             const urlParams = new URLSearchParams(window.location.search);
             const ccpId = urlParams.get('ccpId');
@@ -181,57 +189,52 @@
                 mostrarOpcionesCCP(ccpId, ccpNombre);
             }
         }
-      async function contarReinspeccionesVencidas() {
-    try {
-        const hoy = new Date().toISOString().split('T')[0];
-        const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
 
-        // 1. Obtener IDs de estaciones policiales
-        const { data: estaciones, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('id')
-            .in('ccp_id', ccpOcidental);
-        if (estError) throw estError;
-        const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
-
-        // 2. Obtener IDs de servicios administrativos
-        const { data: servicios, error: servError } = await supabase
-            .from('servicios_administrativos')
-            .select('id')
-            .in('ccp_id', ccpOcidental);
-        if (servError) throw servError;
-        const idsServicios = servicios ? servicios.map(s => s.id) : [];
-
-        // 3. Contar inspecciones vencidas de estaciones
-        let countEstaciones = 0;
-        if (idsEstaciones.length > 0) {
-            const { count, error: countError } = await supabase
-                .from('inspecciones')
-                .select('*', { count: 'exact', head: true })
-                .in('estacion_id', idsEstaciones)
-                .lte('proxima_inspeccion', hoy);
-            if (countError) throw countError;
-            countEstaciones = count || 0;
+        async function contarReinspeccionesVencidas() {
+            try {
+                const hoy = new Date().toISOString().split('T')[0];
+                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
+                // 1. Estaciones
+                const { data: estaciones, error: estError } = await supabasePublic
+                    .from('estaciones_policiales')
+                    .select('id')
+                    .in('ccp_id', ccpOcidental);
+                if (estError) throw estError;
+                const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
+                // 2. Servicios
+                const { data: servicios, error: servError } = await supabasePublic
+                    .from('servicios_administrativos')
+                    .select('id')
+                    .in('ccp_id', ccpOcidental);
+                if (servError) throw servError;
+                const idsServicios = servicios ? servicios.map(s => s.id) : [];
+                // 3. Contar vencidas
+                let total = 0;
+                if (idsEstaciones.length > 0) {
+                    const { count, error: e1 } = await supabasePublic
+                        .from('inspecciones')
+                        .select('*', { count: 'exact', head: true })
+                        .in('estacion_id', idsEstaciones)
+                        .lte('proxima_inspeccion', hoy);
+                    if (e1) throw e1;
+                    total += count || 0;
+                }
+                if (idsServicios.length > 0) {
+                    const { count, error: e2 } = await supabasePublic
+                        .from('inspecciones')
+                        .select('*', { count: 'exact', head: true })
+                        .in('servicio_id', idsServicios)
+                        .lte('proxima_inspeccion', hoy);
+                    if (e2) throw e2;
+                    total += count || 0;
+                }
+                return total;
+            } catch (error) {
+                console.error('Error al contar notificaciones:', error);
+                return 0;
+            }
         }
 
-        // 4. Contar inspecciones vencidas de servicios
-        let countServicios = 0;
-        if (idsServicios.length > 0) {
-            const { count, error: countError } = await supabase
-                .from('inspecciones')
-                .select('*', { count: 'exact', head: true })
-                .in('servicio_id', idsServicios)
-                .lte('proxima_inspeccion', hoy);
-            if (countError) throw countError;
-            countServicios = count || 0;
-        }
-
-        return countEstaciones + countServicios;
-    } catch (error) {
-        console.error('Error al contar notificaciones:', error);
-        return 0;
-    }
-}
         async function contarYMostrarNotificaciones() {
             const contador = await contarReinspeccionesVencidas();
             const boton = document.getElementById('botonNotificaciones');
@@ -239,16 +242,18 @@
                 boton.innerHTML = `🔔 Notificaciones${contador > 0 ? ` (${contador})` : ''}`;
             }
         }
+
         verificarAcceso().then(() => {
             document.getElementById('backToDashboardBtn').addEventListener('click', () => {
                 window.location.href = '../../index.html';
             });
             contarYMostrarNotificaciones();
-            manejarParametrosURL(); // ✅ Ejecutar al cargar
+            manejarParametrosURL();
         });
- document.getElementById('btnHistorial').addEventListener('click', () => {
-    window.location.href = 'seleccion-ccp-historial.html';
-});
+
+        document.getElementById('btnHistorial').addEventListener('click', () => {
+            window.location.href = 'seleccion-ccp-historial.html';
+        });
     </script>
 </body>
 </html>
