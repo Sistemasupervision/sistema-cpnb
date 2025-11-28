@@ -9,7 +9,7 @@
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
     <!-- ✅ Evita el error 404 de favicon.ico -->
-    <link rel="icon" href="data:,">
+    <link rel="icon" href=",">
 </head>
 <body>
     <div class="vector-bg">
@@ -86,20 +86,28 @@
                 }
                 const user = data.user;
 
-                // Consultar el rol del usuario (RLS permite solo leer su propio rol)
-                const {  roleData, error } = await supabase
+                // ✅ Usa .select() en lugar de .single() para evitar errores falsos
+                const { data: roles, error } = await supabase
                     .from('usuarios_roles')
                     .select('rol')
-                    .eq('user_id', user.id)
-                    .single();
+                    .eq('user_id', user.id);
 
-                if (error || !roleData) {
-                    console.warn('El usuario no tiene un rol asignado o no existe en usuarios_roles.');
+                if (error) {
+                    console.error('Error al consultar usuarios_roles:', error);
                     adminBtn.style.display = 'none';
                     return;
                 }
 
-                if (roleData.rol === 'admin') {
+                if (!roles || roles.length === 0) {
+                    console.warn('⚠️ No se encontró rol para el usuario:', user.id);
+                    adminBtn.style.display = 'none';
+                    return;
+                }
+
+                // Tomar el primer rol (debería haber solo uno)
+                const userRole = roles[0].rol;
+
+                if (userRole === 'admin') {
                     adminBtn.style.display = 'block';
                     adminBtn.onclick = () => {
                         window.location.href = 'admin-usuarios.html';
@@ -108,7 +116,7 @@
                     adminBtn.style.display = 'none';
                 }
             } catch (err) {
-                console.error('Error al verificar el rol de administrador:', err);
+                console.error('Error inesperado al verificar rol:', err);
                 adminBtn.style.display = 'none';
             }
         }
@@ -169,6 +177,8 @@
                     document.getElementById('loginContainer').style.display = 'none';
                     document.getElementById('dashboardContainer').style.display = 'block';
                     document.getElementById('userNameDisplay').textContent = data.user.email;
+                    // 🔍 (Opcional) Verifica tu user.id en consola para depuración
+                    console.log("🔍 Usuario autenticado - ID:", data.user.id);
                     await verificarYMostrarBotonAdmin();
                 } else {
                     document.getElementById('loginContainer').style.display = 'block';
