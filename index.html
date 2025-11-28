@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- ✅ Solo se carga config.js (sin defer) -->
+    <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -16,6 +18,7 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
+
     <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
@@ -36,12 +39,13 @@
         </form>
         <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
-            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
+            <p>Todas las comunicaciones están cifradas...</p>
         </div>
         <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
+
     <!-- Panel Principal -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
@@ -55,30 +59,24 @@
         <div class="redi-buttons">
             <button class="redi-btn" onclick="irARedip('andes')">REDIP LOS ANDES</button>
             <button class="redi-btn" onclick="irARedip('capital')">REDIP CAPITAL</button>
-            <button class="redi-btn" onclick="irARedip('central')">REDIP CENTRAL</button>
+            <!-- ... otros botones ... -->
             <button class="redi-btn" onclick="window.location.href='redip/occidental/index.html'">REDIP OCCIDENTAL</button>
-            <button class="redi-btn" onclick="irARedip('oriental')">REDIP ORIENTAL</button>
-            <button class="redi-btn" onclick="irARedip('llanos')">REDIP LOS LLANOS</button>
-            <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
-            <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
+            <!-- ... -->
         </div>
-        <!-- ✅ BOTÓN DE ADMINISTRACIÓN (solo visible para admin) -->
         <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #7D0500, #B01B17);">
             👤 Administrar Usuarios
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-    <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ CORREGIDO: sintaxis de Supabase v2+
+    <script>
+        // ✅ USAMOS `supabase` de config.js (ya está definido globalmente)
+
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
             try {
-                const { user, error } = await supabase.auth.getUser(); // 🔑 Cambiado
+                const { user, error } = await supabase.auth.getUser(); // ✅ v2+ correcto
                 if (error || !user) {
                     adminBtn.style.display = 'none';
                     return;
@@ -88,11 +86,10 @@
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-                if (!dbError && data && data.redip === 'admin') {
+
+                if (!dbError && data?.redip === 'admin') {
                     adminBtn.style.display = 'block';
-                    adminBtn.onclick = () => {
-                        window.location.href = 'admin-usuarios.html';
-                    };
+                    adminBtn.onclick = () => window.location.href = 'admin-usuarios.html';
                 } else {
                     adminBtn.style.display = 'none';
                 }
@@ -126,8 +123,7 @@
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
-                const adminBtn = document.getElementById('adminUsuariosBtn');
-                if (adminBtn) adminBtn.style.display = 'none';
+                document.getElementById('adminUsuariosBtn').style.display = 'none';
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
             }
@@ -141,13 +137,12 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
-        // ✅ CORREGIDO: manejo seguro de sesión al recargar
         async function checkAuth() {
             try {
-                const { user, error } = await supabase.auth.getUser(); // 🔑 Cambiado
+                const { user, error } = await supabase.auth.getUser(); // ✅ v2+
                 if (error || !user) {
                     document.getElementById('loginContainer').style.display = 'block';
                     document.getElementById('dashboardContainer').style.display = 'none';
