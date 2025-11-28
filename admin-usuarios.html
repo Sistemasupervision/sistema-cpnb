@@ -165,47 +165,69 @@ if (!roles || roles.rol !== 'admin') {
             return true;
         }
 
-        async function cargarUsuarios() {
-            const contenedor = document.getElementById('usuariosContenedor');
-            try {
-                const {  roles } = await supabase.from('usuarios_roles').select('*');
-                const {  redips } = await supabase.from('usuarios_redip').select('*');
+      async function cargarUsuarios() {
+    const contenedor = document.getElementById('usuariosContenedor');
+    try {
+        const { data: roles, error: errorRoles } = await supabase.from('usuarios_roles').select('*');
+        const { data: redips, error: errorRedips } = await supabase.from('usuarios_redip').select('*');
 
-                const usuariosMap = {};
-                roles.forEach(r => {
-                    if (r.rol === 'admin') {
-                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: 'admin' };
+        if (errorRoles || errorRedips) {
+            throw new Error('Error al consultar roles o REDIPs');
+        }
+
+        const usuariosMap = {};
+        roles.forEach(r => {
+            if (r.rol === 'admin') {
+                usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: 'admin' };
+            }
+        });
+        redips.forEach(r => {
+            if (!usuariosMap[r.user_id]) {
+                usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: r.redip };
+            }
+        });
+
+        // Obtener correos reales de auth.users (opcional, mejora UX)
+        const userIds = Object.keys(usuariosMap);
+        if (userIds.length > 0) {
+            const { data: authUsers, error: authError } = await supabase
+                .from('auth.users')
+                .select('id, email')
+                .in('id', userIds);
+
+            if (!authError && authUsers) {
+                authUsers.forEach(u => {
+                    if (usuariosMap[u.id]) {
+                        usuariosMap[u.id].email = u.email;
                     }
                 });
-                redips.forEach(r => {
-                    if (!usuariosMap[r.user_id]) {
-                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: r.redip };
-                    }
-                });
-
-                let html = '';
-                Object.values(usuariosMap).forEach(u => {
-                    const redipLabel = u.redip === 'admin' 
-                        ? 'ADMINISTRADOR' 
-                        : `REDIP ${u.redip.toUpperCase()}`;
-                    html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.email}</div>
-                                <div class="usuario-redip">${redipLabel}</div>
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
-            } catch (error) {
-                contenedor.innerHTML = `<div style="color:#e53e3e; padding:15px;">❌ Error al cargar usuarios.</div>`;
             }
         }
+
+        let html = '';
+        Object.values(usuariosMap).forEach(u => {
+            const redipLabel = u.redip === 'admin' 
+                ? 'ADMINISTRADOR' 
+                : `REDIP ${u.redip.toUpperCase()}`;
+            html += `
+                <div class="usuario-item">
+                    <div class="usuario-info">
+                        <div class="usuario-email">${u.email}</div>
+                        <div class="usuario-redip">${redipLabel}</div>
+                    </div>
+                    <div class="acciones">
+                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email.replace(/'/g, "\\'")}', '${u.redip}')">✏️</button>
+                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email.replace(/'/g, "\\'")}')">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
+    } catch (error) {
+        console.error('Error en cargarUsuarios:', error);
+        contenedor.innerHTML = `<div style="color:#e53e3e; padding:15px;">❌ Error al cargar usuarios.</div>`;
+    }
+}
 
         // === API (asumen Edge Functions) ===
         async function crearUsuario(email, password, redip) {
