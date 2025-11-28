@@ -6,7 +6,7 @@
     <title>Sistema de Supervisión y Control</title>
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- Configuración centralizada (incluye supabase client) -->
+    <!-- Configuración centralizada (credenciales + cliente) -->
     <script src="assets/js/config.js" defer></script>
     <!-- Estilos globales -->
     <link rel="stylesheet" href="assets/css/styles.css">
@@ -76,28 +76,26 @@
     </div>
 
     <script>
-        // Función para verificar rol de administrador y mostrar/ocultar botón
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
 
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
+                const {  { session } } = await supabase.auth.getSession();
+                if (!session) {
                     adminBtn.style.display = 'none';
                     return;
                 }
-                const { data, error } = await supabase
+                const user = session.user;
+                const {  data, error  } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
 
-                if (!error && data?.redip === 'admin') {
+                if (!error && data && data.redip === 'admin') {
                     adminBtn.style.display = 'block';
-                    adminBtn.onclick = () => {
-                        window.location.href = 'admin-usuarios.html';
-                    };
+                    adminBtn.onclick = () => window.location.href = 'admin-usuarios.html';
                 } else {
                     adminBtn.style.display = 'none';
                 }
@@ -111,11 +109,9 @@
             e.preventDefault();
             const email = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
@@ -130,7 +126,6 @@
             try {
                 const { error } = await supabase.auth.signOut();
                 if (error) throw error;
-
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
@@ -148,28 +143,27 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Verificar sesión existente
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('loginContainer').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                document.getElementById('userNameDisplay').textContent = user.email;
-                await verificarYMostrarBotonAdmin();
+        async function checkAuth() {
+            try {
+                const {  { session } } = await supabase.auth.getSession();
+                if (session) {
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('dashboardContainer').style.display = 'block';
+                    document.getElementById('userNameDisplay').textContent = session.user.email;
+                    await verificarYMostrarBotonAdmin();
+                }
+            } catch (err) {
+                console.error('Error en checkAuth:', err);
             }
-            // Añade esto justo después de inicializar supabase, en tu script
-document.addEventListener('DOMContentLoaded', async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('Usuario actual:', user); // 👈 Mira en la consola si hay un objeto 'user' con un ID válido
-});
+        }
 
-            // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            checkAuth();
         });
     </script>
 </body>
