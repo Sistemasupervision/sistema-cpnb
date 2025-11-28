@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="assets/js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+    <script src="assets/js/config.js" defer></script>
     <link rel="stylesheet" href="assets/css/styles.css">
     <style>
-        .admin-container { max-width: 600px; }
+        .admin-container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn {
             padding: 12px;
@@ -125,33 +125,27 @@
             <a href="index.html" class="back-btn">← Volver al inicio</a>
         </div>
     </div>
-
-    <script>
+    <script defer>
         let modoEdicion = false;
 
-        // ✅ Verificación de rol admin
         async function Admin() {
             const { data } = await supabase.auth.getUser();
-            const user = data?.user;
-            if (!user) {
+            if (!data?.user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
                 return false;
             }
-
-            const {  roles, error } = await supabase
+            const { data: roles, error } = await supabase
                 .from('usuarios_roles')
                 .select('rol')
-                .eq('user_id', user.id);
-
+                .eq('user_id', data.user.id);
             if (error) {
-                console.error('Error al consultar usuarios_roles:', error);
+                console.error('Error al verificar rol:', error);
                 alert('Error al verificar permisos.');
                 window.location.href = 'index.html';
                 return false;
             }
-
-            const esAdmin = Array.isArray(roles) && roles.some(r => r.rol === 'admin');
+            const esAdmin = roles.some(r => r.rol === 'admin');
             if (!esAdmin) {
                 alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                 window.location.href = 'index.html';
@@ -160,15 +154,13 @@
             return true;
         }
 
-        // ✅ Cargar usuarios desde usuarios_emails
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             contenedor.innerHTML = '<div class="loading">Cargando...</div>';
             try {
-                const {  emails, error: e1 } = await supabase.from('usuarios_emails').select('user_id, email');
-                const {  roles, error: e2 } = await supabase.from('usuarios_roles').select('*');
-                const {  redips, error: e3 } = await supabase.from('usuarios_redip').select('*');
-                if (e1 || e2 || e3) throw new Error('Error en consultas');
+                const { data: emails } = await supabase.from('usuarios_emails').select('user_id, email');
+                const { data: roles } = await supabase.from('usuarios_roles').select('*');
+                const { data: redips } = await supabase.from('usuarios_redip').select('*');
 
                 const emailMap = {};
                 emails.forEach(e => { emailMap[e.user_id] = e.email; });
@@ -180,8 +172,8 @@
                     usuariosMap[r.user_id] = { user_id: r.user_id, email, redip };
                 });
                 redips.forEach(r => {
-                    const email = emailMap[r.user_id] || 'Email no disponible';
                     if (!usuariosMap[r.user_id]) {
+                        const email = emailMap[r.user_id] || 'Email no disponible';
                         usuariosMap[r.user_id] = { user_id: r.user_id, email, redip: r.redip };
                     }
                 });
@@ -191,16 +183,15 @@
                     const redipLabel = u.redip === 'admin' 
                         ? 'ADMINISTRADOR' 
                         : `REDIP ${u.redip.toUpperCase()}`;
-                    const emailEscaped = (u.email || '').replace(/'/g, "\\'");
                     html += `
                         <div class="usuario-item">
-                            <div class="usuario-info">
+                            <div>
                                 <div class="usuario-email">${u.email}</div>
                                 <div class="usuario-redip">${redipLabel}</div>
                             </div>
                             <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${emailEscaped}')">🗑️</button>
+                                <button class="btn-edit" onclick="alert('Edición no implementada aún')">✏️</button>
+                                <button class="btn-delete" onclick="alert('Eliminación no implementada aún')">🗑️</button>
                             </div>
                         </div>
                     `;
@@ -208,35 +199,28 @@
                 contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
             } catch (err) {
                 console.error('Error en cargarUsuarios:', err);
-                contenedor.innerHTML = `<div style="color:#e53e3e; text-align:center; padding:15px;">❌ Error: ${err.message}</div>`;
+                contenedor.innerHTML = `<div style="color:#e53e3e; text-align:center;">❌ Error al cargar usuarios</div>`;
             }
         }
 
-        // ✅ Función para crear usuario (usa supabaseUrl desde config.js)
         async function crearUsuario(email, password, redip) {
             const { data } = await supabase.auth.getSession();
-            const session = data?.session;
-            if (!session) throw new Error('Sesión no encontrada');
-
-            // ✅ Aquí usamos supabaseUrl (definida en config.js)
-            const url = `${supabaseUrl}/functions/v1/crear-usuario`;
-            const res = await fetch(url, {
+            if (!data?.session) throw new Error('Sesión no válida');
+            const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
+                    'Authorization': `Bearer ${data.session.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ email, password, redip })
             });
-
             if (!res.ok) {
                 const error = await res.json().catch(() => ({}));
-                throw new Error(error.error || 'Error al crear usuario');
+                throw new Error(error.error || 'Error en la función de creación');
             }
             return await res.json();
         }
 
-        // === UI ===
         function mostrarSeccion(seccion) {
             document.querySelectorAll('.list-section, .form-section').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -250,23 +234,22 @@
                 resetForm();
             }
         }
+
         function resetForm() {
             document.getElementById('userForm').reset();
-            document.getElementById('userId').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
             document.querySelector('button[type="submit"]').textContent = 'Crear Usuario';
             modoEdicion = false;
-            document.getElementById('email').disabled = false;
         }
-        function editarUsuario(userId, redip) {
-            alert('La edición de usuarios aún no está implementada.');
-            // Implementar en futuro
-        }
-        async function eliminarUsuario(userId, email) {
-            if (!confirm(`¿Eliminar al usuario ${email}?`)) return;
-            alert('La eliminación aún no está implementada.');
-            // Implementar en futuro
-        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const esAdmin = await Admin();
+            if (esAdmin) {
+                document.getElementById('contenidoAdmin').style.display = 'block';
+                cargarUsuarios();
+            }
+        });
+
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -287,14 +270,6 @@
                 msg.style.background = '#fed7d7';
                 msg.style.color = '#9b2c2c';
                 msg.textContent = '❌ ' + err.message;
-            }
-        });
-
-        // ✅ Iniciar verificación
-        Admin().then(esAdmin => {
-            if (esAdmin) {
-                document.getElementById('contenidoAdmin').style.display = 'block';
-                cargarUsuarios();
             }
         });
     </script>
