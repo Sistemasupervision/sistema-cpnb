@@ -163,28 +163,35 @@
             return true;
         }
 
-      async function cargarUsuarios() {
+    async function cargarUsuarios() {
     const contenedor = document.getElementById('usuariosContenedor');
     contenedor.innerHTML = '<div class="loading">Cargando usuarios...</div>';
 
     try {
         // 1. Cargar emails desde la tabla usuarios_emails
-        const {  emails, error: errorEmails } = await supabase
+        const { data: emails, error: errorEmails } = await supabase
             .from('usuarios_emails')
             .select('user_id, email');
 
-        if (errorEmails) throw errorEmails;
+        if (errorEmails) {
+            throw new Error(`Error al consultar usuarios_emails: ${errorEmails.message}`);
+        }
+
+        // Verificar que emails sea un array válido
+        if (!Array.isArray(emails)) {
+            throw new Error('Los datos de usuarios_emails no son un arreglo.');
+        }
 
         // 2. Cargar roles y REDIPs
-        const {  roles, error: errorRoles } = await supabase
+        const { data: roles, error: errorRoles } = await supabase
             .from('usuarios_roles')
             .select('*');
-        if (errorRoles) throw errorRoles;
+        if (errorRoles) throw new Error(`Error al consultar usuarios_roles: ${errorRoles.message}`);
 
-        const {  redips, error: errorRedips } = await supabase
+        const { data: redips, error: errorRedips } = await supabase
             .from('usuarios_redip')
             .select('*');
-        if (errorRedips) throw errorRedips;
+        if (errorRedips) throw new Error(`Error al consultar usuarios_redip: ${errorRedips.message}`);
 
         // 3. Crear mapa de emails por user_id
         const emailMap = {};
@@ -202,13 +209,12 @@
             usuariosMap[r.user_id] = { user_id: r.user_id, email, redip };
         });
 
-        // Procesar REDIPs (puede sobrescribir el rol si hay conflicto, pero no debería)
+        // Procesar REDIPs
         redips.forEach(r => {
             const email = emailMap[r.user_id] || 'Email no disponible';
             if (!usuariosMap[r.user_id]) {
                 usuariosMap[r.user_id] = { user_id: r.user_id, email, redip: r.redip };
             } else {
-                // Si ya existe (ej. es admin), no sobrescribimos el redip si es 'admin'
                 if (usuariosMap[r.user_id].redip !== 'admin') {
                     usuariosMap[r.user_id].redip = r.redip;
                 }
@@ -221,10 +227,7 @@
             const redipLabel = u.redip === 'admin' 
                 ? 'ADMINISTRADOR' 
                 : `REDIP ${u.redip.toUpperCase()}`;
-
-            // Escapar comillas simples para evitar errores en onclick
             const emailEscaped = (u.email || '').replace(/'/g, "\\'");
-
             html += `
                 <div class="usuario-item">
                     <div class="usuario-info">
@@ -242,7 +245,7 @@
         contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
     } catch (error) {
         console.error('Error al cargar usuarios:', error);
-        contenedor.innerHTML = `<div style="color:#e53e3e; text-align:center; padding:15px;">❌ Error al cargar la lista de usuarios.</div>`;
+        contenedor.innerHTML = `<div style="color:#e53e3e; text-align:center; padding:15px;">❌ Error al cargar la lista de usuarios: ${error.message}</div>`;
     }
 }
         // === API (asumen Edge Functions) ===
