@@ -8,9 +8,92 @@
     <!-- ✅ Tus recursos -->
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
+    <style>
+        /* Estilos adicionales solo para este panel */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 12px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1;
+            font-size: 14px;
+        }
+        .tab-btn.active {
+            background: #3182ce;
+            color: white;
+        }
+        .usuarios-lista {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px;
+            margin-top: 10px;
+            background: #f8fafc;
+        }
+        .usuario-item {
+            padding: 12px;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .usuario-item:last-child {
+            border-bottom: none;
+        }
+        .usuario-email {
+            font-weight: bold;
+            color: #0c2440;
+        }
+        .usuario-redip {
+            font-size: 13px;
+            color: #4a5568;
+        }
+        .acciones {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-edit, .btn-delete {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-edit {
+            background: #3182ce;
+            color: white;
+        }
+        .btn-delete {
+            background: #e53e3e;
+            color: white;
+        }
+        .mensaje {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .exito { background: #c6f6d5; color: #22543d; }
+        .error { background: #fed7d7; color: #9b2c2c; }
+        @media (max-width: 768px) {
+            .acciones { flex-direction: column; }
+            .tab-btn { font-size: 12px; padding: 10px; }
+        }
+    </style>
 </head>
 <body>
-    <!-- ✅ Fondo vectorial de tu estilos.txt -->
+    <!-- ✅ Fondo vectorial de tu sistema -->
     <div class="vector-bg">
         <div class="vector-circle"></div>
         <div class="vector-circle"></div>
@@ -20,32 +103,28 @@
         <div class="vector-line"></div>
     </div>
 
-    <!-- ✅ Contenedor con tu estilo, pero ancho mayor para el admin -->
-    <div class="container" style="max-width: 600px; padding: 40px;">
+    <!-- ✅ Contenedor con tu estilo -->
+    <div class="container" style="max-width: 600px;">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Administrar Usuarios</h1>
         </div>
 
-        <!-- ✅ Pestañas con botones -->
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <button class="action-btn" style="flex:1; padding:12px; font-size:16px;" onclick="mostrarSeccion('listado')">
-                👥 Listado de Usuarios
-            </button>
-            <button class="action-btn" style="flex:1; padding:12px; font-size:16px;" onclick="mostrarSeccion('formulario')">
-                ➕ Crear Nuevo Usuario
-            </button>
+        <!-- ✅ Pestañas -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
+            <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
 
         <!-- ✅ Listado -->
-        <div id="listadoUsuarios" style="display: block; margin-top: 20px;">
-            <div id="usuariosContenedor" style="padding:15px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; min-height:100px;">
+        <div id="listadoUsuarios" class="list-section">
+            <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
 
         <!-- ✅ Formulario -->
-        <div id="formularioUsuario" style="display: none; margin-top: 20px;">
+        <div id="formularioUsuario" class="form-section" style="display: none; margin-top: 20px;">
             <form id="userForm">
                 <input type="hidden" id="userId">
                 <div class="input-group">
@@ -71,47 +150,43 @@
                         <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
                     </select>
                 </div>
-                <button type="submit" class="action-btn" style="margin-top:15px;">Crear Usuario</button>
+                <button type="submit" class="action-btn">Crear Usuario</button>
             </form>
-            <div id="mensaje" class="mensaje" style="display:none; margin-top:15px; padding:10px; border-radius:8px; text-align:center; font-weight:bold;"></div>
+            <div id="mensaje" class="mensaje"></div>
         </div>
 
-        <!-- ✅ Botón "Volver al inicio" con tu estilo -->
-        <button class="action-btn back-btn" onclick="window.location.href='index.html'">
-            ← Volver al inicio
-        </button>
+        <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
 
     <script>
         let modoEdicion = false;
 
-      async function verificarAdmin() {
-    // ✅ Obtener usuario autenticado (sintaxis segura)
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
+        // ✅ VERIFICACIÓN CORREGIDA: usa usuarios_roles
+        async function verificarAdmin() {
+            const { data } = await supabase.auth.getUser();
+            const user = data?.user;
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
 
-    if (!user) {
-        alert('Debe iniciar sesión.');
-        window.location.href = 'index.html';
-        return false;
-    }
+            // ✅ Busca en 'usuarios_roles', no en 'usuarios_redip'
+            const {  roles } = await supabase
+                .from('usuarios_roles')
+                .select('rol')
+                .eq('user_id', user.id)
+                .single();
 
-    // ✅ Verificar en la tabla correcta: usuarios_roles
-    const {  roles } = await supabase
-        .from('usuarios_roles')
-        .select('rol')
-        .eq('user_id', user.id)
-        .single();
+            if (!roles || roles.rol !== 'admin') {
+                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
 
-    if (!roles || roles.rol !== 'admin') {
-        alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-        window.location.href = 'index.html';
-        return false;
-    }
-
-    return true;
-}
-        // ✅ Cargar usuarios (simulado con tablas actuales)
+        // ✅ Cargar usuarios desde tus tablas
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
@@ -136,35 +211,31 @@
                         ? 'ADMINISTRADOR' 
                         : `REDIP ${u.redip.toUpperCase()}`;
                     html += `
-                        <div style="padding:12px; border-bottom:1px solid #edf2f7; display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <div style="font-weight:bold; color:#0c2440;">${u.email}</div>
-                                <div style="font-size:13px; color:#4a5568;">${redipLabel}</div>
+                        <div class="usuario-item">
+                            <div class="usuario-info">
+                                <div class="usuario-email">${u.email}</div>
+                                <div class="usuario-redip">${redipLabel}</div>
                             </div>
-                            <div>
-                                <button class="action-btn" style="padding:6px 12px; font-size:12px; margin:2px;" onclick="editarUsuario('${u.user_id}', '${u.email}', '${u.redip}')">✏️</button>
-                                <button class="action-btn" style="padding:6px 12px; font-size:12px; margin:2px; background:linear-gradient(135deg, #e53e3e, #c53030);" onclick="eliminarUsuario('${u.user_id}', '${u.email}')">🗑️</button>
+                            <div class="acciones">
+                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email}', '${u.redip}')">✏️</button>
+                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email}')">🗑️</button>
                             </div>
                         </div>
                     `;
                 });
-                contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
+                contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
             } catch (error) {
-                console.error('Error:', error);
-                contenedor.innerHTML = `<div style="color:#e53e3e; padding:15px;">❌ Error al cargar usuarios.</div>`;
+                contenedor.innerHTML = `<div class="error" style="padding:15px; color:#e53e3e;">❌ Error al cargar usuarios.</div>`;
             }
         }
 
-        // ✅ FUNCIONES DE API (Edge Functions) - con sintaxis segura
+        // ✅ API (asumen Edge Functions)
         async function crearUsuario(email, password, redip) {
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -176,10 +247,7 @@
             const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -191,22 +259,27 @@
             const session = data?.session;
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId })
             });
             if (!res.ok) throw new Error(await res.text());
             return await res.json();
         }
 
-        // ✅ CONTROL DE PANTALLAS
+        // ✅ UI
         function mostrarSeccion(seccion) {
-            document.getElementById('listadoUsuarios').style.display = seccion === 'listado' ? 'block' : 'none';
-            document.getElementById('formularioUsuario').style.display = seccion === 'formulario' ? 'block' : 'none';
-            if (seccion === 'listado') cargarUsuarios();
-            else resetForm();
+            document.querySelectorAll('.list-section, .form-section').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (seccion === 'listado') {
+                document.getElementById('listadoUsuarios').style.display = 'block';
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                cargarUsuarios();
+            } else {
+                document.getElementById('formularioUsuario').style.display = 'block';
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                resetForm();
+            }
         }
 
         function resetForm() {
@@ -251,27 +324,23 @@
             try {
                 if (modoEdicion) {
                     await modificarUsuario(userId, redip);
-                    msgDiv.textContent = '✅ Usuario actualizado.';
-                    msgDiv.style.background = '#c6f6d5';
-                    msgDiv.style.color = '#22543d';
+                    msgDiv.className = 'mensaje exito';
+                    msgDiv.style.display = 'block';
                 } else {
                     if (!password) throw new Error('Contraseña obligatoria.');
                     await crearUsuario(email, password, redip);
-                    msgDiv.textContent = '✅ Usuario creado.';
-                    msgDiv.style.background = '#c6f6d5';
-                    msgDiv.style.color = '#22543d';
+                    msgDiv.className = 'mensaje exito';
+                    msgDiv.style.display = 'block';
                 }
-                msgDiv.style.display = 'block';
                 setTimeout(() => mostrarSeccion('listado'), 1500);
             } catch (err) {
-                msgDiv.textContent = '❌ Error: ' + (err.message || 'Falló la operación.');
-                msgDiv.style.background = '#fed7d7';
-                msgDiv.style.color = '#9b2c2c';
+                msgDiv.className = 'mensaje error';
+                msgDiv.textContent = '❌ Error: ' + (err.message || '');
                 msgDiv.style.display = 'block';
             }
         });
 
-        // ✅ INICIAR
+        // ✅ Iniciar
         verificarAdmin().then(permitido => permitido && cargarUsuarios());
     </script>
 </body>
