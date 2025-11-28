@@ -8,6 +8,8 @@
     <!-- ✅ Credenciales centralizadas en config.js -->
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
+    <!-- ✅ Evita el error 404 de favicon.ico -->
+    <link rel="icon" href="data:,">
 </head>
 <body>
     <div class="vector-bg">
@@ -71,41 +73,47 @@
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <script>
-     async function verificarYMostrarBotonAdmin() {
-    const adminBtn = document.getElementById('adminUsuariosBtn');
-    if (!adminBtn) return;
+        // ✅ VERIFICAR SI EL USUARIO ES ADMIN USANDO LA TABLA usuarios_roles
+        async function verificarYMostrarBotonAdmin() {
+            const adminBtn = document.getElementById('adminUsuariosBtn');
+            if (!adminBtn) return;
 
-    try {
-        const {  { user } } = await supabase.auth.getUser();
-        if (!user) {
-            adminBtn.style.display = 'none';
-            return;
-        }
-        const { data: roleData, error } = await supabase
-            .from('usuarios_roles')
-            .select('rol')
-            .eq('user_id', user.id)
-            .single();
+            try {
+                const { data } = await supabase.auth.getUser();
+                if (!data || !data.user) {
+                    adminBtn.style.display = 'none';
+                    return;
+                }
+                const user = data.user;
 
-        if (error) {
-            console.warn('Usuario no tiene rol asignado o error:', error.message);
-            adminBtn.style.display = 'none';
-            return;
+                // Consultar el rol del usuario (RLS permite solo leer su propio rol)
+                const {  roleData, error } = await supabase
+                    .from('usuarios_roles')
+                    .select('rol')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error || !roleData) {
+                    console.warn('El usuario no tiene un rol asignado o no existe en usuarios_roles.');
+                    adminBtn.style.display = 'none';
+                    return;
+                }
+
+                if (roleData.rol === 'admin') {
+                    adminBtn.style.display = 'block';
+                    adminBtn.onclick = () => {
+                        window.location.href = 'admin-usuarios.html';
+                    };
+                } else {
+                    adminBtn.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Error al verificar el rol de administrador:', err);
+                adminBtn.style.display = 'none';
+            }
         }
 
-        if (roleData.rol === 'admin') {
-            adminBtn.style.display = 'block';
-            adminBtn.onclick = () => {
-                window.location.href = 'admin-usuarios.html';
-            };
-        } else {
-            adminBtn.style.display = 'none';
-        }
-    } catch (err) {
-        console.error('Error al verificar rol:', err);
-        adminBtn.style.display = 'none';
-    }
-}
+        // ✅ MANEJAR INICIO DE SESIÓN
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -113,6 +121,7 @@
             try {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
+
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
@@ -123,10 +132,12 @@
             }
         }
 
+        // ✅ MANEJAR CIERRE DE SESIÓN
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
                 if (error) throw error;
+
                 document.getElementById('dashboardContainer').style.display = 'none';
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('loginForm').reset();
@@ -137,10 +148,12 @@
             }
         }
 
+        // ✅ REDIRIGIR A REDIPS (temporal)
         function irARedip(nombreRedip) {
             alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
         }
 
+        // ✅ MOSTRAR MENSAJE DE ERROR
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
@@ -148,7 +161,7 @@
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
 
-        // ✅ CORREGIDO: verifica sesión al cargar, con protección
+        // ✅ VERIFICAR SESIÓN AL CARGAR LA PÁGINA
         async function checkAuth() {
             try {
                 const { data } = await supabase.auth.getUser();
@@ -168,6 +181,7 @@
             }
         }
 
+        // ✅ EVENTOS
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         checkAuth();
