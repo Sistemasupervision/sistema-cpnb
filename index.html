@@ -161,6 +161,11 @@
                 document.getElementById('userNameDisplay').textContent = user.email;
                 await verificarYMostrarBotonAdmin();
             }
+            // Añade esto justo después de inicializar supabase, en tu script
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log('Usuario actual:', user); // 👈 Mira en la consola si hay un objeto 'user' con un ID válido
+});
 
             // Event listeners
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
