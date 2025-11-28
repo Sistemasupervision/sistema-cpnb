@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- ✅ Credenciales centralizadas en config.js -->
+    <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -69,17 +71,15 @@
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        // ✅ Usamos 'supabase' desde config.js (ya está definido globalmente)
+        // ✅ Mantenemos tu lógica original, pero con protección contra data = null
 
-        // ✅ CORREGIDO: manejo seguro de data = null
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
             try {
                 const { data } = await supabase.auth.getUser();
-                // ✅ Verifica que data y data.user existan
+                // ✅ Protección: verificar que data y data.user existan
                 if (!data || !data.user) {
                     adminBtn.style.display = 'none';
                     return;
@@ -146,18 +146,16 @@
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
 
-        // ✅ CORREGIDO: manejo seguro de sesión al recargar
+        // ✅ CORREGIDO: verifica sesión al cargar, con protección
         async function checkAuth() {
             try {
                 const { data } = await supabase.auth.getUser();
-                // ✅ Solo procede si hay data y user
                 if (data && data.user) {
                     document.getElementById('loginContainer').style.display = 'none';
                     document.getElementById('dashboardContainer').style.display = 'block';
                     document.getElementById('userNameDisplay').textContent = data.user.email;
                     await verificarYMostrarBotonAdmin();
                 } else {
-                    // No hay sesión activa
                     document.getElementById('loginContainer').style.display = 'block';
                     document.getElementById('dashboardContainer').style.display = 'none';
                 }
