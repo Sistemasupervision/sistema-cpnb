@@ -5,26 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Tus archivos centralizados -->
+    <!-- ✅ Tus recursos centralizados -->
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-    <div class="container">
-        <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-        <h1 class="title">Administrar Usuarios</h1>
-        <div class="tabs">
-            <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
-            <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
+    <!-- ✅ Fondo vectorial como en index.html -->
+    <div class="vector-bg">
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-circle"></div>
+        <div class="vector-line"></div>
+        <div class="vector-line"></div>
+    </div>
+
+    <div class="container" style="max-width: 900px; padding: 30px;">
+        <div class="logo-container">
+            <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+            <h1 class="title">Administrar Usuarios</h1>
         </div>
+
+        <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button class="action-btn" style="padding: 10px; font-size: 14px; flex: 1;" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
+            <button class="action-btn" style="padding: 10px; font-size: 14px; flex: 1;" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
+        </div>
+
         <!-- Listado de usuarios -->
-        <div id="listadoUsuarios" class="list-section active">
-            <div id="usuariosContenedor" class="usuarios-lista">
+        <div id="listadoUsuarios" class="list-section" style="display: block;">
+            <div id="usuariosContenedor" class="usuarios-lista" style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; margin-top: 10px;">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
+
         <!-- Formulario (crear/editar) -->
-        <div id="formularioUsuario" class="form-section">
+        <div id="formularioUsuario" class="form-section" style="display: none; margin-top: 20px;">
             <form id="userForm">
                 <input type="hidden" id="userId">
                 <div class="input-group">
@@ -37,7 +52,7 @@
                 </div>
                 <div class="input-group">
                     <label for="redip">Asignar REDIP</label>
-                    <select id="redip" required>
+                    <select id="redip" required style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; width: 100%; font-size: 16px;">
                         <option value="">-- Seleccione --</option>
                         <option value="admin">ADMINISTRADOR</option>
                         <option value="andes">REDIP LOS ANDES</option>
@@ -50,16 +65,18 @@
                         <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
                     </select>
                 </div>
-                <button type="submit" class="btn" id="submitBtn">Crear Usuario</button>
+                <button type="submit" class="action-btn">Crear Usuario</button>
             </form>
-            <div id="mensaje" class="mensaje" style="display: none;"></div>
+            <div id="mensaje" class="mensaje" style="display: none; margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold;"></div>
         </div>
-        <a href="index.html" class="back-btn">← Volver al inicio</a>
+
+        <a href="index.html" class="action-btn" style="margin-top: 20px;">← Volver al inicio</a>
     </div>
+
     <script>
         let modoEdicion = false;
 
-        // ✅ CORREGIDO: verificar admin usando usuarios_roles
+        // ✅ CORREGIDO: verificar usando usuarios_roles, no usuarios_redip
         async function verificarAdmin() {
             const {  { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -67,7 +84,6 @@
                 window.location.href = 'index.html';
                 return false;
             }
-            // ✅ Usar usuarios_roles, no usuarios_redip
             const {  roles } = await supabase
                 .from('usuarios_roles')
                 .select('rol')
@@ -82,76 +98,54 @@
             return true;
         }
 
-        // ✅ Cargar usuarios desde auth.users + join con roles/redips (simulado)
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                // Nota: auth.users no es accesible directamente desde el frontend.
-                // Por ahora, mostramos lo que hay en usuarios_redip y usuarios_roles.
                 const {  roles } = await supabase.from('usuarios_roles').select('*');
                 const {  redips } = await supabase.from('usuarios_redip').select('*');
 
-                // Agrupar por user_id
                 const usuariosMap = {};
-
-                // Agregar admins
                 roles.forEach(r => {
                     if (r.rol === 'admin') {
-                        usuariosMap[r.user_id] = {
-                            user_id: r.user_id,
-                            email: 'Cargando...',
-                            redip: 'admin'
-                        };
+                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: 'admin' };
                     }
                 });
-
-                // Agregar usuarios por REDIP
                 redips.forEach(r => {
                     if (!usuariosMap[r.user_id]) {
-                        usuariosMap[r.user_id] = {
-                            user_id: r.user_id,
-                            email: 'Cargando...',
-                            redip: r.redip
-                        };
+                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: r.redip };
                     }
                 });
 
-                // Obtener emails (requiere RPC o Edge Function en producción)
-                let usuarios = Object.values(usuariosMap);
                 let html = '';
-                usuarios.forEach(u => {
+                Object.values(usuariosMap).forEach(u => {
                     const redipLabel = u.redip === 'admin' 
                         ? 'ADMINISTRADOR' 
                         : `REDIP ${u.redip.toUpperCase()}`;
                     html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.email}</div>
-                                <div class="usuario-redip">${redipLabel}</div>
+                        <div style="padding: 12px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: bold; color: #0c2440;">${u.email}</div>
+                                <div style="font-size: 13px; color: #4a5568;">${redipLabel}</div>
                             </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email}')">🗑️</button>
+                            <div>
+                                <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 2px;" onclick="editarUsuario('${u.user_id}', '${u.email}', '${u.redip}')">✏️</button>
+                                <button class="action-btn" style="padding: 6px 12px; font-size: 12px; margin: 2px; background: linear-gradient(135deg, #e53e3e, #c53030);" onclick="eliminarUsuario('${u.user_id}', '${u.email}')">🗑️</button>
                             </div>
                         </div>
                     `;
                 });
                 contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
             } catch (error) {
-                console.error('Error:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">❌ Error al cargar usuarios.</div>`;
+                contenedor.innerHTML = `<div class="error" style="padding:15px; color: #e53e3e;">❌ Error al cargar usuarios.</div>`;
             }
         }
 
-        // Funciones de API (asumen Edge Functions)
+        // === FUNCIONES DE API (Edge Functions) ===
         async function crearUsuario(email, password, redip) {
             const {  { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -162,10 +156,7 @@
             const {  { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId, redip })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -176,36 +167,26 @@
             const {  { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId })
             });
             if (!res.ok) throw new Error(await res.text());
             return await res.json();
         }
 
-        // UI functions
+        // === UI ===
         function mostrarSeccion(seccion) {
-            document.querySelectorAll('.list-section, .form-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if (seccion === 'listado') {
-                document.getElementById('listadoUsuarios').classList.add('active');
-                document.querySelector('.tab-btn:first-child').classList.add('active');
-                cargarUsuarios();
-            } else {
-                document.getElementById('formularioUsuario').classList.add('active');
-                document.querySelector('.tab-btn:last-child').classList.add('active');
-                resetForm();
-            }
+            document.getElementById('listadoUsuarios').style.display = seccion === 'listado' ? 'block' : 'none';
+            document.getElementById('formularioUsuario').style.display = seccion === 'formulario' ? 'block' : 'none';
+            if (seccion === 'listado') cargarUsuarios();
+            else resetForm();
         }
 
         function resetForm() {
             document.getElementById('userForm').reset();
             document.getElementById('userId').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
-            document.getElementById('submitBtn').textContent = 'Crear Usuario';
+            document.querySelector('button[type="submit"]').textContent = 'Crear Usuario';
             modoEdicion = false;
             document.getElementById('email').disabled = false;
         }
@@ -216,13 +197,13 @@
             document.getElementById('email').disabled = true;
             document.getElementById('redip').value = redip;
             document.getElementById('passwordGroup').style.display = 'none';
-            document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
+            document.querySelector('button[type="submit"]').textContent = 'Actualizar Usuario';
             modoEdicion = true;
             mostrarSeccion('formulario');
         }
 
         async function eliminarUsuario(userId, email) {
-            if (!confirm(`¿Eliminar al usuario? Esta acción no se puede deshacer.`)) return;
+            if (!confirm(`¿Eliminar al usuario ${email}?`)) return;
             try {
                 await eliminarUsuarioApi(userId);
                 alert('✅ Usuario eliminado.');
@@ -243,32 +224,28 @@
             try {
                 if (modoEdicion) {
                     await modificarUsuario(userId, redip);
-                    msgDiv.className = 'mensaje exito';
                     msgDiv.textContent = '✅ Usuario actualizado.';
+                    msgDiv.style.background = '#c6f6d5';
+                    msgDiv.style.color = '#22543d';
                 } else {
                     if (!password) throw new Error('Contraseña obligatoria.');
                     await crearUsuario(email, password, redip);
-                    msgDiv.className = 'mensaje exito';
                     msgDiv.textContent = '✅ Usuario creado.';
+                    msgDiv.style.background = '#c6f6d5';
+                    msgDiv.style.color = '#22543d';
                 }
                 msgDiv.style.display = 'block';
-                setTimeout(() => {
-                    mostrarSeccion('listado');
-                    msgDiv.style.display = 'none';
-                }, 1500);
+                setTimeout(() => mostrarSeccion('listado'), 1500);
             } catch (err) {
-                msgDiv.className = 'mensaje error';
                 msgDiv.textContent = '❌ Error: ' + (err.message || 'Falló la operación.');
+                msgDiv.style.background = '#fed7d7';
+                msgDiv.style.color = '#9b2c2c';
                 msgDiv.style.display = 'block';
             }
         });
 
         // Iniciar
-        verificarAdmin().then(permitido => {
-            if (permitido) {
-                cargarUsuarios();
-            }
-        });
+        verificarAdmin().then(permitido => permitido && cargarUsuarios());
     </script>
 </body>
 </html>
