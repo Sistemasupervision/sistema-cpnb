@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Usa credenciales desde config.js -->
-    <script src="assets/js/config.js" defer></script>
+    <!-- ✅ SIN 'defer' → se ejecuta antes del script interno -->
+    <script src="assets/js/config.js"></script>
+    <!-- Estilos reutilizables -->
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -73,7 +75,7 @@
     </div>
 
     <script>
-        // ✅ Corrección clave: sintaxis correcta para Supabase v2+
+        // ✅ Supabase v2+ sintaxis correcta
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
@@ -144,7 +146,7 @@
             setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
-        // ✅ Corregido: manejo seguro de sesión al recargar
+        // ✅ Función clave: verifica sesión al cargar
         async function checkAuth() {
             try {
                 const { user, error } = await supabase.auth.getUser();
@@ -153,7 +155,6 @@
                     document.getElementById('dashboardContainer').style.display = 'none';
                     return;
                 }
-                // Usuario autenticado → mostrar panel
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = user.email;
@@ -166,11 +167,9 @@
         }
 
         // Eventos
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-            checkAuth(); // ✅ Se ejecuta al cargar → mantiene sesión
-        });
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        checkAuth(); // ✅ Se ejecuta inmediatamente
     </script>
 </body>
 </html>
