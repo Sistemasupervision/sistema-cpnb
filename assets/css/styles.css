@@ -1,4 +1,4 @@
-/* assets/css/styles.css — Estilos comunes (index.html) */
+/* ===== ESTILOS COMUNES (de index raiz.txt) ===== */
 * {
     margin: 0;
     padding: 0;
@@ -137,4 +137,160 @@ body {
 .security-info strong {
     display: block;
     margin-bottom: 5px;
+}
+
+/* ===== ESTILOS DE ADMIN-USUARIOS (de admin-usuarios.txt y estilos.txt) ===== */
+body.admin {
+    background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 20px;
+    overflow-y: auto;
+}
+.container.admin {
+    max-width: 900px;
+    position: relative;
+    padding: 30px;
+}
+.container.admin::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+}
+.title.admin {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 20px;
+}
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.tab-btn {
+    padding: 10px 20px;
+    background: #e2e8f0;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.tab-btn.active {
+    background: #3182ce;
+    color: white;
+}
+.form-section, .list-section {
+    display: none;
+}
+.form-section.active, .list-section.active {
+    display: block;
+}
+.input-group.admin {
+    margin-bottom: 18px;
+}
+.input-group.admin label {
+    display: block;
+    color: #2d3748;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 14px;
+}
+.input-group.admin input,
+.input-group.admin select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 15px;
+}
+.btn.admin {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #0c2440, #1a365d);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.btn.admin:hover {
+    opacity: 0.9;
+}
+.back-btn {
+    margin-top: 15px;
+    padding: 8px 16px;
+    background: #2c5282;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    width: auto;
+}
+.mensaje {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: bold;
+}
+.exito { background: #c6f6d5; color: #22543d; }
+.error { background: #fed7d7; color: #9b2c2c; }
+.usuarios-lista {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px;
+}
+.usuario-item {
+    padding: 12px;
+    border-bottom: 1px solid #edf2f7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.usuario-item:last-child {
+    border-bottom: none;
+}
+.usuario-info {
+    flex: 1;
+}
+.usuario-email {
+    font-weight: bold;
+    color: #0c2440;
+}
+.usuario-redip {
+    font-size: 13px;
+    color: #4a5568;
+}
+.acciones {
+    display: flex;
+    gap: 8px;
+}
+.btn-edit, .btn-delete {
+    padding: 6px 10px;
+    font-size: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-edit {
+    background: #3182ce;
+    color: white;
+}
+.btn-delete {
+    background: #e53e3e;
+    color: white;
+}
+@media (max-width: 768px) {
+    .container.admin { padding: 20px; }
+    .acciones { flex-direction: column; }
 }
