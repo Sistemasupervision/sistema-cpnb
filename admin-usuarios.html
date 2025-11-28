@@ -7,65 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
-    <style>
-        .admin-container { max-width: 600px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn {
-            padding: 12px;
-            background: #e2e8f0;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            flex: 1;
-            font-size: 14px;
-        }
-        .tab-btn.active {
-            background: #3182ce;
-            color: white;
-        }
-        .usuarios-lista {
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 10px;
-            margin-top: 10px;
-            background: #f8fafc;
-        }
-        .usuario-item {
-            padding: 12px;
-            border-bottom: 1px solid #edf2f7;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .usuario-item:last-child { border-bottom: none; }
-        .usuario-email { font-weight: bold; color: #0c2440; }
-        .usuario-redip { font-size: 13px; color: #4a5568; }
-        .acciones { display: flex; gap: 8px; }
-        .btn-edit, .btn-delete {
-            padding: 6px 12px;
-            font-size: 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-edit { background: #3182ce; color: white; }
-        .btn-delete { background: #e53e3e; color: white; }
-        .mensaje {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            display: none;
-        }
-        @media (max-width: 768px) {
-            .acciones { flex-direction: column; }
-        }
-    </style>
 </head>
 <body>
     <div class="vector-bg">
@@ -103,7 +44,7 @@
                 </div>
                 <div class="input-group">
                     <label for="redip">Asignar REDIP</label>
-                    <select id="redip" required style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                    <select id="redip" required>
                         <option value="">-- Seleccione --</option>
                         <option value="admin">ADMINISTRADOR</option>
                         <option value="andes">REDIP LOS ANDES</option>
@@ -123,52 +64,42 @@
         <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
     <script>
-   <script>
-    let modoEdicion = false;
+        let modoEdicion = false;
 
-    async function verificarAdmin() {
-        const { data } = await supabase.auth.getUser();
-        const user = data?.user;
-        if (!user) {
-            alert('Debe iniciar sesión.');
-            window.location.href = 'index.html';
-            return false;
+        // ✅ CORREGIDO: usa .maybeSingle() o .limit(1) para evitar fallos
+        async function verificarAdmin() {
+            const { data } = await supabase.auth.getUser();
+            const user = data?.user;
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
+
+            // ✅ Usamos limit(1) para evitar fallos si hay duplicados
+            const {  roles, error } = await supabase
+                .from('usuarios_roles')
+                .select('rol')
+                .eq('user_id', user.id)
+                .limit(1);
+
+            if (error || !roles || roles.length === 0 || roles[0].rol !== 'admin') {
+                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+                window.location.href = 'index.html';
+                return false;
+            }
+
+            return true;
         }
 
-        const {  rol, error } = await supabase
-            .from('usuarios_roles')
-            .select('rol')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        if (error) {
-            console.error('Error al verificar rol:', error);
-            alert('Acceso denegado. Error al consultar permisos.');
-            window.location.href = 'index.html';
-            return false;
-        }
-
-        if (!rol || rol.rol !== 'admin') {
-            alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-            window.location.href = 'index.html';
-            return false;
-        }
-
-        return true;
-    }
-
-    // ... resto del código sin cambios ...
-    verificarAdmin().then(permitido => permitido && cargarUsuarios());
-</script>
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                // ✅ Corregido: usar `{  roles }`, no `{ roles }`
-                const {  roles, error: errorRoles } = await supabase.from('usuarios_roles').select('*');
-                const {  redips, error: errorRedips } = await supabase.from('usuarios_redip').select('*');
+                const {  roles, error: errRoles } = await supabase.from('usuarios_roles').select('*');
+                const {  redips, error: errRedips } = await supabase.from('usuarios_redip').select('*');
 
-                if (errorRoles || errorRedips) {
-                    throw new Error('Error al consultar tablas de roles o REDIP');
+                if (errRoles || errRedips) {
+                    throw new Error('Error al consultar tablas');
                 }
 
                 const usuariosMap = {};
@@ -183,22 +114,21 @@
                     }
                 });
 
-                // ✅ Cargar correos reales desde auth.users
+                // ✅ Cargar correos reales (opcional, mejora UX)
                 const userIds = Object.keys(usuariosMap);
                 if (userIds.length > 0) {
-                    const {  authUsers, error: authError } = await supabase
+                    const {  authUsers, error: errAuth } = await supabase
                         .from('auth.users')
                         .select('id, email')
                         .in('id', userIds);
 
-                    if (!authError && authUsers) {
+                    if (!errAuth && authUsers) {
                         authUsers.forEach(u => {
                             if (usuariosMap[u.id]) {
                                 usuariosMap[u.id].email = u.email;
                             }
                         });
                     } else {
-                        // Si falla, usa un mensaje genérico (no rompe el UI)
                         Object.values(usuariosMap).forEach(u => {
                             u.email = 'Correo no disponible';
                         });
@@ -210,8 +140,7 @@
                     const redipLabel = u.redip === 'admin' 
                         ? 'ADMINISTRADOR' 
                         : `REDIP ${u.redip.toUpperCase()}`;
-                    // Escapar comillas simples para evitar errores en onclick
-                    const emailEscaped = u.email.replace(/'/g, "\\'");
+                    const emailEscaped = (u.email || '').replace(/'/g, "\\'");
                     html += `
                         <div class="usuario-item">
                             <div class="usuario-info">
@@ -358,6 +287,7 @@
             }
         });
 
+        // ✅ Iniciar verificación
         verificarAdmin().then(permitido => permitido && cargarUsuarios());
     </script>
 </body>
