@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- ✅ Usa credenciales desde config.js -->
     <script src="assets/js/config.js" defer></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -70,112 +71,106 @@
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-       <script>
-    const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-    // ✅ Corregido: manejo seguro de la respuesta de getUser()
-    async function verificarYMostrarBotonAdmin() {
-        const adminBtn = document.getElementById('adminUsuariosBtn');
-        if (!adminBtn) return;
+    <script>
+        // ✅ Corrección clave: sintaxis correcta para Supabase v2+
+        async function verificarYMostrarBotonAdmin() {
+            const adminBtn = document.getElementById('adminUsuariosBtn');
+            if (!adminBtn) return;
 
-        try {
-            const {  user, error } = await supabase.auth.getUser();
-            if (error || !user) {
+            try {
+                const { user, error } = await supabase.auth.getUser();
+                if (error || !user) {
+                    adminBtn.style.display = 'none';
+                    return;
+                }
+
+                const { data, error: dbError } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (!dbError && data?.redip === 'admin') {
+                    adminBtn.style.display = 'block';
+                    adminBtn.onclick = () => window.location.href = 'admin-usuarios.html';
+                } else {
+                    adminBtn.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Error al verificar rol de administrador:', err);
                 adminBtn.style.display = 'none';
-                return;
             }
+        }
 
-            const {  data, error: dbError } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-
-            if (!dbError && data?.redip === 'admin') {
-                adminBtn.style.display = 'block';
-                adminBtn.onclick = () => {
-                    window.location.href = 'admin-usuarios.html';
-                };
-            } else {
-                adminBtn.style.display = 'none';
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = email;
+                await verificarYMostrarBotonAdmin();
+            } catch (error) {
+                console.error('Error en login:', error);
+                showError('Credenciales incorrectas o usuario no existe');
             }
-        } catch (err) {
-            console.error('Error al verificar rol de administrador:', err);
-            adminBtn.style.display = 'none';
         }
-    }
 
-    async function handleLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = email;
-            await verificarYMostrarBotonAdmin();
-        } catch (error) {
-            console.error('Error en login:', error);
-            showError('Credenciales incorrectas o usuario no existe');
+        async function handleLogout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                document.getElementById('dashboardContainer').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
+                document.getElementById('loginForm').reset();
+                document.getElementById('adminUsuariosBtn').style.display = 'none';
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
         }
-    }
 
-    async function handleLogout() {
-        try {
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('loginContainer').style.display = 'block';
-            document.getElementById('loginForm').reset();
-            document.getElementById('adminUsuariosBtn').style.display = 'none';
-        } catch (error) {
-            console.error('Error al cerrar sesión:', error);
+        function irARedip(nombreRedip) {
+            alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
         }
-    }
 
-    function irARedip(nombreRedip) {
-        alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
-    }
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
 
-    function showError(message) {
-        const errorDiv = document.getElementById('errorMessage');
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-    }
-
-    // ✅ CORREGIDO: manejo seguro de sesión al recargar
-    async function checkAuth() {
-        try {
-            const {  user, error } = await supabase.auth.getUser();
-            if (error || !user) {
-                // No hay sesión → mostrar login
+        // ✅ Corregido: manejo seguro de sesión al recargar
+        async function checkAuth() {
+            try {
+                const { user, error } = await supabase.auth.getUser();
+                if (error || !user) {
+                    document.getElementById('loginContainer').style.display = 'block';
+                    document.getElementById('dashboardContainer').style.display = 'none';
+                    return;
+                }
+                // Usuario autenticado → mostrar panel
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                document.getElementById('userNameDisplay').textContent = user.email;
+                await verificarYMostrarBotonAdmin();
+            } catch (err) {
+                console.error('Error en checkAuth:', err);
                 document.getElementById('loginContainer').style.display = 'block';
                 document.getElementById('dashboardContainer').style.display = 'none';
-                return;
             }
-
-            // Hay sesión → mostrar panel
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'block';
-            document.getElementById('userNameDisplay').textContent = user.email;
-            await verificarYMostrarBotonAdmin();
-        } catch (err) {
-            console.error('Error en checkAuth:', err);
-            document.getElementById('loginContainer').style.display = 'block';
-            document.getElementById('dashboardContainer').style.display = 'none';
         }
-    }
 
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-    
-    // ✅ Ejecutar verificación de sesión al cargar
-    checkAuth();
-</script>
+        // Eventos
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            checkAuth(); // ✅ Se ejecuta al cargar → mantiene sesión
+        });
+    </script>
 </body>
 </html>
