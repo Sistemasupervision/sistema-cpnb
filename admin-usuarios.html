@@ -85,7 +85,7 @@
     <script>
         let modoEdicion = false;
 
-       async function verificarAdmin() {
+      async function verificarAdmin() {
     // ✅ Obtener usuario autenticado (sintaxis segura)
     const { data } = await supabase.auth.getUser();
     const user = data?.user;
@@ -111,7 +111,6 @@
 
     return true;
 }
-
         // ✅ Cargar usuarios (simulado con tablas actuales)
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
