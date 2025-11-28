@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-<script src="assets/js/config.js" defer></script>
+    <!-- 🔄 Supabase SDK y config.js con defer para garantizar orden de carga -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+    <script src="assets/js/config.js" defer></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -66,97 +67,74 @@
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
-    <script>
+    <script defer>
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
-
             try {
                 const { data } = await supabase.auth.getUser();
-                if (!data || !data.user) {
+                if (!data?.user) {
                     adminBtn.style.display = 'none';
                     return;
                 }
-                const user = data.user;
                 const { data: roles, error } = await supabase
                     .from('usuarios_roles')
                     .select('rol')
-                    .eq('user_id', user.id);
-
-                if (error) {
-                    console.error('Error al consultar usuarios_roles:', error);
-                    adminBtn.style.display = 'none';
-                    return;
-                }
-
-                if (!roles || roles.length === 0) {
-                    console.warn('⚠️ No se encontró rol para el usuario:', user.id);
-                    adminBtn.style.display = 'none';
-                    return;
-                }
-                const userRole = roles[0].rol;
-
-                if (userRole === 'admin') {
-                    adminBtn.style.display = 'block';
-                    adminBtn.onclick = () => {
-                        window.location.href = 'admin-usuarios.html';
-                    };
-                } else {
-                    adminBtn.style.display = 'none';
+                    .eq('user_id', data.user.id);
+                if (error) throw error;
+                const esAdmin = roles.some(r => r.rol === 'admin');
+                adminBtn.style.display = esAdmin ? 'block' : 'none';
+                if (esAdmin) {
+                    adminBtn.onclick = () => window.location.href = 'admin-usuarios.html';
                 }
             } catch (err) {
-                console.error('Error inesperado al verificar rol:', err);
+                console.error('Error al verificar rol de admin:', err);
                 adminBtn.style.display = 'none';
             }
         }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 document.getElementById('userNameDisplay').textContent = email;
                 await verificarYMostrarBotonAdmin();
             } catch (error) {
-                console.error('Error en login:', error);
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
 
-                document.getElementById('dashboardContainer').style.display = 'none';
-                document.getElementById('loginContainer').style.display = 'block';
-                document.getElementById('loginForm').reset();
-                const adminBtn = document.getElementById('adminUsuariosBtn');
-                if (adminBtn) adminBtn.style.display = 'none';
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-            }
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('loginForm').reset();
+            document.getElementById('adminUsuariosBtn').style.display = 'none';
         }
+
         function irARedip(nombreRedip) {
             alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
         }
+
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
+
         async function checkAuth() {
             try {
                 const { data } = await supabase.auth.getUser();
-                if (data && data.user) {
+                if (data?.user) {
                     document.getElementById('loginContainer').style.display = 'none';
                     document.getElementById('dashboardContainer').style.display = 'block';
                     document.getElementById('userNameDisplay').textContent = data.user.email;
-                    console.log("🔍 Usuario autenticado - ID:", data.user.id);
                     await verificarYMostrarBotonAdmin();
                 } else {
                     document.getElementById('loginContainer').style.display = 'block';
@@ -168,9 +146,13 @@
                 document.getElementById('dashboardContainer').style.display = 'none';
             }
         }
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        checkAuth();
+
+        // Iniciar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            checkAuth();
+        });
     </script>
 </body>
 </html>
