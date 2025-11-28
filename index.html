@@ -71,39 +71,38 @@
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <script>
-        // ✅ Usamos 'supabase' desde config.js (ya está definido globalmente)
-        // ✅ Mantenemos tu lógica original, pero con protección contra data = null
+       async function verificarYMostrarBotonAdmin() {
+    const adminBtn = document.getElementById('adminUsuariosBtn');
+    if (!adminBtn) return;
 
-        async function verificarYMostrarBotonAdmin() {
-            const adminBtn = document.getElementById('adminUsuariosBtn');
-            if (!adminBtn) return;
-            try {
-                const { data } = await supabase.auth.getUser();
-                // ✅ Protección: verificar que data y data.user existan
-                if (!data || !data.user) {
-                    adminBtn.style.display = 'none';
-                    return;
-                }
-                const user = data.user;
-                const { data: userData, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (!error && userData && userData.redip === 'admin') {
-                    adminBtn.style.display = 'block';
-                    adminBtn.onclick = () => {
-                        window.location.href = 'admin-usuarios.html';
-                    };
-                } else {
-                    adminBtn.style.display = 'none';
-                }
-            } catch (err) {
-                console.error('Error al verificar rol de administrador:', err);
-                adminBtn.style.display = 'none';
-            }
+    try {
+        // Obtener el usuario autenticado
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+            adminBtn.style.display = 'none';
+            return;
         }
 
+        // 🔑 Aquí defines quién es admin (por su UUID de Supabase)
+        const adminUserIds = [
+            'e93be70f-1d53-4497-bcd5-58624dbae511', // Tu ID de admin
+            // Puedes añadir más IDs aquí si necesitas más admins
+        ];
+
+        if (adminUserIds.includes(user.id)) {
+            adminBtn.style.display = 'block';
+            adminBtn.onclick = () => {
+                window.location.href = 'admin-usuarios.html';
+            };
+        } else {
+            adminBtn.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Error al verificar rol de administrador:', err);
+        adminBtn.style.display = 'none';
+    }
+}
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
