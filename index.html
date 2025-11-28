@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Credenciales centralizadas en config.js -->
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
-    <!-- ✅ Evita el error 404 de favicon.ico -->
     <link rel="icon" href=",">
 </head>
 <body>
@@ -20,7 +18,6 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-    <!-- Login Form -->
     <div id="loginContainer" class="container">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -46,7 +43,6 @@
             © OTIC-ZULIA. Todos los derechos reservados.
         </p>
     </div>
-    <!-- Panel Principal -->
     <div id="dashboardContainer" class="container">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -66,14 +62,12 @@
             <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
             <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
         </div>
-        <!-- ✅ BOTÓN DE ADMINISTRACIÓN (solo visible para admin) -->
         <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #7D0500, #B01B17);">
             👤 Administrar Usuarios
         </button>
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <script>
-        // ✅ VERIFICAR SI EL USUARIO ES ADMIN USANDO LA TABLA usuarios_roles
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
@@ -85,8 +79,6 @@
                     return;
                 }
                 const user = data.user;
-
-                // ✅ Usa .select() en lugar de .single() para evitar errores falsos
                 const { data: roles, error } = await supabase
                     .from('usuarios_roles')
                     .select('rol')
@@ -103,8 +95,6 @@
                     adminBtn.style.display = 'none';
                     return;
                 }
-
-                // Tomar el primer rol (debería haber solo uno)
                 const userRole = roles[0].rol;
 
                 if (userRole === 'admin') {
@@ -120,8 +110,6 @@
                 adminBtn.style.display = 'none';
             }
         }
-
-        // ✅ MANEJAR INICIO DE SESIÓN
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('username').value;
@@ -139,8 +127,6 @@
                 showError('Credenciales incorrectas o usuario no existe');
             }
         }
-
-        // ✅ MANEJAR CIERRE DE SESIÓN
         async function handleLogout() {
             try {
                 const { error } = await supabase.auth.signOut();
@@ -155,21 +141,15 @@
                 console.error('Error al cerrar sesión:', error);
             }
         }
-
-        // ✅ REDIRIGIR A REDIPS (temporal)
         function irARedip(nombreRedip) {
             alert(`Próximamente: ${nombreRedip.toUpperCase()}`);
         }
-
-        // ✅ MOSTRAR MENSAJE DE ERROR
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         }
-
-        // ✅ VERIFICAR SESIÓN AL CARGAR LA PÁGINA
         async function checkAuth() {
             try {
                 const { data } = await supabase.auth.getUser();
@@ -177,7 +157,6 @@
                     document.getElementById('loginContainer').style.display = 'none';
                     document.getElementById('dashboardContainer').style.display = 'block';
                     document.getElementById('userNameDisplay').textContent = data.user.email;
-                    // 🔍 (Opcional) Verifica tu user.id en consola para depuración
                     console.log("🔍 Usuario autenticado - ID:", data.user.id);
                     await verificarYMostrarBotonAdmin();
                 } else {
@@ -190,8 +169,6 @@
                 document.getElementById('dashboardContainer').style.display = 'none';
             }
         }
-
-        // ✅ EVENTOS
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         checkAuth();
