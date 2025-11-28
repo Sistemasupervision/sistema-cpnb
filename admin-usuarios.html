@@ -66,33 +66,35 @@
     <script>
         let modoEdicion = false;
 
-      async function verificarAdmin() {
+    async function verificarAdmin() {
     const { data } = await supabase.auth.getUser();
     const user = data?.user;
+    
     if (!user) {
         alert('Debe iniciar sesión.');
         window.location.href = 'index.html';
         return false;
     }
 
-    // ✅ Usamos select() normal + filtro manual (más seguro)
+    // ✅ Consulta segura: sin .single(), con manejo explícito
     const {  roles, error } = await supabase
         .from('usuarios_roles')
         .select('rol')
         .eq('user_id', user.id);
 
+    // Si hay error (ej: permisos RLS), muestralo
     if (error) {
-        console.error('Error al consultar rol:', error);
-        alert('Acceso denegado. Error interno al verificar permisos.');
+        console.error('Error RLS o consulta:', error);
+        alert('Error al verificar permisos. Contacte al administrador.');
         window.location.href = 'index.html';
         return false;
     }
 
-    // ✅ Verificamos si AL MENOS UN registro tiene rol 'admin'
-    const esAdmin = roles && roles.some(r => r.rol === 'admin');
+    // ✅ Verificar si hay AL MENOS UN registro con rol 'admin'
+    const tieneRolAdmin = Array.isArray(roles) && roles.some(r => r.rol === 'admin');
 
-    if (!esAdmin) {
-        alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+    if (!tieneRolAdmin) {
+        alert('Acceso denegido. Solo el administrador puede gestionar usuarios.');
         window.location.href = 'index.html';
         return false;
     }
