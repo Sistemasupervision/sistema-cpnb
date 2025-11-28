@@ -1,11 +1,10 @@
-/* assets/css/styles.css */
+/* assets/css/styles.css — Estilos comunes (index.html) */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: Arial, sans-serif;
 }
-
 body {
     background: #0c2440;
     min-height: 100vh;
@@ -15,7 +14,6 @@ body {
     padding: 20px;
     position: relative;
 }
-
 .vector-bg {
     position: absolute;
     top: 0;
@@ -25,26 +23,21 @@ body {
     overflow: hidden;
     z-index: -1;
 }
-
 .vector-circle {
     position: absolute;
     border-radius: 50%;
     background: rgba(255, 204, 0, 0.1);
 }
-
 .vector-circle:nth-child(1) { width: 300px; height: 300px; top: -100px; left: -100px; }
 .vector-circle:nth-child(2) { width: 200px; height: 200px; bottom: -50px; right: 10%; }
 .vector-circle:nth-child(3) { width: 150px; height: 150px; top: 20%; left: 30%; }
 .vector-circle:nth-child(4) { width: 250px; height: 250px; bottom: 10%; left: -80px; }
-
 .vector-line {
     position: absolute;
     background: rgba(255, 107, 0, 0.15);
 }
-
 .vector-line:nth-child(5) { width: 100%; height: 2px; top: 25%; transform: rotate(-5deg); }
 .vector-line:nth-child(6) { width: 100%; height: 2px; top: 75%; transform: rotate(7deg); }
-
 .container {
     background: white;
     border-radius: 20px;
@@ -54,32 +47,36 @@ body {
     padding: 30px;
     text-align: center;
 }
-
+.logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
 .logo-img {
     width: 80px;
     height: auto;
     margin-bottom: 15px;
 }
-
 .title {
     color: #0c2440;
     font-size: 20px;
     font-weight: bold;
     margin-bottom: 20px;
 }
-
+.dashboard-title {
+    font-size: 22px;
+}
 .input-group {
     margin-bottom: 15px;
     text-align: left;
 }
-
 .input-group label {
     display: block;
     color: #2d3748;
     margin-bottom: 5px;
     font-size: 14px;
 }
-
 .input-group input {
     width: 100%;
     padding: 10px;
@@ -87,7 +84,6 @@ body {
     border-radius: 8px;
     font-size: 15px;
 }
-
 .login-btn, .action-btn {
     width: 100%;
     padding: 12px;
@@ -100,11 +96,9 @@ body {
     cursor: pointer;
     margin-top: 10px;
 }
-
 .login-btn:hover, .action-btn:hover {
     opacity: 0.9;
 }
-
 .redi-btn {
     width: 100%;
     padding: 10px;
@@ -115,38 +109,31 @@ body {
     font-weight: bold;
     cursor: pointer;
 }
-
 .redi-btn:hover {
     background: #cbd5e0;
 }
-
 .user-info {
     margin: 20px 0;
 }
-
 .user-info h3 {
     color: #0c2440;
     margin-bottom: 8px;
 }
-
 .user-info p {
     color: #2d3748;
     font-weight: bold;
 }
-
 .error-message {
     color: #e53e3e;
     margin-top: 10px;
     font-size: 14px;
     display: none;
 }
-
 .security-info {
     margin-top: 25px;
     font-size: 12px;
     color: #4a5568;
 }
-
 .security-info strong {
     display: block;
     margin-bottom: 5px;
