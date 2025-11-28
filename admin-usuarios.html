@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Tus recursos centralizados -->
+    <!-- ✅ Tus archivos -->
     <script src="assets/js/config.js"></script>
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -20,26 +20,32 @@
         <div class="vector-line"></div>
     </div>
 
-    <div class="container" style="max-width: 900px; padding: 30px;">
+    <!-- ✅ Contenedor principal con diseño idéntico al de tu captura -->
+    <div class="container" style="max-width: 600px; padding: 40px;">
         <div class="logo-container">
             <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Administrar Usuarios</h1>
         </div>
 
-        <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <button class="action-btn" style="padding: 10px; font-size: 14px; flex: 1;" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
-            <button class="action-btn" style="padding: 10px; font-size: 14px; flex: 1;" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
+        <!-- ✅ Botones "Listado de Usuarios" y "Crear Nuevo Usuario" -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button class="action-btn" style="flex: 1; padding: 12px; font-size: 16px;" onclick="mostrarSeccion('listado')">
+                👥 Listado de Usuarios
+            </button>
+            <button class="action-btn" style="flex: 1; padding: 12px; font-size: 16px;" onclick="mostrarSeccion('formulario')">
+                ➕ Crear Nuevo Usuario
+            </button>
         </div>
 
-        <!-- Listado de usuarios -->
-        <div id="listadoUsuarios" class="list-section" style="display: block;">
-            <div id="usuariosContenedor" class="usuarios-lista" style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; margin-top: 10px;">
+        <!-- ✅ Sección de listado -->
+        <div id="listadoUsuarios" class="list-section" style="margin-top: 20px; display: block;">
+            <div id="usuariosContenedor" style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; min-height: 100px;">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
 
-        <!-- Formulario (crear/editar) -->
-        <div id="formularioUsuario" class="form-section" style="display: none; margin-top: 20px;">
+        <!-- ✅ Sección de formulario (oculta por defecto) -->
+        <div id="formularioUsuario" class="form-section" style="margin-top: 20px; display: none;">
             <form id="userForm">
                 <input type="hidden" id="userId">
                 <div class="input-group">
@@ -52,7 +58,7 @@
                 </div>
                 <div class="input-group">
                     <label for="redip">Asignar REDIP</label>
-                    <select id="redip" required style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; width: 100%; font-size: 16px;">
+                    <select id="redip" required style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px;">
                         <option value="">-- Seleccione --</option>
                         <option value="admin">ADMINISTRADOR</option>
                         <option value="andes">REDIP LOS ANDES</option>
@@ -65,18 +71,21 @@
                         <option value="maritima">REDIP MARÍTIMA E INSULAR</option>
                     </select>
                 </div>
-                <button type="submit" class="action-btn">Crear Usuario</button>
+                <button type="submit" class="action-btn" style="width: 100%; margin-top: 15px;">Crear Usuario</button>
             </form>
             <div id="mensaje" class="mensaje" style="display: none; margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold;"></div>
         </div>
 
-        <a href="index.html" class="action-btn" style="margin-top: 20px;">← Volver al inicio</a>
+        <!-- ✅ Botón "Volver al inicio" -->
+        <button class="action-btn" style="margin-top: 20px; width: auto; padding: 12px 20px;" onclick="window.location.href='index.html'">
+            ← Volver al inicio
+        </button>
     </div>
 
     <script>
         let modoEdicion = false;
 
-        // ✅ CORREGIDO: verificar usando usuarios_roles, no usuarios_redip
+        // ✅ CORREGIDO: verificar admin usando usuarios_roles
         async function verificarAdmin() {
             const {  { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -98,26 +107,54 @@
             return true;
         }
 
+        // ✅ Cargar usuarios desde Supabase
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                const {  roles } = await supabase.from('usuarios_roles').select('*');
-                const {  redips } = await supabase.from('usuarios_redip').select('*');
+                // Obtener todos los user_id de usuarios_roles y usuarios_redip
+                const {  roles } = await supabase.from('usuarios_roles').select('user_id, rol');
+                const {  redips } = await supabase.from('usuarios_redip').select('user_id, redip');
 
-                const usuariosMap = {};
+                // Crear mapa de user_id -> redip
+                const redipMap = {};
+                redips.forEach(r => {
+                    if (!redipMap[r.user_id]) redipMap[r.user_id] = r.redip;
+                });
+
+                // Obtener emails de auth.users (requiere una función RPC o Edge Function)
+                // Por ahora, mostramos lo que tenemos
+                let usuarios = [];
                 roles.forEach(r => {
                     if (r.rol === 'admin') {
-                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: 'admin' };
+                        usuarios.push({
+                            user_id: r.user_id,
+                            email: 'Cargando...',
+                            redip: 'admin'
+                        });
                     }
                 });
                 redips.forEach(r => {
-                    if (!usuariosMap[r.user_id]) {
-                        usuariosMap[r.user_id] = { user_id: r.user_id, email: 'Cargando...', redip: r.redip };
-                    }
+                    usuarios.push({
+                        user_id: r.user_id,
+                        email: 'Cargando...',
+                        redip: r.redip
+                    });
                 });
 
+                // Eliminar duplicados
+                const unique = {};
+                usuarios.forEach(u => {
+                    if (!unique[u.user_id]) unique[u.user_id] = u;
+                });
+                usuarios = Object.values(unique);
+
+                if (usuarios.length === 0) {
+                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+                    return;
+                }
+
                 let html = '';
-                Object.values(usuariosMap).forEach(u => {
+                usuarios.forEach(u => {
                     const redipLabel = u.redip === 'admin' 
                         ? 'ADMINISTRADOR' 
                         : `REDIP ${u.redip.toUpperCase()}`;
@@ -134,13 +171,14 @@
                         </div>
                     `;
                 });
-                contenedor.innerHTML = html || '<div style="text-align:center; padding:20px;">No hay usuarios.</div>';
+                contenedor.innerHTML = html;
             } catch (error) {
+                console.error('Error:', error);
                 contenedor.innerHTML = `<div class="error" style="padding:15px; color: #e53e3e;">❌ Error al cargar usuarios.</div>`;
             }
         }
 
-        // === FUNCIONES DE API (Edge Functions) ===
+        // Funciones de API (Edge Functions)
         async function crearUsuario(email, password, redip) {
             const {  { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
@@ -174,7 +212,7 @@
             return await res.json();
         }
 
-        // === UI ===
+        // UI functions
         function mostrarSeccion(seccion) {
             document.getElementById('listadoUsuarios').style.display = seccion === 'listado' ? 'block' : 'none';
             document.getElementById('formularioUsuario').style.display = seccion === 'formulario' ? 'block' : 'none';
