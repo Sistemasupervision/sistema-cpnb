@@ -144,17 +144,16 @@
                 return false;
             }
 
-            const {  roles } = await supabase
-                .from('usuarios_roles')
-                .select('rol')
-                .eq('user_id', user.id)
-                .single();
-
-            if (!roles || roles.rol !== 'admin') {
-                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-                window.location.href = 'index.html';
-                return false;
-            }
+      const {  roles } = await supabase
+    .from('usuarios_roles')
+    .select('rol')
+    .eq('user_id', user.id)
+    .single();
+if (!roles || roles.rol !== 'admin') {
+    alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+    window.location.href = 'index.html';
+    return false;
+}
             return true;
         }
 
