@@ -128,41 +128,30 @@
     <script>
         let modoEdicion = false;
 
-        // ✅ CORREGIDO: versión robusta sin .single()
-        async function verificarAdmin() {
-            const { data } = await supabase.auth.getUser();
-            const user = data?.user;
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
-                return false;
-            }
+    async function verificarAdmin() {
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    if (!user) {
+        alert('Debe iniciar sesión.');
+        window.location.href = 'index.html';
+        return false;
+    }
 
-            // ✅ Eliminado .single() → usamos array normal
-            const {  roles, error } = await supabase
-                .from('usuarios_roles')
-                .select('rol')
-                .eq('user_id', user.id);
+    // ✅ Usamos .select() normal + .limit(1) para evitar fallos
+    const {  roles, error } = await supabase
+        .from('usuarios_roles')
+        .select('rol')
+        .eq('user_id', user.id)
+        .limit(1); // ← Asegura que solo obtengamos un registro
 
-            if (error) {
-                console.error('Error RLS o consulta:', error);
-                alert('Error interno al verificar permisos.');
-                window.location.href = 'index.html';
-                return false;
-            }
+    if (error || !roles || roles.length === 0 || roles[0].rol !== 'admin') {
+        alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+        window.location.href = 'index.html';
+        return false;
+    }
 
-            // ✅ Verifica si AL MENOS UN registro tiene rol 'admin'
-            const esAdmin = roles && roles.some(r => r.rol === 'admin');
-
-            if (!esAdmin) {
-                alert('Acceso denegido. Solo el administrador puede gestionar usuarios.');
-                window.location.href = 'index.html';
-                return false;
-            }
-
-            return true;
-        }
-
+    return true;
+}
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
