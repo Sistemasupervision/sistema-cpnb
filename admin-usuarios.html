@@ -161,30 +161,31 @@
     <script>
         let modoEdicion = false;
 
-        // ✅ VERIFICACIÓN CORREGIDA: usa usuarios_roles
-        async function verificarAdmin() {
-            const { data } = await supabase.auth.getUser();
-            const user = data?.user;
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
-                return false;
-            }
+      async function verificarAdmin() {
+    // ✅ Sintaxis segura: evita "Unexpected token '{'"
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    
+    if (!user) {
+        alert('Debe iniciar sesión.');
+        window.location.href = 'index.html';
+        return false;
+    }
 
-            // ✅ Busca en 'usuarios_roles', no en 'usuarios_redip'
-            const {  roles } = await supabase
-                .from('usuarios_roles')
-                .select('rol')
-                .eq('user_id', user.id)
-                .single();
+    // ✅ CORREGIDO: ahora busca en 'usuarios_roles'
+    const {  roles } = await supabase
+        .from('usuarios_roles')
+        .select('rol')
+        .eq('user_id', user.id)
+        .single();
 
-            if (!roles || roles.rol !== 'admin') {
-                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-                window.location.href = 'index.html';
-                return false;
-            }
-            return true;
-        }
+    if (!roles || roles.rol !== 'admin') {
+        alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+        window.location.href = 'index.html';
+        return false;
+    }
+    return true;
+}
 
         // ✅ Cargar usuarios desde tus tablas
         async function cargarUsuarios() {
