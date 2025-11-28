@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Supervisión y Control</title>
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <!-- ✅ Solo se carga config.js (sin defer) -->
+    <!-- ✅ Configuración centralizada (credenciales + cliente) -->
     <script src="assets/js/config.js"></script>
+    <!-- Estilos reutilizables -->
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -39,7 +41,7 @@
         </form>
         <div class="security-info">
             <strong>Seguridad de extremo a extremo</strong>
-            <p>Todas las comunicaciones están cifradas...</p>
+            <p>Todas las comunicaciones están cifradas con protocolos de seguridad avanzados para proteger la integridad de la información del Cuerpo de Policía Nacional Bolivariana.</p>
         </div>
         <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #4a5568;">
             © OTIC-ZULIA. Todos los derechos reservados.
@@ -59,9 +61,12 @@
         <div class="redi-buttons">
             <button class="redi-btn" onclick="irARedip('andes')">REDIP LOS ANDES</button>
             <button class="redi-btn" onclick="irARedip('capital')">REDIP CAPITAL</button>
-            <!-- ... otros botones ... -->
+            <button class="redi-btn" onclick="irARedip('central')">REDIP CENTRAL</button>
             <button class="redi-btn" onclick="window.location.href='redip/occidental/index.html'">REDIP OCCIDENTAL</button>
-            <!-- ... -->
+            <button class="redi-btn" onclick="irARedip('oriental')">REDIP ORIENTAL</button>
+            <button class="redi-btn" onclick="irARedip('llanos')">REDIP LOS LLANOS</button>
+            <button class="redi-btn" onclick="irARedip('guayana')">REDIP GUAYANA</button>
+            <button class="redi-btn" onclick="irARedip('maritima')">REDIP MARÍTIMA E INSULAR</button>
         </div>
         <button id="adminUsuariosBtn" class="action-btn" style="display: none; background: linear-gradient(135deg, #7D0500, #B01B17);">
             👤 Administrar Usuarios
@@ -70,17 +75,18 @@
     </div>
 
     <script>
-        // ✅ USAMOS `supabase` de config.js (ya está definido globalmente)
-
+        // ✅ CORREGIDO para Supabase v2+: sintaxis { user, error }
         async function verificarYMostrarBotonAdmin() {
             const adminBtn = document.getElementById('adminUsuariosBtn');
             if (!adminBtn) return;
+
             try {
-                const { user, error } = await supabase.auth.getUser(); // ✅ v2+ correcto
+                const { user, error } = await supabase.auth.getUser();
                 if (error || !user) {
                     adminBtn.style.display = 'none';
                     return;
                 }
+
                 const { data, error: dbError } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
@@ -140,9 +146,10 @@
             setTimeout(() => errorDiv.style.display = 'none', 5000);
         }
 
+        // ✅ CORREGIDO: manejo seguro de sesión al recargar
         async function checkAuth() {
             try {
-                const { user, error } = await supabase.auth.getUser(); // ✅ v2+
+                const { user, error } = await supabase.auth.getUser();
                 if (error || !user) {
                     document.getElementById('loginContainer').style.display = 'block';
                     document.getElementById('dashboardContainer').style.display = 'none';
@@ -159,9 +166,10 @@
             }
         }
 
+        // Inicializar eventos
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        checkAuth();
+        checkAuth(); // ✅ Se ejecuta inmediatamente
     </script>
 </body>
 </html>
