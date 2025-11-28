@@ -71,26 +71,29 @@
         <button id="logoutBtn" class="action-btn">Cerrar Sesión</button>
     </div>
     <script>
-       async function verificarYMostrarBotonAdmin() {
+     async function verificarYMostrarBotonAdmin() {
     const adminBtn = document.getElementById('adminUsuariosBtn');
     if (!adminBtn) return;
 
     try {
-        // Obtener el usuario autenticado
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {  { user } } = await supabase.auth.getUser();
         if (!user) {
             adminBtn.style.display = 'none';
             return;
         }
+        const { data: roleData, error } = await supabase
+            .from('usuarios_roles')
+            .select('rol')
+            .eq('user_id', user.id)
+            .single();
 
-        // 🔑 Aquí defines quién es admin (por su UUID de Supabase)
-        const adminUserIds = [
-            'e93be70f-1d53-4497-bcd5-58624dbae511', // Tu ID de admin
-            // Puedes añadir más IDs aquí si necesitas más admins
-        ];
+        if (error) {
+            console.warn('Usuario no tiene rol asignado o error:', error.message);
+            adminBtn.style.display = 'none';
+            return;
+        }
 
-        if (adminUserIds.includes(user.id)) {
+        if (roleData.rol === 'admin') {
             adminBtn.style.display = 'block';
             adminBtn.onclick = () => {
                 window.location.href = 'admin-usuarios.html';
@@ -99,7 +102,7 @@
             adminBtn.style.display = 'none';
         }
     } catch (err) {
-        console.error('Error al verificar rol de administrador:', err);
+        console.error('Error al verificar rol:', err);
         adminBtn.style.display = 'none';
     }
 }
