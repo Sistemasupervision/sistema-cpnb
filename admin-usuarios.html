@@ -88,14 +88,9 @@
 
                 const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${session.access_token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
                 });
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    throw new Error(errorText || 'Error al cargar usuarios');
-                }
+                if (!res.ok) throw new Error(await res.text());
                 const usuarios = await res.json();
                 if (!usuarios || usuarios.length === 0) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
@@ -110,8 +105,8 @@
                                 <div class="usuario-redip">REDIP: ${u.redip}</div>
                             </div>
                             <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${(u.email || '').replace(/'/g, "\\'")}', '${u.redip}')">✏️</button>
+                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || 'Sin email'}')">🗑️</button>
                             </div>
                         </div>
                     `;
@@ -119,10 +114,7 @@
                 contenedor.innerHTML = html;
             } catch (error) {
                 console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">
-                    ❌ Error al cargar usuarios.<br>
-                    <small>${error.message}</small>
-                </div>`;
+                contenedor.innerHTML = `<div class="error" style="padding:15px;">❌ Error al cargar usuarios.<br><small>${error.message}</small></div>`;
             }
         }
 
@@ -161,7 +153,6 @@
         async function eliminarUsuarioApi(userId) {
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
-            if (!session) throw new Error('Sesión no encontrada');
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -175,12 +166,8 @@
         }
 
         function mostrarSeccion(seccion) {
-            document.querySelectorAll('.list-section, .form-section').forEach(el => {
-                el.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.list-section, .form-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             if (seccion === 'listado') {
                 document.getElementById('listadoUsuarios').classList.add('active');
                 document.querySelector('.tab-btn:first-child').classList.add('active');
@@ -197,18 +184,15 @@
             document.getElementById('userId').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('submitBtn').textContent = 'Crear Usuario';
-            // Restaurar validación del email
             document.getElementById('email').setAttribute('required', 'required');
             modoEdicion = false;
         }
 
         function editarUsuario(userId, email, redip) {
             const emailInput = document.getElementById('email');
-            // Mostrar email (o un mensaje si no existe)
             emailInput.value = email || '⚠️ Sin email registrado';
             emailInput.disabled = true;
-            // No requerir email en modo edición
-            emailInput.removeAttribute('required');
+            emailInput.removeAttribute('required'); // ✅ No requerido en edición
 
             document.getElementById('userId').value = userId;
             document.getElementById('redip').value = redip;
@@ -239,12 +223,12 @@
             const msgDiv = document.getElementById('mensaje');
 
             let email = emailInput.value;
-            // Si es el placeholder, no usarlo
+            // Si es placeholder, ignóralo en modo edición
             if (modoEdicion && email === '⚠️ Sin email registrado') {
                 email = null;
             }
 
-            // Validación condicional
+            // ✅ Validación SOLO en modo creación
             if (!modoEdicion) {
                 if (!email || !/\S+@\S+\.\S+/.test(email)) {
                     msgDiv.className = 'mensaje error';
