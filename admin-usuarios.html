@@ -15,13 +15,11 @@
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
-        <!-- Listado de usuarios -->
         <div id="listadoUsuarios" class="list-section active">
             <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
-        <!-- Formulario (crear/editar) -->
         <div id="formularioUsuario" class="form-section">
             <form id="userForm">
                 <input type="hidden" id="userId">
@@ -60,21 +58,20 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ Corregido: desestructuración válida
         async function verificarAdmin() {
-            const { data, error } = await supabase.auth.getUser();
+            const { data } = await supabase.auth.getUser();
             const user = data?.user;
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
                 return false;
             }
-            const {  userData, userError } = await supabase
+            const { data: userData, error } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
                 .eq('user_id', user.id)
                 .single();
-            if (userError || !userData || userData.redip !== 'admin') {
+            if (error || !userData || userData.redip !== 'admin') {
                 alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                 window.location.href = 'index.html';
                 return false;
@@ -82,19 +79,31 @@
             return true;
         }
 
-        // Carga la lista de usuarios (usando tu función Edge o política actual)
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                const {  usuarios, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('user_id, redip, email')
-                    .order('redip', { ascending: true });
-                if (error) throw error;
+                const { data } = await supabase.auth.getSession();
+                const session = data?.session;
+                if (!session) throw new Error('Sesión no encontrada');
+
+                const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(errorText || 'Error al cargar usuarios');
+                }
+
+                const usuarios = await res.json();
                 if (!usuarios || usuarios.length === 0) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
                     return;
                 }
+
                 let html = '';
                 usuarios.forEach(u => {
                     html += `
@@ -120,10 +129,9 @@
             }
         }
 
-        // Funciones para operaciones (usando tus funciones Edge)
         async function crearUsuario(email, password, redip) {
-            const {  sessionData } = await supabase.auth.getSession();
-            const session = sessionData?.session;
+            const { data } = await supabase.auth.getSession();
+            const session = data?.session;
             if (!session) throw new Error('Sesión no encontrada');
 
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
@@ -139,8 +147,8 @@
         }
 
         async function modificarUsuario(userId, redip) {
-            const {  sessionData } } = await supabase.auth.getSession();
-            const session = sessionData?.session;
+            const { data } = await supabase.auth.getSession();
+            const session = data?.session;
             if (!session) throw new Error('Sesión no encontrada');
 
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
@@ -156,8 +164,8 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const {  sessionData } } = await supabase.auth.getSession();
-            const session = sessionData?.session;
+            const { data } = await supabase.auth.getSession();
+            const session = data?.session;
             if (!session) throw new Error('Sesión no encontrada');
 
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
@@ -172,7 +180,6 @@
             return await res.json();
         }
 
-        // Interfaz
         function mostrarSeccion(seccion) {
             document.querySelectorAll('.list-section, .form-section').forEach(el => {
                 el.classList.remove('active');
@@ -222,17 +229,14 @@
             }
         }
 
-        // ✅ Validación robusta del formulario
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
             const userId = document.getElementById('userId').value;
             const msgDiv = document.getElementById('mensaje');
 
-            // Validación
             if (!email || !/\S+@\S+\.\S+/.test(email)) {
                 msgDiv.className = 'mensaje error';
                 msgDiv.textContent = '❌ Email inválido.';
@@ -275,7 +279,6 @@
             }
         });
 
-        // Inicializar
         verificarAdmin().then(permitido => {
             if (permitido) {
                 cargarUsuarios();
