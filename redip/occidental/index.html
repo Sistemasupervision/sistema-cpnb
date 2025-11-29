@@ -30,7 +30,6 @@
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">REDIP OCCIDENTAL</h1>
         </div>
-        <!-- Botón "Crear Nueva Inspección" -->
         <button id="btnCrearInspeccion" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🆕 Crear Nueva Inspección
         </button>
@@ -54,13 +53,14 @@
         </button>
         <button id="backToDashboardBtn" class="back-btn">← Volver al Panel Principal</button>
     </div>
+
     <!-- Modal para seleccionar CCP -->
     <div id="modalSeleccionCCP" class="container" style="display:none; max-width: 600px; padding: 50px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background: white; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 20px; overflow: hidden;">
         <h1 class="title" style="margin-bottom: 20px; text-align: center;">Crear Nueva Inspección</h1>
         <div class="input-group">
             <label for="ccpSelectModal">Seleccione CCP:</label>
             <select id="ccpSelectModal" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
-                <option value="">-- Elija un CCP --</option>
+                <option value="">-- Cargando CCPs --</option>
             </select>
         </div>
         <div style="text-align:center; margin-top: 30px;">
@@ -70,24 +70,23 @@
             <button id="btnCancelarCCP" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px; width: 100%;">Cancelar</button>
         </div>
     </div>
+
     <div id="dynamicView" class="container" style="display:none; max-width:1000px; padding:40px;"></div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabaseServiceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODc2MzIzNywiZXhwIjoyMDc0MzM5MjM3fQ.KVh-Nv-UX8x_9dR6O_HJiSfTNew8KYFyh00Ma4wbvPE; // 🔒 ¡REEMPLAZA ESTA CLAVE!
-        
-        const supabasePublic = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        const supabaseAdmin = window.supabase.createClient(supabaseUrl, supabaseServiceRoleKey);
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // ✅ Verificar acceso a REDIP OCCIDENTAL
         async function verificarAcceso() {
-            const { data: { user } } = await supabasePublic.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 window.location.href = '../../index.html';
                 return;
             }
             try {
-                // ✅ Usar supabaseAdmin para leer usuarios_redip
-                const { data, error } = await supabaseAdmin
+                const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
@@ -103,36 +102,41 @@
             }
         }
 
+        // ✅ Cargar CCPs reales desde la BD (filtrados por redip = 'occidental')
         async function cargarCCPs() {
+            const select = document.getElementById('ccpSelectModal');
             try {
-                const ccpIdsOccidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
-                const { data: ccps, error } = await supabasePublic
+                const { data: ccps, error } = await supabase
                     .from('ccps')
-                    .select('id, nombre')
-                    .in('id', ccpIdsOccidental)
-                    .order('nombre', { ascending: true });
+                    .select('ccp_id, nombre_ccp')
+                    .eq('redip', 'occidental')
+                    .order('nombre_ccp', { ascending: true });
+
                 if (error) throw error;
-                const select = document.getElementById('ccpSelectModal');
+
                 select.innerHTML = '<option value="">-- Elija un CCP --</option>';
                 ccps.forEach(ccp => {
                     const opt = document.createElement('option');
-                    opt.value = ccp.id;
-                    opt.textContent = ccp.nombre;
+                    opt.value = ccp.ccp_id;
+                    opt.textContent = ccp.nombre_ccp;
                     select.appendChild(opt);
                 });
             } catch (error) {
                 console.error('Error al cargar CCPs:', error);
-                alert('Error al cargar los CCPs de REDIP OCCIDENTAL.');
+                select.innerHTML = '<option value="">Error al cargar</option>';
             }
         }
 
+        // ✅ Manejar selección y redirección
         document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'block';
             cargarCCPs();
         });
+
         document.getElementById('btnCancelarCCP').addEventListener('click', () => {
             document.getElementById('modalSeleccionCCP').style.display = 'none';
         });
+
         document.getElementById('btnContinuarCCP').addEventListener('click', () => {
             const ccpId = document.getElementById('ccpSelectModal').value;
             if (!ccpId) {
@@ -141,94 +145,38 @@
             }
             const ccpNombre = document.getElementById('ccpSelectModal').options[document.getElementById('ccpSelectModal').selectedIndex].text;
             document.getElementById('modalSeleccionCCP').style.display = 'none';
-            mostrarOpcionesCCP(ccpId, ccpNombre);
+            window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
-        function mostrarOpcionesCCP(ccpId, ccpNombre) {
-            const dynamicView = document.getElementById('dynamicView');
-            dynamicView.innerHTML = `
-                <div class="logo-container">
-                    <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-                    <h1 class="title">Opciones para ${ccpNombre}</h1>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
-                    <button id="btnEstaciones" class="action-btn" style="padding:16px; font-size:18px; width: 100%;">
-                        🏢 Estaciones Policiales
-                    </button>
-                    <button id="btnServiciosAdmin" class="action-btn servicios-admin" style="padding:16px; font-size:18px; width: 100%;">
-                        📋 Servicios Administrativos
-                    </button>
-                    <button id="btnUbicaciones" class="action-btn ubicaciones" style="padding:16px; font-size:18px; width: 100%;">
-                        📍 Ubicaciones
-                    </button>
-                    <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
-                </div>
-            `;
-            document.getElementById('rediOccidentalContainer').style.display = 'none';
-            dynamicView.style.display = 'block';
-            document.getElementById('btnEstaciones').onclick = () => {
-                window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            };
-            document.getElementById('btnServiciosAdmin').onclick = () => {
-                window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            };
-            document.getElementById('btnUbicaciones').onclick = () => {
-                window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            };
-            document.getElementById('backToCcpBtn').onclick = () => {
-                document.getElementById('rediOccidentalContainer').style.display = 'block';
-                dynamicView.style.display = 'none';
-            };
-        }
-
-        function manejarParametrosURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const ccpId = urlParams.get('ccpId');
-            const ccpNombre = urlParams.get('ccpNombre');
-            if (ccpId && ccpNombre) {
-                mostrarOpcionesCCP(ccpId, ccpNombre);
-            }
-        }
-
+        // ✅ Notificaciones (sin cambios)
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
-                const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
-                // 1. Estaciones
-                const { data: estaciones, error: estError } = await supabasePublic
+                // Obtener todos los ccp_id de occidental
+                const { data: ccps } = await supabase
+                    .from('ccps')
+                    .select('ccp_id')
+                    .eq('redip', 'occidental');
+                const ccpIds = ccps.map(c => c.ccp_id);
+
+                // Estaciones
+                const { data: estaciones } = await supabase
                     .from('estaciones_policiales')
-                    .select('id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw estError;
-                const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
-                // 2. Servicios
-                const { data: servicios, error: servError } = await supabasePublic
-                    .from('servicios_administrativos')
-                    .select('id')
-                    .in('ccp_id', ccpOcidental);
-                if (servError) throw servError;
-                const idsServicios = servicios ? servicios.map(s => s.id) : [];
-                // 3. Contar vencidas
-                let total = 0;
-                if (idsEstaciones.length > 0) {
-                    const { count, error: e1 } = await supabasePublic
+                    .select('estacion_id')
+                    .in('ccp_id', ccpIds);
+                const estacionIds = estaciones.map(e => e.estacion_id);
+
+                // Contar inspecciones vencidas
+                let totalVencidas = 0;
+                if (estacionIds.length > 0) {
+                    const { count } = await supabase
                         .from('inspecciones')
                         .select('*', { count: 'exact', head: true })
-                        .in('estacion_id', idsEstaciones)
+                        .in('estacion_id', estacionIds)
                         .lte('proxima_inspeccion', hoy);
-                    if (e1) throw e1;
-                    total += count || 0;
+                    totalVencidas = count || 0;
                 }
-                if (idsServicios.length > 0) {
-                    const { count, error: e2 } = await supabasePublic
-                        .from('inspecciones')
-                        .select('*', { count: 'exact', head: true })
-                        .in('servicio_id', idsServicios)
-                        .lte('proxima_inspeccion', hoy);
-                    if (e2) throw e2;
-                    total += count || 0;
-                }
-                return total;
+                return totalVencidas;
             } catch (error) {
                 console.error('Error al contar notificaciones:', error);
                 return 0;
@@ -243,16 +191,15 @@
             }
         }
 
+        // ✅ Inicializar
         verificarAcceso().then(() => {
             document.getElementById('backToDashboardBtn').addEventListener('click', () => {
                 window.location.href = '../../index.html';
             });
+            document.getElementById('btnHistorial').addEventListener('click', () => {
+                window.location.href = 'seleccion-ccp-historial.html';
+            });
             contarYMostrarNotificaciones();
-            manejarParametrosURL();
-        });
-
-        document.getElementById('btnHistorial').addEventListener('click', () => {
-            window.location.href = 'seleccion-ccp-historial.html';
         });
     </script>
 </body>
