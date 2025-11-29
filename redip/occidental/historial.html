@@ -951,7 +951,18 @@
                         </div>
                     </div>
                 `;
-                const itemsArray = Array.isArray(items) ? items : [];
+             // Mapear los ítems recibidos a un objeto para acceso rápido
+const itemsMap = {};
+(items || []).forEach(item => {
+    itemsMap[item.item_nombre] = item;
+});
+
+// Obtener el orden correcto según nombresAmigables (que ya está ordenado del 1 al 67)
+const itemsOrdenados = Object.keys(nombresAmigables)
+    .map(key => itemsMap[key])
+    .filter(item => item !== undefined); // solo los que existen en la inspección
+
+const itemsArray = itemsOrdenados;
                 if (itemsArray.length > 0) {
                     html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
                     itemsArray.forEach(item => {
