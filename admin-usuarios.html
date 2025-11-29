@@ -269,46 +269,56 @@
         }
 
         // ✅ Función para cargar usuarios
-        async function cargarUsuarios() {
-            const contenedor = document.getElementById('usuariosContenedor');
-            try {
-                const { data: usuarios, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('user_id, redip, email')
-                    .order('redip', { ascending: true });
+       // ✅ CARGA SEGURA DE USUARIOS (evita error 500 de RLS)
+async function cargarUsuarios() {
+    const contenedor = document.getElementById('usuariosContenedor');
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Sesión no encontrada');
 
-                if (error) throw error;
-
-                if (!usuarios || usuarios.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-                    return;
-                }
-
-                let html = '';
-                usuarios.forEach(u => {
-                    html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                                <div class="usuario-redip">REDIP: ${u.redip}</div>
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                contenedor.innerHTML = html;
-            } catch (error) {
-                console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">
-                    ❌ Error al cargar usuarios.<br>
-                    <small>${error.message}</small>
-                </div>`;
+        const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
             }
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(errorText || 'Error al cargar la lista de usuarios');
         }
 
+        const usuarios = await res.json();
+
+        if (!usuarios || usuarios.length === 0) {
+            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+            return;
+        }
+
+        let html = '';
+        usuarios.forEach(u => {
+            html += `
+                <div class="usuario-item">
+                    <div class="usuario-info">
+                        <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                        <div class="usuario-redip">REDIP: ${u.redip}</div>
+                    </div>
+                    <div class="acciones">
+                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        contenedor.innerHTML = html;
+    } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+        contenedor.innerHTML = `<div class="error" style="padding:15px;">
+            ❌ Error al cargar usuarios.<br>
+            <small>${error.message}</small>
+        </div>`;
+    }
+}
         // ✅ Función para crear usuario
         async function crearUsuario(email, password, redip) {
             const { data: { session } } = await supabase.auth.getSession();
