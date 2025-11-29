@@ -809,8 +809,7 @@
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
-                    .eq('inspeccion_id', inspeccionId)
-                    .order('item_nombre', { ascending: true });
+                    .eq('inspeccion_id', inspeccionId);
                 const { data: inspeccion, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
@@ -951,42 +950,43 @@
                         </div>
                     </div>
                 `;
-             // Mapear los ítems recibidos a un objeto para acceso rápido
-const itemsMap = {};
-(items || []).forEach(item => {
-    itemsMap[item.item_nombre] = item;
-});
-
-// Obtener el orden correcto según nombresAmigables (que ya está ordenado del 1 al 67)
-const itemsOrdenados = Object.keys(nombresAmigables)
-    .map(key => itemsMap[key])
-    .filter(item => item !== undefined); // solo los que existen en la inspección
-
-const itemsArray = itemsOrdenados;
-                if (itemsArray.length > 0) {
-                    html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
-                    itemsArray.forEach(item => {
-                        const nombre = nombresAmigables[item.item_nombre] || item.item_nombre.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                        const clase = item.cumple ? 'si' : 'no';
-                        const texto = item.cumple ? 'Sí' : 'No';
-                        const porcentajeTexto = item.cumple ? ` (${item.porcentaje_cumplimiento || 0}%)` : '';
-                        html += `
-                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${nombre}</span>
-                                    <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${item.cumple ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #9b2c2c;'}">
-                                        ${texto}${porcentajeTexto}
-                                    </span>
-                                </div>
-                                ${item.observacion ? `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
-                                    <strong>Observación:</strong> ${item.observacion}
-                                </div>` : ''}
+                // ✅ CORRECCIÓN PRINCIPAL: ordenar los ítems del 1 al 67 en el modal
+                const itemsMap = {};
+                (items || []).forEach(item => {
+                    itemsMap[item.item_nombre] = item;
+                });
+                html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
+                Object.entries(nombresAmigables).forEach(([clave, textoCompleto]) => {
+                    const item = itemsMap[clave];
+                    const cumple = item ? item.cumple : null;
+                    const observacion = item ? item.observacion : '';
+                    const porcentaje = item && item.porcentaje_cumplimiento ? item.porcentaje_cumplimiento : 0;
+                    let estadoTexto = 'No evaluado';
+                    let estadoEstilo = 'background: #e2e8f0; color: #4a5568;';
+                    let porcentajeTexto = '';
+                    if (cumple !== null) {
+                        estadoTexto = cumple ? 'Sí' : 'No';
+                        porcentajeTexto = cumple ? ` (${porcentaje}%)` : '';
+                        estadoEstilo = cumple
+                            ? 'background: #c6f6d5; color: #22543d;'
+                            : 'background: #fed7d7; color: #9b2c2c;';
+                    }
+                    html += `
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${textoCompleto}</span>
+                                <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${estadoEstilo}">
+                                    ${estadoTexto}${porcentajeTexto}
+                                </span>
                             </div>
-                        `;
-                    });
-                } else {
-                    html += '<div style="text-align: center; padding: 20px; color: #4a5568; font-size: 16px;">No hay ítems registrados.</div>';
-                }
+                            ${observacion ? `
+                                <div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                                    <strong>Observación:</strong> ${observacion}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
                 if (inspeccion.observaciones_generales) {
                     html += `
                         <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
