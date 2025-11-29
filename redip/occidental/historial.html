@@ -713,6 +713,7 @@
                 const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
+                // ✅ CORREGIDO: se envuelve insp.id en comillas simples para evitar errores en onclick
                 card.innerHTML = `
                     <div class="card-header">
                         <div class="estacion-info">
@@ -947,7 +948,7 @@
                         </div>
                     </div>
                 `;
-                // ✅ Mostrar los 67 ítems en orden numérico, con texto completo
+                // ✅ Mostrar los 67 ítems en orden del 1 al 67, con texto completo y estado debajo
                 const itemsMap = {};
                 (items || []).forEach(item => {
                     itemsMap[item.item_nombre] = item;
@@ -978,11 +979,10 @@
                                     ${estadoTexto}${porcentajeTexto}
                                 </span>
                             </div>
-                            ${observacion ? `
-                                <div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                            ${observacion ?
+                                `<div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
                                     <strong>Observación:</strong> ${observacion}
-                                </div>
-                            ` : ''}
+                                </div>` : ''}
                         </div>
                     `;
                 });
@@ -1098,7 +1098,7 @@
                 alert('❌ Error al generar el reporte. Verifique que la tabla "reportes" exista.');
             }
         }
-        // === Exportar historial completo (código completo de historial.txt) ===
+        // === Exportar historial completo ===
         async function exportarHistorialAPDF() {
             try {
                 const desde = document.getElementById('fechaDesde').value;
@@ -1263,7 +1263,7 @@
                 alert('❌ Error al generar el PDF del historial.');
             }
         }
-        // === Funciones de reinspección (¡definidas!) ===
+        // === Funciones de reinspección (¡con soporte para IDs como strings!) ===
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
@@ -1286,7 +1286,7 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                aplicarFiltro(); // ✅ Recarga la lista y actualiza visualmente
+                aplicarFiltro(); // ✅ Recarga la lista → el botón desaparece si ya no está vencido
             } catch (error) {
                 console.error("Error al actualizar:", error);
                 alert("❌ Error al actualizar la reinspección.");
