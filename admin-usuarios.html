@@ -5,21 +5,191 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrar Usuarios - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <link rel="stylesheet" href="assets/css/admin-usuarios.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 900px;
+            padding: 30px;
+            position: relative;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
+        }
+        .logo-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #0c2440;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #3182ce;
+            color: white;
+        }
+        .form-section, .list-section {
+            display: none;
+        }
+        .form-section.active, .list-section.active {
+            display: block;
+        }
+        .input-group {
+            margin-bottom: 18px;
+        }
+        .input-group label {
+            display: block;
+            color: #2d3748;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #0c2440, #1a365d);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:hover { opacity: 0.9; }
+        .back-btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #2c5282;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            width: auto;
+        }
+        .mensaje {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .exito { background: #c6f6d5; color: #22543d; }
+        .error { background: #fed7d7; color: #9b2c2c; }
+        .usuarios-lista {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .usuario-item {
+            padding: 12px;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .usuario-item:last-child {
+            border-bottom: none;
+        }
+        .usuario-info {
+            flex: 1;
+        }
+        .usuario-email {
+            font-weight: bold;
+            color: #0c2440;
+        }
+        .usuario-redip {
+            font-size: 13px;
+            color: #4a5568;
+        }
+        .acciones {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-edit, .btn-delete {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-edit {
+            background: #3182ce;
+            color: white;
+        }
+        .btn-delete {
+            background: #e53e3e;
+            color: white;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            .acciones { flex-direction: column; }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Administrar Usuarios</h1>
         <div class="tabs">
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
+        <!-- Listado de usuarios -->
         <div id="listadoUsuarios" class="list-section active">
             <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
+        <!-- Formulario (crear/editar) -->
         <div id="formularioUsuario" class="form-section">
             <form id="userForm">
                 <input type="hidden" id="userId">
@@ -81,15 +251,18 @@
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
+                // ✅ Selecciona user_id, redip y email directamente
                 const { data: usuarios, error } = await supabase
                     .from('usuarios_redip')
                     .select('user_id, redip, email')
                     .order('redip', { ascending: true });
+
                 if (error) throw error;
                 if (!usuarios || usuarios.length === 0) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
                     return;
                 }
+
                 let html = '';
                 usuarios.forEach(u => {
                     html += `
@@ -185,7 +358,7 @@
 
         function editarUsuario(userId, email, redip) {
             document.getElementById('userId').value = userId;
-            document.getElementById('email').value = email || 'usuario@ejemplo.com'; // ✅ Valor seguro
+            document.getElementById('email').value = email;
             document.getElementById('email').disabled = true;
             document.getElementById('redip').value = redip;
             document.getElementById('passwordGroup').style.display = 'none';
@@ -208,27 +381,22 @@
 
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const userId = document.getElementById('userId').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
-            const userId = document.getElementById('userId').value;
             const msgDiv = document.getElementById('mensaje');
 
             try {
                 if (modoEdicion) {
-                    // ✅ Solo validar REDIP en modo edición
-                    if (!redip) throw new Error('REDIP es obligatoria.');
                     await modificarUsuario(userId, redip);
                     msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Usuario actualizado.';
+                    msgDiv.textContent = '✅ Usuario actualizado correctamente.';
                 } else {
-                    // ✅ Validar todo en modo creación
-                    if (!email || !/\S+@\S+\.\S+/.test(email)) throw new Error('Email inválido.');
-                    if (!password || password.length < 6) throw new Error('Contraseña obligatoria (mín. 6 caracteres).');
-                    if (!redip) throw new Error('REDIP es obligatoria.');
+                    if (!password) throw new Error('La contraseña es obligatoria al crear.');
                     await crearUsuario(email, password, redip);
                     msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Usuario creado.';
+                    msgDiv.textContent = '✅ Usuario creado correctamente.';
                 }
                 msgDiv.style.display = 'block';
                 setTimeout(() => {
@@ -236,12 +404,14 @@
                     msgDiv.style.display = 'none';
                 }, 1500);
             } catch (err) {
+                console.error(err);
                 msgDiv.className = 'mensaje error';
                 msgDiv.textContent = '❌ Error: ' + (err.message || 'Operación fallida.');
                 msgDiv.style.display = 'block';
             }
         });
 
+        // Inicializar
         verificarAdmin().then(permitido => {
             if (permitido) {
                 cargarUsuarios();
