@@ -243,54 +243,63 @@
             }
         }
 
-        // ✅ Carga TODOS los usuarios (funciona bajo tus políticas actuales)
-        async function cargarUsuarios() {
-            const contenedor = document.getElementById('usuariosContenedor');
-            try {
-                // Verificar nuevamente que sigue siendo admin
-                const isAdmin = await verificarAdmin();
-                if (!isAdmin) {
-                    window.location.href = 'index.html';
-                    return;
-                }
+      async function cargarUsuarios() {
+    const contenedor = document.getElementById('usuariosContenedor');
+    try {
+        const { data: usuarios, error } = await supabase
+            .from('usuarios_redip')
+            .select('user_id, redip, email')
+            .order('redip', { ascending: true });
 
-                // Esta consulta funciona porque ya pasaste la verificación de rol
-                const {  usuarios, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('user_id, redip, email')
-                    .order('redip', { ascending: true });
-
-                if (error) throw error;
-                if (!usuarios || usuarios.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-                    return;
-                }
-
-                let html = '';
-                usuarios.forEach(u => {
-                    html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                                <div class="usuario-redip">REDIP: ${u.redip}</div>
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                contenedor.innerHTML = html;
-            } catch (error) {
-                console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">
-                    ❌ Error al cargar usuarios.<br>
-                    <small>${error.message}</small>
-                </div>`;
-            }
+        if (error) throw error;
+        if (!usuarios || usuarios.length === 0) {
+            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+            return;
         }
 
+        // Limpiar contenedor
+        contenedor.innerHTML = '';
+
+        usuarios.forEach(u => {
+            // ✅ Escapar valores para evitar inyección de código o errores de sintaxis
+            const email = u.email ? u.email.replace(/"/g, '&quot;').replace(/'/g, '&#39;') : '⚠️ Sin email';
+            const redip = u.redip.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const userId = u.user_id; // UUID, seguro
+
+            const div = document.createElement('div');
+            div.className = 'usuario-item';
+            div.innerHTML = `
+                <div class="usuario-info">
+                    <div class="usuario-email">${email}</div>
+                    <div class="usuario-redip">REDIP: ${redip}</div>
+                </div>
+                <div class="acciones">
+                    <button class="btn-edit" data-id="${userId}" data-email="${email}" data-redip="${redip}">✏️</button>
+                    <button class="btn-delete" data-id="${userId}" data-email="${email}">🗑️</button>
+                </div>
+            `;
+            contenedor.appendChild(div);
+
+            // ✅ Asignar eventos SIN usar onclick en HTML
+            const editBtn = div.querySelector('.btn-edit');
+            const deleteBtn = div.querySelector('.btn-delete');
+
+            editBtn.addEventListener('click', () => {
+                editarUsuario(userId, u.email || '', u.redip);
+            });
+
+            deleteBtn.addEventListener('click', () => {
+                eliminarUsuario(userId, u.email || '');
+            });
+        });
+    } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+        contenedor.innerHTML = `<div class="error" style="padding:15px;">
+            ❌ Error al cargar usuarios.<br>
+            <small>${error.message}</small>
+        </div>`;
+    }
+}
         // === Funciones para operaciones (igual que antes) ===
         async function crearUsuario(email, password, redip) {
             const {  { session } } = await supabase.auth.getSession();
