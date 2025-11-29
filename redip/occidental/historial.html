@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        /* ... (mismo CSS que ya tienes, no se modifica) ... */
         .container {
             max-width: 1000px;
             padding: 40px;
@@ -391,7 +390,6 @@
     </style>
 </head>
 <body>
-    <!-- ... (mismo HTML que ya tienes, no se modifica) ... -->
     <div class="vector-bg">
         <div class="vector-circle"></div>
         <div class="vector-circle"></div>
@@ -510,11 +508,16 @@
             document.getElementById('ccpNombreDisplay').style.display = 'none';
         }
 
+        // ✅ FUNCIÓN GLOBAL: accesible desde onclick
+        function volverAIndex() {
+            window.location.href = 'index.html';
+        }
+
         async function verificarAcceso() {
             const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión para acceder a esta página.');
-                window.location.href = 'index.html';
+                volverAIndex();
                 return;
             }
             try {
@@ -525,22 +528,22 @@
                     .single();
                 if (error || !data) {
                     alert('Error al verificar sus permisos.');
-                    window.location.href = 'index.html';
+                    volverAIndex();
                     return;
                 }
                 if (data.redip !== 'occidental' && data.redip !== 'admin') {
                     alert('⚠️ No tiene permisos para acceder a esta sección.');
-                    window.location.href = 'index.html';
+                    volverAIndex();
                     return;
                 }
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
                 alert('Error al verificar sus permisos.');
-                window.location.href = 'index.html';
+                volverAIndex();
             }
         }
 
-        // ✅ CARGAR ENTIDADES CON CAMPOS CORRECTOS
+        // ✅ CARGAR ESTACIONES Y SERVICIOS CON CAMPOS CORRECTOS
         async function cargarEstacionesYServicios(ccpId) {
             const estacionSelect = document.getElementById('estacionFilter');
             const servicioSelect = document.getElementById('servicioFilter');
@@ -549,7 +552,7 @@
             if (!ccpId) return;
 
             try {
-                // ✅ Campos correctos para estaciones
+                // ✅ CAMPOS: estacion_id y nombre_estacion
                 const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
@@ -558,12 +561,11 @@
                 if (estError) throw estError;
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
-                    opt.value = est.estacion_id;  // ✅
+                    opt.value = est.estacion_id;      // ✅
                     opt.textContent = est.nombre_estacion; // ✅
                     estacionSelect.appendChild(opt);
                 });
 
-                // ✅ Servicios (campos ya correctos)
                 const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
@@ -587,7 +589,7 @@
             await cargarEstacionesYServicios(ccpId);
         });
 
-        // ✅ CARGAR HISTORIAL CORRECTAMENTE
+        // ✅ CARGAR HISTORIAL CON CONSULTAS CORRECTAS
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
                 // ✅ Cargar estaciones con campos correctos
@@ -706,8 +708,7 @@
             }
         }
 
-        // ✅ FUNCIONES DE RENDERIZADO (sin cambios necesarios)
-
+        // === FUNCIONES DE RENDERIZADO (igual que antes) ===
         function renderizarLista() { /* ... mismo código ... */ }
         function renderizarPaginacion() { /* ... mismo código ... */ }
         function aplicarFiltro() { /* ... mismo código ... */ }
@@ -721,15 +722,12 @@
         function abrirModalFecha(inspeccionId) { /* ... mismo código ... */ }
         function cerrarModalFecha() { /* ... mismo código ... */ }
         async function confirmarNuevaFecha() { /* ... mismo código ... */ }
-        function volverAIndex() {
-            window.location.href = 'index.html';
-        }
 
+        // === INICIAR ===
         verificarAcceso().then(async () => {
             const desde = hace30Dias.toISOString().split('T')[0];
             const hasta = hoy.toISOString().split('T')[0];
             if (ccpIdDesdeUrl) {
-                // ✅ Asegurar que el ccpId sea válido
                 if (ccpNombres[ccpIdDesdeUrl]) {
                     document.getElementById('ccpFilter').value = ccpIdDesdeUrl;
                     await cargarEstacionesYServicios(ccpIdDesdeUrl);
