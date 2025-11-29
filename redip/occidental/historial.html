@@ -713,7 +713,6 @@
                 const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
                 const card = document.createElement('div');
                 card.className = 'inspeccion-card';
-                card.setAttribute('data-inspeccion-id', insp.id); // ✅ Atributo para identificar la tarjeta
                 card.innerHTML = `
                     <div class="card-header">
                         <div class="estacion-info">
@@ -802,65 +801,6 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId, servicioId);
         }
-
-        // ✅ FUNCIONES AUXILIARES PARA ACTUALIZAR LA TARJETA
-        function renderizarTarjeta(inspeccion, element) {
-            const fechaInspeccion = new Date(inspeccion.created_at).toLocaleString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            let estadoClase = 'estado-verde';
-            let alertaHTML = '';
-            const hoy = new Date();
-            if (inspeccion.proxima_inspeccion) {
-                const fechaProxima = new Date(inspeccion.proxima_inspeccion);
-                if (fechaProxima <= hoy) {
-                    estadoClase = 'estado-rojo';
-                    alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
-                } else if (fechaProxima <= new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000)) {
-                    estadoClase = 'estado-amarillo';
-                }
-            }
-            let claseCumplimiento = 'cumplimiento-bajo';
-            if (inspeccion.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
-            else if (inspeccion.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
-
-            const tipoIcono = inspeccion.tipo === 'servicio' ? '📄' : '👮';
-            const tipoTexto = inspeccion.tipo === 'servicio' ? 'Servicio' : 'Estación';
-
-            element.innerHTML = `
-                <div class="card-header">
-                    <div class="estacion-info">
-                        <div class="inspeccion-estacion">
-                            ${tipoIcono} ${tipoTexto}: <strong>${inspeccion.nombre_entidad}</strong>
-                            <span class="estado-indicador ${estadoClase}"></span>
-                        </div>
-                        ${alertaHTML}
-                    </div>
-                    <div class="cumplimiento-badge ${claseCumplimiento}">
-                        ${inspeccion.porcentaje_cumplimiento}% cumplimiento
-                    </div>
-                </div>
-                <div class="meta-info">
-                    <div class="meta-item">
-                        <span class="meta-label">Fecha y Hora</span>
-                        <span class="meta-value">${fechaInspeccion}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">Inspector</span>
-                        <span class="meta-value">${inspeccion.inspector_email}</span>
-                    </div>
-                </div>
-                <div class="botones-container">
-                    <button class="ver-btn" onclick="mostrarDetalle('${inspeccion.id}')">Ver Detalles</button>
-                    ${estadoClase === 'estado-rojo' ? `<button class="btn-reinspeccion" onclick="abrirModalFecha('${inspeccion.id}')">✅ Marcar como reinspeccionada</button>` : ''}
-                </div>
-            `;
-        }
-
         async function mostrarDetalle(inspeccionId) {
             try {
                 const { data: items, error: itemsError } = await supabase
@@ -901,73 +841,73 @@
                     }
                 }
                 const nombresAmigables = {
-                   nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
-            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
-            dossier_comandante: "3.verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación,exposición de motivos para la creación y activación,justificación actual de su funcionamiento,documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
-            conocimiento_ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
-            conocimiento_estatuto_personal: "5. Verificar en físico y el conocimiento sobre el reglamento sobre el estatuto de la función policial en materia de administración de personal y desarrollo de la carrera policial",
-            conocimiento_reglamento_disciplinario: "6. Verificar en físico y el conocimiento sobre el reglamento de la función policial sobre el régimen disciplinario",
-            estructura_organizativa: "7. Verificar el conocimiento de la estructura organizativa del CPNB y la aplicación de la estructura funcional del CCP.",
-            manuales_normas_procedimientos: "8. Verificar los manuales de normas y procedimientos operativos vigentes, actualizado.",
-            plan_trabajo_anual: "9. Verificar el plan de trabajo anual, cumplimiento y logros.",
-            infraestructura_identificacion: "10. Verificar que las infraestructuras físicas cumplan con la adecuada identificación establecidas por la institución, incluyendo los servicios ubicados fuera de las instalaciones del CCP.",
-            direccion_atencion_victima: "11. Verificación de la activación de la brigada policial especial de protección y asistencia a las  víctimas  testigos  y  demás  sujetos procesales",
-            oficina_gestion_humana: "12. Verificar con la oficina de gestión humana cpnb: relación del personal, plan anual de vacaciones, plan vacacional, reposos, ascensos, tramitaciones de bajas, planes de entrenamiento y reentrenamiento tramitaciones de comisión de servicio",
-            documentacion_personal: "13. Constatar en el personal policial, la existencia de la documentación (se hará con muestra representativa). Carnet único policial, cédula de identidad, licencia de conducir y certificado médico, declaración de impuesto sobre la renta y jurada de patrimonio, carnet de la patria, porte de armas. si aplica, inscripción en la correspondiente caja de ahorros.",
-            uniforme_presentacion: "14. Constatar el uso correcto del uniforme y presentación personal: corte de cabello, rasuradouniforme limpio, botas pulidas, cabello recogido, uñas cortas (caso femenino uñas y maquillaje colores claros)",
-            practica_induccion_orden_publico: "15. Verificar que la unidad posea y haya realizado practica de los planes de reacción inmediata, defensa y de evacuación.",
-            entrenamiento_armamento: "16. Verificar si los funcionarios reciben entrenamiento en el manejo de armamento orgánico.",
-            talleres_manejo_defensivo: "17. Verificar la realización de talleres de manejo defensivo y de servicio de seguridad vial a los conductores de unidades tipo moto y vehículos.",
-            conocimientos_primeros_auxilios: "18. Verificar si los efectivos poseen los conocimientos mínimos necesarios de primeros auxilios.",
-            acciones_moral_disciplina: "19. Verificar las acciones tomadas por el coordinador o coordinadora del ccp para elevar la moral, mantener la disciplina, espíritu de cuerpo, bienestar y salud del personal.",
-            conocimiento_pensamiento_bolivariano: "20. Verificar el conocimiento del pensamiento bolivariano sobre el legado del libertador Simón Bolívar y el comandante supremo Hugo Chávez al personal policial.",
-            instruccion_etica_moral: "21. Verificar si constantemente se instruye al personal sobre honestidad, ética, moralidad y espíritu de cuerpo, revisar registros en el libro de charlas y servicio de día.",
-            talleres_ministerio_publico: "22. Verificar talleres dictados al personal por parte de autoridades del ministerio público, judiciales y consultor jurídico, sobre procedimientos y cumplimiento del debido proceso, derechos humanos y derecho internacional humanitario.",
-            conocimiento_lineamientos_cpnb: "23. Constatar el conocimiento del coordinador o coordinadora del ccp en relación a los lineamientos para ejercer el control de normas, ordenes, procedimientos e instrucciones impartidas por la directiva del CPNB ¿qué acciones ha realizado para su difusión e implementación?",
-            cursos_sustanciacion_expedientes: "24. Constatar la realización de cursos de sustanciación de expedientes administrativos, actas policiales y pericias judiciales para el personal de la unidad.",
-            cumplimiento_entrenamiento_fisico: "25.Verificar el cumplimiento del entrenamiento en cuanto: educación física, orden público",
-            dotacion_trajes_antimotines: "26. Verificar si la dotación de los trajes antimotines es suficiente para la capacidad operativa del CCP.",
-            practica_tecnicas_policiales: "27. Verificar si el personal ha realizado practica de: tiro de combate con escopeta, tiro de combate y policial con pistola 9mm, mantenimiento y preservación del armamento, mantenimiento, control y restablecimiento del orden público, uso progresivo y diferenciado de la fuerza, defensa personal, orden cerrado, combate en áreas confinadas, instalación de puntos de control (DIRECTIVA MPPRIJP-MPPD), inspección de personas, y revisión de vehículos, embarcaciones y aeronaves.",
-            numero_funcionarios_suficiente: "28. Constatar que el numero de funcionarios adscrito a la unidad, sea suficiente para cumplir con los servicios policiales.",
-            personal_empleado_servicios: "29. Verificar que el personal policial del CCP inspeccionado, este siendo empleado para cumplir con los servicios de policiales.",
-            servicios_autorizados_mpprijp: "30. Verificar que los únicos servicios a ser prestados por parte de los efectivos del cuerpo de Policía Nacional Bolivariana fuera de la unidad serán aquellos autorizados por el ministro o ministra del poder popular las relaciones interiores justicia y paz y el comando general del Cuerpo de Policía Nacional Bolivariana a través del; por lo tanto ninguna autoridad civil ni militar podrá solicitar este tipo de apoyos sin ser canalizados a través de las instancias antes mencionadas. en caso de estar autorizados, deberán tomar las acciones para que en aquellos lugares aislados, prever los relevos durante la noche, comunicación por cualquier medio (teléfono o radio), verificando su situación cada hora en horario nocturno y cada 4 horas en horario diurno, así como también patrullajes constantes si la zona donde se presta el servicio de alta peligrosidad.",
-            publicaciones_procedimientos: "31. Verificar los siguientes aspectos en	las	publicaciones de los procedimientos: el backing institucional de la Policía Nacional Bolivariana en todas las unidades operativas, uso obligatorio de mesa o mesones según sea el caso, con mantel, para los elementos retenidos de poco tamaño, realizar las fotos en alta definición, realizar las fotos por separado de acuerdo al tamaño de los efectos retenidos según sea el caso y prohibido que aparezcan efectivos policiales en la fotos de los procedimientos realizados,",
-            libros_novedades: "32. Verificar en los libros de novedades: la realización diaria de la izada y arreada de la bandera de venezuela en los ccp, estaciones policiales, la información impartida en las formaciones diarias con los funcionarios, el cumplimiento de las instrucciones sobre el mínimo personal requerido por comisión debe ser de seis (06) hombres, con un oficial jefe como jerarquía mínima (boleta de comisión), al mando, constatar que el personal policial tenga conocimiento que esta prohibido las persecuciones, salvo excepciones en casos de emergencias, y deberá estar bajo el criterio y conocimiento del jefe o jefa de la unidad, que el personal policial tome las medidas de seguridad durante el desempeño del servicio y/o comisión (uso de chaleco anti balas, armamento, pito y linterna).",
-            libro_actas_reuniones: "33. Verificar en el	libro de reuniones	las	actas	de	reuniones	de coordinación con los entes gubernamentales o empresas privadas.",
-            libro_reuniones_personal: "34. Verificar el libro de reuniones con el personal policial y civil adscrito al ccp, con las planificaciones semanales realizadas por el jefe de cada servicios del CCP.",
-            archivo_general_expedientes: "35. Verificación del archivo general.",
-            libro_entrevistas_funcionarios: "36. verificar el libro de entrevistas del coordinador o coordinadora del ccp con los funcionarios de su jurisdicción.",
-            supervision_libros: "37. verifica regularmente las anotaciones en los siguientes libros: Entrada y salida de armamento, inspección y jefe de los servicios, ordenes de carácter permanente y libro de ronda.",
-            cumplimiento_normativa_instalaciones: "38. Verificar el cumplimiento de la normativa para: parque de armas, sala de evidencias.",
-            bienes_publicos_registrados: "39. Verificación que los bienes públicos existentes estén de acuerdo con los registrados en la oficina de gestión administrativa CPNB.",
-            resguardo_detenido: "40. verificar las condiciones con respecto al resguardo del detenido: seguridad de las instalaciones, medidas de control, condiciones de los funcionarios, condiciones de los privados de libertad y cumplimiento de las normativas para el traslado de los privados de libertad.",
-            equipos_control_incendios: "41. Verificar la existencia y operatividad de equipos de control de incendios, tales como extintores, cajón de arena, entre otros.",
-            equipos_comunicacion: "42. Verificar la cantidad de equipos de comunicación pertenecientes al ccp y las condición de los mismos",
-            plan_hospedaje_personal: "43. Verificar que el coordinador o coordinadora del ccp. tenga previsto un plan de hospedaje para el personal de apoyo y reemplazos.",
-            calidad_vida_personal: "44. Verificar	la	calidad	de	vida,	alimentación,	servicios	básicos, habitabilidad, confort y bienestar del personal policial de la unidad inspeccionada.",
-            plan_visita_estaciones: "45. Verificar el plan de visita de inspección de todas las estaciones policiales de la jurisdicción del ccp inspeccionado. (verificar si las instalaciones policiales ubicados en lugares aislados o en arterias viales distantes ofrecen las condiciones de seguridad, correspondientes)",
-            servicio_medico: "46. Verificar si existe una enfermería en el CCP.",
-            unidad_recepcion_denuncias: "47. verificar la existencia de la unidad recepción de denuncias, quejas y reclamos recibidos en coordinación con los tribunales, fiscalía del ministerio público, defensoría del pueblo a nivel estadal y municipal y la comunidad",
-            areas_esparcimiento: "48. Verificar las instalaciones de las áreas de esparcimiento tales como comedores y dormitorios (televisores, muebles, mesas sillas)",
-            vehiculos_operativos: "49. Constatar la cantidad de vehículos operativos, inoperativos y el plan de mantenimiento existente del ccp inspeccionada. ¿que acciones de comando se han tomado en relación a estos vehículos siniestrados?",
-            placa_policial_vehiculos: "50. Verificar que todos los vehículos pertenecientes al parque automotor tenga placa policial",
-            vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos son suficientes para el desempeño de los servicios de policiales.",
-            vehiculos_donados_inventario: "52. Verificar si el ccp ha recibido vehículos donados o en comodato y si se han incluidos en el inventario nacional del CPNB.",
-            accesorios_seguridad_vehiculos: "53. Verificar los accesorios de seguridad que debe llevar todo vehículos.",
-            necesidades_repuestos_vehiculos: "54. Constatar las necesidades o requerimientos de repuestos, cauchos y accesorios de vehículos de la unidad inspeccionada.",
-            identificacion_vehiculos_policiales: "55. Verificar que los vehículos policiales estén plenamente identificados con los logos policiales correspondientes, cautelera y equipo P.A operativo",
-            informes_parques_armas: "56. Verificar los informes de inspecciones realizadas a los parques de armas por la oficina de gestión administrativa cpnb y elaborar un acta de inspección con los resultados.",
-            supervision_pac: "57. Verificar las acciones de comando establecidas en la supervisión y control de los puntos de atención al ciudadano (p.a.c). (permitan el normal flujo de los productos de primera necesidad (comida y medicamentos) que forman parte del sistema nacional de abastecimiento del gobierno bolivariano)",
-            vademecum_actualizado: "58. Verificar y revisar el vademecum general del ccp, debidamente actualizado por las estaciones policiales.",
-            despliegues_policiales: "59. Supervisar el cumplimiento de los despliegues policiales emanados por la oficina de operaciones policiales y las actividades extraordinarias realizadas por el CCP.",
-            supervision_personal_mando: "60. Constatar si hay mayor nivel de supervisión y control sobre el personal, para cumplir en todo momento el principio de mando y conducción de mantener informado a tu personal, sobre la situación actual.",
-            planes_contra_trafico_ilicito: "61. Verificar los planes para contrarrestar el tráfico ilícito, distribución y comercialización de sustancias estupefacientes y psicotrópicas, alimentos de la cesta básica, materiales estratégicos, hidrocarburos, armamento y delitos comunes.",
-            conocimiento_lineamientos_derechos_humanos: "62. Constatar	que	el	personal	policial	tenga	conocimiento	de	los lineamientos de instrucción en materia de: derechos humanos, derecho internacional humanitario: armas letales, orden público, unidades tácticas policiales y los procedimiento con niños, niñas y adolescentes, igualdad y equidad de género.",
-            registro_actuaciones_cop: "63. Verificar el registro y control de las actuaciones positivas y negativas al personal en el centro de operaciones policiales (COP) del ccp, por cuadrante de paz.",
-            rendicion_procedimientos_cop: "64. Verificar el cumplimiento de la rendición de los procedimiento ejecutados por los servicios policiales al centro de operación policial (cop) del ccp, para su consolidación y rendición a la región de su subscripción.",
-            archivos_informes_rendicion: "65. Revisión de los archivos de los informes de rendición de cuenta de los procedimientos policiales.",
-            informes_preliminares_actuacion: "66. Verificar la elaboración de los informes preliminares de actuación policial.",
-            estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
+                    nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
+                    acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
+                    dossier_comandante: "3. Verificar que el comandante posea el dossier con documentos de la unidad (creación, justificación, propiedad, etc.).",
+                    conocimiento_ley_organica: "4. Verificar conocimiento sobre la Ley Orgánica del Servicio de Policía y Ley del CPNB.",
+                    conocimiento_estatuto_personal: "5. Verificar conocimiento sobre el Reglamento del Estatuto de la Función Policial (administración de personal).",
+                    conocimiento_reglamento_disciplinario: "6. Verificar conocimiento sobre el Reglamento de la Función Policial y Régimen Disciplinario.",
+                    estructura_organizativa: "7. Verificar conocimiento de la estructura organizativa del CPNB y aplicación en la unidad.",
+                    manuales_normas_procedimientos: "8. Verificar manuales de normas, organización y procedimientos operativos (si aplica).",
+                    plan_trabajo_anual: "9. Verificar el Plan de Trabajo Anual (POA), cumplimiento y logros.",
+                    infraestructura_identificacion: "10. Verificar identificación adecuada de infraestructuras físicas.",
+                    direccion_atencion_victima: "11. Verificar activación de Dirección de Atención a la Víctima, Brigada Especial, Oficina de DDHH, etc.",
+                    oficina_gestion_humana: "12. Verificar con Oficina de Gestión Humana: relación de personal, fichas, vacaciones, ascensos, etc.",
+                    documentacion_personal: "13. Constatar documentación del personal (carnet policial, cédula, licencia, declaración de renta, etc.).",
+                    uniforme_presentacion: "14. Constatar uso correcto del uniforme y presentación personal (corte de cabello, botas, uñas, etc.).",
+                    practica_induccion_orden_publico: "15. Verificar práctica de inducción en orden público (planes de reacción inmediata, defensa, evacuación).",
+                    entrenamiento_armamento: "16. Verificar entrenamiento en manejo de armamento orgánico.",
+                    talleres_manejo_defensivo: "17. Verificar talleres de manejo defensivo y seguridad vial para conductores.",
+                    conocimientos_primeros_auxilios: "18. Verificar conocimientos mínimos de primeros auxilios en el personal.",
+                    acciones_moral_disciplina: "19. Verificar acciones para elevar moral, disciplina, espíritu de cuerpo y bienestar del personal.",
+                    conocimiento_pensamiento_bolivariano: "20. Verificar conocimiento del pensamiento bolivariano (Simón Bolívar y Hugo Chávez).",
+                    instruccion_etica_moral: "21. Verificar instrucción constante sobre honestidad, ética y espíritu de cuerpo.",
+                    talleres_ministerio_publico: "22. Verificar talleres dictados por Ministerio Público sobre debido proceso y DDHH.",
+                    conocimiento_lineamientos_cpnb: "23. Constatar conocimiento de lineamientos del CPNB y acciones de difusión.",
+                    cursos_sustanciacion_expedientes: "24. Constatar cursos de sustanciación de expedientes, actas policiales y pericias judiciales.",
+                    cumplimiento_entrenamiento_fisico: "25. Verificar cumplimiento de entrenamiento: educación física y orden cerrado.",
+                    dotacion_trajes_antimotines: "26. Verificar dotación suficiente de trajes antimotines.",
+                    practica_tecnicas_policiales: "27. Verificar práctica de: manejo de armas, tiro de combate, mantenimiento, técnicas policiales, uso progresivo de la fuerza, etc.",
+                    numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios sea suficiente para los servicios policiales.",
+                    personal_empleado_servicios: "29. Verificar que el personal esté siendo empleado para cumplir servicios policiales.",
+                    servicios_autorizados_mpprijp: "30. Verificar que solo se presten servicios autorizados por MPPRIJP y Comando General.",
+                    publicaciones_procedimientos: "31. Verificar publicaciones de procedimientos: backing institucional, uso de mesón, fotos nítidas, sin efectivos en fotos.",
+                    libros_novedades: "32. Verificar en libros de novedades: izada de bandera, formaciones diarias, comisiones, prohibición de persecuciones, uso de chaleco.",
+                    libro_actas_reuniones: "33. Verificar existencia del libro de actas de reuniones con entes gubernamentales o privados.",
+                    libro_reuniones_personal: "34. Verificar existencia del libro de reuniones con personal policial y planificaciones semanales.",
+                    archivo_general_expedientes: "35. Verificación del archivo general de expedientes.",
+                    libro_entrevistas_funcionarios: "36. Verificar el libro de entrevistas con funcionarios.",
+                    supervision_libros: "37. Supervisar anotaciones en libros: armamento, inspección de servicios, órdenes permanentes, ronda, operaciones.",
+                    cumplimiento_normativa_instalaciones: "38. Verificar cumplimiento de normativa para parque de armas y sala de evidencias.",
+                    bienes_publicos_registrados: "39. Verificar que los bienes públicos coincidan con los registrados en Gestión Administrativa.",
+                    resguardo_detenido: "40. Verificar condiciones de resguardo del detenido: seguridad, control, condiciones de funcionarios y privados de libertad.",
+                    equipos_control_incendios: "41. Verificar existencia y operatividad de equipos de control de incendios.",
+                    equipos_comunicacion: "42. Verificar cantidad y condición de equipos de comunicación.",
+                    plan_hospedaje_personal: "43. Verificar que el comandante tenga previsto un plan de hospedaje para personal de apoyo.",
+                    calidad_vida_personal: "44. Verificar calidad de vida, alimentación, servicios básicos y bienestar del personal.",
+                    plan_visita_estaciones: "45. Verificar plan de visita a estaciones policiales de la jurisdicción.",
+                    servicio_medico: "46. Verificar si existe un servicio médico en la unidad.",
+                    unidad_recepcion_denuncias: "47. Verificar existencia de unidad de recepción de denuncias en coordinación con entes.",
+                    areas_esparcimiento: "48. Constatar condiciones de áreas de esparcimiento (comedores, dormitorios, muebles, etc.).",
+                    vehiculos_operativos: "49. Constatar cantidad de vehículos operativos/inoperativos y plan de mantenimiento.",
+                    placa_policial_vehiculos: "50. Verificar que todos los vehículos tengan placa policial.",
+                    vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos es suficiente.",
+                    vehiculos_donados_inventario: "52. Verificar si vehículos donados están incluidos en inventario nacional.",
+                    accesorios_seguridad_vehiculos: "53. Verificar accesorios de seguridad en vehículos.",
+                    necesidades_repuestos_vehiculos: "54. Constatar necesidades de repuestos, cauchos y accesorios.",
+                    identificacion_vehiculos_policiales: "55. Verificar identificación de vehículos con logos, cautelera y equipo P.A.",
+                    informes_parques_armas: "56. Verificar informes de inspección a parques de armas y acta de inspección.",
+                    supervision_pac: "57. Verificar supervisión de Puntos de Atención al Ciudadano (PAC) y flujo de productos esenciales.",
+                    vademecum_actualizado: "58. Verificar vademécum general actualizado.",
+                    despliegues_policiales: "59. Supervisar cumplimiento de despliegues policiales y actividades extraordinarias.",
+                    supervision_personal_mando: "60. Constatar mayor supervisión y control sobre el personal (principio de mando).",
+                    planes_contra_trafico_ilicito: "61. Verificar planes contra tráfico ilícito, alimentos, hidrocarburos, armamento, etc.",
+                    conocimiento_lineamientos_derechos_humanos: "62. Constatar conocimiento de lineamientos en DDHH, orden público, atención a víctimas, etc.",
+                    registro_actuaciones_cop: "63. Verificar registro de actuaciones positivas/negativas en el COP por cuadrante.",
+                    rendicion_procedimientos_cop: "64. Verificar rendición de procedimientos al COP para consolidación.",
+                    archivos_informes_rendicion: "65. Revisión de archivos de informes de rendición de cuenta.",
+                    informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
+                    estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
                 };
                 let fechaFormateada = 'Fecha no disponible';
                 if (inspeccion.created_at) {
@@ -1007,7 +947,7 @@
                         </div>
                     </div>
                 `;
-                // ✅ CORREGIDO: ordenar los ítems del 1 al 67 en el modal
+                // ✅ Mostrar los 67 ítems en orden numérico, con texto completo
                 const itemsMap = {};
                 (items || []).forEach(item => {
                     itemsMap[item.item_nombre] = item;
@@ -1107,7 +1047,13 @@
             <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
         </div>
         <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748; text-align: justify;">
-            La seguridad ciudadana es un pilar fundamental...
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La&nbsp;Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su&nbsp;Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación:</strong>&nbsp;Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica:</strong>&nbsp;Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación.</strong> Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
         </div>
         ${content.innerHTML}
         <div style="margin-top: 50px; page-break-inside: avoid;">
@@ -1152,118 +1098,119 @@
                 alert('❌ Error al generar el reporte. Verifique que la tabla "reportes" exista.');
             }
         }
-     async function exportarHistorialAPDF() {
-    try {
-        const desde = document.getElementById('fechaDesde').value;
-        const hasta = document.getElementById('fechaHasta').value;
-        const ccpId = document.getElementById('ccpFilter').value;
-        const estacionId = document.getElementById('estacionFilter').value;
-        const servicioId = document.getElementById('servicioFilter').value;
-        let query = supabase
-            .from('inspecciones')
-            .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
-            .order('created_at', { ascending: false });
-        if (desde && hasta) {
-            const desdeISO = new Date(desde).toISOString().split('T')[0];
-            const hastaISO = new Date(hasta).toISOString().split('T')[0];
-            query = query
-                .gte('created_at', desdeISO)
-                .lte('created_at', hastaISO + 'T23:59:59.999Z');
-        }
-        if (estacionId) {
-            query = query.eq('estacion_id', estacionId);
-        } else if (servicioId) {
-            query = query.eq('servicio_id', servicioId);
-        } else if (ccpId) {
-            const { data: estaciones, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('estacion_id')
-                .eq('ccp_id', ccpId);
-            const { data: servicios, error: servError } = await supabase
-                .from('servicios_administrativos')
-                .select('id')
-                .eq('ccp_id', ccpId);
-            if (estError || servError) throw new Error('Error al cargar entidades.');
-            const idsEst = estaciones?.map(e => e.estacion_id) || [];
-            const idsServ = servicios?.map(s => s.id) || [];
-            const condiciones = [];
-            if (idsEst.length > 0) condiciones.push(`estacion_id.in.(${idsEst.join(',')})`);
-            if (idsServ.length > 0) condiciones.push(`servicio_id.in.(${idsServ.join(',')})`);
-            if (condiciones.length > 0) {
-                query = query.or(condiciones.join(','));
-            }
-        }
-        const { data: inspecciones, error } = await query;
-        if (error) throw error;
-        if (!inspecciones || inspecciones.length === 0) {
-            alert('No hay inspecciones para exportar con los filtros actuales.');
-            return;
-        }
-        const { data: todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('estacion_id, nombre_estacion');
-        const { data: todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('id, nombre');
-        if (estError || servError) throw new Error('Error al cargar nombres.');
-        const estMap = {};
-        const servMap = {};
-        todasEstaciones.forEach(e => estMap[e.estacion_id] = e.nombre_estacion);
-        todosServicios.forEach(s => servMap[s.id] = s.nombre);
-        const ids = inspecciones.map(i => i.id);
-        const { data: items } = await supabase
-            .from('items_inspeccion')
-            .select('inspeccion_id, cumple')
-            .in('inspeccion_id', ids);
-        const statsPorInspeccion = {};
-        items?.forEach(item => {
-            if (!statsPorInspeccion[item.inspeccion_id]) {
-                statsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
-            }
-            statsPorInspeccion[item.inspeccion_id].total++;
-            if (item.cumple) statsPorInspeccion[item.inspeccion_id].cumplidos++;
-        });
-        let htmlContent = `
-<div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-    <div style="text-align: center; margin-bottom: 20px;">
-        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-        <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
-        <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-        <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">Fechas: ${desde || 'Sin filtro'} - ${hasta || 'Sin filtro'}</p>
-        ${ccpId ? `<p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">CCP: ${ccpNombres[ccpId]}</p>` : ''}
-    </div>
-    <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748; text-align: justify;">
-        La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
-        La&nbsp;Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su&nbsp;Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
-        En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
-        1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación:</strong>&nbsp;Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
-        2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica:</strong>&nbsp;Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
-        3. <strong>Vértice 11: Geopolítica de la Transformación.</strong> Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
-        Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
-    </div>
-    <div style="margin-top: 30px; font-size: 14px; line-height: 1.6; color: #2d3748;">
-        <h2 style="color: #0c2440; margin-bottom: 15px;">Resumen de Inspecciones</h2>
-        <p>Se muestran ${inspecciones.length} inspecciones.</p>
-    </div>
+        // === Exportar historial completo (código completo de historial.txt) ===
+        async function exportarHistorialAPDF() {
+            try {
+                const desde = document.getElementById('fechaDesde').value;
+                const hasta = document.getElementById('fechaHasta').value;
+                const ccpId = document.getElementById('ccpFilter').value;
+                const estacionId = document.getElementById('estacionFilter').value;
+                const servicioId = document.getElementById('servicioFilter').value;
+                let query = supabase
+                    .from('inspecciones')
+                    .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
+                    .order('created_at', { ascending: false });
+                if (desde && hasta) {
+                    const desdeISO = new Date(desde).toISOString().split('T')[0];
+                    const hastaISO = new Date(hasta).toISOString().split('T')[0];
+                    query = query
+                        .gte('created_at', desdeISO)
+                        .lte('created_at', hastaISO + 'T23:59:59.999Z');
+                }
+                if (estacionId) {
+                    query = query.eq('estacion_id', estacionId);
+                } else if (servicioId) {
+                    query = query.eq('servicio_id', servicioId);
+                } else if (ccpId) {
+                    const { data: estaciones, error: estError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('estacion_id')
+                        .eq('ccp_id', ccpId);
+                    const { data: servicios, error: servError } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id')
+                        .eq('ccp_id', ccpId);
+                    if (estError || servError) throw new Error('Error al cargar entidades.');
+                    const idsEst = estaciones?.map(e => e.estacion_id) || [];
+                    const idsServ = servicios?.map(s => s.id) || [];
+                    const condiciones = [];
+                    if (idsEst.length > 0) condiciones.push(`estacion_id.in.(${idsEst.join(',')})`);
+                    if (idsServ.length > 0) condiciones.push(`servicio_id.in.(${idsServ.join(',')})`);
+                    if (condiciones.length > 0) {
+                        query = query.or(condiciones.join(','));
+                    }
+                }
+                const { data: inspecciones, error } = await query;
+                if (error) throw error;
+                if (!inspecciones || inspecciones.length === 0) {
+                    alert('No hay inspecciones para exportar con los filtros actuales.');
+                    return;
+                }
+                const { data: todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('estacion_id, nombre_estacion');
+                const { data: todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('id, nombre');
+                if (estError || servError) throw new Error('Error al cargar nombres.');
+                const estMap = {};
+                const servMap = {};
+                todasEstaciones.forEach(e => estMap[e.estacion_id] = e.nombre_estacion);
+                todosServicios.forEach(s => servMap[s.id] = s.nombre);
+                const ids = inspecciones.map(i => i.id);
+                const { data: items } = await supabase
+                    .from('items_inspeccion')
+                    .select('inspeccion_id, cumple')
+                    .in('inspeccion_id', ids);
+                const statsPorInspeccion = {};
+                items?.forEach(item => {
+                    if (!statsPorInspeccion[item.inspeccion_id]) {
+                        statsPorInspeccion[item.inspeccion_id] = { total: 0, cumplidos: 0 };
+                    }
+                    statsPorInspeccion[item.inspeccion_id].total++;
+                    if (item.cumple) statsPorInspeccion[item.inspeccion_id].cumplidos++;
+                });
+                let htmlContent = `
+    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">HISTORIAL DE INSPECCIONES</h1>
+            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">Fechas: ${desde || 'Sin filtro'} - ${hasta || 'Sin filtro'}</p>
+            ${ccpId ? `<p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">CCP: ${ccpNombres[ccpId]}</p>` : ''}
+        </div>
+        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 12px; line-height: 1.6; color: #2d3748; text-align: justify;">
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La&nbsp;Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su&nbsp;Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación:</strong>&nbsp;Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica:</strong>&nbsp;Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación.</strong> Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
+        </div>
+        <div style="margin-top: 30px; font-size: 14px; line-height: 1.6; color: #2d3748;">
+            <h2 style="color: #0c2440; margin-bottom: 15px;">Resumen de Inspecciones</h2>
+            <p>Se muestran ${inspecciones.length} inspecciones.</p>
+        </div>
 `;
-        inspecciones.forEach(insp => {
-            let nombre = 'Desconocido';
-            let tipo = 'desconocido';
-            if (insp.estacion_id) {
-                nombre = estMap[insp.estacion_id] || 'Estación desconocida';
-                tipo = 'estacion';
-            } else if (insp.servicio_id) {
-                nombre = servMap[insp.servicio_id] || 'Servicio desconocido';
-                tipo = 'servicio';
-            }
-            const stats = statsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
-            const pct = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
-            const fechaStr = new Date(insp.created_at).toLocaleString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            const tipoIcono = tipo === 'servicio' ? '📄' : '👮';
-            const tipoTexto = tipo === 'servicio' ? 'Servicio' : 'Estación';
-            htmlContent += `
+                inspecciones.forEach(insp => {
+                    let nombre = 'Desconocido';
+                    let tipo = 'desconocido';
+                    if (insp.estacion_id) {
+                        nombre = estMap[insp.estacion_id] || 'Estación desconocida';
+                        tipo = 'estacion';
+                    } else if (insp.servicio_id) {
+                        nombre = servMap[insp.servicio_id] || 'Servicio desconocido';
+                        tipo = 'servicio';
+                    }
+                    const stats = statsPorInspeccion[insp.id] || { total: 0, cumplidos: 0 };
+                    const pct = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
+                    const fechaStr = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const tipoIcono = tipo === 'servicio' ? '📄' : '👮';
+                    const tipoTexto = tipo === 'servicio' ? 'Servicio' : 'Estación';
+                    htmlContent += `
 <div style="margin-top: 20px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <div><strong style="color: #0c2440; font-size: 16px;">${tipoIcono} ${tipoTexto}: ${nombre}</strong></div>
@@ -1279,43 +1226,72 @@
     </div>` : ''}
 </div>
 `;
-        });
-        htmlContent += `
+                });
+                htmlContent += `
     <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
         Fecha de generación: ${new Date().toLocaleString('es-ES')}
     </div>
 </div>
 `;
-        const printDiv = document.createElement('div');
-        printDiv.innerHTML = htmlContent;
-        document.body.appendChild(printDiv);
-        printDiv.style.position = 'fixed';
-        printDiv.style.left = '-9999px';
-        const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
-        const { jsPDF } = window.jspdf;
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                pdf.save(`historial_inspecciones_${ccpId || 'todos'}_${new Date().toISOString().slice(0, 10)}.pdf`);
+                document.body.removeChild(printDiv);
+                alert(`✅ Historial exportado (${inspecciones.length} registros).`);
+            } catch (err) {
+                console.error('Error al exportar PDF:', err);
+                alert('❌ Error al generar el PDF del historial.');
+            }
         }
-        pdf.save(`historial_inspecciones_${ccpId || 'todos'}_${new Date().toISOString().slice(0, 10)}.pdf`);
-        document.body.removeChild(printDiv);
-        alert(`✅ Historial exportado (${inspecciones.length} registros).`);
-    } catch (err) {
-        console.error('Error al exportar PDF:', err);
-        alert('❌ Error al generar el PDF del historial.');
-    }
-}
+        // === Funciones de reinspección (¡definidas!) ===
+        function abrirModalFecha(inspeccionId) {
+            inspeccionIdActual = inspeccionId;
+            document.getElementById('modalFecha').style.display = 'flex';
+        }
+        function cerrarModalFecha() {
+            document.getElementById('modalFecha').style.display = 'none';
+            document.getElementById('nuevaFechaInput').value = '';
+        }
+        async function confirmarNuevaFecha() {
+            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
+            if (!nuevaFecha) {
+                alert("Por favor seleccione una fecha.");
+                return;
+            }
+            try {
+                const { error } = await supabase
+                    .from('inspecciones')
+                    .update({ proxima_inspeccion: nuevaFecha })
+                    .eq('id', inspeccionIdActual);
+                if (error) throw error;
+                alert("✅ Reinspección actualizada correctamente.");
+                cerrarModalFecha();
+                aplicarFiltro(); // ✅ Recarga la lista y actualiza visualmente
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                alert("❌ Error al actualizar la reinspección.");
+            }
+        }
         function volverAIndex() {
             window.location.href = 'index.html';
         }
