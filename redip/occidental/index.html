@@ -103,8 +103,7 @@
 async function cargarCCPs() {
     const select = document.getElementById('ccpSelectModal');
     try {
-        // ✅ Consulta directa a la tabla con los campos y valores correctos
-        const {  ccps, error } = await supabase
+        const { data: ccps, error } = await supabase
             .from('ccps')
             .select('ccp_id, nombre_ccp')
             .eq('redip', 'occidental')
