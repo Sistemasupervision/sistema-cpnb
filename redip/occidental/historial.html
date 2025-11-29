@@ -972,20 +972,23 @@
                             : 'background: #fed7d7; color: #9b2c2c;';
                     }
                     html += `
-                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="font-weight: bold; color: #0c2440; font-size: 15px;">${textoCompleto}</span>
-                                <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${estadoEstilo}">
-                                    ${estadoTexto}${porcentajeTexto}
-                                </span>
-                            </div>
-                            ${observacion ? `
-                                <div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
-                                    <strong>Observación:</strong> ${observacion}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
+                  html += `
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="margin-bottom: 8px;">
+            <span style="font-weight: bold; color: #0c2440; font-size: 15px; display: block; line-height: 1.4;">${textoCompleto}</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${estadoEstilo}">
+                ${estadoTexto}${porcentajeTexto}
+            </span>
+        </div>
+        ${observacion ? `
+            <div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                <strong>Observación:</strong> ${observacion}
+            </div>
+        ` : ''}
+    </div>
+`;
                 });
                 if (inspeccion.observaciones_generales) {
                     html += `
