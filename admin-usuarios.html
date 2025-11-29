@@ -226,20 +226,19 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ Verificación de admin: igual que en index.html
         async function verificarAdmin() {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) {
-                alert('Debe iniciar sesión desde la página principal.');
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
                 return false;
             }
-            const { data, dbError } = await supabase
+            const { data, error } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
                 .eq('user_id', user.id)
                 .single();
-            if (dbError || !data || data.redip !== 'admin') {
+            if (error || !data || data.redip !== 'admin') {
                 alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                 window.location.href = 'index.html';
                 return false;
@@ -247,7 +246,6 @@
             return true;
         }
 
-        // ✅ Cargar usuarios usando getUser() (igual que index.html)
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
@@ -255,9 +253,14 @@
                 if (error || !user) throw new Error('Usuario no autenticado');
                 const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
                     method: 'GET',
-                    headers: { 'Authorization': `Bearer ${user.access_token}` }
+                    headers: {
+                        'Authorization': `Bearer ${user.access_token}`
+                    }
                 });
-                if (!res.ok) throw new Error(await res.text());
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(errorText || 'Error al cargar usuarios');
+                }
                 const usuarios = await res.json();
                 if (!usuarios || usuarios.length === 0) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
@@ -281,11 +284,13 @@
                 contenedor.innerHTML = html;
             } catch (error) {
                 console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">❌ Error al cargar usuarios.<br><small>${error.message}</small></div>`;
+                contenedor.innerHTML = `<div class="error" style="padding:15px;">
+                    ❌ Error al cargar usuarios.<br>
+                    <small>${error.message}</small>
+                </div>`;
             }
         }
 
-        // ✅ Crear usuario con token válido
         async function crearUsuario(email, password, redip) {
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
@@ -301,7 +306,6 @@
             return await res.json();
         }
 
-        // ✅ Modificar solo la contraseña (como pediste)
         async function modificarUsuario(userId, password = null) {
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
@@ -319,7 +323,6 @@
             return await res.json();
         }
 
-        // ✅ Eliminar usuario
         async function eliminarUsuarioApi(userId) {
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
@@ -336,8 +339,12 @@
         }
 
         function mostrarSeccion(seccion) {
-            document.querySelectorAll('.list-section, .form-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.list-section, .form-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
             if (seccion === 'listado') {
                 document.getElementById('listadoUsuarios').classList.add('active');
                 document.querySelector('.tab-btn:first-child').classList.add('active');
@@ -354,8 +361,6 @@
             document.getElementById('userId').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('submitBtn').textContent = 'Crear Usuario';
-            document.getElementById('email').disabled = false;
-            document.getElementById('redip').disabled = false;
             modoEdicion = false;
         }
 
