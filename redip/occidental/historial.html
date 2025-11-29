@@ -533,8 +533,7 @@
                 window.location.href = 'index.html';
             }
         }
-
-        // ✅ CORREGIDO: usar 'estacion_id' y 'servicio_id' en lugar de 'id'
+        // ✅ FUNCIÓN CORREGIDA: carga estaciones y servicios de un CCP
         async function cargarEstacionesYServicios(ccpId) {
             const estacionSelect = document.getElementById('estacionFilter');
             const servicioSelect = document.getElementById('servicioFilter');
@@ -542,28 +541,30 @@
             servicioSelect.innerHTML = '<option value="">Todos los servicios</option>';
             if (!ccpId) return;
             try {
+                // ✅ Usar nombre_estacion en lugar de nombre
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('estacion_id, nombre, ccp_id') // 🔁 CAMBIADO: 'estacion_id'
+                    .select('estacion_id, nombre_estacion, ccp_id')
                     .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
+                    .order('nombre_estacion', { ascending: true });
                 if (estError) throw estError;
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
-                    opt.value = est.estacion_id; // 🔁 CAMBIADO
-                    opt.textContent = est.nombre;
+                    opt.value = est.estacion_id;
+                    opt.textContent = est.nombre_estacion;
                     estacionSelect.appendChild(opt);
                 });
+                // ✅ Asumimos que en servicios_administrativos la columna se llama nombre_servicio
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
-                    .select('servicio_id, nombre, ccp_id') // 🔁 CAMBIADO: 'servicio_id'
+                    .select('servicio_id, nombre_servicio, ccp_id')
                     .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
+                    .order('nombre_servicio', { ascending: true });
                 if (servError) throw servError;
                 servicios.forEach(serv => {
                     const opt = document.createElement('option');
-                    opt.value = serv.servicio_id; // 🔁 CAMBIADO
-                    opt.textContent = serv.nombre;
+                    opt.value = serv.servicio_id;
+                    opt.textContent = serv.nombre_servicio;
                     servicioSelect.appendChild(opt);
                 });
             } catch (error) {
@@ -571,44 +572,41 @@
                 alert('Error al cargar las estaciones o servicios del CCP.');
             }
         }
-
+        // Evento manual de cambio de CCP
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             await cargarEstacionesYServicios(ccpId);
         });
-
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
+                // ✅ Cargar todas las estaciones con nombre_estacion
                 const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('estacion_id, nombre, ccp_id'); // 🔁 CAMBIADO
+                    .select('estacion_id, nombre_estacion, ccp_id');
                 if (estError) throw estError;
+                // ✅ Cargar todos los servicios con nombre_servicio
                 const { data: todosServicios, error: servError } = await supabase
                     .from('servicios_administrativos')
-                    .select('servicio_id, nombre, ccp_id'); // 🔁 CAMBIADO
+                    .select('servicio_id, nombre_servicio, ccp_id');
                 if (servError) throw servError;
-
                 const estacionMap = {};
                 const servicioMap = {};
                 const ccpEstaciones = {};
                 const ccpServicios = {};
-
                 todasEstaciones.forEach(est => {
-                    estacionMap[est.estacion_id] = { nombre: est.nombre, ccp_id: est.ccp_id }; // 🔁
+                    estacionMap[est.estacion_id] = { nombre: est.nombre_estacion, ccp_id: est.ccp_id };
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
-                    ccpEstaciones[est.ccp_id].push(est.estacion_id); // 🔁
+                    ccpEstaciones[est.ccp_id].push(est.estacion_id);
                 });
                 todosServicios.forEach(serv => {
-                    servicioMap[serv.servicio_id] = { nombre: serv.nombre, ccp_id: serv.ccp_id }; // 🔁
+                    servicioMap[serv.servicio_id] = { nombre: serv.nombre_servicio, ccp_id: serv.ccp_id };
                     if (!ccpServicios[serv.ccp_id]) ccpServicios[serv.ccp_id] = [];
-                    ccpServicios[serv.ccp_id].push(serv.servicio_id); // 🔁
+                    ccpServicios[serv.ccp_id].push(serv.servicio_id);
                 });
-
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
-
                 if (fechaDesde && fechaHasta) {
                     const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
                     const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
@@ -630,10 +628,8 @@
                         query = query.or(condiciones.join(','));
                     }
                 }
-
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
-
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
@@ -651,7 +647,6 @@
                         });
                     }
                 }
-
                 inspeccionesCache = inspecciones.map(insp => {
                     let nombreEntidad = 'Entidad no encontrada';
                     let tipo = 'desconocido';
@@ -677,7 +672,6 @@
                         porcentaje_cumplimiento: porcentaje
                     };
                 });
-
                 paginaActual = 1;
                 renderizarLista();
                 renderizarPaginacion();
@@ -689,7 +683,6 @@
                 renderizarPaginacion();
             }
         }
-
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
@@ -758,7 +751,6 @@
                 contenedor.appendChild(card);
             });
         }
-
         function renderizarPaginacion() {
             const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
             const paginacionDiv = document.getElementById('pagination');
@@ -804,7 +796,6 @@
             };
             paginacionDiv.appendChild(nextBtn);
         }
-
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -817,7 +808,6 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId, servicioId);
         }
-
         async function mostrarDetalle(inspeccionId) {
             try {
                 const { data: items, error: itemsError } = await supabase
@@ -830,37 +820,34 @@
                     .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
                     .eq('id', inspeccionId)
                     .single();
-
                 if (itemsError || inspError) {
                     console.error('Error cargando datos:', itemsError || inspError);
                     alert('No se pudieron cargar los detalles.');
                     return;
                 }
-
                 let nombreEntidad = 'Entidad no disponible';
                 let tipo = 'desconocido';
                 if (inspeccion.estacion_id) {
                     const { data: estacionData, error: estError } = await supabase
                         .from('estaciones_policiales')
-                        .select('nombre')
-                        .eq('estacion_id', inspeccion.estacion_id) // 🔁 CAMBIADO: 'estacion_id'
+                        .select('nombre_estacion')
+                        .eq('estacion_id', inspeccion.estacion_id)
                         .single();
                     if (!estError && estacionData) {
-                        nombreEntidad = estacionData.nombre;
+                        nombreEntidad = estacionData.nombre_estacion;
                         tipo = 'estacion';
                     }
                 } else if (inspeccion.servicio_id) {
                     const { data: servicioData, error: servError } = await supabase
                         .from('servicios_administrativos')
-                        .select('nombre')
-                        .eq('servicio_id', inspeccion.servicio_id) // 🔁 CAMBIADO: 'servicio_id'
+                        .select('nombre_servicio')
+                        .eq('servicio_id', inspeccion.servicio_id)
                         .single();
                     if (!servError && servicioData) {
-                        nombreEntidad = servicioData.nombre;
+                        nombreEntidad = servicioData.nombre_servicio;
                         tipo = 'servicio';
                     }
                 }
-
                 const nombresAmigables = {
                     nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
                     acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -930,7 +917,6 @@
                     informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
                     estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
                 };
-
                 let fechaFormateada = 'Fecha no disponible';
                 if (inspeccion.created_at) {
                     const fechaObj = new Date(inspeccion.created_at);
@@ -944,7 +930,6 @@
                         });
                     }
                 }
-
                 let html = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
@@ -970,7 +955,6 @@
                         </div>
                     </div>
                 `;
-
                 const itemsArray = Array.isArray(items) ? items : [];
                 if (itemsArray.length > 0) {
                     html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
@@ -1012,16 +996,12 @@
                 alert('Error al cargar los detalles de la inspección.');
             }
         }
-
         function cerrarModal() {
             document.getElementById('detalleModal').style.display = 'none';
         }
-
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-
-        // ✅ CORREGIDO: pasar inspeccionId como string (UUID)
         async function exportarInspeccionAPDF(inspeccionId) {
             if (!inspeccionId) {
                 alert('⚠️ No se ha seleccionado una inspección.');
@@ -1037,25 +1017,20 @@
                 let tipo = 'desconocido';
                 if (inspeccion.estacion_id) tipo = 'estacion';
                 else if (inspeccion.servicio_id) tipo = 'servicio';
-
-                // Insertar reporte (inspeccionId es UUID, compatible con reportes.inspeccion_id)
                 const { data: nuevoReporte, error: insertError } = await supabase
                     .from('reportes')
                     .insert({ inspeccion_id: inspeccionId })
                     .select('id, fecha_generacion')
                     .single();
                 if (insertError) throw insertError;
-
                 const fechaGen = new Date(nuevoReporte.fecha_generacion);
                 const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
                 const consecutivo = String(nuevoReporte.id).padStart(6, '0');
                 const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
-
                 await supabase
                     .from('reportes')
                     .update({ numero_reporte: numeroReporte })
                     .eq('id', nuevoReporte.id);
-
                 const content = document.getElementById('detalleContenido');
                 const htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
@@ -1077,7 +1052,6 @@
         </div>
     </div>
 `;
-
                 const printDiv = document.createElement('div');
                 printDiv.innerHTML = htmlContent;
                 document.body.appendChild(printDiv);
@@ -1100,14 +1074,14 @@
                 }
                 pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
                 document.body.removeChild(printDiv);
-                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+                alert(`✅ Reporte generado.
+N°: ${numeroReporte}`);
             } catch (error) {
                 console.error('Error al generar PDF:', error);
-                alert('❌ Error al generar el reporte. Verifique que la tabla "reportes" exista y tenga permisos para authenticated.');
+                alert('❌ Error al generar el reporte.');
             }
         }
-
-        // === Exportar historial completo (sin cambios, funciona igual) ===
+        // === Exportar historial completo ===
         async function exportarHistorialAPDF() {
             try {
                 const desde = document.getElementById('fechaDesde').value;
@@ -1115,12 +1089,10 @@
                 const ccpId = document.getElementById('ccpFilter').value;
                 const estacionId = document.getElementById('estacionFilter').value;
                 const servicioId = document.getElementById('servicioFilter').value;
-
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
-
                 if (desde && hasta) {
                     const desdeISO = new Date(desde).toISOString().split('T')[0];
                     const hastaISO = new Date(hasta).toISOString().split('T')[0];
@@ -1135,15 +1107,15 @@
                 } else if (ccpId) {
                     const { data: estaciones, error: estError } = await supabase
                         .from('estaciones_policiales')
-                        .select('estacion_id') // 🔁
+                        .select('estacion_id')
                         .eq('ccp_id', ccpId);
                     const { data: servicios, error: servError } = await supabase
                         .from('servicios_administrativos')
-                        .select('servicio_id') // 🔁
+                        .select('servicio_id')
                         .eq('ccp_id', ccpId);
                     if (estError || servError) throw new Error('Error al cargar entidades.');
-                    const idsEst = estaciones?.map(e => e.estacion_id) || []; // 🔁
-                    const idsServ = servicios?.map(s => s.servicio_id) || []; // 🔁
+                    const idsEst = estaciones?.map(e => e.estacion_id) || [];
+                    const idsServ = servicios?.map(s => s.servicio_id) || [];
                     const condiciones = [];
                     if (idsEst.length > 0) condiciones.push(`estacion_id.in.(${idsEst.join(',')})`);
                     if (idsServ.length > 0) condiciones.push(`servicio_id.in.(${idsServ.join(',')})`);
@@ -1151,29 +1123,24 @@
                         query = query.or(condiciones.join(','));
                     }
                 }
-
                 const { data: inspecciones, error } = await query;
                 if (error) throw error;
                 if (!inspecciones || inspecciones.length === 0) {
                     alert('No hay inspecciones para exportar con los filtros actuales.');
                     return;
                 }
-
-                const { data: todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('estacion_id, nombre'); // 🔁
-                const { data: todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('servicio_id, nombre'); // 🔁
+                const { data: todasEstaciones, error: estError } = await supabase.from('estaciones_policiales').select('estacion_id, nombre_estacion');
+                const { data: todosServicios, error: servError } = await supabase.from('servicios_administrativos').select('servicio_id, nombre_servicio');
                 if (estError || servError) throw new Error('Error al cargar nombres.');
-
                 const estMap = {};
                 const servMap = {};
-                todasEstaciones.forEach(e => estMap[e.estacion_id] = e.nombre); // 🔁
-                todosServicios.forEach(s => servMap[s.servicio_id] = s.nombre); // 🔁
-
+                todasEstaciones.forEach(e => estMap[e.estacion_id] = e.nombre_estacion);
+                todosServicios.forEach(s => servMap[s.servicio_id] = s.nombre_servicio);
                 const ids = inspecciones.map(i => i.id);
                 const { data: items } = await supabase
                     .from('items_inspeccion')
                     .select('inspeccion_id, cumple')
                     .in('inspeccion_id', ids);
-
                 const statsPorInspeccion = {};
                 items?.forEach(item => {
                     if (!statsPorInspeccion[item.inspeccion_id]) {
@@ -1182,7 +1149,6 @@
                     statsPorInspeccion[item.inspeccion_id].total++;
                     if (item.cumple) statsPorInspeccion[item.inspeccion_id].cumplidos++;
                 });
-
                 let htmlContent = `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
         <div style="text-align: center; margin-bottom: 20px;">
@@ -1200,7 +1166,6 @@
             <p>Se muestran ${inspecciones.length} inspecciones.</p>
         </div>
 `;
-
                 inspecciones.forEach(insp => {
                     let nombre = 'Desconocido';
                     let tipo = 'desconocido';
@@ -1239,14 +1204,12 @@
 </div>
 `;
                 });
-
                 htmlContent += `
     <div style="margin-top: 50px; text-align: center; font-size: 12px; color: #666;">
         Fecha de generación: ${new Date().toLocaleString('es-ES')}
     </div>
 </div>
 `;
-
                 const printDiv = document.createElement('div');
                 printDiv.innerHTML = htmlContent;
                 document.body.appendChild(printDiv);
@@ -1277,7 +1240,6 @@
                 alert('❌ Error al generar el PDF del historial.');
             }
         }
-
         // Modales reinspección
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
@@ -1307,11 +1269,9 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
-
         function volverAIndex() {
             window.location.href = 'index.html';
         }
-
         verificarAcceso().then(async () => {
             const desde = hace30Dias.toISOString().split('T')[0];
             const hasta = hoy.toISOString().split('T')[0];
