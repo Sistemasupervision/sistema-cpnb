@@ -193,15 +193,15 @@
                 <input type="hidden" id="userId">
                 <div class="input-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" required disabled>
+                    <input type="email" id="email" required>
                 </div>
                 <div class="input-group" id="passwordGroup">
-                    <label for="password">Nueva Contraseña (opcional en edición)</label>
-                    <input type="password" id="password" minlength="6" placeholder="Dejar vacío para no cambiar">
+                    <label for="password">Contraseña (solo al crear)</label>
+                    <input type="password" id="password" minlength="6">
                 </div>
                 <div class="input-group">
-                    <label for="redip">REDIP</label>
-                    <select id="redip" required disabled>
+                    <label for="redip">Asignar REDIP</label>
+                    <select id="redip" required>
                         <option value="">-- Seleccione --</option>
                         <option value="admin">ADMINISTRADOR</option>
                         <option value="andes">REDIP LOS ANDES</option>
@@ -247,57 +247,61 @@
         }
 
         async function cargarUsuarios() {
-            const contenedor = document.getElementById('usuariosContenedor');
-            try {
-                const { data: { user }, error } = await supabase.auth.getUser();
-                if (error || !user) throw new Error('Usuario no autenticado');
-                const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${user.access_token}`
-                    }
-                });
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    throw new Error(errorText || 'Error al cargar usuarios');
-                }
-                const usuarios = await res.json();
-                if (!usuarios || usuarios.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-                    return;
-                }
-                let html = '';
-                usuarios.forEach(u => {
-                    html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                                <div class="usuario-redip">REDIP: ${u.redip}</div>
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                contenedor.innerHTML = html;
-            } catch (error) {
-                console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">
-                    ❌ Error al cargar usuarios.<br>
-                    <small>${error.message}</small>
-                </div>`;
+    const contenedor = document.getElementById('usuariosContenedor');
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Sesión no encontrada');
+
+        const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
             }
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(errorText || 'Error al cargar usuarios');
         }
 
+        const usuarios = await res.json();
+
+        if (!usuarios || usuarios.length === 0) {
+            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+            return;
+        }
+
+        let html = '';
+        usuarios.forEach(u => {
+            html += `
+                <div class="usuario-item">
+                    <div class="usuario-info">
+                        <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                        <div class="usuario-redip">REDIP: ${u.redip}</div>
+                    </div>
+                    <div class="acciones">
+                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        contenedor.innerHTML = html;
+    } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+        contenedor.innerHTML = `<div class="error" style="padding:15px;">
+            ❌ Error al cargar usuarios.<br>
+            <small>${error.message}</small>
+        </div>`;
+    }
+}
+        // === Funciones de operación (sin cambios) ===
         async function crearUsuario(email, password, redip) {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) throw new Error('Sesión inválida');
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${user.access_token}`,
+                    'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ email, password, redip })
@@ -306,30 +310,26 @@
             return await res.json();
         }
 
-        async function modificarUsuario(userId, password = null) {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) throw new Error('Sesión inválida');
-            const payload = { user_id: userId };
-            if (password) payload.password = password;
+        async function modificarUsuario(userId, redip) {
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${user.access_token}`,
+                    'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ user_id: userId, redip })
             });
             if (!res.ok) throw new Error(await res.text());
             return await res.json();
         }
 
         async function eliminarUsuarioApi(userId) {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error || !user) throw new Error('Sesión inválida');
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${user.access_token}`,
+                    'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ user_id: userId })
@@ -369,11 +369,8 @@
             document.getElementById('email').value = email;
             document.getElementById('email').disabled = true;
             document.getElementById('redip').value = redip;
-            document.getElementById('redip').disabled = true;
-            document.getElementById('password').value = '';
-            document.getElementById('passwordGroup').style.display = 'block';
-            document.querySelector('#passwordGroup label').textContent = 'Nueva Contraseña (opcional)';
-            document.getElementById('submitBtn').textContent = 'Actualizar Contraseña';
+            document.getElementById('passwordGroup').style.display = 'none';
+            document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
             modoEdicion = true;
             mostrarSeccion('formulario');
         }
@@ -394,20 +391,14 @@
             e.preventDefault();
             const userId = document.getElementById('userId').value;
             const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value.trim();
+            const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
             const msgDiv = document.getElementById('mensaje');
-
             try {
                 if (modoEdicion) {
-                    if (password) {
-                        await modificarUsuario(userId, password);
-                        msgDiv.className = 'mensaje exito';
-                        msgDiv.textContent = '✅ Contraseña actualizada correctamente.';
-                    } else {
-                        msgDiv.className = 'mensaje exito';
-                        msgDiv.textContent = 'ℹ️ No se realizó ningún cambio.';
-                    }
+                    await modificarUsuario(userId, redip);
+                    msgDiv.className = 'mensaje exito';
+                    msgDiv.textContent = '✅ Usuario actualizado correctamente.';
                 } else {
                     if (!password) throw new Error('La contraseña es obligatoria al crear.');
                     await crearUsuario(email, password, redip);
@@ -427,6 +418,7 @@
             }
         });
 
+        // Inicializar
         verificarAdmin().then(permitido => {
             if (permitido) {
                 cargarUsuarios();
