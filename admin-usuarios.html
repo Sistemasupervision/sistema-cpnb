@@ -183,25 +183,29 @@
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
+
+        <!-- Lista de usuarios -->
         <div id="listadoUsuarios" class="list-section active">
             <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
+
+        <!-- Formulario -->
         <div id="formularioUsuario" class="form-section">
             <form id="userForm">
                 <input type="hidden" id="userId">
                 <div class="input-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" required>
+                    <input type="email" id="email" required disabled>
                 </div>
                 <div class="input-group" id="passwordGroup">
-                    <label for="password">Contraseña (solo al crear)</label>
-                    <input type="password" id="password" minlength="6">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" minlength="6" placeholder="Dejar vacío para no cambiar">
                 </div>
                 <div class="input-group">
                     <label for="redip">Asignar REDIP</label>
-                    <select id="redip" required>
+                    <select id="redip" required disabled>
                         <option value="">-- Seleccione --</option>
                         <option value="admin">ADMINISTRADOR</option>
                         <option value="andes">REDIP LOS ANDES</option>
@@ -218,14 +222,17 @@
             </form>
             <div id="mensaje" class="mensaje" style="display: none;"></div>
         </div>
+
         <a href="index.html" class="back-btn">← Volver al inicio</a>
     </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
+        // Verifica que el usuario sea admin
         async function verificarAdmin() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -246,56 +253,46 @@
             return true;
         }
 
+        // Carga la lista de usuarios desde la función Edge
         async function cargarUsuarios() {
-    const contenedor = document.getElementById('usuariosContenedor');
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Sesión no encontrada');
-
-        const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${session.access_token}`
+            const contenedor = document.getElementById('usuariosContenedor');
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error('Sesión no encontrada');
+                const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const usuarios = await res.json();
+                if (!usuarios || usuarios.length === 0) {
+                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+                    return;
+                }
+                let html = '';
+                usuarios.forEach(u => {
+                    html += `
+                        <div class="usuario-item">
+                            <div class="usuario-info">
+                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                                <div class="usuario-redip">REDIP: ${u.redip}</div>
+                            </div>
+                            <div class="acciones">
+                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                contenedor.innerHTML = html;
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                contenedor.innerHTML = `<div class="error" style="padding:15px;">❌ Error al cargar usuarios.<br><small>${error.message}</small></div>`;
             }
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(errorText || 'Error al cargar usuarios');
         }
 
-        const usuarios = await res.json();
+        // === FUNCIONES DE OPERACIÓN ===
 
-        if (!usuarios || usuarios.length === 0) {
-            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-            return;
-        }
-
-        let html = '';
-        usuarios.forEach(u => {
-            html += `
-                <div class="usuario-item">
-                    <div class="usuario-info">
-                        <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                        <div class="usuario-redip">REDIP: ${u.redip}</div>
-                    </div>
-                    <div class="acciones">
-                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-        contenedor.innerHTML = html;
-    } catch (error) {
-        console.error('Error al cargar usuarios:', error);
-        contenedor.innerHTML = `<div class="error" style="padding:15px;">
-            ❌ Error al cargar usuarios.<br>
-            <small>${error.message}</small>
-        </div>`;
-    }
-}
-        // === Funciones de operación (sin cambios) ===
         async function crearUsuario(email, password, redip) {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
@@ -310,15 +307,18 @@
             return await res.json();
         }
 
-        async function modificarUsuario(userId, redip) {
+        async function modificarUsuario(userId, password = null) {
             const { data: { session } } = await supabase.auth.getSession();
+            const payload = { user_id: userId };
+            if (password) payload.password = password;
+
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ user_id: userId, redip })
+                body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error(await res.text());
             return await res.json();
@@ -338,13 +338,12 @@
             return await res.json();
         }
 
+        // === NAVIGACIÓN Y FORMULARIO ===
+
         function mostrarSeccion(seccion) {
-            document.querySelectorAll('.list-section, .form-section').forEach(el => {
-                el.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.list-section, .form-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
             if (seccion === 'listado') {
                 document.getElementById('listadoUsuarios').classList.add('active');
                 document.querySelector('.tab-btn:first-child').classList.add('active');
@@ -359,18 +358,26 @@
         function resetForm() {
             document.getElementById('userForm').reset();
             document.getElementById('userId').value = '';
+            document.getElementById('password').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('submitBtn').textContent = 'Crear Usuario';
+            // Habilitar campos para creación
+            document.getElementById('email').disabled = false;
+            document.getElementById('redip').disabled = false;
             modoEdicion = false;
         }
 
         function editarUsuario(userId, email, redip) {
             document.getElementById('userId').value = userId;
             document.getElementById('email').value = email;
-            document.getElementById('email').disabled = true;
             document.getElementById('redip').value = redip;
-            document.getElementById('passwordGroup').style.display = 'none';
-            document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
+            // Deshabilitar email y REDIP (no se pueden cambiar)
+            document.getElementById('email').disabled = true;
+            document.getElementById('redip').disabled = true;
+            // Mostrar campo de contraseña para edición
+            document.getElementById('password').value = '';
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('submitBtn').textContent = 'Actualizar Contraseña';
             modoEdicion = true;
             mostrarSeccion('formulario');
         }
@@ -387,29 +394,34 @@
             }
         }
 
+        // === SUBMIT FORMULARIO ===
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const userId = document.getElementById('userId').value;
             const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const password = document.getElementById('password').value.trim();
             const redip = document.getElementById('redip').value;
             const msgDiv = document.getElementById('mensaje');
+
             try {
                 if (modoEdicion) {
-                    await modificarUsuario(userId, redip);
+                    // Solo enviamos la contraseña si se ingresó
+                    await modificarUsuario(userId, password || null);
                     msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Usuario actualizado correctamente.';
+                    msgDiv.textContent = '✅ Contraseña actualizada correctamente.';
                 } else {
                     if (!password) throw new Error('La contraseña es obligatoria al crear.');
                     await crearUsuario(email, password, redip);
                     msgDiv.className = 'mensaje exito';
                     msgDiv.textContent = '✅ Usuario creado correctamente.';
                 }
+
                 msgDiv.style.display = 'block';
                 setTimeout(() => {
                     mostrarSeccion('listado');
                     msgDiv.style.display = 'none';
                 }, 1500);
+
             } catch (err) {
                 console.error(err);
                 msgDiv.className = 'mensaje error';
