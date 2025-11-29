@@ -25,10 +25,10 @@
                 <input type="hidden" id="userId">
                 <div class="input-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" required>
+                    <input type="email" id="email">
                 </div>
                 <div class="input-group" id="passwordGroup">
-                    <label for="password">Contraseña (solo al crear)</label>
+                    <label for="password">Nueva contraseña (opcional)</label>
                     <input type="password" id="password" minlength="6">
                 </div>
                 <div class="input-group">
@@ -134,17 +134,19 @@
             return await res.json();
         }
 
-        async function modificarUsuario(userId, redip) {
+        async function modificarUsuario(userId, redip, password = null) {
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
             if (!session) throw new Error('Sesión no encontrada');
+            const payload = { user_id: userId, redip };
+            if (password) payload.password = password;
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ user_id: userId, redip })
+                body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error(await res.text());
             return await res.json();
@@ -192,71 +194,46 @@
             const emailInput = document.getElementById('email');
             emailInput.value = email || '⚠️ Sin email registrado';
             emailInput.disabled = true;
-            emailInput.removeAttribute('required'); // ✅ No requerido en edición
+            emailInput.removeAttribute('required'); // ✅ No se valida en edición
 
             document.getElementById('userId').value = userId;
             document.getElementById('redip').value = redip;
-            document.getElementById('passwordGroup').style.display = 'none';
+            document.getElementById('passwordGroup').style.display = 'block'; // ✅ Mostrar campo de contraseña
             document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
             modoEdicion = true;
             mostrarSeccion('formulario');
         }
 
         async function eliminarUsuario(userId, email) {
-            if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return;
+            if (!confirm(`¿Eliminar al usuario ${email}?`)) return;
             try {
                 await eliminarUsuarioApi(userId);
-                alert('✅ Usuario eliminado correctamente.');
+                alert('✅ Usuario eliminado.');
                 cargarUsuarios();
             } catch (err) {
-                console.error(err);
                 alert('❌ Error al eliminar: ' + (err.message || ''));
             }
         }
 
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const emailInput = document.getElementById('email');
+            const userId = document.getElementById('userId').value;
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
-            const userId = document.getElementById('userId').value;
             const msgDiv = document.getElementById('mensaje');
-
-            let email = emailInput.value;
-            // Si es placeholder, ignóralo en modo edición
-            if (modoEdicion && email === '⚠️ Sin email registrado') {
-                email = null;
-            }
-
-            // ✅ Validación SOLO en modo creación
-            if (!modoEdicion) {
-                if (!email || !/\S+@\S+\.\S+/.test(email)) {
-                    msgDiv.className = 'mensaje error';
-                    msgDiv.textContent = '❌ Email inválido.';
-                    msgDiv.style.display = 'block';
-                    return;
-                }
-                if (!password || password.length < 6) {
-                    msgDiv.className = 'mensaje error';
-                    msgDiv.textContent = '❌ Contraseña requerida (mín. 6 caracteres).';
-                    msgDiv.style.display = 'block';
-                    return;
-                }
-            }
-
-            if (!redip) {
-                msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ Seleccione una REDIP.';
-                msgDiv.style.display = 'block';
-                return;
-            }
 
             try {
                 if (modoEdicion) {
-                    await modificarUsuario(userId, redip);
+                    // ✅ Solo envía contraseña si se ingresó
+                    await modificarUsuario(userId, redip, password || null);
                     msgDiv.className = 'mensaje exito';
                     msgDiv.textContent = '✅ Usuario actualizado.';
                 } else {
+                    const email = document.getElementById('email').value;
+                    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+                        throw new Error('Email inválido.');
+                    }
+                    if (!password) throw new Error('La contraseña es obligatoria.');
                     await crearUsuario(email, password, redip);
                     msgDiv.className = 'mensaje exito';
                     msgDiv.textContent = '✅ Usuario creado.';
@@ -267,9 +244,8 @@
                     msgDiv.style.display = 'none';
                 }, 1500);
             } catch (err) {
-                console.error(err);
                 msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ Error: ' + (err.message || 'Operación fallida.');
+                msgDiv.textContent = '❌ Error: ' + err.message;
                 msgDiv.style.display = 'block';
             }
         });
