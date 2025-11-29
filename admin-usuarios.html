@@ -196,7 +196,7 @@
                     <input type="email" id="email" required disabled>
                 </div>
                 <div class="input-group" id="passwordGroup">
-                    <label for="password">Nueva Contraseña (opcional)</label>
+                    <label for="password">Nueva Contraseña (opcional en edición)</label>
                     <input type="password" id="password" minlength="6" placeholder="Dejar vacío para no cambiar">
                 </div>
                 <div class="input-group">
@@ -226,7 +226,7 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ Verifica admin con getUser(), igual que en index.html
+        // ✅ Verificación de admin: igual que en index.html
         async function verificarAdmin() {
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) {
@@ -247,6 +247,7 @@
             return true;
         }
 
+        // ✅ Cargar usuarios usando getUser() (igual que index.html)
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
@@ -284,6 +285,7 @@
             }
         }
 
+        // ✅ Crear usuario con token válido
         async function crearUsuario(email, password, redip) {
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
@@ -299,6 +301,7 @@
             return await res.json();
         }
 
+        // ✅ Modificar solo la contraseña (como pediste)
         async function modificarUsuario(userId, password = null) {
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
@@ -316,6 +319,7 @@
             return await res.json();
         }
 
+        // ✅ Eliminar usuario
         async function eliminarUsuarioApi(userId) {
             const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
