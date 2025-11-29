@@ -196,7 +196,7 @@
                     <input type="email" id="email" required disabled>
                 </div>
                 <div class="input-group" id="passwordGroup">
-                    <label for="password">Nueva Contraseña (opcional en edición)</label>
+                    <label for="password">Contraseña</label>
                     <input type="password" id="password" minlength="6" placeholder="Dejar vacío para no cambiar">
                 </div>
                 <div class="input-group">
@@ -234,7 +234,7 @@
                 return false;
             }
             const user = data;
-            const { data: userData, error: dbError } = await supabase
+            const {  userData, error: dbError } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
                 .eq('user_id', user.id)
@@ -253,7 +253,6 @@
                 const { data, error } = await supabase.auth.getSession();
                 if (error || !data?.session) throw new Error('Sesión no encontrada');
                 const session = data.session;
-
                 const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -369,6 +368,7 @@
             document.getElementById('redip').disabled = true;
             document.getElementById('password').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
+            document.querySelector('#passwordGroup label').textContent = 'Nueva Contraseña (opcional)';
             document.getElementById('submitBtn').textContent = 'Actualizar Contraseña';
             modoEdicion = true;
             mostrarSeccion('formulario');
@@ -396,9 +396,14 @@
 
             try {
                 if (modoEdicion) {
-                    await modificarUsuario(userId, password || null);
-                    msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Contraseña actualizada correctamente.';
+                    if (password) {
+                        await modificarUsuario(userId, password);
+                        msgDiv.className = 'mensaje exito';
+                        msgDiv.textContent = '✅ Contraseña actualizada correctamente.';
+                    } else {
+                        msgDiv.className = 'mensaje exito';
+                        msgDiv.textContent = 'ℹ️ No se realizó ningún cambio.';
+                    }
                 } else {
                     if (!password) throw new Error('La contraseña es obligatoria al crear.');
                     await crearUsuario(email, password, redip);
