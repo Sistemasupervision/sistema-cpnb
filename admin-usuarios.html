@@ -183,13 +183,11 @@
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
-        <!-- Listado de usuarios -->
         <div id="listadoUsuarios" class="list-section active">
             <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
-        <!-- Formulario (crear/editar) -->
         <div id="formularioUsuario" class="form-section">
             <form id="userForm">
                 <input type="hidden" id="userId">
@@ -228,78 +226,74 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ Verificación de admin: usa la misma lógica que index.html
+        // ✅ Verificación segura de admin (igual que en index.html)
         async function verificarAdmin() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const {  { user } } = await supabase.auth.getUser();
                 if (!user) return false;
-
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-
-                return !error && data && data.redip === 'admin';
+                return !error && data?.redip === 'admin';
             } catch (err) {
                 console.error('Error en verificarAdmin:', err);
                 return false;
             }
         }
 
-       async function cargarUsuarios() {
-    const contenedor = document.getElementById('usuariosContenedor');
-    try {
-        const {  { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Sesión no encontrada');
+        // ✅ Carga TODOS los usuarios (funciona bajo tus políticas actuales)
+        async function cargarUsuarios() {
+            const contenedor = document.getElementById('usuariosContenedor');
+            try {
+                // Verificar nuevamente que sigue siendo admin
+                const isAdmin = await verificarAdmin();
+                if (!isAdmin) {
+                    window.location.href = 'index.html';
+                    return;
+                }
 
-        const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${session.access_token}`
+                // Esta consulta funciona porque ya pasaste la verificación de rol
+                const {  usuarios, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('user_id, redip, email')
+                    .order('redip', { ascending: true });
+
+                if (error) throw error;
+                if (!usuarios || usuarios.length === 0) {
+                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+                    return;
+                }
+
+                let html = '';
+                usuarios.forEach(u => {
+                    html += `
+                        <div class="usuario-item">
+                            <div class="usuario-info">
+                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                                <div class="usuario-redip">REDIP: ${u.redip}</div>
+                            </div>
+                            <div class="acciones">
+                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                contenedor.innerHTML = html;
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                contenedor.innerHTML = `<div class="error" style="padding:15px;">
+                    ❌ Error al cargar usuarios.<br>
+                    <small>${error.message}</small>
+                </div>`;
             }
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(errorText || 'Error al cargar usuarios');
         }
 
-        const usuarios = await res.json();
-
-        if (!usuarios || usuarios.length === 0) {
-            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-            return;
-        }
-
-        let html = '';
-        usuarios.forEach(u => {
-            html += `
-                <div class="usuario-item">
-                    <div class="usuario-info">
-                        <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                        <div class="usuario-redip">REDIP: ${u.redip}</div>
-                    </div>
-                    <div class="acciones">
-                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-        contenedor.innerHTML = html;
-    } catch (error) {
-        console.error('Error al cargar usuarios:', error);
-        contenedor.innerHTML = `<div class="error" style="padding:15px;">
-            ❌ Error al cargar usuarios.<br>
-            <small>${error.message}</small>
-        </div>`;
-    }
-}
-
-        // --- Resto de funciones (sin cambios) ---
+        // === Funciones para operaciones (igual que antes) ===
         async function crearUsuario(email, password, redip) {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {  { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
@@ -313,7 +307,7 @@
         }
 
         async function modificarUsuario(userId, redip) {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {  { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -340,6 +334,7 @@
             return await res.json();
         }
 
+        // === Interfaz ===
         function mostrarSeccion(seccion) {
             document.querySelectorAll('.list-section, .form-section').forEach(el => {
                 el.classList.remove('active');
@@ -421,15 +416,15 @@
             }
         });
 
-        // ✅ Inicialización segura
+        // Inicializar
         (async () => {
-            const esAdmin = await verificarAdmin();
-            if (!esAdmin) {
+            const permitido = await verificarAdmin();
+            if (permitido) {
+                cargarUsuarios();
+            } else {
                 alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                 window.location.href = 'index.html';
-                return;
             }
-            cargarUsuarios();
         })();
     </script>
 </body>
