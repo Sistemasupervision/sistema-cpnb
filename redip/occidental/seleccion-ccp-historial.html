@@ -26,9 +26,9 @@
             <select id="ccpSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
                 <option value="">-- Elija un CCP --</option>
                 <option value="metropolitano">CCP METROPOLITANO</option>
-                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="costa_oriental">CCP COSTA ORIENTAL DEL LAGO</option>
+                <option value="sur_del_lago">CCP SUR DEL LAGO</option>
                 <option value="guajira">CCP GUAJIRA</option>
-                <option value="col">CCPE COL</option>
                 <option value="lara">CCPE LARA</option>
                 <option value="falcon">CCPE FALCÓN</option>
             </select>
@@ -47,15 +47,16 @@
                 alert('Por favor seleccione un CCP.');
                 return;
             }
+            // ✅ Nombres reales, sin "COL" ni "SUR-DEL-LAGO"
             const ccpNombres = {
                 "metropolitano": "CCP METROPOLITANO",
-                "sur-del-lago": "CCP SUR DEL LAGO",
+                "costa_oriental": "CCP COSTA ORIENTAL DEL LAGO",
+                "sur_del_lago": "CCP SUR DEL LAGO",
                 "guajira": "CCP GUAJIRA",
-                "col": "CCPE COL",
                 "lara": "CCPE LARA",
                 "falcon": "CCPE FALCÓN"
             };
-            const ccpNombre = ccpNombres[ccpId];
+            const ccpNombre = ccpNombres[ccpId] || ccpId;
             window.location.href = `historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
     </script>
