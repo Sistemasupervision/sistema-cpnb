@@ -196,7 +196,7 @@
                     <input type="email" id="email" required disabled>
                 </div>
                 <div class="input-group" id="passwordGroup">
-                    <label for="password">Nueva Contraseña (opcional)</label>
+                    <label for="password">Nueva Contraseña (opcional en edición)</label>
                     <input type="password" id="password" minlength="6" placeholder="Dejar vacío para no cambiar">
                 </div>
                 <div class="input-group">
@@ -226,21 +226,20 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ FUNCIÓN CORREGIDA: usa getSession() para mayor fiabilidad
+        // ✅ Usa el MISMO método que en index.html: getUser()
         async function verificarAdmin() {
-            const {  sessionData, error: sessionError } = await supabase.auth.getSession();
-            if (sessionError || !sessionData?.session) {
-                alert('Sesión no encontrada. Inicie sesión desde la página principal.');
+            const {  { user }, error } = await supabase.auth.getUser();
+            if (error || !user) {
+                alert('Debe iniciar sesión desde la página principal.');
                 window.location.href = 'index.html';
                 return false;
             }
-            const userId = sessionData.session.user.id;
-            const { data, error } = await supabase
+            const { data, dbError } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
-                .eq('user_id', userId)
+                .eq('user_id', user.id)
                 .single();
-            if (error || !data || data.redip !== 'admin') {
+            if (dbError || !data || data.redip !== 'admin') {
                 alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                 window.location.href = 'index.html';
                 return false;
@@ -251,12 +250,13 @@
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                const {  sessionData, error } = await supabase.auth.getSession();
-                if (error || !sessionData?.session) throw new Error('Sesión no encontrada');
-                const session = sessionData.session;
+                const {  { user }, error } = await supabase.auth.getUser();
+                if (error || !user) throw new Error('Usuario no autenticado');
                 const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
                     method: 'GET',
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                    headers: {
+                        'Authorization': `Bearer ${user.access_token}` // ✅ Usa el token de getUser()
+                    }
                 });
                 if (!res.ok) throw new Error(await res.text());
                 const usuarios = await res.json();
@@ -287,13 +287,12 @@
         }
 
         async function crearUsuario(email, password, redip) {
-            const {  sessionData, error } = await supabase.auth.getSession();
-            if (error || !sessionData?.session) throw new Error('Sesión expirada');
-            const session = sessionData.session;
+            const {  { user }, error } = await supabase.auth.getUser();
+            if (error || !user) throw new Error('Sesión inválida');
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
+                    'Authorization': `Bearer ${user.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ email, password, redip })
@@ -303,15 +302,14 @@
         }
 
         async function modificarUsuario(userId, password = null) {
-            const {  sessionData, error } = await supabase.auth.getSession();
-            if (error || !sessionData?.session) throw new Error('Sesión expirada');
-            const session = sessionData.session;
+            const {  { user }, error } = await supabase.auth.getUser();
+            if (error || !user) throw new Error('Sesión inválida');
             const payload = { user_id: userId };
             if (password) payload.password = password;
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
+                    'Authorization': `Bearer ${user.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
@@ -321,13 +319,12 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const {  sessionData, error } = await supabase.auth.getSession();
-            if (error || !sessionData?.session) throw new Error('Sesión expirada');
-            const session = sessionData.session;
+            const {  { user }, error } = await supabase.auth.getUser();
+            if (error || !user) throw new Error('Sesión inválida');
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
+                    'Authorization': `Bearer ${user.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ user_id: userId })
