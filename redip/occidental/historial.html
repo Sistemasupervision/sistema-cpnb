@@ -405,7 +405,7 @@
             <p class="ccp-info" id="ccpNombreDisplay">Cargando...</p>
         </div>
         <div class="actions-row">
-            <button class="back-btn" onclick="volverAIndex()">
+            <button id="btnVolverHistorial" class="back-btn">
                 ← Volver
             </button>
             <button class="btn-pdf" onclick="exportarHistorialAPDF()">
@@ -508,13 +508,13 @@
             document.getElementById('ccpNombreDisplay').style.display = 'none';
         }
 
-        // ✅ FUNCIÓN GLOBAL: accesible desde onclick
+        // ✅ FUNCIÓN GLOBAL: accesible desde el botón
         function volverAIndex() {
             window.location.href = 'index.html';
         }
 
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión para acceder a esta página.');
                 volverAIndex();
@@ -552,8 +552,8 @@
             if (!ccpId) return;
 
             try {
-                // ✅ CAMPOS: estacion_id y nombre_estacion
-                const {  estaciones, error: estError } = await supabase
+                // ✅ Campos correctos para estaciones
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
@@ -561,12 +561,13 @@
                 if (estError) throw estError;
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
-                    opt.value = est.estacion_id;      // ✅
-                    opt.textContent = est.nombre_estacion; // ✅
+                    opt.value = est.estacion_id;
+                    opt.textContent = est.nombre_estacion;
                     estacionSelect.appendChild(opt);
                 });
 
-                const {  servicios, error: servError } = await supabase
+                // ✅ Servicios (campos ya correctos)
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
@@ -589,16 +590,16 @@
             await cargarEstacionesYServicios(ccpId);
         });
 
-        // ✅ CARGAR HISTORIAL CON CONSULTAS CORRECTAS
+        // ✅ CARGAR HISTORIAL CORRECTAMENTE
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
                 // ✅ Cargar estaciones con campos correctos
-                const {  todasEstaciones, error: estError } = await supabase
+                const { data: todasEstaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id');
                 if (estError) throw estError;
 
-                const {  todosServicios, error: servError } = await supabase
+                const { data: todosServicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id');
                 if (servError) throw servError;
@@ -612,7 +613,7 @@
                 todasEstaciones.forEach(est => {
                     estacionMap[est.estacion_id] = { nombre: est.nombre_estacion, ccp_id: est.ccp_id };
                     if (!ccpEstaciones[est.ccp_id]) ccpEstaciones[est.ccp_id] = [];
-                    ccpEstaciones[est.ccp_id].push(est.estacion_id); // ✅
+                    ccpEstaciones[est.ccp_id].push(est.estacion_id);
                 });
 
                 todosServicios.forEach(serv => {
@@ -649,13 +650,13 @@
                     }
                 }
 
-                const {  inspecciones, error } = await query;
+                const { data: inspecciones, error } = await query;
                 if (error) throw error;
 
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
-                    const {  items, error: itemsError } = await supabase
+                    const { data: items, error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .select('inspeccion_id, cumple')
                         .in('inspeccion_id', idsInspecciones);
@@ -708,8 +709,75 @@
             }
         }
 
-        // === FUNCIONES DE RENDERIZADO (igual que antes) ===
-        function renderizarLista() { /* ... mismo código ... */ }
+        // === FUNCIONES DE RENDERIZADO (sin cambios) ===
+        function renderizarLista() {
+            const inicio = (paginaActual - 1) * registrosPorPagina;
+            const fin = inicio + registrosPorPagina;
+            const inspeccionesPagina = inspeccionesCache.slice(inicio, fin);
+            const contenedor = document.getElementById('inspeccionesList');
+            if (!inspeccionesCache || inspeccionesCache.length === 0) {
+                contenedor.innerHTML = '<div style="text-align:center; color:#666; padding:30px;">No hay inspecciones con esos filtros.</div>';
+                return;
+            }
+            contenedor.innerHTML = '';
+            inspeccionesPagina.forEach(insp => {
+                const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                let estadoClase = 'estado-verde';
+                let alertaHTML = '';
+                const hoy = new Date();
+                if (insp.proxima_inspeccion) {
+                    const fechaProxima = new Date(insp.proxima_inspeccion);
+                    if (fechaProxima <= hoy) {
+                        estadoClase = 'estado-rojo';
+                        alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
+                    } else if (fechaProxima <= new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000)) {
+                        estadoClase = 'estado-amarillo';
+                    }
+                }
+                let claseCumplimiento = 'cumplimiento-bajo';
+                if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
+                else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
+                const tipoIcono = insp.tipo === 'servicio' ? '📄' : '👮';
+                const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
+                const card = document.createElement('div');
+                card.className = 'inspeccion-card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="estacion-info">
+                            <div class="inspeccion-estacion">
+                                ${tipoIcono} ${tipoTexto}: <strong>${insp.nombre_entidad}</strong>
+                                <span class="estado-indicador ${estadoClase}"></span>
+                            </div>
+                            ${alertaHTML}
+                        </div>
+                        <div class="cumplimiento-badge ${claseCumplimiento}">
+                            ${insp.porcentaje_cumplimiento}% cumplimiento
+                        </div>
+                    </div>
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <span class="meta-label">Fecha y Hora</span>
+                            <span class="meta-value">${fechaInspeccion}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Inspector</span>
+                            <span class="meta-value">${insp.inspector_email}</span>
+                        </div>
+                    </div>
+                    <div class="botones-container">
+                        <button class="ver-btn" onclick="mostrarDetalle(${insp.id})">Ver Detalles</button>
+                        ${estadoClase === 'estado-rojo' ? `<button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">✅ Marcar como reinspeccionada</button>` : ''}
+                    </div>
+                `;
+                contenedor.appendChild(card);
+            });
+        }
         function renderizarPaginacion() { /* ... mismo código ... */ }
         function aplicarFiltro() { /* ... mismo código ... */ }
         async function mostrarDetalle(inspeccionId) { /* ... mismo código ... */ }
@@ -738,6 +806,8 @@
             } else {
                 cargarHistorial(desde, hasta);
             }
+            // ✅ Agregar el listener aquí
+            document.getElementById('btnVolverHistorial').addEventListener('click', volverAIndex);
         });
     </script>
 </body>
