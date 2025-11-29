@@ -25,7 +25,7 @@
                 <input type="hidden" id="userId">
                 <div class="input-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email">
+                    <input type="email" id="email" required>
                 </div>
                 <div class="input-group" id="passwordGroup">
                     <label for="password">Contraseña (solo al crear)</label>
@@ -58,11 +58,20 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ NO se verifica el rol aquí → ya se hizo en index.html
-        async function verificarSesion() {
-            const { data } = await supabase.auth.getUser();
-            if (!data?.user) {
+        async function verificarAdmin() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
                 alert('Debe iniciar sesión.');
+                window.location.href = 'index.html';
+                return false;
+            }
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (error || !data || data.redip !== 'admin') {
+                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                 window.location.href = 'index.html';
                 return false;
             }
@@ -72,23 +81,15 @@
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                const { data } = await supabase.auth.getSession();
-                const session = data?.session;
-                if (!session) throw new Error('Sesión no encontrada');
-
-                // Usa la función Edge para listar usuarios
-                const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${session.access_token}` }
-                });
-                if (!res.ok) throw new Error(await res.text());
-                const usuarios = await res.json();
-
+                const { data: usuarios, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('user_id, redip, email')
+                    .order('redip', { ascending: true });
+                if (error) throw error;
                 if (!usuarios || usuarios.length === 0) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
                     return;
                 }
-
                 let html = '';
                 usuarios.forEach(u => {
                     html += `
@@ -114,10 +115,8 @@
             }
         }
 
-        // === Funciones de operación ===
         async function crearUsuario(email, password, redip) {
-            const { data } = await supabase.auth.getSession();
-            const session = data?.session;
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
@@ -131,8 +130,7 @@
         }
 
         async function modificarUsuario(userId, redip) {
-            const { data } = await supabase.auth.getSession();
-            const session = data?.session;
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -146,8 +144,7 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const { data } = await supabase.auth.getSession();
-            const session = data?.session;
+            const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -160,7 +157,6 @@
             return await res.json();
         }
 
-        // === Interfaz ===
         function mostrarSeccion(seccion) {
             document.querySelectorAll('.list-section, .form-section').forEach(el => {
                 el.classList.remove('active');
@@ -189,7 +185,7 @@
 
         function editarUsuario(userId, email, redip) {
             document.getElementById('userId').value = userId;
-            document.getElementById('email').value = email || 'no-email@ejemplo.com';
+            document.getElementById('email').value = email || 'usuario@ejemplo.com'; // ✅ Valor seguro
             document.getElementById('email').disabled = true;
             document.getElementById('redip').value = redip;
             document.getElementById('passwordGroup').style.display = 'none';
@@ -199,12 +195,13 @@
         }
 
         async function eliminarUsuario(userId, email) {
-            if (!confirm(`¿Eliminar al usuario ${email}?`)) return;
+            if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return;
             try {
                 await eliminarUsuarioApi(userId);
-                alert('✅ Usuario eliminado.');
+                alert('✅ Usuario eliminado correctamente.');
                 cargarUsuarios();
             } catch (err) {
+                console.error(err);
                 alert('❌ Error al eliminar: ' + (err.message || ''));
             }
         }
@@ -219,11 +216,13 @@
 
             try {
                 if (modoEdicion) {
+                    // ✅ Solo validar REDIP en modo edición
                     if (!redip) throw new Error('REDIP es obligatoria.');
                     await modificarUsuario(userId, redip);
                     msgDiv.className = 'mensaje exito';
                     msgDiv.textContent = '✅ Usuario actualizado.';
                 } else {
+                    // ✅ Validar todo en modo creación
                     if (!email || !/\S+@\S+\.\S+/.test(email)) throw new Error('Email inválido.');
                     if (!password || password.length < 6) throw new Error('Contraseña obligatoria (mín. 6 caracteres).');
                     if (!redip) throw new Error('REDIP es obligatoria.');
@@ -243,8 +242,7 @@
             }
         });
 
-        // ✅ Inicializar (solo verifica sesión, no rol)
-        verificarSesion().then(permitido => {
+        verificarAdmin().then(permitido => {
             if (permitido) {
                 cargarUsuarios();
             }
