@@ -179,15 +179,6 @@
     <div class="container">
         <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Administrar Usuarios</h1>
-        <div id="errorCritico" class="error-critico" style="display: none;">
-            ⚠️ Error al verificar permisos. 
-            <br><small id="errorMsg"></small>
-            <br><br>
-            <button onclick="forzarAccesoAdmin()" style="background:#e53e3e;color:white;padding:6px 12px;border:none;border-radius:5px;cursor:pointer;">
-                Forzar acceso (solo para diagnóstico)
-            </button>
-        </div>
-
         <div class="tabs">
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
@@ -237,13 +228,11 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ Función mejorada: Verifica si el usuario es admin
+        // ✅ Verificación de admin: usa la misma lógica que index.html
         async function verificarAdmin() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    throw new Error('No hay sesión activa');
-                }
+                if (!user) return false;
 
                 const { data, error } = await supabase
                     .from('usuarios_redip')
@@ -251,34 +240,31 @@
                     .eq('user_id', user.id)
                     .single();
 
-                if (error) {
-                    throw error;
-                }
-
-                if (!data || data.redip !== 'admin') {
-                    throw new Error('Acceso denegado. Solo el administrador puede gestionar usuarios.');
-                }
-
-                return true;
+                return !error && data && data.redip === 'admin';
             } catch (err) {
-                console.error('Error al verificar rol de administrador:', err);
-                document.getElementById('errorCritico').style.display = 'block';
-                document.getElementById('errorMsg').textContent = err.message;
+                console.error('Error en verificarAdmin:', err);
                 return false;
             }
         }
 
-        // ✅ Función para cargar usuarios
+        // ✅ Carga segura de usuarios: solo si es admin
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
+                // Primero confirmar que sigue siendo admin
+                const esAdmin = await verificarAdmin();
+                if (!esAdmin) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Ahora cargar todos los usuarios (esto funciona porque ya pasó la verificación)
                 const { data: usuarios, error } = await supabase
                     .from('usuarios_redip')
                     .select('user_id, redip, email')
                     .order('redip', { ascending: true });
 
                 if (error) throw error;
-
                 if (!usuarios || usuarios.length === 0) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
                     return;
@@ -309,7 +295,7 @@
             }
         }
 
-        // ✅ Función para crear usuario
+        // --- Resto de funciones (sin cambios) ---
         async function crearUsuario(email, password, redip) {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
@@ -324,7 +310,6 @@
             return await res.json();
         }
 
-        // ✅ Función para modificar usuario
         async function modificarUsuario(userId, redip) {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
@@ -339,7 +324,6 @@
             return await res.json();
         }
 
-        // ✅ Función para eliminar usuario
         async function eliminarUsuarioApi(userId) {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
@@ -354,7 +338,6 @@
             return await res.json();
         }
 
-        // ✅ Función para mostrar sección
         function mostrarSeccion(seccion) {
             document.querySelectorAll('.list-section, .form-section').forEach(el => {
                 el.classList.remove('active');
@@ -373,7 +356,6 @@
             }
         }
 
-        // ✅ Función para resetear formulario
         function resetForm() {
             document.getElementById('userForm').reset();
             document.getElementById('userId').value = '';
@@ -382,7 +364,6 @@
             modoEdicion = false;
         }
 
-        // ✅ Función para editar usuario
         function editarUsuario(userId, email, redip) {
             document.getElementById('userId').value = userId;
             document.getElementById('email').value = email;
@@ -394,7 +375,6 @@
             mostrarSeccion('formulario');
         }
 
-        // ✅ Función para eliminar usuario
         async function eliminarUsuario(userId, email) {
             if (!confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return;
             try {
@@ -407,7 +387,6 @@
             }
         }
 
-        // ✅ Manejo del formulario
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const userId = document.getElementById('userId').value;
@@ -440,18 +419,16 @@
             }
         });
 
-        // ✅ Inicializar
-        verificarAdmin().then(permitido => {
-            if (permitido) {
-                cargarUsuarios();
+        // ✅ Inicialización segura
+        (async () => {
+            const esAdmin = await verificarAdmin();
+            if (!esAdmin) {
+                alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
+                window.location.href = 'index.html';
+                return;
             }
-        });
-
-        // ✅ Función para forzar acceso (solo para diagnóstico)
-        function forzarAccesoAdmin() {
-            document.getElementById('errorCritico').style.display = 'none';
             cargarUsuarios();
-        }
+        })();
     </script>
 </body>
 </html>
