@@ -177,19 +177,17 @@
 </head>
 <body>
     <div class="container">
-        <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
+        <img src="assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
         <h1 class="title">Administrar Usuarios</h1>
         <div class="tabs">
             <button class="tab-btn active" onclick="mostrarSeccion('listado')">👥 Listado de Usuarios</button>
             <button class="tab-btn" onclick="mostrarSeccion('formulario')">➕ Crear Nuevo Usuario</button>
         </div>
-        <!-- Listado de usuarios -->
         <div id="listadoUsuarios" class="list-section active">
             <div id="usuariosContenedor" class="usuarios-lista">
                 <div class="loading">Cargando usuarios...</div>
             </div>
         </div>
-        <!-- Formulario (crear/editar) -->
         <div id="formularioUsuario" class="form-section">
             <form id="userForm">
                 <input type="hidden" id="userId">
@@ -249,45 +247,55 @@
         }
 
         async function cargarUsuarios() {
-            const contenedor = document.getElementById('usuariosContenedor');
-            try {
-                // ✅ Selecciona user_id, redip y email directamente
-                const { data: usuarios, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('user_id, redip, email')
-                    .order('redip', { ascending: true });
+    const contenedor = document.getElementById('usuariosContenedor');
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Sesión no encontrada');
 
-                if (error) throw error;
-                if (!usuarios || usuarios.length === 0) {
-                    contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
-                    return;
-                }
-
-                let html = '';
-                usuarios.forEach(u => {
-                    html += `
-                        <div class="usuario-item">
-                            <div class="usuario-info">
-                                <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
-                                <div class="usuario-redip">REDIP: ${u.redip}</div>
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
-                                <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                });
-                contenedor.innerHTML = html;
-            } catch (error) {
-                console.error('Error al cargar usuarios:', error);
-                contenedor.innerHTML = `<div class="error" style="padding:15px;">
-                    ❌ Error al cargar usuarios.<br>
-                    <small>${error.message}</small>
-                </div>`;
+        const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
             }
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(errorText || 'Error al cargar usuarios');
         }
 
+        const usuarios = await res.json();
+
+        if (!usuarios || usuarios.length === 0) {
+            contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
+            return;
+        }
+
+        let html = '';
+        usuarios.forEach(u => {
+            html += `
+                <div class="usuario-item">
+                    <div class="usuario-info">
+                        <div class="usuario-email">${u.email || '⚠️ Sin email'}</div>
+                        <div class="usuario-redip">REDIP: ${u.redip}</div>
+                    </div>
+                    <div class="acciones">
+                        <button class="btn-edit" onclick="editarUsuario('${u.user_id}', '${u.email || ''}', '${u.redip}')">✏️</button>
+                        <button class="btn-delete" onclick="eliminarUsuario('${u.user_id}', '${u.email || ''}')">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        contenedor.innerHTML = html;
+    } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+        contenedor.innerHTML = `<div class="error" style="padding:15px;">
+            ❌ Error al cargar usuarios.<br>
+            <small>${error.message}</small>
+        </div>`;
+    }
+}
+        // === Funciones de operación (sin cambios) ===
         async function crearUsuario(email, password, redip) {
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
@@ -386,7 +394,6 @@
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
             const msgDiv = document.getElementById('mensaje');
-
             try {
                 if (modoEdicion) {
                     await modificarUsuario(userId, redip);
