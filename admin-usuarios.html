@@ -92,18 +92,15 @@
                         'Authorization': `Bearer ${session.access_token}`
                     }
                 });
-
                 if (!res.ok) {
                     const errorText = await res.text();
                     throw new Error(errorText || 'Error al cargar usuarios');
                 }
-
                 const usuarios = await res.json();
                 if (!usuarios || usuarios.length === 0) {
                     contenedor.innerHTML = '<div style="text-align:center; padding:20px;">No hay usuarios registrados.</div>';
                     return;
                 }
-
                 let html = '';
                 usuarios.forEach(u => {
                     html += `
@@ -133,7 +130,6 @@
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
             if (!session) throw new Error('Sesión no encontrada');
-
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
@@ -150,7 +146,6 @@
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
             if (!session) throw new Error('Sesión no encontrada');
-
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -167,7 +162,6 @@
             const { data } = await supabase.auth.getSession();
             const session = data?.session;
             if (!session) throw new Error('Sesión no encontrada');
-
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -203,13 +197,20 @@
             document.getElementById('userId').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('submitBtn').textContent = 'Crear Usuario';
+            // Restaurar validación del email
+            document.getElementById('email').setAttribute('required', 'required');
             modoEdicion = false;
         }
 
         function editarUsuario(userId, email, redip) {
+            const emailInput = document.getElementById('email');
+            // Mostrar email (o un mensaje si no existe)
+            emailInput.value = email || '⚠️ Sin email registrado';
+            emailInput.disabled = true;
+            // No requerir email en modo edición
+            emailInput.removeAttribute('required');
+
             document.getElementById('userId').value = userId;
-            document.getElementById('email').value = email;
-            document.getElementById('email').disabled = true;
             document.getElementById('redip').value = redip;
             document.getElementById('passwordGroup').style.display = 'none';
             document.getElementById('submitBtn').textContent = 'Actualizar Usuario';
@@ -231,24 +232,34 @@
 
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value.trim();
+            const emailInput = document.getElementById('email');
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
             const userId = document.getElementById('userId').value;
             const msgDiv = document.getElementById('mensaje');
 
-            if (!email || !/\S+@\S+\.\S+/.test(email)) {
-                msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ Email inválido.';
-                msgDiv.style.display = 'block';
-                return;
+            let email = emailInput.value;
+            // Si es el placeholder, no usarlo
+            if (modoEdicion && email === '⚠️ Sin email registrado') {
+                email = null;
             }
-            if (!modoEdicion && (!password || password.length < 6)) {
-                msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ Contraseña requerida (mín. 6 caracteres).';
-                msgDiv.style.display = 'block';
-                return;
+
+            // Validación condicional
+            if (!modoEdicion) {
+                if (!email || !/\S+@\S+\.\S+/.test(email)) {
+                    msgDiv.className = 'mensaje error';
+                    msgDiv.textContent = '❌ Email inválido.';
+                    msgDiv.style.display = 'block';
+                    return;
+                }
+                if (!password || password.length < 6) {
+                    msgDiv.className = 'mensaje error';
+                    msgDiv.textContent = '❌ Contraseña requerida (mín. 6 caracteres).';
+                    msgDiv.style.display = 'block';
+                    return;
+                }
             }
+
             if (!redip) {
                 msgDiv.className = 'mensaje error';
                 msgDiv.textContent = '❌ Seleccione una REDIP.';
