@@ -60,19 +60,21 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
+        // ✅ Corregido: desestructuración válida
         async function verificarAdmin() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data, error } = await supabase.auth.getUser();
+            const user = data?.user;
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = 'index.html';
                 return false;
             }
-            const { data, error } = await supabase
+            const {  userData, userError } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
                 .eq('user_id', user.id)
                 .single();
-            if (error || !data || data.redip !== 'admin') {
+            if (userError || !userData || userData.redip !== 'admin') {
                 alert('Acceso denegado. Solo el administrador puede gestionar usuarios.');
                 window.location.href = 'index.html';
                 return false;
@@ -80,6 +82,7 @@
             return true;
         }
 
+        // Carga la lista de usuarios (usando tu función Edge o política actual)
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
@@ -117,8 +120,12 @@
             }
         }
 
+        // Funciones para operaciones (usando tus funciones Edge)
         async function crearUsuario(email, password, redip) {
-            const {  { session } } = await supabase.auth.getSession();
+            const {  sessionData } = await supabase.auth.getSession();
+            const session = sessionData?.session;
+            if (!session) throw new Error('Sesión no encontrada');
+
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
                 headers: {
@@ -132,7 +139,10 @@
         }
 
         async function modificarUsuario(userId, redip) {
-            const {  { session } } = await supabase.auth.getSession();
+            const {  sessionData } } = await supabase.auth.getSession();
+            const session = sessionData?.session;
+            if (!session) throw new Error('Sesión no encontrada');
+
             const res = await fetch(`${supabaseUrl}/functions/v1/modificar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -146,7 +156,10 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const {  { session } } = await supabase.auth.getSession();
+            const {  sessionData } } = await supabase.auth.getSession();
+            const session = sessionData?.session;
+            if (!session) throw new Error('Sesión no encontrada');
+
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
                 headers: {
@@ -159,6 +172,7 @@
             return await res.json();
         }
 
+        // Interfaz
         function mostrarSeccion(seccion) {
             document.querySelectorAll('.list-section, .form-section').forEach(el => {
                 el.classList.remove('active');
@@ -208,31 +222,32 @@
             }
         }
 
+        // ✅ Validación robusta del formulario
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // ✅ Validación estricta antes de enviar
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const redip = document.getElementById('redip').value;
             const userId = document.getElementById('userId').value;
             const msgDiv = document.getElementById('mensaje');
 
+            // Validación
             if (!email || !/\S+@\S+\.\S+/.test(email)) {
                 msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ Email inválido o faltante.';
+                msgDiv.textContent = '❌ Email inválido.';
                 msgDiv.style.display = 'block';
                 return;
             }
             if (!modoEdicion && (!password || password.length < 6)) {
                 msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ La contraseña es obligatoria y debe tener al menos 6 caracteres.';
+                msgDiv.textContent = '❌ Contraseña requerida (mín. 6 caracteres).';
                 msgDiv.style.display = 'block';
                 return;
             }
             if (!redip) {
                 msgDiv.className = 'mensaje error';
-                msgDiv.textContent = '❌ Debe seleccionar una REDIP.';
+                msgDiv.textContent = '❌ Seleccione una REDIP.';
                 msgDiv.style.display = 'block';
                 return;
             }
@@ -241,11 +256,11 @@
                 if (modoEdicion) {
                     await modificarUsuario(userId, redip);
                     msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Usuario actualizado correctamente.';
+                    msgDiv.textContent = '✅ Usuario actualizado.';
                 } else {
                     await crearUsuario(email, password, redip);
                     msgDiv.className = 'mensaje exito';
-                    msgDiv.textContent = '✅ Usuario creado correctamente.';
+                    msgDiv.textContent = '✅ Usuario creado.';
                 }
                 msgDiv.style.display = 'block';
                 setTimeout(() => {
@@ -260,6 +275,7 @@
             }
         });
 
+        // Inicializar
         verificarAdmin().then(permitido => {
             if (permitido) {
                 cargarUsuarios();
