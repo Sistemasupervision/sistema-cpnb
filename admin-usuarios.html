@@ -362,8 +362,7 @@
                 msgDiv.style.display = 'block';
             }
         });
-
-        // Inicializar
+        
         verificarAdmin().then(permitido => {
             if (permitido) {
                 cargarUsuarios();
