@@ -196,7 +196,7 @@
                     <input type="email" id="email" required disabled>
                 </div>
                 <div class="input-group" id="passwordGroup">
-                    <label for="password">Nueva Contraseña (opcional en edición)</label>
+                    <label for="password">Nueva Contraseña (opcional)</label>
                     <input type="password" id="password" minlength="6" placeholder="Dejar vacío para no cambiar">
                 </div>
                 <div class="input-group">
@@ -226,9 +226,9 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         let modoEdicion = false;
 
-        // ✅ Usa el MISMO método que en index.html: getUser()
+        // ✅ Verifica admin con getUser(), igual que en index.html
         async function verificarAdmin() {
-            const {  { user }, error } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) {
                 alert('Debe iniciar sesión desde la página principal.');
                 window.location.href = 'index.html';
@@ -250,13 +250,11 @@
         async function cargarUsuarios() {
             const contenedor = document.getElementById('usuariosContenedor');
             try {
-                const {  { user }, error } = await supabase.auth.getUser();
+                const { data: { user }, error } = await supabase.auth.getUser();
                 if (error || !user) throw new Error('Usuario no autenticado');
                 const res = await fetch(`${supabaseUrl}/functions/v1/listar-usuarios`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${user.access_token}` // ✅ Usa el token de getUser()
-                    }
+                    headers: { 'Authorization': `Bearer ${user.access_token}` }
                 });
                 if (!res.ok) throw new Error(await res.text());
                 const usuarios = await res.json();
@@ -287,7 +285,7 @@
         }
 
         async function crearUsuario(email, password, redip) {
-            const {  { user }, error } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
             const res = await fetch(`${supabaseUrl}/functions/v1/crear-usuario`, {
                 method: 'POST',
@@ -302,7 +300,7 @@
         }
 
         async function modificarUsuario(userId, password = null) {
-            const {  { user }, error } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
             const payload = { user_id: userId };
             if (password) payload.password = password;
@@ -319,7 +317,7 @@
         }
 
         async function eliminarUsuarioApi(userId) {
-            const {  { user }, error } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabase.auth.getUser();
             if (error || !user) throw new Error('Sesión inválida');
             const res = await fetch(`${supabaseUrl}/functions/v1/eliminar-usuario`, {
                 method: 'POST',
@@ -360,8 +358,8 @@
         function editarUsuario(userId, email, redip) {
             document.getElementById('userId').value = userId;
             document.getElementById('email').value = email;
-            document.getElementById('redip').value = redip;
             document.getElementById('email').disabled = true;
+            document.getElementById('redip').value = redip;
             document.getElementById('redip').disabled = true;
             document.getElementById('password').value = '';
             document.getElementById('passwordGroup').style.display = 'block';
