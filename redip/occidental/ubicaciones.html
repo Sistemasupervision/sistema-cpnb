@@ -127,118 +127,101 @@
         <p id="ccpNombreDisplay" style="text-align: center; color: #4a5568; margin-bottom: 20px; font-size: 16px;">
             Cargando...
         </p>
-
         <!-- Mapa -->
         <div id="map"></div>
-
         <!-- Botón de edición -->
         <button id="btnEditar" class="action-btn" style="margin-top: 20px; padding: 12px; font-size: 15px; width: 100%;">
             ✏️ Editar Ubicaciones
         </button>
-
         <!-- Pestañas -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
             <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
         </div>
-
         <!-- Barra de búsqueda -->
         <input type="text" id="searchInput" class="search-box" placeholder="Buscar por nombre...">
-
         <!-- Lista dinámica -->
         <div class="lista-contenedor">
             <div id="listaEstaciones"></div>
             <div id="listaServicios" style="display:none;"></div>
         </div>
-
         <button id="btnVolver" class="back-btn" style="margin-top: 20px; padding: 10px 20px;">
             ← Volver a Opciones
         </button>
     </div>
-
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
-
         if (!ccpId || !ccpNombre) {
             alert('⚠️ Datos de CCP no válidos.');
             window.history.back();
         }
-
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
-
         // Inicializar mapa
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
         let todasEstaciones = [];
         let todosServicios = [];
-
         async function cargarEntidades() {
             try {
-                // Cargar estaciones policiales
+                // ✅ Cargar estaciones policiales con campos correctos
                 const { data: estaciones, error: errEst } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre, latitud, longitud, enlace_rutas')
+                    .select('estacion_id, nombre_estacion, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-
-                // Cargar servicios administrativos
+                    .order('nombre_estacion', { ascending: true });
+                // ✅ Cargar servicios administrativos (campos ya correctos)
                 const { data: servicios, error: errServ } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-
                 if (errEst && errServ) {
                     throw new Error('Error al cargar datos de estaciones y servicios.');
                 }
-
-                todasEstaciones = estaciones || [];
+                // ✅ Mapear a un formato unificado
+                todasEstaciones = (estaciones || []).map(e => ({
+                    id: e.estacion_id,
+                    nombre: e.nombre_estacion,
+                    latitud: e.latitud,
+                    longitud: e.longitud,
+                    enlace_rutas: e.enlace_rutas
+                }));
                 todosServicios = servicios || [];
-
                 // Mostrar en el mapa
                 const todosLosMarcadores = [];
-
                 // Estaciones
-                if (estaciones && estaciones.length > 0) {
-                    estaciones.forEach(est => {
-                        if (est.latitud && est.longitud) {
-                            todosLosMarcadores.push({
-                                lat: est.latitud,
-                                lng: est.longitud,
-                                nombre: est.nombre,
-                                tipo: 'Estación Policial',
-                                clase: 'estacion'
-                            });
-                        }
-                    });
-                }
-
+                todasEstaciones.forEach(est => {
+                    if (est.latitud && est.longitud) {
+                        todosLosMarcadores.push({
+                            lat: est.latitud,
+                            lng: est.longitud,
+                            nombre: est.nombre,
+                            tipo: 'Estación Policial',
+                            clase: 'estacion'
+                        });
+                    }
+                });
                 // Servicios
-                if (servicios && servicios.length > 0) {
-                    servicios.forEach(serv => {
-                        if (serv.latitud && serv.longitud) {
-                            todosLosMarcadores.push({
-                                lat: serv.latitud,
-                                lng: serv.longitud,
-                                nombre: serv.nombre,
-                                tipo: 'Servicio Administrativo',
-                                clase: 'servicio'
-                            });
-                        }
-                    });
-                }
-
+                todosServicios.forEach(serv => {
+                    if (serv.latitud && serv.longitud) {
+                        todosLosMarcadores.push({
+                            lat: serv.latitud,
+                            lng: serv.longitud,
+                            nombre: serv.nombre,
+                            tipo: 'Servicio Administrativo',
+                            clase: 'servicio'
+                        });
+                    }
+                });
                 // Añadir marcadores al mapa
                 if (todosLosMarcadores.length > 0) {
                     todosLosMarcadores.forEach(ub => {
@@ -252,33 +235,27 @@
                     document.getElementById('ccpNombreDisplay').innerHTML += 
                         `<br><em style="color:#e53e3e;">⚠️ No hay ubicaciones con coordenadas.</em>`;
                 }
-
                 // Renderizar listas
                 renderizarListas();
-
             } catch (error) {
                 console.error('Error al cargar entidades:', error);
                 document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ Error al cargar datos.</p>';
             }
         }
-
         // Renderizar listas (con búsqueda)
         function renderizarListas() {
             const termino = document.getElementById('searchInput').value.toLowerCase();
-            
             // Filtrar estaciones
             const estacionesFiltradas = todasEstaciones.filter(e => 
                 e.nombre.toLowerCase().includes(termino)
             );
             renderizarLista('listaEstaciones', estacionesFiltradas, 'estacion');
-
             // Filtrar servicios
             const serviciosFiltradas = todosServicios.filter(s => 
                 s.nombre.toLowerCase().includes(termino)
             );
             renderizarLista('listaServicios', serviciosFiltradas, 'servicio');
         }
-
         function renderizarLista(contenedorId, items, tipo) {
             const contenedor = document.getElementById(contenedorId);
             if (items.length === 0) {
@@ -305,7 +282,6 @@
             });
             contenedor.innerHTML = html;
         }
-
         // Eventos de pestañas
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -316,19 +292,15 @@
                 document.getElementById('listaServicios').style.display = tab === 'servicios' ? 'block' : 'none';
             });
         });
-
         // Evento de búsqueda
         document.getElementById('searchInput').addEventListener('input', renderizarListas);
-
         // Botones
         document.getElementById('btnEditar').addEventListener('click', () => {
             window.location.href = `editar-ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
-
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
-
         // Iniciar
         cargarEntidades();
     </script>
