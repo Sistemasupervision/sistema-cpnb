@@ -1270,26 +1270,37 @@
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
-        async function confirmarNuevaFecha() {
-            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
-            if (!nuevaFecha) {
-                alert("Por favor seleccione una fecha.");
-                return;
-            }
-            try {
-                const { error } = await supabase
-                    .from('inspecciones')
-                    .update({ proxima_inspeccion: nuevaFecha })
-                    .eq('id', inspeccionIdActual);
-                if (error) throw error;
-                alert("✅ Reinspección actualizada correctamente.");
-                cerrarModalFecha();
-                aplicarFiltro();
-            } catch (error) {
-                console.error("Error al actualizar:", error);
-                alert("❌ Error al actualizar la reinspección.");
-            }
-        }
+  async function confirmarNuevaFecha() {
+    const nuevaFecha = document.getElementById('nuevaFechaInput').value;
+    if (!nuevaFecha) {
+        alert("Por favor seleccione una fecha.");
+        return;
+    }
+    try {
+        const { error } = await supabase
+            .from('inspecciones')
+            .update({ proxima_inspeccion: nuevaFecha })
+            .eq('id', inspeccionIdActual);
+        if (error) throw error;
+
+        alert("✅ Reinspección actualizada correctamente.");
+        cerrarModalFecha();
+
+        // ✅ FORZAR recarga de la lista con los mismos filtros actuales
+        const desde = document.getElementById('fechaDesde').value;
+        const hasta = document.getElementById('fechaHasta').value;
+        const ccpId = document.getElementById('ccpFilter').value;
+        const estacionId = document.getElementById('estacionFilter').value;
+        const servicioId = document.getElementById('servicioFilter').value;
+
+        // Volver a cargar el historial con los mismos filtros
+        await cargarHistorial(desde, hasta, ccpId, estacionId, servicioId);
+
+    } catch (error) {
+        console.error("Error al actualizar:", error);
+        alert("❌ Error al actualizar la reinspección.");
+    }
+}
         function volverAIndex() {
             window.location.href = 'index.html';
         }
