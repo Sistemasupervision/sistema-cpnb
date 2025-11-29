@@ -101,31 +101,31 @@
                 window.location.href = '../../index.html';
             }
         }
+async function cargarCCPs() {
+    const select = document.getElementById('ccpSelectModal');
+    try {
+        // ✅ Cargar SOLO los CCP cuyo `redip = 'occidental'`
+        const { data: ccps, error } = await supabase
+            .from('ccps')
+            .select('ccp_id, nombre_ccp')
+            .eq('redip', 'occidental')
+            .order('nombre_ccp', { ascending: true });
 
-        // ✅ Cargar CCPs reales desde la BD (filtrados por redip = 'occidental')
-        async function cargarCCPs() {
-            const select = document.getElementById('ccpSelectModal');
-            try {
-                const { data: ccps, error } = await supabase
-                    .from('ccps')
-                    .select('ccp_id, nombre_ccp')
-                    .eq('redip', 'occidental')
-                    .order('nombre_ccp', { ascending: true });
+        if (error) throw error;
 
-                if (error) throw error;
-
-                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
-                ccps.forEach(ccp => {
-                    const opt = document.createElement('option');
-                    opt.value = ccp.ccp_id;
-                    opt.textContent = ccp.nombre_ccp;
-                    select.appendChild(opt);
-                });
-            } catch (error) {
-                console.error('Error al cargar CCPs:', error);
-                select.innerHTML = '<option value="">Error al cargar</option>';
-            }
-        }
+        select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+        ccps.forEach(ccp => {
+            const opt = document.createElement('option');
+            opt.value = ccp.ccp_id;              // Campo real: ccp_id
+            opt.textContent = ccp.nombre_ccp;    // Campo real: nombre_ccp
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Error al cargar CCPs:', error);
+        select.innerHTML = '<option value="">Error al cargar</option>';
+        alert('⚠️ No se pudieron cargar los CCP. Verifique su conexión o contacte al administrador.');
+    }
+}
 
         // ✅ Manejar selección y redirección
         document.getElementById('btnCrearInspeccion').addEventListener('click', () => {
