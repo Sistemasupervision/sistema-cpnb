@@ -499,7 +499,7 @@
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
 
-        // ✅ FUNCIONES AUXILIARES PARA COMPARAR FECHAS SIN ZONA HORARIA
+        // ✅ FUNCIONES AUXILIARES PARA EVITAR PROBLEMAS DE ZONA HORARIA
         function obtenerFechaHoyString() {
             const hoy = new Date();
             const offset = hoy.getTimezoneOffset();
@@ -728,12 +728,16 @@
 
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
+                let mostrarBoton = false;
+
                 if (insp.proxima_inspeccion) {
                     const hoyStr = obtenerFechaHoyString();
                     const fechaProximaStr = insp.proxima_inspeccion;
-                    if (fechaProximaStr < hoyStr) {
+
+                    if (fechaProximaStr <= hoyStr) {
                         estadoClase = 'estado-rojo';
-                        alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
+                        alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección vencida!</span>';
+                        mostrarBoton = true;
                     } else if (fechaProximaStr <= sumarDiasAFecha(hoyStr, 7)) {
                         estadoClase = 'estado-amarillo';
                     }
@@ -774,7 +778,7 @@
                     </div>
                     <div class="botones-container">
                         <button class="ver-btn" onclick="mostrarDetalle('${insp.id}')">Ver Detalles</button>
-                        ${estadoClase === 'estado-rojo' ? `<button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">✅ Marcar como reinspeccionada</button>` : ''}
+                        ${mostrarBoton ? `<button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">✅ Marcar como reinspeccionada</button>` : ''}
                     </div>
                 `;
                 contenedor.appendChild(card);
@@ -792,12 +796,16 @@
 
             let estadoClase = 'estado-verde';
             let alertaHTML = '';
+            let mostrarBoton = false;
+
             if (inspeccion.proxima_inspeccion) {
                 const hoyStr = obtenerFechaHoyString();
                 const fechaProximaStr = inspeccion.proxima_inspeccion;
-                if (fechaProximaStr < hoyStr) {
+
+                if (fechaProximaStr <= hoyStr) {
                     estadoClase = 'estado-rojo';
-                    alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección pendiente!</span>';
+                    alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección vencida!</span>';
+                    mostrarBoton = true;
                 } else if (fechaProximaStr <= sumarDiasAFecha(hoyStr, 7)) {
                     estadoClase = 'estado-amarillo';
                 }
@@ -835,7 +843,7 @@
                 </div>
                 <div class="botones-container">
                     <button class="ver-btn" onclick="mostrarDetalle('${inspeccion.id}')">Ver Detalles</button>
-                    ${estadoClase === 'estado-rojo' ? `<button class="btn-reinspeccion" onclick="abrirModalFecha('${inspeccion.id}')">✅ Marcar como reinspeccionada</button>` : ''}
+                    ${mostrarBoton ? `<button class="btn-reinspeccion" onclick="abrirModalFecha('${inspeccion.id}')">✅ Marcar como reinspeccionada</button>` : ''}
                 </div>
             `;
         }
@@ -1212,107 +1220,104 @@
             }
         }
 
-   async function exportarHistorialAPDF() {
-    if (!inspeccionesCache || inspeccionesCache.length === 0) {
-        alert("No hay inspecciones para exportar.");
-        return;
-    }
+        // ✅ FUNCIÓN DE EXPORTACIÓN DEL HISTORIAL COMPLETA Y FUNCIONAL
+        async function exportarHistorialAPDF() {
+            if (!inspeccionesCache || inspeccionesCache.length === 0) {
+                alert("No hay inspecciones para exportar.");
+                return;
+            }
 
-    // Crear contenido HTML temporal para el PDF
-    let tablaHTML = `
-        <div style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 80px; height: 80px; object-fit: contain;">
-                <h2 style="color: #0c2440; margin-top: 10px; font-size: 20px;">HISTORIAL DE INSPECCIONES</h2>
-                <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
-                <thead>
-                    <tr style="background-color: #0c2440; color: white;">
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Entidad</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tipo</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Fecha</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Cumplimiento</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Próxima Inspección</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Estado</th>
+            let tablaHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 80px; height: 80px; object-fit: contain;">
+                        <h2 style="color: #0c2440; margin-top: 10px; font-size: 20px;">HISTORIAL DE INSPECCIONES</h2>
+                        <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+                        <thead>
+                            <tr style="background-color: #0c2440; color: white;">
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Entidad</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tipo</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Fecha</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Cumplimiento</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Próxima Inspección</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            inspeccionesCache.forEach(insp => {
+                const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                const tipo = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
+                const hoyStr = obtenerFechaHoyString();
+                const estado = insp.proxima_inspeccion && insp.proxima_inspeccion <= hoyStr ? 'Vencida' : 
+                              (insp.proxima_inspeccion ? 'Programada' : 'No asignada');
+                const estadoColor = insp.proxima_inspeccion && insp.proxima_inspeccion <= hoyStr ? 
+                    '#e53e3e' : 
+                    (insp.proxima_inspeccion ? '#d69e2e' : '#4a5568');
+
+                tablaHTML += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px; border: 1px solid #ddd;">${insp.nombre_entidad}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${tipo}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${fechaInspeccion}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${insp.porcentaje_cumplimiento}%</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${insp.proxima_inspeccion || '—'}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${estadoColor}; font-weight: bold;">${estado}</td>
                     </tr>
-                </thead>
-                <tbody>
-    `;
+                `;
+            });
 
-    inspeccionesCache.forEach(insp => {
-        const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
-        const tipo = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
-        const estado = insp.proxima_inspeccion ? 
-            (new Date(insp.proxima_inspeccion) < new Date() ? 'Vencida' : 'Programada') : 
-            'No asignada';
-        const estadoColor = insp.proxima_inspeccion && new Date(insp.proxima_inspeccion) < new Date() ? 
-            '#e53e3e' : 
-            (insp.proxima_inspeccion ? '#d69e2e' : '#4a5568');
+            tablaHTML += `
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                    </div>
+                </div>
+            `;
 
-        tablaHTML += `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px; border: 1px solid #ddd;">${insp.nombre_entidad}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${tipo}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${fechaInspeccion}</td>
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${insp.porcentaje_cumplimiento}%</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${insp.proxima_inspeccion || '—'}</td>
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${estadoColor}; font-weight: bold;">${estado}</td>
-            </tr>
-        `;
-    });
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = tablaHTML;
+            document.body.appendChild(tempDiv);
+            tempDiv.style.position = 'fixed';
+            tempDiv.style.left = '-9999px';
 
-    tablaHTML += `
-                </tbody>
-            </table>
-            <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                Fecha de generación: ${new Date().toLocaleString('es-ES')}
-            </div>
-        </div>
-    `;
+            try {
+                const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
 
-    // Crear elemento temporal
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = tablaHTML;
-    document.body.appendChild(tempDiv);
-    tempDiv.style.position = 'fixed';
-    tempDiv.style.left = '-9999px';
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
 
-    try {
-        const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, logging: false });
-        const { jsPDF } = window.jspdf;
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-        let page = 1;
+                while (heightLeft >= 0) {
+                    pdf.addPage();
+                    position = heightLeft - imgHeight;
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-            pdf.addPage();
-            position = heightLeft - imgHeight;
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-            page++;
+                const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                pdf.save(`historial_inspecciones_cpnb_${fechaStr}.pdf`);
+            } catch (error) {
+                console.error('Error al generar PDF del historial:', error);
+                alert('❌ Error al generar el PDF del historial.');
+            } finally {
+                document.body.removeChild(tempDiv);
+            }
         }
 
-        const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        pdf.save(`historial_inspecciones_cpnb_${fechaStr}.pdf`);
-    } catch (error) {
-        console.error('Error al generar PDF del historial:', error);
-        alert('❌ Error al generar el PDF del historial.');
-    } finally {
-        document.body.removeChild(tempDiv);
-    }
-}
-
         function abrirModalFecha(inspeccionId) {
-            inspeccionIdActual = inspectionId;
+            inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
 
