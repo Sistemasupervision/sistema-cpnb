@@ -544,7 +544,7 @@
                 // ✅ Paso 1: Insertar en 'reportes' para obtener ID único
                 const { data: nuevoReporte, error: insertError } = await supabase
                     .from('reportes')
-                    .insert({ tipo_reporte: 'RESUMEN_MENSUAL' })
+                    .insert({}) // Inserta sin especificar tipo_reporte
                     .select('id, fecha_generacion')
                     .single();
                 if (insertError) {
