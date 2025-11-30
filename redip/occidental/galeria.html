@@ -216,7 +216,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ Mismos 67 ítems que en historial.txt y estadisticas.txt
+        // ✅ Mismos 67 ítems que en historial.txt
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -287,17 +287,16 @@
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
 
-        // === OBTENER PARÁMETROS DE URL (debe ser UUID) ===
+        // === OBTENER PARÁMETROS DE URL (UUID, no número) ===
         const urlParams = new URLSearchParams(window.location.search);
-        const estacionId = urlParams.get('estacionId'); // ✅ UUID, no número
+        const estacionId = urlParams.get('estacionId'); // ✅ UUID directo
         const estacionNombre = urlParams.get('estacionNombre') || 'Desconocida';
         const ccpNombre = urlParams.get('ccpNombre') || 'Desconocido';
 
-        // ✅ Validar que sea un UUID (formato estándar)
+        // ✅ Validar que sea un UUID (mínimo longitud)
         if (!estacionId || estacionId.length < 10) {
             alert('⚠️ Estación no válida. Redirigiendo...');
             window.history.back();
-            throw new Error('Estación ID inválido');
         }
 
         document.getElementById('estacionInfo').textContent = `Estación: ${estacionNombre} | CCP: ${ccpNombre}`;
@@ -321,12 +320,10 @@
                     .order('created_at', { ascending: false });
 
                 if (fechaDesde) {
-                    console.log('📅 Filtrando desde:', fechaDesde);
                     const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
                     query = query.gte('created_at', desdeISO);
                 }
                 if (fechaHasta) {
-                    console.log('📅 Filtrando hasta:', fechaHasta);
                     const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
                     query = query.lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
@@ -335,9 +332,8 @@
                 if (inspError) {
                     throw new Error(`Error en inspecciones: ${inspError.message}`);
                 }
-                console.log('✅ Inspecciones encontradas:', inspecciones.length);
 
-                if (inspecciones.length === 0) {
+                if (!inspecciones || inspecciones.length === 0) {
                     contenedor.innerHTML = '<div class="no-fotos">No hay inspecciones registradas para esta estación.</div>';
                     document.getElementById('paginacionContainer').style.display = 'none';
                     return;
@@ -345,21 +341,13 @@
 
                 const entradasPorFecha = {};
                 for (const insp of inspecciones) {
-                    console.log('🔍 Procesando inspección ID:', insp.id);
                     const { data: items, error: itemError } = await supabase
                         .from('items_inspeccion')
                         .select('item_nombre, foto1_url, foto2_url, archivo_url')
                         .eq('inspeccion_id', insp.id)
                         .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
 
-                    if (itemError) {
-                        console.warn('⚠️ Error en ítems de inspección', insp.id, ':', itemError.message);
-                        continue;
-                    }
-                    if (!items || items.length === 0) {
-                        console.log('ℹ️ No hay ítems con fotos/archivos en inspección', insp.id);
-                        continue;
-                    }
+                    if (itemError || !items || items.length === 0) continue;
 
                     const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
@@ -395,14 +383,13 @@
                     }
                 }
 
-                console.log('✅ Total de entradas con fotos/archivos:', todasLasEntradas.length);
                 paginaActual = 1;
                 mostrarPagina();
                 actualizarPaginacion();
-                document.getElementById('paginacionContainer').style.display = todasLasEntradas.length > 0 ? 'flex' : 'none';
+                document.getElementById('paginacionContainer').style.display = 'flex';
             } catch (err) {
-                console.error('❌ Error completo:', err);
-                contenedor.innerHTML = `<div class="no-fotos">❌ Error: ${err.message}</div>`;
+                console.error('❌ Error:', err);
+                contenedor.innerHTML = `<div class="no-fotos">❌ ${err.message}</div>`;
             }
         }
 
@@ -411,21 +398,25 @@
             const fin = inicio + entradasPorPagina;
             const entradas = todasLasEntradas.slice(inicio, fin);
             const contenedor = document.getElementById('galeriaContainer');
+
             if (entradas.length === 0) {
                 contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
                 return;
             }
+
             const porFecha = {};
             entradas.forEach(e => {
                 if (!porFecha[e.fecha]) porFecha[e.fecha] = [];
                 porFecha[e.fecha].push(e);
             });
+
             contenedor.innerHTML = '';
             Object.entries(porFecha).forEach(([fecha, items]) => {
                 const header = document.createElement('div');
                 header.className = 'inspeccion-header';
                 header.textContent = `Inspección del ${fecha}`;
                 contenedor.appendChild(header);
+
                 items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'item-card';
@@ -433,6 +424,7 @@
                     label.className = 'item-label';
                     label.textContent = nombres[item.itemNombre] || item.itemNombre;
                     card.appendChild(label);
+
                     item.fotos.forEach(fotoUrl => {
                         const img = document.createElement('img');
                         img.src = fotoUrl;
@@ -443,6 +435,7 @@
                         };
                         card.appendChild(img);
                     });
+
                     item.fotos.forEach((_, i) => {
                         const btn = document.createElement('button');
                         btn.className = 'download-btn btn-foto';
@@ -450,6 +443,7 @@
                         btn.onclick = async () => await descargar(item.fotos[i], item.itemNombre, 'foto');
                         card.appendChild(btn);
                     });
+
                     if (item.archivo_url) {
                         const btn = document.createElement('button');
                         btn.className = 'download-btn btn-archivo';
@@ -457,6 +451,7 @@
                         btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
                         card.appendChild(btn);
                     }
+
                     contenedor.appendChild(card);
                 });
             });
@@ -477,7 +472,7 @@
                 URL.revokeObjectURL(a.href);
             } catch (err) {
                 console.error('Error al descargar:', err);
-                alert('No se pudo descargar el archivo. Verifica la conexión o el enlace.');
+                alert('No se pudo descargar el archivo.');
             }
         }
 
