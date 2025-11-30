@@ -6,6 +6,124 @@
     <title>Seleccionar Estación - Galería</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .vector-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .vector-circle, .vector-line {
+            position: absolute;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .vector-circle:nth-child(1) { width: 300px; height: 300px; top: -100px; right: -100px; }
+        .vector-circle:nth-child(2) { width: 200px; height: 200px; bottom: -50px; left: -50px; }
+        .vector-circle:nth-child(3) { width: 150px; height: 150px; top: 20%; left: 10%; }
+        .vector-circle:nth-child(4) { width: 250px; height: 250px; bottom: 10%; right: 15%; }
+        .vector-line {
+            width: 400px;
+            height: 3px;
+            transform: rotate(30deg);
+            top: 30%;
+            right: -100px;
+        }
+        .vector-line:nth-of-type(2) {
+            width: 300px;
+            height: 3px;
+            transform: rotate(-20deg);
+            top: 60%;
+            left: -100px;
+        }
+        .container {
+            max-width: 600px;
+            padding: 50px;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin: 40px auto;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+        }
+        .title {
+            color: #0c2440;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .input-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+        }
+        .action-btn, .back-btn {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+        }
+        .action-btn {
+            background: linear-gradient(135deg, #0c2440, #1a365d);
+            color: white;
+            margin-top: 25px;
+        }
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282, #1a365d);
+            color: white;
+            margin-top: 15px;
+        }
+        .action-btn:disabled, .back-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
     <div class="vector-bg">
@@ -16,90 +134,103 @@
         <div class="vector-line"></div>
         <div class="vector-line"></div>
     </div>
-    <div id="container" class="container" style="max-width: 600px; padding: 50px;">
+    <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Seleccionar Estación para Galería</h1>
         </div>
-        <div id="content">
-            <div class="input-group">
-                <label for="ccpSelect">Seleccione CCP:</label>
-                <select id="ccpSelect" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
-                    <option value="">-- Elija un CCP --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur-del-lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="col">CCPE COL</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="estacionSelect">Seleccione Estación Policial:</label>
-                <select id="estacionSelect" disabled style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
-                    <option value="">-- Primero seleccione un CCP --</option>
-                </select>
-            </div>
-            <button id="btnCargarGaleria" class="action-btn" style="margin-top: 25px; padding: 14px; font-size: 16px; width: 100%;">
-                🖼️ Cargar Galería de Inspección
-            </button>
-            <button id="btnVolver" class="back-btn" style="margin-top: 15px; padding: 10px 20px; width: 100%;">
-                ← Volver al Menú
-            </button>
+        <div class="input-group">
+            <label for="ccpSelect">Seleccione CCP:</label>
+            <select id="ccpSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                <option value="">-- Elija un CCP --</option>
+                <option value="metropolitano">CCP METROPOLITANO</option>
+                <option value="sur_del_lago">CCP SUR DEL LAGO</option>
+                <option value="guajira">CCP GUAJIRA</option>
+                <option value="costa_oriental">CCPE Costa Oriental del Lago</option>
+                <option value="lara">CCPE LARA</option>
+                <option value="falcon">CCPE FALCÓN</option>
+            </select>
         </div>
+        <div class="input-group">
+            <label for="estacionSelect">Seleccione Estación Policial:</label>
+            <select id="estacionSelect" disabled style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                <option value="">-- Primero seleccione un CCP --</option>
+            </select>
+        </div>
+        <button id="btnCargarGaleria" class="action-btn" disabled>
+            🖼️ Cargar Galería de Inspección
+        </button>
+        <button id="btnVolver" class="back-btn">
+            ← Volver al Menú
+        </button>
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Cargar estaciones cuando se elige un CCP
         document.getElementById('ccpSelect').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpSelect').value;
             const estacionSelect = document.getElementById('estacionSelect');
             const btnCargar = document.getElementById('btnCargarGaleria');
+
+            estacionSelect.disabled = true;
+            estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+            btnCargar.disabled = true;
+
             if (!ccpId) {
-                estacionSelect.disabled = true;
                 estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
-                btnCargar.disabled = true;
                 return;
             }
+
             try {
+                // ✅ Usar los mismos campos que en historial.txt
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre')
+                    .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
+                    .order('nombre_estacion', { ascending: true });
+
                 if (error) throw error;
+
                 estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
-                    opt.value = est.id;
-                    opt.textContent = est.nombre;
+                    opt.value = est.estacion_id; // ✅ UUID
+                    opt.textContent = est.nombre_estacion; // ✅ Nombre legible
                     estacionSelect.appendChild(opt);
                 });
+
                 estacionSelect.disabled = false;
-                btnCargar.disabled = false;
             } catch (err) {
                 console.error('Error al cargar estaciones:', err);
-                alert('Error al cargar las estaciones policiales.');
+                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
+                alert('No se pudieron cargar las estaciones.');
             }
         });
 
         document.getElementById('estacionSelect').addEventListener('change', () => {
-            document.getElementById('btnCargarGaleria').disabled = !document.getElementById('estacionSelect').value;
+            const estacionId = document.getElementById('estacionSelect').value;
+            document.getElementById('btnCargarGaleria').disabled = !estacionId;
         });
 
         document.getElementById('btnCargarGaleria').addEventListener('click', () => {
-            const ccpId = document.getElementById('ccpSelect').value;
-            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
-            const estacionId = document.getElementById('estacionSelect').value;
-            const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+            const ccpSelect = document.getElementById('ccpSelect');
+            const estacionSelect = document.getElementById('estacionSelect');
+
+            const ccpId = ccpSelect.value;
+            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
+            const estacionId = estacionSelect.value;
+            const estacionNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
+
             if (!ccpId || !estacionId) {
-                alert('Por favor seleccione un CCP y una estación.');
+                alert('Seleccione una estación válida.');
                 return;
             }
-            window.location.href = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
+
+            // ✅ Pasar UUIDs y nombres legibles
+            const url = `Galeria.txt?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
+            window.location.href = url;
         });
 
         document.getElementById('btnVolver').addEventListener('click', () => {
