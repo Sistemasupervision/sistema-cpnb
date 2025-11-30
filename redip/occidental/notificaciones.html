@@ -58,13 +58,20 @@
             font-weight: bold;
             margin-bottom: 25px;
         }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
         .back-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
             font-size: 15px;
             cursor: pointer;
-            margin-bottom: 20px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -75,10 +82,21 @@
         .back-btn:hover {
             opacity: 0.9;
         }
+        .reloj {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0c2440;
+            background: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 10px;
+            min-width: 180px;
+            text-align: center;
+        }
         .alertas-list {
             display: flex;
             flex-direction: column;
             gap: 16px;
+            margin-bottom: 25px;
         }
         .alerta-card {
             background: #fee2e2;
@@ -131,6 +149,30 @@
             color: #666;
             font-size: 18px;
             padding: 30px;
+        }
+        /* Paginación */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .page-btn {
+            padding: 8px 14px;
+            border: 1px solid #cbd5e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .page-btn.active {
+            background: #2c5282;
+            color: white;
+            border-color: #2c5282;
+        }
+        .page-btn:hover:not(.active) {
+            background: #edf2f7;
         }
         /* Modal de fecha */
         #modalFecha {
@@ -197,12 +239,16 @@
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP OCCIDENTAL</h1>
         </div>
-        <button class="back-btn" onclick="window.location.href='index.html'">
-            ← Volver a REDIP OCCIDENTAL
-        </button>
+        <div class="header-row">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← Volver a REDIP OCCIDENTAL
+            </button>
+            <div class="reloj" id="reloj"></div>
+        </div>
         <div id="alertasContainer">
             <div class="loading">Cargando notificaciones...</div>
         </div>
+        <div id="paginationContainer" class="pagination"></div>
     </div>
     <!-- Modal para seleccionar fecha -->
     <div id="modalFecha">
@@ -219,7 +265,6 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        
         // === Cargar dinámicamente los CCPs de REDIP OCCIDENTAL ===
         async function obtenerCcpOcidental() {
             const { data, error } = await supabase
@@ -232,7 +277,6 @@
             }
             return data.map(row => row.ccp_id);
         }
-
         // Mapeo de nombres amigables (puedes extenderlo si hay más)
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
@@ -241,9 +285,112 @@
             "col": "CCPE COL",
             "costa_oriental": "CCP COSTA ORIENTAL"
         };
-
         let inspeccionIdActual = null;
+        let todasInspecciones = []; // Almacenamos todas las inspecciones aquí
+        const itemsPorPagina = 10;
+        let paginaActual = 1;
+
+        // === Reloj en tiempo real ===
+        function actualizarReloj() {
+            const ahora = new Date();
+            const opciones = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const formato = ahora.toLocaleDateString('es-ES', opciones);
+            document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
+        }
+        setInterval(actualizarReloj, 1000);
+        actualizarReloj(); // Inicializar inmediatamente
+
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+
+        // === Renderizar página específica ===
+        function renderizarPagina(pagina) {
+            paginaActual = pagina;
+            const inicio = (pagina - 1) * itemsPorPagina;
+            const fin = inicio + itemsPorPagina;
+            const inspeccionesPagina = todasInspecciones.slice(inicio, fin);
+            const container = document.getElementById('alertasContainer');
+
+            if (inspeccionesPagina.length === 0) {
+                container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
+                document.getElementById('paginationContainer').innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="alertas-list">';
+            inspeccionesPagina.forEach(insp => {
+                const fechaProxima = insp.proxima_inspeccion
+                    ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
+                    : 'Sin fecha asignada';
+                const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                let nombreUnidad = 'Unidad desconocida';
+                let ccpId = '';
+                let tipoLabel = '❓ Unidad desconocida';
+                // Buscar en estaciones
+                if (insp.estacion_id) {
+                    const estacion = estacionesGlobales.find(e => e.estacion_id === insp.estacion_id);
+                    if (estacion) {
+                        nombreUnidad = estacion.nombre_estacion;
+                        ccpId = estacion.ccp_id;
+                        tipoLabel = '👮 Estación Policial';
+                    } else {
+                        nombreUnidad = `⚠️ UUID no encontrado: ${insp.estacion_id}`;
+                        tipoLabel = '🔴 ERROR DE DATOS';
+                    }
+                }
+                // Si no es estación, buscar en servicios
+                if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
+                    const servicio = serviciosGlobales.find(s => s.id === insp.servicio_id);
+                    if (servicio) {
+                        nombreUnidad = servicio.nombre;
+                        ccpId = servicio.ccp_id;
+                        tipoLabel = '📋 Servicio Administrativo';
+                    } else {
+                        nombreUnidad = `⚠️ UUID no encontrado: ${insp.servicio_id}`;
+                        tipoLabel = '🔴 ERROR DE DATOS';
+                    }
+                }
+                const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
+                html += `
+                    <div class="alerta-card">
+                        <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
+                        <div class="alerta-detalles">
+                            <span>Última inspección: ${fechaInspeccion}</span>
+                            <span class="ccp-badge">${ccpNombre}</span>
+                        </div>
+                        <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
+                            ⚠️ Reinspección vencida desde: ${fechaProxima}
+                        </div>
+                        <div class="acciones">
+                            <button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">
+                                ✅ Marcar como reinspeccionada
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            // === Renderizar paginación ===
+            const totalPaginas = Math.ceil(todasInspecciones.length / itemsPorPagina);
+            let paginacionHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                paginacionHTML += `<button class="page-btn ${i === paginaActual ? 'active' : ''}" onclick="renderizarPagina(${i})">${i}</button>`;
+            }
+            document.getElementById('paginationContainer').innerHTML = paginacionHTML;
+        }
+
+        // === Variables globales para estaciones y servicios ===
+        let estacionesGlobales = [];
+        let serviciosGlobales = [];
 
         async function cargarNotificaciones() {
             const hoy = new Date();
@@ -254,13 +401,13 @@
             try {
                 // === 1. Obtener lista dinámica de CCPs ===
                 const ccpOcidental = await obtenerCcpOcidental();
-
                 // === 2. Cargar estaciones policiales ===
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (estError) throw estError;
+                estacionesGlobales = estaciones;
 
                 // === 3. Cargar servicios administrativos ===
                 const { data: servicios, error: servError } = await supabase
@@ -268,80 +415,22 @@
                     .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (servError) throw servError;
+                serviciosGlobales = servicios;
 
                 // === 4. Obtener TODAS las inspecciones vencidas ===
-                const { data: todasInspecciones, error: inspError } = await supabase
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('*')
                     .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
                     .order('proxima_inspeccion', { ascending: true });
                 if (inspError) throw inspError;
 
-                if (!todasInspecciones || todasInspecciones.length === 0) {
-                    container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
-                    return;
-                }
-
-                let html = '<div class="alertas-list">';
-                todasInspecciones.forEach(insp => {
-                    const fechaProxima = insp.proxima_inspeccion
-                        ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
-                        : 'Sin fecha asignada';
-                    const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
-                    let nombreUnidad = 'Unidad desconocida';
-                    let ccpId = '';
-                    let tipoLabel = '❓ Unidad desconocida';
-
-                    // Buscar en estaciones
-                    if (insp.estacion_id) {
-                        const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id);
-                        if (estacion) {
-                            nombreUnidad = estacion.nombre_estacion;
-                            ccpId = estacion.ccp_id;
-                            tipoLabel = '👮 Estación Policial';
-                        } else {
-                            nombreUnidad = `⚠️ UUID no encontrado: ${insp.estacion_id}`;
-                            tipoLabel = '🔴 ERROR DE DATOS';
-                        }
-                    }
-
-                    // Si no es estación, buscar en servicios
-                    if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
-                        const servicio = servicios.find(s => s.id === insp.servicio_id);
-                        if (servicio) {
-                            nombreUnidad = servicio.nombre;
-                            ccpId = servicio.ccp_id;
-                            tipoLabel = '📋 Servicio Administrativo';
-                        } else {
-                            nombreUnidad = `⚠️ UUID no encontrado: ${insp.servicio_id}`;
-                            tipoLabel = '🔴 ERROR DE DATOS';
-                        }
-                    }
-
-                    const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
-                    html += `
-                        <div class="alerta-card">
-                            <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
-                            <div class="alerta-detalles">
-                                <span>Última inspección: ${fechaInspeccion}</span>
-                                <span class="ccp-badge">${ccpNombre}</span>
-                            </div>
-                            <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
-                                ⚠️ Reinspección vencida desde: ${fechaProxima}
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">
-                                    ✅ Marcar como reinspeccionada
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
+                todasInspecciones = inspecciones || [];
+                renderizarPagina(1); // Mostrar primera página
             } catch (error) {
                 console.error('Error al cargar notificaciones:', error);
                 container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
+                document.getElementById('paginationContainer').innerHTML = '';
             }
         }
 
@@ -349,12 +438,10 @@
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
-
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
-
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha || !inspeccionIdActual) {
@@ -369,7 +456,7 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                cargarNotificaciones();
+                cargarNotificaciones(); // Recargar todo para reflejar cambios
             } catch (error) {
                 console.error("Error al actualizar:", error);
                 alert("❌ Error al actualizar la reinspección.");
