@@ -272,20 +272,33 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
-        const ccpNombres = {
-            "metropolitano": "CCP METROPOLITANO",
-            "sur-del-lago": "CCP SUR DEL LAGO",
-            "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL",
-            "lara": "CCPE LARA",
-            "falcon": "CCPE FALCÓN"
-        };
+
+        // === Variables globales ===
+        let ccpOcidental = [];
+        let ccpNombres = {};
         let chartInstance = null;
+
+        // === Cargar CCPs de REDIP OCCIDENTAL ===
+        async function cargarCcpOcidental() {
+            const { data, error } = await supabase
+                .from('ccps')
+                .select('ccp_id, nombre_ccp')
+                .eq('redip', 'occidental');
+            if (error) {
+                console.error('Error al cargar CCPs de OCCIDENTAL:', error);
+                throw error;
+            }
+            ccpOcidental = data.map(row => row.ccp_id);
+            ccpNombres = data.reduce((acc, row) => {
+                acc[row.ccp_id] = row.nombre_ccp;
+                return acc;
+            }, {});
+        }
 
         function formatoMes(anio, mes) {
             return new Date(anio, mes).toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
         }
+
         function rangoMes(anio, mes) {
             const inicio = new Date(anio, mes, 1);
             const fin = new Date(anio, mes + 1, 0);
@@ -294,6 +307,7 @@
                 hasta: fin.toISOString().split('T')[0]
             };
         }
+
         function llenarSelectores() {
             const hoy = new Date();
             const aniosBase = document.getElementById('anioBase');
@@ -330,6 +344,7 @@
             mesesComp.value = hoy.getMonth() === 0 ? 11 : hoy.getMonth() - 1;
             aniosComp.value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
         }
+
         async function cargarDatosPorCCP(anio, mes) {
             const rango = rangoMes(anio, mes);
             const { data: estaciones, error: estError } = await supabase
@@ -338,9 +353,11 @@
                 .in('ccp_id', ccpOcidental);
             if (estError) throw estError;
             if (estaciones.length === 0) return {};
+
             const idsEstaciones = estaciones.map(e => e.id);
             const estacionCCPMap = {};
             estaciones.forEach(e => estacionCCPMap[e.id] = e.ccp_id);
+
             const { data: inspecciones, error: inspError } = await supabase
                 .from('inspecciones')
                 .select('id, estacion_id')
@@ -349,12 +366,14 @@
                 .lte('created_at', rango.hasta + 'T23:59:59.999Z');
             if (inspError) throw inspError;
             if (inspecciones.length === 0) return {};
+
             const idsInspecciones = inspecciones.map(i => i.id);
             const { data: items, error: itemsError } = await supabase
                 .from('items_inspeccion')
                 .select('inspeccion_id, cumple')
                 .in('inspeccion_id', idsInspecciones);
             if (itemsError) throw itemsError;
+
             const itemsPorInspeccion = {};
             items.forEach(item => {
                 if (!itemsPorInspeccion[item.inspeccion_id]) {
@@ -362,6 +381,7 @@
                 }
                 itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
             });
+
             const metricasPorCCP = {};
             inspecciones.forEach(insp => {
                 const ccp = estacionCCPMap[insp.estacion_id];
@@ -373,6 +393,7 @@
                 metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
                 metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
             });
+
             const resultado = {};
             Object.keys(metricasPorCCP).forEach(ccp => {
                 const m = metricasPorCCP[ccp];
@@ -383,25 +404,32 @@
             });
             return resultado;
         }
+
         async function cargarResumen() {
             const container = document.getElementById('resumenContainer');
             try {
+                await cargarCcpOcidental(); // ✅ Cargar los CCPs antes de usarlos
+
                 const anioBase = parseInt(document.getElementById('anioBase').value);
                 const mesBase = parseInt(document.getElementById('mesBase').value);
                 const anioComp = parseInt(document.getElementById('anioComparar').value);
                 const mesComp = parseInt(document.getElementById('mesComparar').value);
+
                 const metricasBase = await cargarDatosPorCCP(anioBase, mesBase);
                 const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
                 const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
                 const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
+
                 const metricasComp = await cargarDatosPorCCP(anioComp, mesComp);
                 const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
                 const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
                 const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
+
                 const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
                 const labels = todosCCP.map(k => ccpNombres[k] || k);
                 const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
                 const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
+
                 let html = `
                     <div class="resumen-cards">
                         <div class="card">
@@ -431,6 +459,7 @@
                     </div>
                 `;
                 container.innerHTML = html;
+
                 const ctx = document.getElementById('ccpChart').getContext('2d');
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
@@ -501,124 +530,104 @@
             }
         }
 
-      async function exportarResumenAPDF() {
-    const canvas = document.getElementById('ccpChart');
-    if (!canvas) {
-        alert('Gráfico no encontrado');
-        return;
-    }
+        async function exportarResumenAPDF() {
+            const canvas = document.getElementById('ccpChart');
+            if (!canvas) {
+                alert('Gráfico no encontrado');
+                return;
+            }
+            try {
+                // ✅ Paso 1: Insertar en 'reportes' para obtener ID único
+                const { data: nuevoReporte, error: insertError } = await supabase
+                    .from('reportes')
+                    .insert({ tipo_reporte: 'RESUMEN_MENSUAL' })
+                    .select('id, fecha_generacion')
+                    .single();
+                if (insertError) {
+                    console.error('Error al crear reporte:', insertError);
+                    alert(`⚠️ No se pudo generar el número de reporte.\nDetalles: ${insertError.message || 'Error desconocido'}`);
+                    return;
+                }
+                if (!nuevoReporte) {
+                    alert('⚠️ Error: La inserción no devolvió datos.');
+                    return;
+                }
 
-    try {
-        // ✅ Paso 1: Insertar en 'reportes' para obtener ID único
-        const { data: nuevoReporte, error: insertError } = await supabase
-            .from('reportes')
-            .insert({ tipo_reporte: 'RESUMEN_MENSUAL' })
-            .select('id, fecha_generacion')
-            .single();
+                const fechaGen = new Date(nuevoReporte.fecha_generacion);
+                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+                const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
 
-        // ✅ Verificar si hubo error en la inserción
-        if (insertError) {
-            console.error('Error al crear reporte:', insertError);
-            alert(`⚠️ No se pudo generar el número de reporte.\nDetalles: ${insertError.message || 'Error desconocido'}`);
-            return;
+                await supabase
+                    .from('reportes')
+                    .update({ numero_reporte: numeroReporte })
+                    .eq('id', nuevoReporte.id);
+
+                // Continuar con PDF
+                const imgDataUrl = canvas.toDataURL('image/png');
+                const clone = document.getElementById('resumenContainer').cloneNode(true);
+                const chartImg = document.createElement('img');
+                chartImg.src = imgDataUrl;
+                chartImg.style.width = '100%';
+                chartImg.style.height = 'auto';
+                chartImg.style.marginTop = '15px';
+                const canvasInClone = clone.querySelector('canvas');
+                if (canvasInClone && canvasInClone.parentElement) {
+                    canvasInClone.parentElement.replaceWith(chartImg);
+                }
+
+                const printContent = document.createElement('div');
+                printContent.innerHTML = `
+                    <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <img src="../../assets/img/LOGO-PNB.png" 
+                                 alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+                            <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: bold;">
+                                RESUMEN MENSUAL DE INSPECCIONES
+                            </h1>
+                            <p style="color: #4a5568; font-size: 15px;">REDIP OCCIDENTAL - Comparación de Meses</p>
+                            <p style="color: #2d3748; font-size: 16px; margin-top: 10px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+                        </div>
+                        ${clone.innerHTML}
+                        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(printContent);
+                printContent.style.position = 'fixed';
+                printContent.style.left = '-9999px';
+
+                const canvasPDF = await html2canvas(printContent, { scale: 2, useCORS: true, logging: false, allowTaint: true });
+                const { jsPDF } = window.jspdf;
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvasPDF.height * imgWidth) / canvasPDF.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight + 10;
+                    pdf.addPage();
+                    pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                pdf.save(`resumen_comparativo_cpnb_${numeroReporte}.pdf`);
+                document.body.removeChild(printContent);
+                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('❌ Error al generar el reporte.');
+            }
         }
 
-        // ✅ Verificar que nuevoReporte no sea undefined
-        if (!nuevoReporte) {
-            console.error('La inserción devolvió undefined.');
-            alert('⚠️ Error: La inserción no devolvió datos. Verifique la tabla "reportes" en Supabase.');
-            return;
-        }
-
-        // ✅ Generar número de reporte
-        const fechaGen = new Date(nuevoReporte.fecha_generacion);
-        const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
-        const consecutivo = String(nuevoReporte.id).padStart(6, '0');
-        const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
-
-        // ✅ Actualizar con el número (opcional pero recomendado)
-        await supabase
-            .from('reportes')
-            .update({ numero_reporte: numeroReporte })
-            .eq('id', nuevoReporte.id);
-
-        // ✅ Continuar con la exportación del PDF
-        const imgDataUrl = canvas.toDataURL('image/png');
-        const clone = document.getElementById('resumenContainer').cloneNode(true);
-        const chartImg = document.createElement('img');
-        chartImg.src = imgDataUrl;
-        chartImg.style.width = '100%';
-        chartImg.style.height = 'auto';
-        chartImg.style.marginTop = '15px';
-        const canvasInClone = clone.querySelector('canvas');
-        if (canvasInClone && canvasInClone.parentElement) {
-            canvasInClone.parentElement.replaceWith(chartImg);
-        }
-
-        const printContent = document.createElement('div');
-        printContent.innerHTML = `
-            <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
-                <div style="text-align: center; margin-bottom: 25px;">
-                    <img src="https://raw.githubusercontent.com/Sistemasupervision/sistema-cpnb/main/iamagenes/LOGO-PNB.png" 
-                         alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
-                    <h1 style="color: #0c2440; margin-top: 15px; font-size: 24px; font-weight: bold;">
-                        RESUMEN MENSUAL DE INSPECCIONES
-                    </h1>
-                    <p style="color: #4a5568; font-size: 15px;">REDIP OCCIDENTAL - Comparación de Meses</p>
-                    <p style="color: #2d3748; font-size: 16px; margin-top: 10px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
-                </div>
-                ${clone.innerHTML}
-                <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-                    Fecha de generación: ${new Date().toLocaleString('es-ES')}
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(printContent);
-        printContent.style.position = 'fixed';
-        printContent.style.left = '-9999px';
-
-        const canvasPDF = await html2canvas(printContent, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            allowTaint: true
-        });
-
-        const { jsPDF } = window.jspdf;
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvasPDF.height * imgWidth) / canvasPDF.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-
-        pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight + 10;
-            pdf.addPage();
-            pdf.addImage(canvasPDF.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-        }
-
-        pdf.save(`resumen_comparativo_cpnb_${numeroReporte}.pdf`);
-        document.body.removeChild(printContent);
-        alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
-
-    } catch (error) {
-        console.error('Error al generar PDF:', error);
-        alert('❌ Error al generar el reporte.');
-    }
-}
-
-        // Inicializar
+        // === Inicializar ===
         llenarSelectores();
-        document.getElementById('mesBase').addEventListener('change', cargarResumen);
-        document.getElementById('anioBase').addEventListener('change', cargarResumen);
-        document.getElementById('mesComparar').addEventListener('change', cargarResumen);
-        document.getElementById('anioComparar').addEventListener('change', cargarResumen);
+        ['mesBase', 'anioBase', 'mesComparar', 'anioComparar'].forEach(id => {
+            document.getElementById(id).addEventListener('change', cargarResumen);
+        });
         cargarResumen();
     </script>
 </body>
