@@ -14,6 +14,7 @@
             justify-content: center;
             align-items: flex-start;
             padding: 20px;
+            overflow-x: hidden;
         }
         .container {
             background: white;
@@ -198,13 +199,17 @@
         #seleccionActiva {
             margin-top: 16px;
         }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #4a5568;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-        <h1 class="title">Protocolos de Supervisión</h1>
-        <!-- ✅ CCP directo (solo OCCIDENTAL) -->
+        <h1 class="title">Protocolos de Supervisión - REDIP OCCIDENTAL</h1>
         <div class="input-group">
             <label for="ccpSelect">Seleccione CCP:</label>
             <select id="ccpSelect" required>
@@ -217,7 +222,6 @@
                 <option value="falcon">CCPE FALCÓN</option>
             </select>
         </div>
-        <!-- Pestañas -->
         <div class="input-group">
             <label>Seleccione el tipo de unidad:</label>
             <div class="tabs">
@@ -225,7 +229,6 @@
                 <button id="tabServicio" class="tab-btn">📋 Servicio Administrativo</button>
             </div>
         </div>
-        <!-- Contenido dinámico -->
         <div id="seleccionActiva">
             <div class="input-group">
                 <label>Estación Policial:</label>
@@ -234,43 +237,114 @@
                 </select>
             </div>
         </div>
-        <!-- Protocolos -->
         <div id="protocolosContainer"></div>
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
         </button>
-        <a href="index.html" class="back-btn">← Volver al Panel Principal</a>
+        <a href="../../index.html" class="back-btn">← Volver al Panel Principal</a>
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
+        const ccpNombres = {
+            "metropolitano": "CCP METROPOLITANO",
+            "sur-del-lago": "CCP SUR DEL LAGO",
+            "guajira": "CCP GUAJIRA",
+            "col": "CCPE COL",
+            "lara": "CCPE LARA",
+            "falcon": "CCPE FALCÓN"
+        };
+
         const protocolos = [
             { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
             { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf' },
             { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
+
         let estadoArchivos = {};
         let tipoActivo = 'estacion';
         let idActivo = null;
         let ccpSeleccionado = null;
 
-        document.getElementById('ccpSelect').addEventListener('change', () => {
-            ccpSeleccionado = document.getElementById('ccpSelect').value;
-            if (tipoActivo === 'estacion') {
-                document.getElementById('tabEstacion').click();
-            } else {
-                document.getElementById('tabServicio').click();
+        // === VERIFICAR ACCESO ===
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debe iniciar sesión.');
+                window.location.href = '../../index.html';
+                return false;
             }
-        });
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administrador.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error de acceso:', err);
+                alert('Error de autenticación.');
+                window.location.href = '../../index.html';
+                return false;
+            }
+        }
 
+        // === CARGAR ESTACIONES O SERVICIOS ===
+        async function cargarUnidades(ccpId, tipo) {
+            const contenedor = tipo === 'estacion' 
+                ? document.getElementById('estacionSelect') 
+                : document.getElementById('servicioSelect');
+            contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
+            contenedor.disabled = true;
+
+            try {
+                let data, error;
+                if (tipo === 'estacion') {
+                    ({ data, error } = await supabase
+                        .from('estaciones_policiales')
+                        .select('id, nombre')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre', { ascending: true }));
+                } else {
+                    ({ data, error } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id, nombre')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre', { ascending: true }));
+                }
+                if (error) throw error;
+                contenedor.innerHTML = '<option value="">-- Elija una opción --</option>';
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.nombre;
+                    contenedor.appendChild(opt);
+                });
+                contenedor.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar unidades:', err);
+                contenedor.innerHTML = '<option value="">Error al cargar</option>';
+                contenedor.disabled = true;
+            }
+        }
+
+        // === RENDERIZAR PESTAÑAS ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
-            const habilitar = !!ccpSeleccionado;
+            const habilitar = ccpSeleccionado && ccpOcidental.includes(ccpSeleccionado);
             document.getElementById('protocolosContainer').innerHTML = '';
             document.getElementById('btnDescargarTodo').disabled = true;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
+
             if (tipo === 'estacion') {
                 document.getElementById('tabEstacion').classList.add('activo');
                 tipoActivo = 'estacion';
@@ -284,37 +358,16 @@
                     </div>
                 `;
                 if (habilitar) {
-                    (async () => {
-                        try {
-                            const { data: estaciones, error } = await supabase
-                                .from('estaciones_policiales')
-                                .select('id, nombre')
-                                .eq('ccp_id', ccpSeleccionado)
-                                .order('nombre', { ascending: true });
-                            if (error) throw error;
-
-                            const select = document.getElementById('estacionSelect');
-                            select.innerHTML = '<option value="">-- Elija una estación --</option>';
-                            estaciones.forEach(est => {
-                                const opt = document.createElement('option');
-                                opt.value = est.id;
-                                opt.textContent = est.nombre;
-                                select.appendChild(opt);
-                            });
-                            select.addEventListener('change', (e) => {
-                                idActivo = e.target.value || null;
-                                if (idActivo) {
-                                    renderizarProtocolos();
-                                    verificarArchivosExistentes();
-                                } else {
-                                    document.getElementById('protocolosContainer').innerHTML = '';
-                                }
-                            });
-                        } catch (err) {
-                            console.error('Error al cargar estaciones:', err);
-                            document.getElementById('estacionSelect').innerHTML = '<option value="">Error al cargar</option>';
+                    cargarUnidades(ccpSeleccionado, 'estacion');
+                    document.getElementById('estacionSelect').addEventListener('change', (e) => {
+                        idActivo = e.target.value || null;
+                        if (idActivo) {
+                            renderizarProtocolos();
+                            verificarArchivosExistentes();
+                        } else {
+                            document.getElementById('protocolosContainer').innerHTML = '';
                         }
-                    })();
+                    });
                 }
             } else {
                 document.getElementById('tabServicio').classList.add('activo');
@@ -329,44 +382,34 @@
                     </div>
                 `;
                 if (habilitar) {
-                    (async () => {
-                        try {
-                            const { data: servicios, error } = await supabase
-                                .from('servicios_administrativos')
-                                .select('id, nombre')
-                                .eq('ccp_id', ccpSeleccionado)
-                                .order('nombre', { ascending: true });
-                            if (error) throw error;
-
-                            const select = document.getElementById('servicioSelect');
-                            select.innerHTML = '<option value="">-- Elija un servicio --</option>';
-                            servicios.forEach(serv => {
-                                const opt = document.createElement('option');
-                                opt.value = serv.id;
-                                opt.textContent = serv.nombre;
-                                select.appendChild(opt);
-                            });
-                            select.addEventListener('change', (e) => {
-                                idActivo = e.target.value || null;
-                                if (idActivo) {
-                                    renderizarProtocolos();
-                                    verificarArchivosExistentes();
-                                } else {
-                                    document.getElementById('protocolosContainer').innerHTML = '';
-                                }
-                            });
-                        } catch (err) {
-                            console.error('Error al cargar servicios:', err);
-                            document.getElementById('servicioSelect').innerHTML = '<option value="">Error al cargar</option>';
+                    cargarUnidades(ccpSeleccionado, 'servicio');
+                    document.getElementById('servicioSelect').addEventListener('change', (e) => {
+                        idActivo = e.target.value || null;
+                        if (idActivo) {
+                            renderizarProtocolos();
+                            verificarArchivosExistentes();
+                        } else {
+                            document.getElementById('protocolosContainer').innerHTML = '';
                         }
-                    })();
+                    });
                 }
             }
         }
 
+        // === EVENTOS ===
+        document.getElementById('ccpSelect').addEventListener('change', (e) => {
+            ccpSeleccionado = e.target.value;
+            if (tipoActivo === 'estacion') {
+                renderPestana('estacion');
+            } else {
+                renderPestana('servicio');
+            }
+        });
+
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
 
+        // === RENDERIZAR PROTOCOLOS ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -394,6 +437,7 @@
             });
         }
 
+        // === FUNCIONES DE ARCHIVO ===
         async function verificarArchivosExistentes() {
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
@@ -452,27 +496,16 @@
         async function actualizarArchivo(id) {
             const proto = protocolos.find(p => p.id === id);
             if (!proto) return mostrarMensajeItem(id, '❌ Ítem no encontrado', 'error');
-
             const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
-            
             try {
-                // ✅ Intentar eliminar el archivo
                 const { error: deleteError } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
-                
-                if (deleteError && !deleteError.message.includes('not found')) {
-                    throw new Error('No se pudo eliminar el archivo anterior.');
-                }
-
-                // ✅ Limpiar estado y UI
                 delete estadoArchivos[id];
                 renderizarProtocolos();
                 document.getElementById('btnDescargarTodo').disabled = Object.keys(estadoArchivos).length === 0;
-
-                mostrarMensajeItem(id, '✅ Archivo anterior eliminado. Puede subir uno nuevo.', 'exito');
-                
+                mostrarMensajeItem(id, '✅ Archivo anterior eliminado.', 'exito');
             } catch (e) {
-                console.error('Error al actualizar archivo:', e);
-                mostrarMensajeItem(id, `❌ Error: ${e.message || 'No se pudo eliminar el archivo.'}`, 'error');
+                console.error('Error al eliminar:', e);
+                mostrarMensajeItem(id, '❌ Error al eliminar archivo.', 'error');
             }
         }
 
@@ -495,11 +528,15 @@
                     await new Promise(r => setTimeout(r, 500));
                 }
             }
-            alert('✅ Todos los archivos descargados');
+            alert('✅ Todos los archivos han sido descargados.');
         }
 
-        // Iniciar
-        renderPestana('estacion');
+        // === INICIAR ===
+        verificarAcceso().then(permitido => {
+            if (permitido) {
+                renderPestana('estacion');
+            }
+        });
     </script>
 </body>
 </html>
