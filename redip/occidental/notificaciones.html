@@ -38,7 +38,7 @@
             left: 0;
             right: 0;
             height: 8px;
-            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         .logo-container {
             text-align: center;
@@ -49,6 +49,7 @@
             height: 100px;
             object-fit: contain;
             margin: 0 auto 15px;
+            display: block;
         }
         .title {
             text-align: center;
@@ -60,14 +61,19 @@
         .back-btn {
             padding: 10px 20px;
             border: none;
-            border-radius: 12px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 15px;
             cursor: pointer;
             margin-bottom: 20px;
-            display: inline-block;
-            background: linear-gradient(135deg, #2c5282, #1a365d);
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             font-weight: bold;
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
+        }
+        .back-btn:hover {
+            opacity: 0.9;
         }
         .alertas-list {
             display: flex;
@@ -117,14 +123,16 @@
             cursor: pointer;
             flex: 1;
         }
+        .btn-reinspeccion:hover {
+            background: #b91c1c;
+        }
         .loading, .no-data {
             text-align: center;
             color: #666;
             font-size: 18px;
             padding: 30px;
         }
-
-        /* Modal */
+        /* Modal de fecha */
         #modalFecha {
             display: none;
             position: fixed;
@@ -173,8 +181,14 @@
             cursor: pointer;
             font-size: 15px;
         }
-        .btn-aceptar { background: #38a169; color: white; }
-        .btn-cancelar { background: #e2e8f0; color: #4a5568; }
+        .btn-aceptar {
+            background: #38a169;
+            color: white;
+        }
+        .btn-cancelar {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
     </style>
 </head>
 <body>
@@ -190,7 +204,7 @@
             <div class="loading">Cargando notificaciones...</div>
         </div>
     </div>
-
+    <!-- Modal para seleccionar fecha -->
     <div id="modalFecha">
         <div class="modal-content">
             <div class="modal-title">Nueva fecha de reinspección</div>
@@ -201,12 +215,10 @@
             </div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
@@ -214,39 +226,38 @@
             "guajira": "CCP GUAJIRA",
             "col": "CCPE COL"
         };
-
         let inspeccionIdActual = null;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
         async function cargarNotificaciones() {
-            const ahora = new Date().toISOString(); // ✅ Compatible con timestamptz
+            const ahora = new Date().toISOString(); // ✅ Correcto para timestamptz
             const container = document.getElementById('alertasContainer');
 
             try {
-                // === 1. Cargar estaciones (columnas reales) ===
+                // === 1. Estaciones: columnas reales ===
                 const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion, ccp_id')
+                    .select('estacion_id, nombre_estacion, ccp_id') // ✅ corregido
                     .in('ccp_id', ccpOcidental);
                 if (estError) throw estError;
                 const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : [];
 
-                // === 2. Cargar servicios (columnas reales) ===
+                // === 2. Servicios: columnas reales ===
                 const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
-                    .select('id, nombre, ccp_id')
+                    .select('id, nombre, ccp_id') // ✅ OK (esta tabla sí tiene `id` y `nombre`)
                     .in('ccp_id', ccpOcidental);
                 if (servError) throw servError;
                 const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
-                // === 3. Inspecciones vencidas (comparación UTC) ===
+                // === 3. Inspecciones vencidas (con ahora en UTC) ===
                 let inspeccionesEstaciones = [];
                 if (idsEstaciones.length > 0) {
                     const { data, error } = await supabase
                         .from('inspecciones')
                         .select('id, proxima_inspeccion, created_at, estacion_id')
                         .in('estacion_id', idsEstaciones)
-                        .lte('proxima_inspeccion', ahora) // ✅ Correcto para timestamptz
+                        .lte('proxima_inspeccion', ahora) // ✅ incluye hora
                         .order('proxima_inspeccion', { ascending: true });
                     if (error) throw error;
                     inspeccionesEstaciones = data || [];
@@ -279,25 +290,19 @@
                 let html = '<div class="alertas-list">';
                 todasInspecciones.forEach(insp => {
                     const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
                     });
                     const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
                     });
 
                     let nombreUnidad = '', ccpId = '', tipoLabel = '';
 
                     if (insp.tipo === 'estacion') {
                         const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id);
-                        nombreUnidad = estacion?.nombre_estacion || 'Estación desconocida';
+                        nombreUnidad = estacion?.nombre_estacion || 'Estación desconocida'; // ✅
                         ccpId = estacion?.ccp_id || '';
                         tipoLabel = '👮 Estación Policial';
                     } else {
@@ -356,10 +361,10 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                cargarNotificaciones(); // ✅ Refresca lista → si fecha ≥ ahora, desaparece
+                cargarNotificaciones();
             } catch (error) {
-                console.error("Error al actualizar reinspección:", error);
-                alert("❌ No se pudo actualizar.");
+                console.error("Error al actualizar:", error);
+                alert("❌ Error al actualizar la reinspección.");
             }
         }
 
