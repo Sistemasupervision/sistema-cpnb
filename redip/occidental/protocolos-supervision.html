@@ -281,7 +281,7 @@
             }
         }
 
-        // === CARGAR UNIDADES ===
+        // === CARGAR UNIDADES (CORREGIDO) ===
         async function cargarUnidades(ccpId, tipo) {
             const contenedor = tipo === 'estacion' 
                 ? document.getElementById('estacionSelect') 
@@ -293,9 +293,11 @@
                 if (tipo === 'estacion') {
                     ({ data, error } = await supabase
                         .from('estaciones_policiales')
-                        .select('estacion_id as id, nombre')
+                        .select('estacion_id, nombre') // ✅ Sin alias
                         .eq('ccp_id', ccpId)
                         .order('nombre', { ascending: true }));
+                    // ✅ Mapeo manual
+                    if (data) data = data.map(item => ({ id: item.estacion_id, nombre: item.nombre }));
                 } else {
                     ({ data, error } = await supabase
                         .from('servicios_administrativos')
@@ -417,12 +419,12 @@
             });
         }
 
-        // === FUNCIONES DE ARCHIVO ===
+        // === FUNCIONES DE ARCHIVO (RUTAS CORREGIDAS) ===
         async function verificarArchivosExistentes() {
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
             let existen = false;
-            const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ RUTA SIN BUCKET
+            const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ Sin prefijo del bucket
             for (const proto of protocolos) {
                 const ruta = `${rutaBase}${proto.archivo}`;
                 try {
@@ -453,7 +455,7 @@
             if (!archivo) return mostrarMensajeItem(id, '⚠️ Seleccione un archivo PDF', 'error');
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad', 'error');
             const proto = protocolos.find(p => p.id === id);
-            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ RUTA CORRECTA
+            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ Ruta correcta
             const progressBar = document.getElementById(`progress_${id}`);
             const fillBar = document.getElementById(`fill_${id}`);
             progressBar.style.display = 'block';
@@ -464,7 +466,7 @@
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
                 mostrarMensajeItem(id, '✅ Archivo subido con éxito', 'exito');
-                await verificarArchivosExistentes(); // ✅ Esto refresca los botones
+                await verificarArchivosExistentes(); // ✅ Refresca botones
             } catch (e) {
                 console.error('Error al subir:', e);
                 mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
@@ -476,7 +478,7 @@
         async function actualizarArchivo(id) {
             const proto = protocolos.find(p => p.id === id);
             if (!proto) return mostrarMensajeItem(id, '❌ Ítem no encontrado', 'error');
-            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ RUTA CORRECTA
+            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ Ruta correcta
             try {
                 const { error: deleteError } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
                 if (deleteError) throw deleteError;
