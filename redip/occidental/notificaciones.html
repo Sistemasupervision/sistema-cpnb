@@ -233,23 +233,23 @@ async function cargarNotificaciones() {
     const hoy = new Date().toISOString().split('T')[0];
     const container = document.getElementById('alertasContainer');
     try {
-        // === 1. Cargar estaciones con columnas REALES ===
-        const { data: estaciones, error: estError } = await supabase
+        // === 1. Estaciones: columnas reales ===
+        const {  estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
-            .select('estacion_id, nombre_estacion, ccp_id') // ✅ CORREGIDO
+            .select('estacion_id, nombre_estacion, ccp_id')
             .in('ccp_id', ccpOcidental);
         if (estError) throw estError;
-        const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : []; // ✅
+        const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : [];
 
-        // === 2. Cargar servicios (esto está bien) ===
-        const { data: servicios, error: servError } = await supabase
+        // === 2. Servicios: columnas reales ===
+        const {  servicios, error: servError } = await supabase
             .from('servicios_administrativos')
             .select('id, nombre, ccp_id')
             .in('ccp_id', ccpOcidental);
         if (servError) throw servError;
         const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
-        // === 3. Inspecciones vencidas de estaciones ===
+        // === 3. Inspecciones de estaciones ===
         let inspeccionesEstaciones = [];
         if (idsEstaciones.length > 0) {
             const { data, error } = await supabase
@@ -262,7 +262,7 @@ async function cargarNotificaciones() {
             inspeccionesEstaciones = data || [];
         }
 
-        // === 4. Inspecciones vencidas de servicios ===
+        // === 4. Inspecciones de servicios ===
         let inspeccionesServicios = [];
         if (idsServicios.length > 0) {
             const { data, error } = await supabase
@@ -296,8 +296,8 @@ async function cargarNotificaciones() {
             let tipoLabel = '';
 
             if (insp.tipo === 'estacion') {
-                const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id); // ✅
-                nombreUnidad = estacion ? estacion.nombre_estacion : 'Estación desconocida'; // ✅
+                const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id);
+                nombreUnidad = estacion ? estacion.nombre_estacion : 'Estación desconocida';
                 ccpId = estacion ? estacion.ccp_id : '';
                 tipoLabel = '👮 Estación Policial';
             } else {
@@ -330,7 +330,7 @@ async function cargarNotificaciones() {
         container.innerHTML = html;
     } catch (error) {
         console.error('Error al cargar notificaciones:', error);
-        container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
+        container.innerHTML = `<div class="no-data">❌ Error: ${error.message}</div>`;
     }
 }
         function abrirModalFecha(inspeccionId) {
