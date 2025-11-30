@@ -199,11 +199,6 @@
         #seleccionActiva {
             margin-top: 16px;
         }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #4a5568;
-        }
     </style>
 </head>
 <body>
@@ -215,9 +210,9 @@
             <select id="ccpSelect" required>
                 <option value="">-- Elija un CCP --</option>
                 <option value="metropolitano">CCP METROPOLITANO</option>
-                <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                <option value="sur_del_lago">CCP SUR DEL LAGO</option>
                 <option value="guajira">CCP GUAJIRA</option>
-                <option value="col">CCPE COL</option>
+                <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
                 <option value="lara">CCPE LARA</option>
                 <option value="falcon">CCPE FALCÓN</option>
             </select>
@@ -247,16 +242,6 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-        const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col', 'lara', 'falcon'];
-        const ccpNombres = {
-            "metropolitano": "CCP METROPOLITANO",
-            "sur-del-lago": "CCP SUR DEL LAGO",
-            "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL",
-            "lara": "CCPE LARA",
-            "falcon": "CCPE FALCÓN"
-        };
 
         const protocolos = [
             { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
@@ -298,7 +283,7 @@
             }
         }
 
-        // === CARGAR ESTACIONES O SERVICIOS ===
+        // === CARGAR UNIDADES ===
         async function cargarUnidades(ccpId, tipo) {
             const contenedor = tipo === 'estacion' 
                 ? document.getElementById('estacionSelect') 
@@ -337,10 +322,10 @@
             }
         }
 
-        // === RENDERIZAR PESTAÑAS ===
+        // === RENDERIZAR PESTAÑA ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
-            const habilitar = ccpSeleccionado && ccpOcidental.includes(ccpSeleccionado);
+            const habilitar = ccpSeleccionado && ccpSeleccionado.trim() !== '';
             document.getElementById('protocolosContainer').innerHTML = '';
             document.getElementById('btnDescargarTodo').disabled = true;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
