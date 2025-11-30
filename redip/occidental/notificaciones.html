@@ -230,46 +230,49 @@
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
 async function cargarNotificaciones() {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Asegura que sea solo la fecha
+    const hoyStr = hoy.toISOString().split('T')[0];
+
     const container = document.getElementById('alertasContainer');
     try {
-        // === 1. Estaciones: columnas reales ===
-        const {  estaciones, error: estError } = await supabase
+        // === 1. Cargar estaciones ===
+        const { data: estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
             .select('estacion_id, nombre_estacion, ccp_id')
             .in('ccp_id', ccpOcidental);
         if (estError) throw estError;
         const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : [];
 
-        // === 2. Servicios: columnas reales ===
-        const {  servicios, error: servError } = await supabase
+        // === 2. Cargar servicios ===
+        const { data: servicios, error: servError } = await supabase
             .from('servicios_administrativos')
             .select('id, nombre, ccp_id')
             .in('ccp_id', ccpOcidental);
         if (servError) throw servError;
         const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
-        // === 3. Inspecciones de estaciones ===
+        // === 3. Inspecciones vencidas de estaciones ===
         let inspeccionesEstaciones = [];
         if (idsEstaciones.length > 0) {
             const { data, error } = await supabase
                 .from('inspecciones')
                 .select('id, proxima_inspeccion, created_at, estacion_id')
                 .in('estacion_id', idsEstaciones)
-                .lte('proxima_inspeccion', hoy)
+                .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`) // ✅ Incluye NULL
                 .order('proxima_inspeccion', { ascending: true });
             if (error) throw error;
             inspeccionesEstaciones = data || [];
         }
 
-        // === 4. Inspecciones de servicios ===
+        // === 4. Inspecciones vencidas de servicios ===
         let inspeccionesServicios = [];
         if (idsServicios.length > 0) {
             const { data, error } = await supabase
                 .from('inspecciones')
                 .select('id, proxima_inspeccion, created_at, servicio_id')
                 .in('servicio_id', idsServicios)
-                .lte('proxima_inspeccion', hoy)
+                .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`) // ✅ Incluye NULL
                 .order('proxima_inspeccion', { ascending: true });
             if (error) throw error;
             inspeccionesServicios = data || [];
@@ -285,11 +288,18 @@ async function cargarNotificaciones() {
             return;
         }
 
-        todasInspecciones.sort((a, b) => new Date(a.proxima_inspeccion) - new Date(b.proxima_inspeccion));
+        todasInspecciones.sort((a, b) => {
+            // Si una fecha es null, la ponemos al final
+            if (!a.proxima_inspeccion) return 1;
+            if (!b.proxima_inspeccion) return -1;
+            return new Date(a.proxima_inspeccion) - new Date(b.proxima_inspeccion);
+        });
 
         let html = '<div class="alertas-list">';
         todasInspecciones.forEach(insp => {
-            const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
+            const fechaProxima = insp.proxima_inspeccion 
+                ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES') 
+                : 'Sin fecha asignada';
             const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
             let nombreUnidad = '';
             let ccpId = '';
@@ -308,6 +318,7 @@ async function cargarNotificaciones() {
             }
 
             const ccpNombre = ccpNombres[ccpId] || ccpId;
+
             html += `
                 <div class="alerta-card">
                     <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
@@ -330,7 +341,7 @@ async function cargarNotificaciones() {
         container.innerHTML = html;
     } catch (error) {
         console.error('Error al cargar notificaciones:', error);
-        container.innerHTML = `<div class="no-data">❌ Error: ${error.message}</div>`;
+        container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
     }
 }
         function abrirModalFecha(inspeccionId) {
