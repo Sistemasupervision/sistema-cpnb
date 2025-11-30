@@ -229,48 +229,47 @@
         let inspeccionIdActual = null;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
- async function cargarNotificaciones() {
-    const hoy = new Date().toISOString().split('T')[0]; // ✅ Esto está bien para tipo 'date'
+async function cargarNotificaciones() {
+    const hoy = new Date().toISOString().split('T')[0];
     const container = document.getElementById('alertasContainer');
-
     try {
-        // === 1. Cargar estaciones (columnas reales) ===
-        const {  estaciones, error: estError } = await supabase
+        // === 1. Cargar estaciones con columnas REALES ===
+        const { data: estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
-            .select('estacion_id, nombre_estacion, ccp_id') // ✅ Corregido
+            .select('estacion_id, nombre_estacion, ccp_id') // ✅ CORREGIDO
             .in('ccp_id', ccpOcidental);
         if (estError) throw estError;
-        const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : []; // ✅ Corregido
+        const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : []; // ✅
 
-        // === 2. Cargar servicios (columnas reales) ===
-        const {  servicios, error: servError } = await supabase
+        // === 2. Cargar servicios (esto está bien) ===
+        const { data: servicios, error: servError } = await supabase
             .from('servicios_administrativos')
             .select('id, nombre, ccp_id')
             .in('ccp_id', ccpOcidental);
         if (servError) throw servError;
         const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
-        // === 3. Inspecciones vencidas de ESTACIONES ===
+        // === 3. Inspecciones vencidas de estaciones ===
         let inspeccionesEstaciones = [];
         if (idsEstaciones.length > 0) {
             const { data, error } = await supabase
                 .from('inspecciones')
                 .select('id, proxima_inspeccion, created_at, estacion_id')
                 .in('estacion_id', idsEstaciones)
-                .lte('proxima_inspeccion', hoy) // ✅ Esto funciona para tipo 'date'
+                .lte('proxima_inspeccion', hoy)
                 .order('proxima_inspeccion', { ascending: true });
             if (error) throw error;
             inspeccionesEstaciones = data || [];
         }
 
-        // === 4. Inspecciones vencidas de SERVICIOS ===
+        // === 4. Inspecciones vencidas de servicios ===
         let inspeccionesServicios = [];
         if (idsServicios.length > 0) {
             const { data, error } = await supabase
                 .from('inspecciones')
                 .select('id, proxima_inspeccion, created_at, servicio_id')
                 .in('servicio_id', idsServicios)
-                .lte('proxima_inspeccion', hoy) // ✅
+                .lte('proxima_inspeccion', hoy)
                 .order('proxima_inspeccion', { ascending: true });
             if (error) throw error;
             inspeccionesServicios = data || [];
@@ -292,17 +291,19 @@
         todasInspecciones.forEach(insp => {
             const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
             const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
-            let nombreUnidad = '', ccpId = '', tipoLabel = '';
+            let nombreUnidad = '';
+            let ccpId = '';
+            let tipoLabel = '';
 
             if (insp.tipo === 'estacion') {
-                const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id); // ✅ Corregido
-                nombreUnidad = estacion?.nombre_estacion || 'Estación desconocida'; // ✅ Corregido
-                ccpId = estacion?.ccp_id || '';
+                const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id); // ✅
+                nombreUnidad = estacion ? estacion.nombre_estacion : 'Estación desconocida'; // ✅
+                ccpId = estacion ? estacion.ccp_id : '';
                 tipoLabel = '👮 Estación Policial';
             } else {
                 const servicio = servicios.find(s => s.id === insp.servicio_id);
-                nombreUnidad = servicio?.nombre || 'Servicio desconocido';
-                ccpId = servicio?.ccp_id || '';
+                nombreUnidad = servicio ? servicio.nombre : 'Servicio desconocido';
+                ccpId = servicio ? servicio.ccp_id : '';
                 tipoLabel = '📋 Servicio Administrativo';
             }
 
