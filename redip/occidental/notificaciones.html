@@ -219,11 +219,11 @@
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
         async function cargarNotificaciones() {
-            const hoy = new Date().toISOString(); // ✅ Incluye hora para comparar correctamente con timestamp
+            const hoy = new Date().toISOString(); // ✅ Incluye hora para comparar correctamente
             const container = document.getElementById('alertasContainer');
 
             try {
-                // === Estaciones (usando columnas reales) ===
+                // === Estaciones (columnas reales) ===
                 const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
@@ -231,7 +231,7 @@
                 if (estError) throw estError;
                 const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : [];
 
-                // === Servicios (usando columnas reales) ===
+                // === Servicios (columnas reales) ===
                 const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
@@ -239,14 +239,14 @@
                 if (servError) throw servError;
                 const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
-                // === Inspecciones vencidas (comparación correcta con timestamp) ===
+                // === Inspecciones vencidas ===
                 let inspeccionesEstaciones = [];
                 if (idsEstaciones.length > 0) {
                     const { data, error } = await supabase
                         .from('inspecciones')
                         .select('id, proxima_inspeccion, created_at, estacion_id')
                         .in('estacion_id', idsEstaciones)
-                        .lte('proxima_inspeccion', hoy) // ✅ Comparación con timestamp completo
+                        .lte('proxima_inspeccion', hoy)
                         .order('proxima_inspeccion', { ascending: true });
                     if (error) throw error;
                     inspeccionesEstaciones = data || [];
@@ -258,7 +258,7 @@
                         .from('inspecciones')
                         .select('id, proxima_inspeccion, created_at, servicio_id')
                         .in('servicio_id', idsServicios)
-                        .lte('proxima_inspeccion', hoy) // ✅
+                        .lte('proxima_inspeccion', hoy)
                         .order('proxima_inspeccion', { ascending: true });
                     if (error) throw error;
                     inspeccionesServicios = data || [];
@@ -278,8 +278,22 @@
 
                 let html = '<div class="alertas-list">';
                 todasInspecciones.forEach(insp => {
-                    const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
-                    const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                    // ✅ Mostrar fecha y hora en formato local legible
+                    const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
                     let nombreUnidad = '', ccpId = '', tipoLabel = '';
 
                     if (insp.tipo === 'estacion') {
@@ -343,7 +357,7 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                cargarNotificaciones(); // ✅ Recarga la lista → si la nueva fecha es >= hoy, desaparecerá
+                cargarNotificaciones();
             } catch (error) {
                 console.error("Error al actualizar reinspección:", error);
                 alert("❌ No se pudo actualizar. Verifique los permisos o intente más tarde.");
