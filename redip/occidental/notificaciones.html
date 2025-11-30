@@ -226,25 +226,25 @@
                 // === 1. Cargar estaciones de REDIP OCCIDENTAL ===
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion, ccp_id') // ✅ Clave primaria y nombre correctos
+                    .select('estacion_id, nombre_estacion, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (estError) throw estError;
-                const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : []; // ✅ estacion_id
+                const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : [];
 
                 // === 2. Cargar servicios administrativos de REDIP OCCIDENTAL ===
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
-                    .select('id, nombre, ccp_id') // ✅ Clave primaria 'id' y nombre 'nombre'
+                    .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (servError) throw servError;
-                const idsServicios = servicios ? servicios.map(s => s.id) : []; // ✅ id
+                const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
                 // === 3. Inspecciones vencidas de ESTACIONES ===
                 let inspeccionesEstaciones = [];
                 if (idsEstaciones.length > 0) {
                     const { data, error } = await supabase
                         .from('inspecciones')
-                        .select('id, proxima_inspeccion, created_at, estacion_id') // ✅ FK 'estacion_id'
+                        .select('id, proxima_inspeccion, created_at, estacion_id')
                         .in('estacion_id', idsEstaciones)
                         .lte('proxima_inspeccion', hoy)
                         .order('proxima_inspeccion', { ascending: true });
@@ -257,7 +257,7 @@
                 if (idsServicios.length > 0) {
                     const { data, error } = await supabase
                         .from('inspecciones')
-                        .select('id, proxima_inspeccion, created_at, servicio_id') // ✅ FK 'servicio_id'
+                        .select('id, proxima_inspeccion, created_at, servicio_id')
                         .in('servicio_id', idsServicios)
                         .lte('proxima_inspeccion', hoy)
                         .order('proxima_inspeccion', { ascending: true });
@@ -284,13 +284,13 @@
                     let nombreUnidad = '', ccpId = '', tipoLabel = '';
 
                     if (insp.tipo === 'estacion') {
-                        const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id); // ✅ Comparación con 'estacion_id'
-                        nombreUnidad = estacion?.nombre_estacion || 'Estación desconocida'; // ✅ nombre_estacion
+                        const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id);
+                        nombreUnidad = estacion?.nombre_estacion || 'Estación desconocida';
                         ccpId = estacion?.ccp_id || '';
                         tipoLabel = '👮 Estación Policial';
                     } else {
-                        const servicio = servicios.find(s => s.id === insp.servicio_id); // ✅ Comparación con 'id'
-                        nombreUnidad = servicio?.nombre || 'Servicio desconocido'; // ✅ nombre
+                        const servicio = servicios.find(s => s.id === insp.servicio_id);
+                        nombreUnidad = servicio?.nombre || 'Servicio desconocido';
                         ccpId = servicio?.ccp_id || '';
                         tipoLabel = '📋 Servicio Administrativo';
                     }
@@ -307,7 +307,7 @@
                                 ⚠️ Reinspección vencida desde: ${fechaProxima}
                             </div>
                             <div class="acciones">
-                                <button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">
+                                <button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">
                                     ✅ Marcar como reinspeccionada
                                 </button>
                             </div>
