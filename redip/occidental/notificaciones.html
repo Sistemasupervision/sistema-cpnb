@@ -219,47 +219,46 @@
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
         async function cargarNotificaciones() {
-            const hoy = new Date().toISOString().split('T')[0];
+            const hoy = new Date().toISOString(); // ✅ Incluye hora para comparar correctamente con timestamp
             const container = document.getElementById('alertasContainer');
 
             try {
-                // === 1. Cargar estaciones de REDIP OCCIDENTAL ===
-                const { data: estaciones, error: estError } = await supabase
+                // === Estaciones (usando columnas reales) ===
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (estError) throw estError;
                 const idsEstaciones = estaciones ? estaciones.map(e => e.estacion_id) : [];
 
-                // === 2. Cargar servicios administrativos de REDIP OCCIDENTAL ===
-                const { data: servicios, error: servError } = await supabase
+                // === Servicios (usando columnas reales) ===
+                const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (servError) throw servError;
                 const idsServicios = servicios ? servicios.map(s => s.id) : [];
 
-                // === 3. Inspecciones vencidas de ESTACIONES ===
+                // === Inspecciones vencidas (comparación correcta con timestamp) ===
                 let inspeccionesEstaciones = [];
                 if (idsEstaciones.length > 0) {
                     const { data, error } = await supabase
                         .from('inspecciones')
                         .select('id, proxima_inspeccion, created_at, estacion_id')
                         .in('estacion_id', idsEstaciones)
-                        .lte('proxima_inspeccion', hoy)
+                        .lte('proxima_inspeccion', hoy) // ✅ Comparación con timestamp completo
                         .order('proxima_inspeccion', { ascending: true });
                     if (error) throw error;
                     inspeccionesEstaciones = data || [];
                 }
 
-                // === 4. Inspecciones vencidas de SERVICIOS ===
                 let inspeccionesServicios = [];
                 if (idsServicios.length > 0) {
                     const { data, error } = await supabase
                         .from('inspecciones')
                         .select('id, proxima_inspeccion, created_at, servicio_id')
                         .in('servicio_id', idsServicios)
-                        .lte('proxima_inspeccion', hoy)
+                        .lte('proxima_inspeccion', hoy) // ✅
                         .order('proxima_inspeccion', { ascending: true });
                     if (error) throw error;
                     inspeccionesServicios = data || [];
@@ -332,8 +331,8 @@
         }
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
-            if (!nuevaFecha) {
-                alert("Por favor seleccione una fecha.");
+            if (!nuevaFecha || !inspeccionIdActual) {
+                alert("Datos incompletos.");
                 return;
             }
             try {
@@ -344,7 +343,7 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                cargarNotificaciones();
+                cargarNotificaciones(); // ✅ Recarga la lista → si la nueva fecha es >= hoy, desaparecerá
             } catch (error) {
                 console.error("Error al actualizar reinspección:", error);
                 alert("❌ No se pudo actualizar. Verifique los permisos o intente más tarde.");
