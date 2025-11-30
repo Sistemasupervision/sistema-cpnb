@@ -282,43 +282,51 @@
         }
 
         // === CARGAR UNIDADES (CORREGIDO) ===
-        async function cargarUnidades(ccpId, tipo) {
-            const contenedor = tipo === 'estacion' 
-                ? document.getElementById('estacionSelect') 
-                : document.getElementById('servicioSelect');
-            contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
-            contenedor.disabled = true;
-            try {
-                let data, error;
-                if (tipo === 'estacion') {
-                    ({ data, error } = await supabase
-                        .from('estaciones_policiales')
-                        .select('estacion_id as id, nombre_estacion') // ✅ CORREGIDO: nombre_estacion
-                        .eq('ccp_id', ccpId)
-                        .order('nombre_estacion', { ascending: true }));
-                } else {
-                    ({ data, error } = await supabase
-                        .from('servicios_administrativos')
-                        .select('id, nombre')
-                        .eq('ccp_id', ccpId)
-                        .order('nombre', { ascending: true }));
-                }
-                if (error) throw error;
-                contenedor.innerHTML = '<option value="">-- Elija una opción --</option>';
+      async function cargarUnidades(ccpId, tipo) {
+    const contenedor = tipo === 'estacion' 
+        ? document.getElementById('estacionSelect') 
+        : document.getElementById('servicioSelect');
+    contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
+    contenedor.disabled = true;
+    try {
+        let data, error;
+        if (tipo === 'estacion') {
+            ({ data, error } = await supabase
+                .from('estaciones_policiales')
+                .select('estacion_id, nombre_estacion') // ✅ SIN "as"
+                .eq('ccp_id', ccpId)
+                .order('nombre_estacion', { ascending: true }));
+            if (data) {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.estacion_id;        // ✅
+                    opt.textContent = item.nombre_estacion; // ✅
+                    contenedor.appendChild(opt);
+                });
+            }
+        } else {
+            ({ data, error } = await supabase
+                .from('servicios_administrativos')
+                .select('id, nombre')
+                .eq('ccp_id', ccpId)
+                .order('nombre', { ascending: true }));
+            if (data) {
                 data.forEach(item => {
                     const opt = document.createElement('option');
                     opt.value = item.id;
-                    opt.textContent = item.nombre_estacion || item.nombre; // ✅ usa nombre_estacion
+                    opt.textContent = item.nombre;
                     contenedor.appendChild(opt);
                 });
-                contenedor.disabled = false;
-            } catch (err) {
-                console.error('Error al cargar unidades:', err);
-                contenedor.innerHTML = '<option value="">Error al cargar</option>';
-                contenedor.disabled = true;
             }
         }
-
+        if (error) throw error;
+        contenedor.disabled = false;
+    } catch (err) {
+        console.error('Error al cargar unidades:', err);
+        contenedor.innerHTML = '<option value="">Error al cargar</option>';
+        contenedor.disabled = true;
+    }
+}
         // === RENDERIZAR PESTAÑA ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
