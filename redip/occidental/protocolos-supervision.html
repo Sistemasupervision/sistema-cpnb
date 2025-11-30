@@ -281,52 +281,53 @@
             }
         }
 
-        // === CARGAR UNIDADES (CORREGIDO) ===
-      async function cargarUnidades(ccpId, tipo) {
-    const contenedor = tipo === 'estacion' 
-        ? document.getElementById('estacionSelect') 
-        : document.getElementById('servicioSelect');
-    contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
-    contenedor.disabled = true;
-    try {
-        let data, error;
-        if (tipo === 'estacion') {
-            ({ data, error } = await supabase
-                .from('estaciones_policiales')
-                .select('estacion_id, nombre_estacion') // ✅ SIN "as"
-                .eq('ccp_id', ccpId)
-                .order('nombre_estacion', { ascending: true }));
-            if (data) {
-                data.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item.estacion_id;        // ✅
-                    opt.textContent = item.nombre_estacion; // ✅
-                    contenedor.appendChild(opt);
-                });
-            }
-        } else {
-            ({ data, error } = await supabase
-                .from('servicios_administrativos')
-                .select('id, nombre')
-                .eq('ccp_id', ccpId)
-                .order('nombre', { ascending: true }));
-            if (data) {
-                data.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item.id;
-                    opt.textContent = item.nombre;
-                    contenedor.appendChild(opt);
-                });
+        // === CARGAR UNIDADES CORREGIDO (sin alias problemático) ===
+        async function cargarUnidades(ccpId, tipo) {
+            const contenedor = tipo === 'estacion' 
+                ? document.getElementById('estacionSelect') 
+                : document.getElementById('servicioSelect');
+            contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
+            contenedor.disabled = true;
+            try {
+                let data, error;
+                if (tipo === 'estacion') {
+                    ({ data, error } = await supabase
+                        .from('estaciones_policiales')
+                        .select('estacion_id, nombre_estacion') // ✅ Nombres reales
+                        .eq('ccp_id', ccpId)
+                        .order('nombre_estacion', { ascending: true }));
+                    if (data) {
+                        data.forEach(item => {
+                            const opt = document.createElement('option');
+                            opt.value = item.estacion_id;
+                            opt.textContent = item.nombre_estacion;
+                            contenedor.appendChild(opt);
+                        });
+                    }
+                } else {
+                    ({ data, error } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id, nombre')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre', { ascending: true }));
+                    if (data) {
+                        data.forEach(item => {
+                            const opt = document.createElement('option');
+                            opt.value = item.id;
+                            opt.textContent = item.nombre;
+                            contenedor.appendChild(opt);
+                        });
+                    }
+                }
+                if (error) throw error;
+                contenedor.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar unidades:', err);
+                contenedor.innerHTML = '<option value="">Error al cargar</option>';
+                contenedor.disabled = true;
             }
         }
-        if (error) throw error;
-        contenedor.disabled = false;
-    } catch (err) {
-        console.error('Error al cargar unidades:', err);
-        contenedor.innerHTML = '<option value="">Error al cargar</option>';
-        contenedor.disabled = true;
-    }
-}
+
         // === RENDERIZAR PESTAÑA ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
@@ -407,14 +408,14 @@
                 const tipoLabel = tipoActivo === 'estacion' ? 'Estación' : 'Servicio';
                 div.innerHTML = `
                     <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
-                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}" ${estadoArchivos[proto.id]?.existe ? 'disabled' : ''}>
-                    <div class="aviso-actualizacion" id="aviso_${proto.id}" style="${estadoArchivos[proto.id]?.existe ? 'display:block;' : 'display:none;'}">
+                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf">
+                    <div class="aviso-actualizacion" id="aviso_${proto.id}" style="display:none;">
                       ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
                     </div>
                     <div class="botones-item">
-                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? 'style="display:none;"' : ''}>📤 Subir</button>
-                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? '' : 'style="display:none;"'}>🔄 Actualizar</button>
-                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? '' : 'style="display:none;"'}>📥 Descargar</button>
+                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
+                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
+                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
                     </div>
                     <div class="progress-container" id="progress_${proto.id}">
                         <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
@@ -422,6 +423,14 @@
                     <div class="mensaje-item" id="mensaje_${proto.id}"></div>
                 `;
                 container.appendChild(div);
+                // Aplicar estado si ya existe
+                if (estadoArchivos[proto.id]?.existe) {
+                    document.getElementById(`input_${proto.id}`).disabled = true;
+                    document.getElementById(`aviso_${proto.id}`).style.display = 'block';
+                    document.querySelector(`#input_${proto.id}`).nextElementSibling.nextElementSibling.children[0].style.display = 'none'; // Subir
+                    document.querySelector(`#input_${proto.id}`).nextElementSibling.nextElementSibling.children[1].style.display = 'inline-block'; // Actualizar
+                    document.querySelector(`#input_${proto.id}`).nextElementSibling.nextElementSibling.children[2].style.display = 'inline-block'; // Descargar
+                }
             });
         }
 
@@ -430,7 +439,7 @@
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
             let existen = false;
-            const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ Sin "protocolos-supervision/"
+            const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`;
             for (const proto of protocolos) {
                 const ruta = `${rutaBase}${proto.archivo}`;
                 try {
@@ -457,15 +466,24 @@
 
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
+            // ✅ Resetear input antes de leer (mejora compatibilidad)
             const archivo = input.files[0];
-            if (!archivo) return mostrarMensajeItem(id, '⚠️ Seleccione un archivo PDF', 'error');
-            if (!ccpSeleccionado || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad', 'error');
+            if (!archivo) {
+                mostrarMensajeItem(id, '⚠️ Seleccione un archivo PDF', 'error');
+                return;
+            }
+            if (!ccpSeleccionado || !tipoActivo || !idActivo) {
+                mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad', 'error');
+                return;
+            }
+
             const proto = protocolos.find(p => p.id === id);
-            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ Ruta correcta
+            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
             const progressBar = document.getElementById(`progress_${id}`);
             const fillBar = document.getElementById(`fill_${id}`);
             progressBar.style.display = 'block';
             fillBar.style.width = '0%';
+
             try {
                 const { error } = await supabase.storage.from('protocolos-supervision').upload(ruta, archivo, { upsert: true });
                 if (error) throw error;
@@ -478,13 +496,14 @@
                 mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
             } finally {
                 progressBar.style.display = 'none';
+                input.value = ''; // ✅ Limpiar input para futuras selecciones
             }
         }
 
         async function actualizarArchivo(id) {
             const proto = protocolos.find(p => p.id === id);
             if (!proto) return mostrarMensajeItem(id, '❌ Ítem no encontrado', 'error');
-            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ Ruta correcta
+            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
             try {
                 const { error: deleteError } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
                 if (deleteError) throw deleteError;
