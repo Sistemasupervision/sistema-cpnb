@@ -422,28 +422,26 @@
             });
         }
 
-        // === FUNCIONES DE ARCHIVO ===
-        async function verificarArchivosExistentes() {
-            if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
-            estadoArchivos = {};
-            let existen = false;
-            const rutaBase = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`;
-            for (const proto of protocolos) {
-                const ruta = `${rutaBase}${proto.archivo}`;
-                try {
-                    const { data } = await supabase.storage.from('protocolos-supervision').download(ruta);
-                    if (data) {
-                        estadoArchivos[proto.id] = { existe: true, data };
-                        existen = true;
-                    }
-                } catch (e) {
-                    // Archivo no existe — se ignora
-                }
+async function verificarArchivosExistentes() {
+    if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
+    estadoArchivos = {};
+    let existen = false;
+    const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ Sin "protocolos-supervision/"
+    for (const proto of protocolos) {
+        const ruta = `${rutaBase}${proto.archivo}`;
+        try {
+            const { data } = await supabase.storage.from('protocolos-supervision').download(ruta);
+            if (data) {
+                estadoArchivos[proto.id] = { existe: true, data };
+                existen = true;
             }
-            renderizarProtocolos();
-            document.getElementById('btnDescargarTodo').disabled = !existen;
+        } catch (e) {
+            // Archivo no existe — se ignora
         }
-
+    }
+    renderizarProtocolos();
+    document.getElementById('btnDescargarTodo').disabled = !existen;
+}
         function mostrarMensajeItem(id, texto, tipo) {
             const msg = document.getElementById(`mensaje_${id}`);
             msg.textContent = texto;
