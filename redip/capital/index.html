@@ -25,12 +25,11 @@
         <div class="vector-line"></div>
     </div>
     <!-- Vista específica: REDIP CAPITAL -->
-    <div id="rediCapitalContainer" class="container">
+    <div id="redipCapitalContainer" class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">REDIP CAPITAL</h1>
         </div>
-        <!-- Botón "Crear Nueva Inspección" -->
         <button id="btnCrearInspeccion" class="action-btn" style="margin-top: 12px; padding: 12px; font-size: 15px;">
             🆕 Crear Nueva Inspección
         </button>
@@ -60,7 +59,7 @@
         <div class="input-group">
             <label for="ccpSelectModal">Seleccione CCP:</label>
             <select id="ccpSelectModal" required style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
-                <option value="">-- Elija un CCP --</option>
+                <option value="">-- Cargando CCPs --</option>
             </select>
         </div>
         <div style="text-align:center; margin-top: 30px;">
@@ -100,25 +99,26 @@
         }
 
         async function cargarCCPs() {
+            const select = document.getElementById('ccpSelectModal');
             try {
-                const ccpIdsCapital = ['altos-mirandinos', 'barlovento', 'ciudad-fajardo', 'distrito-capital', 'la-guaira', 'valles-del-tuy'];
+                // ✅ Cambiado a 'capital'
                 const { data: ccps, error } = await supabase
                     .from('ccps')
-                    .select('id, nombre')
-                    .in('id', ccpIdsCapital)
-                    .order('nombre', { ascending: true });
+                    .select('ccp_id, nombre_ccp')
+                    .eq('redip', 'capital') // ← aquí está el cambio clave
+                    .order('nombre_ccp', { ascending: true });
                 if (error) throw error;
-                const select = document.getElementById('ccpSelectModal');
                 select.innerHTML = '<option value="">-- Elija un CCP --</option>';
                 ccps.forEach(ccp => {
                     const opt = document.createElement('option');
-                    opt.value = ccp.id;
-                    opt.textContent = ccp.nombre;
+                    opt.value = ccp.ccp_id;
+                    opt.textContent = ccp.nombre_ccp;
                     select.appendChild(opt);
                 });
             } catch (error) {
                 console.error('Error al cargar CCPs:', error);
-                alert('Error al cargar los CCPs de REDIP CAPITAL.');
+                select.innerHTML = '<option value="">Error al cargar</option>';
+                alert('⚠️ No se pudieron cargar los CCP. Verifique su conexión.');
             }
         }
 
@@ -162,9 +162,10 @@
                     <button id="backToCcpBtn" class="back-btn" style="margin-top: 20px; padding:12px;">← Volver a CCP</button>
                 </div>
             `;
-            document.getElementById('rediCapitalContainer').style.display = 'none';
+            document.getElementById('redipCapitalContainer').style.display = 'none';
             dynamicView.style.display = 'block';
 
+            // ✅ Rutas relativas a la carpeta 'capital/'
             document.getElementById('btnEstaciones').onclick = () => {
                 window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             };
@@ -175,7 +176,7 @@
                 window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             };
             document.getElementById('backToCcpBtn').onclick = () => {
-                document.getElementById('rediCapitalContainer').style.display = 'block';
+                document.getElementById('redipCapitalContainer').style.display = 'block';
                 dynamicView.style.display = 'none';
             };
         }
@@ -192,45 +193,29 @@
         async function contarReinspeccionesVencidas() {
             try {
                 const hoy = new Date().toISOString().split('T')[0];
-                const ccpCapital = ['altos-mirandinos', 'barlovento', 'ciudad-fajardo', 'distrito-capital', 'la-guaira', 'valles-del-tuy'];
-                // Estaciones
-                const { data: estaciones, error: estError } = await supabase
+                // ✅ Cargar ccp_id de REDIP CAPITAL
+                const { data: ccps } = await supabase
+                    .from('ccps')
+                    .select('ccp_id')
+                    .eq('redip', 'capital'); // ← cambio clave
+                const ccpIds = ccps.map(c => c.ccp_id);
+
+                const { data: estaciones } = await supabase
                     .from('estaciones_policiales')
-                    .select('id')
-                    .in('ccp_id', ccpCapital);
-                if (estError) throw estError;
-                const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
-                // Servicios
-                const { data: servicios, error: servError } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id')
-                    .in('ccp_id', ccpCapital);
-                if (servError) throw servError;
-                const idsServicios = servicios ? servicios.map(s => s.id) : [];
+                    .select('estacion_id')
+                    .in('ccp_id', ccpIds);
+                const estacionIds = estaciones ? estaciones.map(e => e.estacion_id) : [];
 
-                let countEstaciones = 0;
-                if (idsEstaciones.length > 0) {
-                    const { count, error: countError } = await supabase
+                let totalVencidas = 0;
+                if (estacionIds.length > 0) {
+                    const { count } = await supabase
                         .from('inspecciones')
                         .select('*', { count: 'exact', head: true })
-                        .in('estacion_id', idsEstaciones)
+                        .in('estacion_id', estacionIds)
                         .lte('proxima_inspeccion', hoy);
-                    if (countError) throw countError;
-                    countEstaciones = count || 0;
+                    totalVencidas = count || 0;
                 }
-
-                let countServicios = 0;
-                if (idsServicios.length > 0) {
-                    const { count, error: countError } = await supabase
-                        .from('inspecciones')
-                        .select('*', { count: 'exact', head: true })
-                        .in('servicio_id', idsServicios)
-                        .lte('proxima_inspeccion', hoy);
-                    if (countError) throw countError;
-                    countServicios = count || 0;
-                }
-
-                return countEstaciones + countServicios;
+                return totalVencidas;
             } catch (error) {
                 console.error('Error al contar notificaciones:', error);
                 return 0;
@@ -249,12 +234,11 @@
             document.getElementById('backToDashboardBtn').addEventListener('click', () => {
                 window.location.href = '../../index.html';
             });
+            document.getElementById('btnHistorial').addEventListener('click', () => {
+                window.location.href = 'seleccion-ccp-historial.html';
+            });
             contarYMostrarNotificaciones();
             manejarParametrosURL();
-        });
-
-        document.getElementById('btnHistorial').addEventListener('click', () => {
-            window.location.href = 'seleccion-ccp-historial.html';
         });
     </script>
 </body>
