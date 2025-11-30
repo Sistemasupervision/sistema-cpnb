@@ -204,7 +204,6 @@
             <div class="loading">Cargando notificaciones...</div>
         </div>
     </div>
-
     <!-- Modal para seleccionar fecha -->
     <div id="modalFecha">
         <div class="modal-content">
@@ -216,124 +215,135 @@
             </div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        
+        // === Cargar dinámicamente los CCPs de REDIP OCCIDENTAL ===
+        async function obtenerCcpOcidental() {
+            const { data, error } = await supabase
+                .from('ccps')
+                .select('ccp_id')
+                .eq('redip', 'occidental');
+            if (error) {
+                console.error('Error al cargar CCPs de OCCIDENTAL:', error);
+                return ['metropolitano', 'sur-del-lago', 'guajira', 'col']; // fallback
+            }
+            return data.map(row => row.ccp_id);
+        }
 
-        const ccpOcidental = ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
+        // Mapeo de nombres amigables (puedes extenderlo si hay más)
         const ccpNombres = {
             "metropolitano": "CCP METROPOLITANO",
             "sur-del-lago": "CCP SUR DEL LAGO",
             "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL"
+            "col": "CCPE COL",
+            "costa_oriental": "CCP COSTA ORIENTAL"
         };
 
         let inspeccionIdActual = null;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
-      async function cargarNotificaciones() {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const hoyStr = hoy.toISOString().split('T')[0];
+        async function cargarNotificaciones() {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const hoyStr = hoy.toISOString().split('T')[0];
+            const container = document.getElementById('alertasContainer');
 
-    const container = document.getElementById('alertasContainer');
-    try {
-        // === 1. Cargar estaciones policiales ===
-        const { data: estaciones, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('estacion_id, nombre_estacion, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (estError) throw estError;
+            try {
+                // === 1. Obtener lista dinámica de CCPs ===
+                const ccpOcidental = await obtenerCcpOcidental();
 
-        // === 2. Cargar servicios administrativos ===
-        const { data: servicios, error: servError } = await supabase
-            .from('servicios_administrativos')
-            .select('id, nombre, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (servError) throw servError;
+                // === 2. Cargar estaciones policiales ===
+                const { data: estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('estacion_id, nombre_estacion, ccp_id')
+                    .in('ccp_id', ccpOcidental);
+                if (estError) throw estError;
 
-        // === 3. Obtener TODAS las inspecciones vencidas ===
-        const { data: todasInspecciones, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('*')
-            .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
-            .order('proxima_inspeccion', { ascending: true });
+                // === 3. Cargar servicios administrativos ===
+                const { data: servicios, error: servError } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre, ccp_id')
+                    .in('ccp_id', ccpOcidental);
+                if (servError) throw servError;
 
-        if (inspError) throw inspError;
+                // === 4. Obtener TODAS las inspecciones vencidas ===
+                const { data: todasInspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('*')
+                    .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+                    .order('proxima_inspeccion', { ascending: true });
+                if (inspError) throw inspError;
 
-        if (!todasInspecciones || todasInspecciones.length === 0) {
-            container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
-            return;
+                if (!todasInspecciones || todasInspecciones.length === 0) {
+                    container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
+                    return;
+                }
+
+                let html = '<div class="alertas-list">';
+                todasInspecciones.forEach(insp => {
+                    const fechaProxima = insp.proxima_inspeccion
+                        ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
+                        : 'Sin fecha asignada';
+                    const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                    let nombreUnidad = 'Unidad desconocida';
+                    let ccpId = '';
+                    let tipoLabel = '❓ Unidad desconocida';
+
+                    // Buscar en estaciones
+                    if (insp.estacion_id) {
+                        const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id);
+                        if (estacion) {
+                            nombreUnidad = estacion.nombre_estacion;
+                            ccpId = estacion.ccp_id;
+                            tipoLabel = '👮 Estación Policial';
+                        } else {
+                            nombreUnidad = `⚠️ UUID no encontrado: ${insp.estacion_id}`;
+                            tipoLabel = '🔴 ERROR DE DATOS';
+                        }
+                    }
+
+                    // Si no es estación, buscar en servicios
+                    if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
+                        const servicio = servicios.find(s => s.id === insp.servicio_id);
+                        if (servicio) {
+                            nombreUnidad = servicio.nombre;
+                            ccpId = servicio.ccp_id;
+                            tipoLabel = '📋 Servicio Administrativo';
+                        } else {
+                            nombreUnidad = `⚠️ UUID no encontrado: ${insp.servicio_id}`;
+                            tipoLabel = '🔴 ERROR DE DATOS';
+                        }
+                    }
+
+                    const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
+                    html += `
+                        <div class="alerta-card">
+                            <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
+                            <div class="alerta-detalles">
+                                <span>Última inspección: ${fechaInspeccion}</span>
+                                <span class="ccp-badge">${ccpNombre}</span>
+                            </div>
+                            <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
+                                ⚠️ Reinspección vencida desde: ${fechaProxima}
+                            </div>
+                            <div class="acciones">
+                                <button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">
+                                    ✅ Marcar como reinspeccionada
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error al cargar notificaciones:', error);
+                container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
+            }
         }
-
-        let html = '<div class="alertas-list">';
-        todasInspecciones.forEach(insp => {
-            const fechaProxima = insp.proxima_inspeccion
-                ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
-                : 'Sin fecha asignada';
-            const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
-
-            let nombreUnidad = 'Unidad desconocida';
-            let ccpId = '';
-            let tipoLabel = '❓ Unidad desconocida';
-
-            // Buscar en estaciones
-            if (insp.estacion_id) {
-                const estacion = estaciones.find(e => e.estacion_id === insp.estacion_id);
-                if (estacion) {
-                    nombreUnidad = estacion.nombre_estacion;
-                    ccpId = estacion.ccp_id;
-                    tipoLabel = '👮 Estación Policial';
-                } else {
-                    // ⚠️ Mostrar el UUID problemático para depuración
-                    nombreUnidad = `⚠️ UUID no encontrado: ${insp.estacion_id}`;
-                    tipoLabel = '🔴 ERROR DE DATOS';
-                }
-            }
-
-            // Si no es estación, buscar en servicios
-            if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
-                const servicio = servicios.find(s => s.id === insp.servicio_id);
-                if (servicio) {
-                    nombreUnidad = servicio.nombre;
-                    ccpId = servicio.ccp_id;
-                    tipoLabel = '📋 Servicio Administrativo';
-                } else {
-                    // ⚠️ Mostrar el UUID problemático para depuración
-                    nombreUnidad = `⚠️ UUID no encontrado: ${insp.servicio_id}`;
-                    tipoLabel = '🔴 ERROR DE DATOS';
-                }
-            }
-
-            const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
-
-            html += `
-                <div class="alerta-card">
-                    <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
-                    <div class="alerta-detalles">
-                        <span>Última inspección: ${fechaInspeccion}</span>
-                        <span class="ccp-badge">${ccpNombre}</span>
-                    </div>
-                    <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
-                        ⚠️ Reinspección vencida desde: ${fechaProxima}
-                    </div>
-                    <div class="acciones">
-                        <button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">
-                            ✅ Marcar como reinspeccionada
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Error al cargar notificaciones:', error);
-        container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
-    }
-}
 
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
