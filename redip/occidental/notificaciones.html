@@ -265,6 +265,7 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         // === Cargar dinámicamente los CCPs de REDIP OCCIDENTAL ===
         async function obtenerCcpOcidental() {
             const { data, error } = await supabase
@@ -273,20 +274,39 @@
                 .eq('redip', 'occidental');
             if (error) {
                 console.error('Error al cargar CCPs de OCCIDENTAL:', error);
-                return ['metropolitano', 'sur-del-lago', 'guajira', 'col']; // fallback
+                return ['metropolitano', 'sur-del-lago', 'guajira', 'col'];
             }
             return data.map(row => row.ccp_id);
         }
-        // Mapeo de nombres amigables (puedes extenderlo si hay más)
-        const ccpNombres = {
-            "metropolitano": "CCP METROPOLITANO",
-            "sur-del-lago": "CCP SUR DEL LAGO",
-            "guajira": "CCP GUAJIRA",
-            "col": "CCPE COL",
-            "costa_oriental": "CCP COSTA ORIENTAL"
-        };
+
+        // === Cargar nombres de CCPs desde la tabla ccps ===
+        let ccpNombres = {};
+        async function cargarNombresCcp() {
+            const { data, error } = await supabase
+                .from('ccps')
+                .select('ccp_id, nombre_ccp');
+            if (error) {
+                console.error('Error al cargar nombres de CCPs:', error);
+                // Fallback solo por seguridad
+                ccpNombres = {
+                    "metropolitano": "CCP METROPOLITANO",
+                    "sur-del-lago": "CCP SUR DEL LAGO",
+                    "guajira": "CCP GUAJIRA",
+                    "col": "CCPE COL",
+                    "costa_oriental": "CCP COSTA ORIENTAL"
+                };
+            } else {
+                ccpNombres = data.reduce((acc, row) => {
+                    acc[row.ccp_id] = row.nombre_ccp;
+                    return acc;
+                }, {});
+            }
+        }
+
         let inspeccionIdActual = null;
-        let todasInspecciones = []; // Almacenamos todas las inspecciones aquí
+        let todasInspecciones = [];
+        let estacionesGlobales = [];
+        let serviciosGlobales = [];
         const itemsPorPagina = 10;
         let paginaActual = 1;
 
@@ -306,11 +326,11 @@
             document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
         }
         setInterval(actualizarReloj, 1000);
-        actualizarReloj(); // Inicializar inmediatamente
+        actualizarReloj();
 
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
 
-        // === Renderizar página específica ===
+        // === Renderizar una página específica ===
         function renderizarPagina(pagina) {
             paginaActual = pagina;
             const inicio = (pagina - 1) * itemsPorPagina;
@@ -333,7 +353,7 @@
                 let nombreUnidad = 'Unidad desconocida';
                 let ccpId = '';
                 let tipoLabel = '❓ Unidad desconocida';
-                // Buscar en estaciones
+
                 if (insp.estacion_id) {
                     const estacion = estacionesGlobales.find(e => e.estacion_id === insp.estacion_id);
                     if (estacion) {
@@ -345,7 +365,7 @@
                         tipoLabel = '🔴 ERROR DE DATOS';
                     }
                 }
-                // Si no es estación, buscar en servicios
+
                 if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
                     const servicio = serviciosGlobales.find(s => s.id === insp.servicio_id);
                     if (servicio) {
@@ -357,6 +377,7 @@
                         tipoLabel = '🔴 ERROR DE DATOS';
                     }
                 }
+
                 const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
                 html += `
                     <div class="alerta-card">
@@ -379,7 +400,7 @@
             html += '</div>';
             container.innerHTML = html;
 
-            // === Renderizar paginación ===
+            // === Paginación ===
             const totalPaginas = Math.ceil(todasInspecciones.length / itemsPorPagina);
             let paginacionHTML = '';
             for (let i = 1; i <= totalPaginas; i++) {
@@ -388,10 +409,7 @@
             document.getElementById('paginationContainer').innerHTML = paginacionHTML;
         }
 
-        // === Variables globales para estaciones y servicios ===
-        let estacionesGlobales = [];
-        let serviciosGlobales = [];
-
+        // === Cargar datos principales ===
         async function cargarNotificaciones() {
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
@@ -399,9 +417,11 @@
             const container = document.getElementById('alertasContainer');
 
             try {
-                // === 1. Obtener lista dinámica de CCPs ===
+                // Cargar nombres y lista de CCPs
+                await cargarNombresCcp();
                 const ccpOcidental = await obtenerCcpOcidental();
-                // === 2. Cargar estaciones policiales ===
+
+                // Cargar estaciones y servicios
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
@@ -409,7 +429,6 @@
                 if (estError) throw estError;
                 estacionesGlobales = estaciones;
 
-                // === 3. Cargar servicios administrativos ===
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
@@ -417,7 +436,7 @@
                 if (servError) throw servError;
                 serviciosGlobales = servicios;
 
-                // === 4. Obtener TODAS las inspecciones vencidas ===
+                // Cargar inspecciones vencidas
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('*')
@@ -426,7 +445,7 @@
                 if (inspError) throw inspError;
 
                 todasInspecciones = inspecciones || [];
-                renderizarPagina(1); // Mostrar primera página
+                renderizarPagina(1);
             } catch (error) {
                 console.error('Error al cargar notificaciones:', error);
                 container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
@@ -456,14 +475,13 @@
                 if (error) throw error;
                 alert("✅ Reinspección actualizada correctamente.");
                 cerrarModalFecha();
-                cargarNotificaciones(); // Recargar todo para reflejar cambios
+                cargarNotificaciones();
             } catch (error) {
                 console.error("Error al actualizar:", error);
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
 
-        // Iniciar carga
         cargarNotificaciones();
     </script>
 </body>
