@@ -197,7 +197,6 @@
         .porcentaje-valor.bajo { color: #e53e3e; }
         .porcentaje-valor.medio { color: #dd6b20; }
         .porcentaje-valor.alto { color: #38a169; }
-
         .pagination-controls {
             display: flex;
             justify-content: center;
@@ -226,9 +225,9 @@
                     <select id="ccpFilter">
                         <option value="">-- Elija un CCP --</option>
                         <option value="metropolitano">CCP METROPOLITANO</option>
-                        <option value="sur-del-lago">CCP SUR DEL LAGO</option>
+                        <option value="sur_del_lago">CCP SUR DEL LAGO</option>
                         <option value="guajira">CCP GUAJIRA</option>
-                        <option value="col">CCPE COL</option>
+                        <option value="costa_oriental">CCPE Costa Oriental del Lago</option>
                         <option value="lara">CCPE LARA</option>
                         <option value="falcon">CCPE FALCÓN</option>
                     </select>
@@ -266,7 +265,6 @@
                     </thead>
                     <tbody id="tablaItems"></tbody>
                 </table>
-
                 <!-- Controles de paginación -->
                 <div class="pagination-controls">
                     <button id="btnAnterior" class="back-btn" disabled>« Anterior</button>
@@ -286,12 +284,12 @@
             </div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        let chartInstance = null;
+
+        // ✅ Mismos nombres que en historial.txt
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante de la unidad.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción de la unidad. Verifique los asuntos pendientes y las acciones tomadas.",
@@ -361,35 +359,41 @@
             informes_preliminares_actuacion: "66. Verificar elaboración de informes preliminares de actuación policial.",
             estatus_procesos_administrativos: "67. Verificar estatus de procesos administrativos ante la ICAP."
         };
+
         const todosLosItems = Object.keys(nombresItems);
         const ITEMS_POR_PAGINA = 15;
+        let chartInstance = null;
         let estadisticasTotales = {};
         let nombreEstacionActual = '';
         let paginaActual = 1;
         let totalPaginas = 1;
 
-        // === Eventos de selección ===
+        // === Cargar estaciones al seleccionar CCP ===
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
             estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
             estacionSelect.disabled = !ccpId;
             if (!ccpId) return;
+
             try {
+                // ✅ Usar 'estacion_id' y 'nombre_estacion' como en historial.txt
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre, ccp_id')
+                    .select('estacion_id, nombre_estacion, ccp_id')
                     .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
+                    .order('nombre_estacion', { ascending: true });
+
                 if (error) throw error;
-                if (estaciones.length === 0) {
+                if (!estaciones || estaciones.length === 0) {
                     estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
                     return;
                 }
+
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
-                    opt.value = est.id;
-                    opt.textContent = est.nombre;
+                    opt.value = est.estacion_id; // ✅ UUID
+                    opt.textContent = est.nombre_estacion; // ✅ Nombre legible
                     estacionSelect.appendChild(opt);
                 });
             } catch (error) {
@@ -404,20 +408,23 @@
             await cargarEstadisticas(estacionId);
         });
 
-        // === Cargar estadísticas ===
+        // === Cargar y calcular estadísticas ===
         async function cargarEstadisticas(estacionId) {
             const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
             nombreEstacionActual = estacionNombre;
+
             document.getElementById('seleccionContainer').style.display = 'none';
             document.getElementById('resultadosContainer').style.display = 'none';
             document.getElementById('mensajeCarga').style.display = 'block';
             document.getElementById('mensajeSinDatos').style.display = 'none';
 
             try {
+                // ✅ Filtrar por estacion_id (UUID)
                 const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .eq('estacion_id', estacionId);
+
                 if (inspError) throw inspError;
                 if (!inspecciones || inspecciones.length === 0) {
                     document.getElementById('mensajeCarga').style.display = 'none';
@@ -430,6 +437,7 @@
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, porcentaje_cumplimiento')
                     .in('inspeccion_id', idsInspecciones);
+
                 if (itemsError) throw itemsError;
                 if (!items || items.length === 0) {
                     document.getElementById('mensajeCarga').style.display = 'none';
@@ -441,6 +449,7 @@
                 totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
                 paginaActual = 1;
                 actualizarVista();
+
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
             } catch (error) {
@@ -456,15 +465,17 @@
             todosLosItems.forEach(item => {
                 resultado[item] = 0;
             });
+
             const agrupado = {};
             items.forEach(item => {
                 if (item.cumple === true) {
                     if (!agrupado[item.item_nombre]) {
                         agrupado[item.item_nombre] = [];
                     }
-                    agrupado[item.item_nombre].push(item.porcentaje_cumplimiento || 0);
+                    agrupado[item.item_nombre].push(parseFloat(item.porcentaje_cumplimiento) || 0);
                 }
             });
+
             Object.keys(agrupado).forEach(item => {
                 const valores = agrupado[item];
                 if (valores.length > 0) {
@@ -472,22 +483,19 @@
                     resultado[item] = parseFloat(promedio.toFixed(1));
                 }
             });
+
             return resultado;
         }
 
-        // === Actualizar vista (gráfico + tabla + paginación) ===
+        // === Actualizar vista ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
             const itemsPagina = todosLosItems.slice(inicio, fin);
 
-            // Actualizar gráfico
             renderizarGrafico(itemsPagina);
-
-            // Actualizar tabla
             renderizarTabla(itemsPagina);
 
-            // Actualizar controles de paginación
             document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
             document.getElementById('btnAnterior').disabled = paginaActual === 1;
             document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
@@ -499,7 +507,6 @@
                 chartInstance.destroy();
             }
 
-            // Extraer solo los números del ítem (ej. "1", "2", ...)
             const labels = itemsPagina.map(k => {
                 const texto = nombresItems[k];
                 const num = texto.split('.')[0];
@@ -558,18 +565,19 @@
                 }
             });
 
-            document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacionActual} (Ítems ${(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–${Math.min(paginaActual * ITEMS_POR_PAGINA, todosLosItems.length)} de ${todosLosItems.length})`;
+            document.getElementById('statsHeader').textContent = 
+                `Estadísticas para: ${nombreEstacionActual} (Ítems ${(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–${Math.min(paginaActual * ITEMS_POR_PAGINA, todosLosItems.length)} de ${todosLosItems.length})`;
         }
 
         function renderizarTabla(itemsPagina) {
             const tbody = document.getElementById('tablaItems');
-            const filtro = document.getElementById('filtroItems');
+            const filtro = document.getElementById('filtroItems').value.toLowerCase();
             tbody.innerHTML = '';
 
             itemsPagina.forEach(key => {
                 const nombre = nombresItems[key];
                 const porcentaje = estadisticasTotales[key] || 0;
-                if (nombre.toLowerCase().includes(filtro.value.toLowerCase())) {
+                if (nombre.toLowerCase().includes(filtro)) {
                     const tr = document.createElement('tr');
                     let clase = 'alto';
                     if (porcentaje < 50) clase = 'bajo';
@@ -583,7 +591,7 @@
             });
         }
 
-        // === Eventos de paginación ===
+        // === Paginación y filtro ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
             if (paginaActual > 1) {
                 paginaActual--;
@@ -598,7 +606,6 @@
             }
         });
 
-        // === Filtro en tabla (solo afecta la tabla, no el gráfico ni la paginación) ===
         document.getElementById('filtroItems').addEventListener('input', () => {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
