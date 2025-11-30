@@ -284,21 +284,21 @@
         }
 
         // === CARGAR UNIDADES ===
-      async function cargarUnidades(ccpId, tipo) {
+    async function cargarUnidades(ccpId, tipo) {
     const contenedor = tipo === 'estacion' 
         ? document.getElementById('estacionSelect') 
         : document.getElementById('servicioSelect');
     contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
     contenedor.disabled = true;
-
     try {
         let data, error;
         if (tipo === 'estacion') {
+            // ✅ CORREGIDO: Quitamos el "as id" que causaba el error
             ({ data, error } = await supabase
                 .from('estaciones_policiales')
-                .select('estacion_id as id, nombre') // ✅ CORREGIDO: usamos 'estacion_id as id'
+                .select('estacion_id, nombre_estacion') // ← Sin alias, nombres reales
                 .eq('ccp_id', ccpId)
-                .order('nombre', { ascending: true }));
+                .order('nombre_estacion', { ascending: true }));
         } else {
             ({ data, error } = await supabase
                 .from('servicios_administrativos')
@@ -310,8 +310,9 @@
         contenedor.innerHTML = '<option value="">-- Elija una opción --</option>';
         data.forEach(item => {
             const opt = document.createElement('option');
-            opt.value = item.id; // ✅ Ahora 'item.id' es el 'estacion_id'
-            opt.textContent = item.nombre;
+            // ✅ Ahora usamos los nombres reales de las columnas
+            opt.value = tipo === 'estacion' ? item.estacion_id : item.id;
+            opt.textContent = tipo === 'estacion' ? item.nombre_estacion : item.nombre;
             contenedor.appendChild(opt);
         });
         contenedor.disabled = false;
