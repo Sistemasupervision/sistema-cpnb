@@ -242,14 +242,12 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const protocolos = [
             { id: 'guia', nombre: 'Guía de Inspección', archivo: 'guia_inspeccion.pdf' },
             { id: 'vademecum', nombre: 'Vademécum', archivo: 'vademecum.pdf' },
             { id: 'fotograma', nombre: 'Fotograma', archivo: 'fotograma.pdf' },
             { id: 'plan', nombre: 'Plan de Acción y Reacción', archivo: 'plan_accion_reaccion.pdf' }
         ];
-
         let estadoArchivos = {};
         let tipoActivo = 'estacion';
         let idActivo = null;
@@ -284,44 +282,43 @@
         }
 
         // === CARGAR UNIDADES ===
-    async function cargarUnidades(ccpId, tipo) {
-    const contenedor = tipo === 'estacion' 
-        ? document.getElementById('estacionSelect') 
-        : document.getElementById('servicioSelect');
-    contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
-    contenedor.disabled = true;
-    try {
-        let data, error;
-        if (tipo === 'estacion') {
-            // ✅ CORREGIDO: Quitamos el "as id" que causaba el error
-            ({ data, error } = await supabase
-                .from('estaciones_policiales')
-                .select('estacion_id, nombre_estacion') // ← Sin alias, nombres reales
-                .eq('ccp_id', ccpId)
-                .order('nombre_estacion', { ascending: true }));
-        } else {
-            ({ data, error } = await supabase
-                .from('servicios_administrativos')
-                .select('id, nombre')
-                .eq('ccp_id', ccpId)
-                .order('nombre', { ascending: true }));
+        async function cargarUnidades(ccpId, tipo) {
+            const contenedor = tipo === 'estacion' 
+                ? document.getElementById('estacionSelect') 
+                : document.getElementById('servicioSelect');
+            contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
+            contenedor.disabled = true;
+            try {
+                let data, error;
+                if (tipo === 'estacion') {
+                    ({ data, error } = await supabase
+                        .from('estaciones_policiales')
+                        .select('estacion_id as id, nombre')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre', { ascending: true }));
+                } else {
+                    ({ data, error } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id, nombre')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre', { ascending: true }));
+                }
+                if (error) throw error;
+                contenedor.innerHTML = '<option value="">-- Elija una opción --</option>';
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.nombre;
+                    contenedor.appendChild(opt);
+                });
+                contenedor.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar unidades:', err);
+                contenedor.innerHTML = '<option value="">Error al cargar</option>';
+                contenedor.disabled = true;
+            }
         }
-        if (error) throw error;
-        contenedor.innerHTML = '<option value="">-- Elija una opción --</option>';
-        data.forEach(item => {
-            const opt = document.createElement('option');
-            // ✅ Ahora usamos los nombres reales de las columnas
-            opt.value = tipo === 'estacion' ? item.estacion_id : item.id;
-            opt.textContent = tipo === 'estacion' ? item.nombre_estacion : item.nombre;
-            contenedor.appendChild(opt);
-        });
-        contenedor.disabled = false;
-    } catch (err) {
-        console.error('Error al cargar unidades:', err);
-        contenedor.innerHTML = '<option value="">Error al cargar</option>';
-        contenedor.disabled = true;
-    }
-}
+
         // === RENDERIZAR PESTAÑA ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
@@ -329,7 +326,6 @@
             document.getElementById('protocolosContainer').innerHTML = '';
             document.getElementById('btnDescargarTodo').disabled = true;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
-
             if (tipo === 'estacion') {
                 document.getElementById('tabEstacion').classList.add('activo');
                 tipoActivo = 'estacion';
@@ -390,7 +386,6 @@
                 renderPestana('servicio');
             }
         });
-
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
 
@@ -422,26 +417,28 @@
             });
         }
 
-async function verificarArchivosExistentes() {
-    if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
-    estadoArchivos = {};
-    let existen = false;
-    const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ Sin "protocolos-supervision/"
-    for (const proto of protocolos) {
-        const ruta = `${rutaBase}${proto.archivo}`;
-        try {
-            const { data } = await supabase.storage.from('protocolos-supervision').download(ruta);
-            if (data) {
-                estadoArchivos[proto.id] = { existe: true, data };
-                existen = true;
+        // === FUNCIONES DE ARCHIVO ===
+        async function verificarArchivosExistentes() {
+            if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
+            estadoArchivos = {};
+            let existen = false;
+            const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ RUTA SIN BUCKET
+            for (const proto of protocolos) {
+                const ruta = `${rutaBase}${proto.archivo}`;
+                try {
+                    const { data } = await supabase.storage.from('protocolos-supervision').download(ruta);
+                    if (data) {
+                        estadoArchivos[proto.id] = { existe: true, data };
+                        existen = true;
+                    }
+                } catch (e) {
+                    // Archivo no existe — se ignora
+                }
             }
-        } catch (e) {
-            // Archivo no existe — se ignora
+            renderizarProtocolos();
+            document.getElementById('btnDescargarTodo').disabled = !existen;
         }
-    }
-    renderizarProtocolos();
-    document.getElementById('btnDescargarTodo').disabled = !existen;
-}
+
         function mostrarMensajeItem(id, texto, tipo) {
             const msg = document.getElementById(`mensaje_${id}`);
             msg.textContent = texto;
@@ -456,7 +453,7 @@ async function verificarArchivosExistentes() {
             if (!archivo) return mostrarMensajeItem(id, '⚠️ Seleccione un archivo PDF', 'error');
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad', 'error');
             const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ RUTA CORRECTA
             const progressBar = document.getElementById(`progress_${id}`);
             const fillBar = document.getElementById(`fill_${id}`);
             progressBar.style.display = 'block';
@@ -467,7 +464,7 @@ async function verificarArchivosExistentes() {
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
                 mostrarMensajeItem(id, '✅ Archivo subido con éxito', 'exito');
-                await verificarArchivosExistentes();
+                await verificarArchivosExistentes(); // ✅ Esto refresca los botones
             } catch (e) {
                 console.error('Error al subir:', e);
                 mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
@@ -479,9 +476,10 @@ async function verificarArchivosExistentes() {
         async function actualizarArchivo(id) {
             const proto = protocolos.find(p => p.id === id);
             if (!proto) return mostrarMensajeItem(id, '❌ Ítem no encontrado', 'error');
-            const ruta = `protocolos-supervision/occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            const ruta = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`; // ✅ RUTA CORRECTA
             try {
                 const { error: deleteError } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
+                if (deleteError) throw deleteError;
                 delete estadoArchivos[id];
                 renderizarProtocolos();
                 document.getElementById('btnDescargarTodo').disabled = Object.keys(estadoArchivos).length === 0;
