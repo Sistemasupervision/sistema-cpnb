@@ -141,19 +141,19 @@
         </div>
         <div class="input-group">
             <label for="ccpSelect">Seleccione CCP:</label>
-            <select id="ccpSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+            <select id="ccpSelect">
                 <option value="">-- Elija un CCP --</option>
                 <option value="metropolitano">CCP METROPOLITANO</option>
                 <option value="sur_del_lago">CCP SUR DEL LAGO</option>
                 <option value="guajira">CCP GUAJIRA</option>
-                <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
+                <option value="costa_oriental">CCPE Costa Oriental del Lago</option>
                 <option value="lara">CCPE LARA</option>
                 <option value="falcon">CCPE FALCÓN</option>
             </select>
         </div>
         <div class="input-group">
             <label for="estacionSelect">Seleccione Estación Policial:</label>
-            <select id="estacionSelect" disabled style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+            <select id="estacionSelect" disabled>
                 <option value="">-- Primero seleccione un CCP --</option>
             </select>
         </div>
@@ -184,7 +184,7 @@
             }
 
             try {
-                // ✅ Usar los mismos campos que en historial.txt
+                // ✅ Consultar con campos correctos: estacion_id, nombre_estacion
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
@@ -197,7 +197,7 @@
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.estacion_id; // ✅ UUID
-                    opt.textContent = est.nombre_estacion; // ✅ Nombre legible
+                    opt.textContent = est.nombre_estacion;
                     estacionSelect.appendChild(opt);
                 });
 
@@ -228,8 +228,8 @@
                 return;
             }
 
-            // ✅ Pasar UUIDs y nombres legibles
-            const url = `Galeria.txt?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
+            // ✅ Redirigir a galeria.html con los parámetros correctos
+            const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
             window.location.href = url;
         });
 
