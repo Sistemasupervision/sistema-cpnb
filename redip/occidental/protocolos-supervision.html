@@ -293,11 +293,9 @@
                 if (tipo === 'estacion') {
                     ({ data, error } = await supabase
                         .from('estaciones_policiales')
-                        .select('estacion_id, nombre') // ✅ Sin alias
+                        .select('estacion_id as id, nombre_estacion') // ✅ CORREGIDO: nombre_estacion
                         .eq('ccp_id', ccpId)
-                        .order('nombre', { ascending: true }));
-                    // ✅ Mapeo manual
-                    if (data) data = data.map(item => ({ id: item.estacion_id, nombre: item.nombre }));
+                        .order('nombre_estacion', { ascending: true }));
                 } else {
                     ({ data, error } = await supabase
                         .from('servicios_administrativos')
@@ -310,7 +308,7 @@
                 data.forEach(item => {
                     const opt = document.createElement('option');
                     opt.value = item.id;
-                    opt.textContent = item.nombre;
+                    opt.textContent = item.nombre_estacion || item.nombre; // ✅ usa nombre_estacion
                     contenedor.appendChild(opt);
                 });
                 contenedor.disabled = false;
@@ -424,7 +422,7 @@
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
             let existen = false;
-            const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ Sin prefijo del bucket
+            const rutaBase = `occidental/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`; // ✅ Sin "protocolos-supervision/"
             for (const proto of protocolos) {
                 const ruta = `${rutaBase}${proto.archivo}`;
                 try {
@@ -466,7 +464,7 @@
                 fillBar.style.width = '100%';
                 await new Promise(r => setTimeout(r, 300));
                 mostrarMensajeItem(id, '✅ Archivo subido con éxito', 'exito');
-                await verificarArchivosExistentes(); // ✅ Refresca botones
+                await verificarArchivosExistentes();
             } catch (e) {
                 console.error('Error al subir:', e);
                 mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
