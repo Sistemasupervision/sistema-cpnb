@@ -196,36 +196,36 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
 
-        // === VERIFICAR ACCESO: SOLO CAPITAL O ADMIN (CORREGIDO) ===
-        async function verificarAcceso() {
-            const { data, error } = await supabase.auth.getUser();
-            if (error || !data || !data.user) {
-                window.location.href = '../../index.html';
-                return false;
-            }
-            const user = data.user;
+   async function verificarAcceso() {
+    // ✅ Paso 1: Obtener la sesión de forma segura
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+        window.location.href = '../../index.html';
+        return false;
+    }
+    const userId = session.user.id;
 
-            try {
-                const {  userData, error: userError } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
+    // ✅ Paso 2: Verificar el rol en la tabla usuarios_redip
+    try {
+        const { data, error } = await supabase
+            .from('usuarios_redip')
+            .select('redip')
+            .eq('user_id', userId)
+            .single();
 
-                if (userError || !userData || (userData.redip !== 'capital' && userData.redip !== 'admin')) {
-                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
-                    window.location.href = '../../index.html';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error de autenticación.');
-                window.location.href = '../../index.html';
-                return false;
-            }
+        if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+            alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
+            window.location.href = '../../index.html';
+            return false;
         }
-
+        return true;
+    } catch (err) {
+        console.error('Error al verificar acceso:', err);
+        alert('⚠️ Error de autenticación.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+}
         // === VERIFICAR CCP PERTENECE A REDIP CAPITAL ===
         async function verificarCcpPerteneceACapital(ccpId) {
             try {
