@@ -55,14 +55,15 @@
 
         document.getElementById('ccpNombreDisplay').textContent = ccpNombre;
 
-        // === VERIFICAR ACCESO: SOLO CAPITAL O ADMIN ===
+        // === VERIFICAR ACCESO ===
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
-            if (!user) {
-                window.location.href = '../../index.html';
-                return false;
-            }
             try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                const user = session.user;
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
@@ -99,7 +100,7 @@
             }
         }
 
-        // === CARGAR SERVICIOS ADMINISTRATIVOS ===
+        // === CARGAR SERVICIOS ===
         async function cargarServicios() {
             const acceso = await verificarAcceso();
             if (!acceso) return;
@@ -112,7 +113,7 @@
             }
 
             try {
-                const {  servicios, error } = await supabase
+                const { data: servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
@@ -156,8 +157,10 @@
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
-        // Iniciar
-        cargarServicios();
+        // ✅ Iniciar la carga solo cuando el DOM está listo
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarServicios();
+        });
     </script>
 </body>
 </html>
