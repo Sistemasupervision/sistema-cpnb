@@ -196,20 +196,22 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
 
-        // === VERIFICAR ACCESO: SOLO CAPITAL O ADMIN ===
+        // === VERIFICAR ACCESO: SOLO CAPITAL O ADMIN (CORREGIDO) ===
         async function verificarAcceso() {
             const { data, error } = await supabase.auth.getUser();
-            if (error || !data?.user) {
+            if (error || !data || !data.user) {
                 window.location.href = '../../index.html';
                 return false;
             }
             const user = data.user;
+
             try {
                 const {  userData, error: userError } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
+
                 if (userError || !userData || (userData.redip !== 'capital' && userData.redip !== 'admin')) {
                     alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
                     window.location.href = '../../index.html';
@@ -262,7 +264,7 @@
             }
 
             try {
-                // ✅ Cargar estaciones con campos correctos
+                // Cargar estaciones
                 const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, latitud, longitud, enlace_rutas')
@@ -272,7 +274,7 @@
 
                 renderizarLista('listaEstaciones', estaciones || [], 'estacion');
 
-                // ✅ Cargar servicios (campos ya correctos)
+                // Cargar servicios
                 const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, latitud, longitud, enlace_rutas')
