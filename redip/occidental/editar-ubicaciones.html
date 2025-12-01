@@ -147,6 +147,7 @@
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Editar Ubicaciones - REDIP CAPITAL</h1>
         </div>
+        <!-- ✅ Elemento faltante agregado aquí -->
         <p id="ccpNombreDisplay" style="text-align: center; color: #4a5568; margin-bottom: 20px; font-size: 16px;">
             Cargando...
         </p>
@@ -194,24 +195,24 @@
             window.location.href = './index.html';
         }
 
+        // ✅ Este elemento ahora EXISTE, así que no fallará
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
 
-        // === 🔒 VERIFICAR ACCESO: SOLO CAPITAL O ADMIN ===
+        // === 🔒 VERIFICAR ACCESO: SOLO REDIP CAPITAL O ADMIN ===
         async function verificarAcceso() {
-            const { data, error } = await supabase.auth.getUser();
-            if (error || !data?.user) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
                 window.location.href = '../../index.html';
                 return false;
             }
-            const user = data.user;
             try {
-                const { data: userData, error: userError } = await supabase
+                const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-                if (userError || !userData || (userData.redip !== 'capital' && userData.redip !== 'admin')) {
-                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL.');
                     window.location.href = '../../index.html';
                     return false;
                 }
@@ -224,7 +225,7 @@
             }
         }
 
-        // === 🔍 VERIFICAR QUE EL CCP PERTENECE A REDIP CAPITAL ===
+        // === 🔍 VALIDAR QUE EL CCP PERTENECE A REDIP CAPITAL ===
         async function verificarCcpPerteneceACapital(ccpId) {
             try {
                 const { data, error } = await supabase
@@ -241,7 +242,7 @@
             }
         }
 
-        const map = L.map('map').setView([10.1667, -67.6167], 7);
+        const map = L.map('map').setView([10.1667, -67.6167], 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
@@ -251,24 +252,24 @@
         let markers = {};
 
         async function cargarEntidades() {
-            const acceso = await verificarAcceso();
-            if (!acceso) return;
+            const accesoOk = await verificarAcceso();
+            if (!accesoOk) return;
 
-            const esValido = await verificarCcpPerteneceACapital(ccpId);
-            if (!esValido) {
-                alert('⚠️ El CCP seleccionado no pertenece a la REDIP CAPITAL.');
+            const ccpValido = await verificarCcpPerteneceACapital(ccpId);
+            if (!ccpValido) {
+                alert('⚠️ El CCP seleccionado no pertenece a REDIP CAPITAL.');
                 window.location.href = './index.html';
                 return;
             }
 
             try {
-                const { data: estaciones, error: estError } = await supabase
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
 
-                const { data: servicios, error: servError } = await supabase
+                const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
