@@ -34,19 +34,45 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
+        // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
         const estacionId = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre');
-
         if (!ccpId || !estacionId || !estacionNombre) {
             alert('⚠️ Datos incompletos. Redirigiendo...');
-            window.location.href = './index.html';
+            window.location.href = './formulario-seleccion-estacion.html';
         }
 
-        // === DEFINICIÓN DE ÍTEMS ===
+        // === VERIFICAR ACCESO: SOLO CAPITAL O ADMIN ===
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Redirigiendo...');
+                window.location.href = '../../index.html';
+                return false;
+            }
+        }
+
+        // === DEFINICIÓN DE ÍTEMS (igual que en el original) ===
         const items = [
             "nombramiento_comandante", "acta_entrega_recepcion", "dossier_comandante", "conocimiento_ley_organica",
             "conocimiento_estatuto_personal", "conocimiento_reglamento_disciplinario", "estructura_organizativa",
@@ -69,7 +95,6 @@
             "conocimiento_lineamientos_derechos_humanos", "registro_actuaciones_cop", "rendicion_procedimientos_cop",
             "archivos_informes_rendicion", "informes_preliminares_actuacion", "estatus_procesos_administrativos"
         ];
-
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
@@ -140,34 +165,7 @@
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
 
-        // === VERIFICAR ACCESO ===
-        async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                window.location.href = '../../index.html';
-                return false;
-            }
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
-                    window.location.href = '../../index.html';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error de autenticación. Redirigiendo...');
-                window.location.href = '../../index.html';
-                return false;
-            }
-        }
-
-        // === VALIDAR Y CARGAR ===
+        // === VALIDAR ESTACIÓN Y RENDERIZAR ===
         async function validarYRenderizar() {
             const permitido = await verificarAcceso();
             if (!permitido) return;
@@ -204,7 +202,6 @@
                 <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
                     <div class="items-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
             `;
-
             items.forEach(item => {
                 formHtml += `
                     <div class="item-card" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
@@ -249,7 +246,6 @@
                     </div>
                 `;
             });
-
             formHtml += `
                 </div>
                 <div class="input-group" style="margin-top:20px;">
@@ -259,8 +255,7 @@
                 </div>
                 <div class="input-group" style="margin-top:20px;">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-                    <input type="date" id="proximaInspeccion" 
-                        min="${hoy}"
+                    <input type="date" id="proximaInspeccion"
                         style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
                 </div>
                 <div style="text-align:center; margin-top:30px;">
@@ -269,7 +264,6 @@
                 </div>
             </form>
             `;
-
             document.getElementById('container').innerHTML = formHtml;
 
             // === EVENTOS DINÁMICOS ===
@@ -280,6 +274,8 @@
                     const porcentajeContainer = document.querySelector(`.porcentaje-container[data-item="${item}"]`);
                     const fotosContainer = document.querySelector(`.fotos-container[data-item="${item}"]`);
                     const archivoContainer = document.querySelector(`.archivo-container[data-item="${item}"]`);
+                    const fotoConfirmacion = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
+                    const archivoConfirmacion = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
                     textarea.style.display = this.value !== 'null' ? 'block' : 'none';
                     if (this.value === 'true') {
                         porcentajeContainer.style.display = 'block';
@@ -291,10 +287,8 @@
                         archivoContainer.style.display = 'none';
                         document.querySelectorAll(`.foto-input[data-item="${item}"]`).forEach(input => input.value = '');
                         document.querySelector(`.archivo-input[data-item="${item}"]`).value = '';
-                        const fotoConf = document.querySelector(`.foto-confirmacion[data-item="${item}"]`);
-                        const archivoConf = document.querySelector(`.archivo-confirmacion[data-item="${item}"]`);
-                        if (fotoConf) fotoConf.style.display = 'none';
-                        if (archivoConf) archivoConf.style.display = 'none';
+                        if (fotoConfirmacion) fotoConfirmacion.style.display = 'none';
+                        if (archivoConfirmacion) archivoConfirmacion.style.display = 'none';
                     }
                 });
             });
@@ -330,11 +324,9 @@
                 window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             });
 
-            // === GUARDAR INSPECCIÓN ===
             document.getElementById('inspectionForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 document.getElementById('loadingOverlay').style.display = 'flex';
-
                 try {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (!user) throw new Error('Debe estar autenticado.');
@@ -360,26 +352,35 @@
                         const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                         const valor = select.value;
                         if (valor === 'null') continue;
-                        const cumple = (valor === 'true');
+                        let cumple = (valor === 'true');
                         const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
-                        const porcentaje = cumple ? (parseInt(document.querySelector(`.porcentaje-slider[data-item="${item}"]`)?.value) || 0) : 0;
+                        let porcentaje = 0;
+                        if (cumple) {
+                            const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
+                            porcentaje = parseInt(slider?.value) || 0;
+                        }
 
                         // Subir fotos
                         let foto1_url = null, foto2_url = null;
                         const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
                         const file2 = document.querySelector(`.foto-input[data-item="${item}"][data-index="1"]`)?.files[0];
-
                         if (file1) {
                             const cleanName = file1.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
                             const path = `inspecciones/${inspeccionData.id}/${item}_1_${Date.now()}_${cleanName}`;
                             const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file1, { upsert: true });
-                            if (!error) foto1_url = supabase.storage.from('inspecciones-fotos').getPublicUrl(path).data.publicUrl;
+                            if (!error) {
+                                const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
+                                foto1_url = data.publicUrl;
+                            }
                         }
                         if (file2) {
                             const cleanName = file2.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
                             const path = `inspecciones/${inspeccionData.id}/${item}_2_${Date.now()}_${cleanName}`;
                             const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, file2, { upsert: true });
-                            if (!error) foto2_url = supabase.storage.from('inspecciones-fotos').getPublicUrl(path).data.publicUrl;
+                            if (!error) {
+                                const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
+                                foto2_url = data.publicUrl;
+                            }
                         }
 
                         // Subir archivo adjunto
@@ -389,7 +390,10 @@
                             const cleanName = archivoFile.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
                             const path = `inspecciones/${inspeccionData.id}/${item}_archivo_${Date.now()}_${cleanName}`;
                             const { error } = await supabase.storage.from('inspecciones-fotos').upload(path, archivoFile, { upsert: true });
-                            if (!error) archivo_url = supabase.storage.from('inspecciones-fotos').getPublicUrl(path).data.publicUrl;
+                            if (!error) {
+                                const { data } = supabase.storage.from('inspecciones-fotos').getPublicUrl(path);
+                                archivo_url = data.publicUrl;
+                            }
                         }
 
                         itemsToInsert.push({
@@ -422,7 +426,6 @@
 
         // === INICIAR ===
         validarYRenderizar();
-
     </script>
 </body>
 </html>
