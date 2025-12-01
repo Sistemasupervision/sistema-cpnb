@@ -196,23 +196,23 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
 
-        // === VERIFICAR ACCESO: SOLO PARA REDIP CAPITAL o ADMIN (CORREGIDO Y SEGURO) ===
+        // === VERIFICAR ACCESO: SOLO CAPITAL O ADMIN (CORREGIDO) ===
         async function verificarAcceso() {
-            const {  { session }, error: sessionError } = await supabase.auth.getSession();
-            if (sessionError || !session) {
+            const { data, error } = await supabase.auth.getUser();
+            if (error || !data) {
                 window.location.href = '../../index.html';
                 return false;
             }
-            const userId = session.user.id;
+            const user = data;
 
             try {
-                const { data, error } = await supabase
+                const {  userData, error: userError } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
-                    .eq('user_id', userId)
+                    .eq('user_id', user.id)
                     .single();
 
-                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                if (userError || !userData || (userData.redip !== 'capital' && userData.redip !== 'admin')) {
                     alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
                     window.location.href = '../../index.html';
                     return false;
@@ -226,7 +226,7 @@
             }
         }
 
-        // === VERIFICAR QUE EL CCP PERTENECE A REDIP CAPITAL ===
+        // === VERIFICAR CCP PERTENECE A REDIP CAPITAL ===
         async function verificarCcpPerteneceACapital(ccpId) {
             try {
                 const { data, error } = await supabase
@@ -268,7 +268,7 @@
                 return;
             }
             try {
-                const { data: estaciones, error: estError } = await supabase
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
@@ -276,7 +276,7 @@
                 if (estError) throw new Error(`Estaciones: ${estError.message}`);
                 renderizarLista('listaEstaciones', estaciones || [], 'estacion');
 
-                const { data: servicios, error: servError } = await supabase
+                const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
