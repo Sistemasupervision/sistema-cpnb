@@ -101,7 +101,7 @@
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
             acta_entrega_recepcion: "Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
             dossier_comandante: "3.verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación,exposición de motivos para la creación y activación,justificación actual de su funcionamiento,documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
-            conocimiento_ ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
+            conocimiento_ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
             conocimiento_estatuto_personal: "5. Verificar en físico y el conocimiento sobre el reglamento sobre el estatuto de la función policial en materia de administración de personal y desarrollo de la carrera policial",
             conocimiento_reglamento_disciplinario: "6. Verificar en físico y el conocimiento sobre el reglamento de la función policial sobre el régimen disciplinario",
             estructura_organizativa: "7. Verificar el conocimiento de la estructura organizativa del CPNB y la aplicación de la estructura funcional del CCP.",
@@ -173,7 +173,7 @@
             if (!permitido) return;
 
             try {
-                // Paso 1: validar que el servicio exista
+                // Paso 1: Validar que el servicio exista
                 const { data: servicioData, error: servicioError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
@@ -186,7 +186,7 @@
                     return;
                 }
 
-                // Paso 2: verificar que su CCP pertenezca a REDIP CAPITAL
+                // Paso 2: Verificar que su CCP pertenezca a REDIP CAPITAL
                 const { data: ccpData, error: ccpError } = await supabase
                     .from('ccps')
                     .select('redip')
@@ -199,7 +199,7 @@
                     return;
                 }
 
-                // Todo OK → renderizar
+                // Todo OK → renderizar formulario
                 renderForm();
             } catch (err) {
                 console.error('Error en validación:', err);
@@ -275,8 +275,9 @@
                 </div>
                 <div class="input-group" style="margin-top:20px;">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-                   <input type="date" id="proximaInspeccion"
-    style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
+                    <input type="date" id="proximaInspeccion" 
+                        min="${hoy}"
+                        style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
                 </div>
                 <div style="text-align:center; margin-top:30px;">
                     <button type="submit" class="action-btn" style="padding:14px 32px; font-size:17px;">Guardar Inspección</button>
