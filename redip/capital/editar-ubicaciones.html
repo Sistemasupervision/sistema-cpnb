@@ -191,42 +191,42 @@
 
         if (!ccpId || !ccpNombre) {
             alert('⚠️ Datos de CCP no válidos.');
-            window.location.href = './ubicaciones.html';
+            window.history.back();
         }
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
 
-   async function verificarAcceso() {
-    // ✅ Paso 1: Obtener la sesión de forma segura
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-        window.location.href = '../../index.html';
-        return false;
-    }
-    const userId = session.user.id;
+        // === VERIFICAR ACCESO: SOLO PARA REDIP CAPITAL o ADMIN (CORREGIDO Y SEGURO) ===
+        async function verificarAcceso() {
+            const {  { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || !session) {
+                window.location.href = '../../index.html';
+                return false;
+            }
+            const userId = session.user.id;
 
-    // ✅ Paso 2: Verificar el rol en la tabla usuarios_redip
-    try {
-        const { data, error } = await supabase
-            .from('usuarios_redip')
-            .select('redip')
-            .eq('user_id', userId)
-            .single();
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', userId)
+                    .single();
 
-        if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-            alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
-            window.location.href = '../../index.html';
-            return false;
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL pueden acceder.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación.');
+                window.location.href = '../../index.html';
+                return false;
+            }
         }
-        return true;
-    } catch (err) {
-        console.error('Error al verificar acceso:', err);
-        alert('⚠️ Error de autenticación.');
-        window.location.href = '../../index.html';
-        return false;
-    }
-}
-        // === VERIFICAR CCP PERTENECE A REDIP CAPITAL ===
+
+        // === VERIFICAR QUE EL CCP PERTENECE A REDIP CAPITAL ===
         async function verificarCcpPerteneceACapital(ccpId) {
             try {
                 const { data, error } = await supabase
@@ -253,35 +253,35 @@
         let markers = {};
 
         async function cargarEntidades() {
-            const acceso = await verificarAcceso();
-            if (!acceso) return;
+            const permitido = await verificarAcceso();
+            if (!permitido) return;
 
             const esValido = await verificarCcpPerteneceACapital(ccpId);
             if (!esValido) {
                 alert('⚠️ El CCP seleccionado no pertenece a la REDIP CAPITAL.');
-                window.location.href = './ubicaciones.html';
+                window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
                 return;
             }
 
+            if (!ccpId) {
+                document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ CCP ID no válido.</p>';
+                return;
+            }
             try {
-                // Cargar estaciones
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
                 if (estError) throw new Error(`Estaciones: ${estError.message}`);
-
                 renderizarLista('listaEstaciones', estaciones || [], 'estacion');
 
-                // Cargar servicios
-                const {  servicios, error: servError } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
                 if (servError) throw new Error(`Servicios: ${servError.message}`);
-
                 renderizarLista('listaServicios', servicios || [], 'servicio');
             } catch (error) {
                 console.error('Error al cargar entidades:', error);
@@ -333,7 +333,6 @@
             });
         }
 
-        // Eventos de pestañas
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -344,7 +343,6 @@
             });
         });
 
-        // Eventos de interacción
         document.getElementById('container').addEventListener('click', (e) => {
             if (e.target.closest('.entidad-card')) {
                 const card = e.target.closest('.entidad-card');
@@ -365,7 +363,6 @@
             }
         });
 
-        // Clic en el mapa
         map.on('click', function(e) {
             if (!entidadActiva || !tipoEntidadActiva) {
                 alert('⚠️ Primero seleccione una entidad de la lista.');
@@ -394,19 +391,16 @@
             const lat = parseFloat(latInput.value);
             const lng = parseFloat(lngInput.value);
             const enlaceRutas = rutaInput.value.trim();
-
             if ((latInput.value || lngInput.value) && (isNaN(lat) || isNaN(lng))) {
                 alert('Por favor ingrese coordenadas válidas.');
                 return;
             }
-
             try {
                 const updateData = { enlace_rutas: enlaceRutas || null };
                 if (latInput.value && lngInput.value) {
                     updateData.latitud = lat;
                     updateData.longitud = lng;
                 }
-
                 if (tipo === 'estacion') {
                     const { error } = await supabase
                         .from('estaciones_policiales')
@@ -461,7 +455,6 @@
             window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
-        // Iniciar
         cargarEntidades();
     </script>
 </body>
