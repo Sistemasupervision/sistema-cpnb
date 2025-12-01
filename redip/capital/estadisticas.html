@@ -221,8 +221,16 @@
             </button>
             <div class="filtro-container">
                 <div class="input-group">
-                    <label for="estacionFilter">Seleccione una Estación de la REDIP CAPITAL:</label>
-                    <select id="estacionFilter">
+                    <label for="ccpFilter">Seleccione CCP:</label>
+                    <select id="ccpFilter">
+                        <option value="">-- Elija un CCP --</option>
+                        <!-- Solo incluimos el CCP de la REDIP CAPITAL -->
+                        <option value="ccp_distrito_capital" selected>CCP DISTRICTO CAPITAL</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="estacionFilter">Seleccione Estación:</label>
+                    <select id="estacionFilter" disabled>
                         <option value="">-- Cargando estaciones... --</option>
                     </select>
                 </div>
@@ -354,32 +362,47 @@
         let paginaActual = 1;
         let totalPaginas = 1;
 
-        // === Cargar automáticamente estaciones de REDIP CAPITAL ===
-        async function cargarEstacionesCapital() {
-            const select = document.getElementById('estacionFilter');
+        // === Al cargar la página, preseleccionar CCP y cargar estaciones ===
+        async function cargarEstacionesPorCCP(ccpId) {
+            const estacionSelect = document.getElementById('estacionFilter');
+            estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+            estacionSelect.disabled = true;
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
-                    .eq('ccp_id', 'ccp_distrito_capital')
+                    .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
                 if (error) throw error;
-                select.innerHTML = '<option value="">-- Seleccione una estación --</option>';
-                if (estaciones && estaciones.length > 0) {
-                    estaciones.forEach(est => {
-                        const opt = document.createElement('option');
-                        opt.value = est.estacion_id;
-                        opt.textContent = est.nombre_estacion;
-                        select.appendChild(opt);
-                    });
-                } else {
-                    select.innerHTML = '<option value="">No hay estaciones en REDIP CAPITAL</option>';
+                estacionSelect.disabled = false;
+                estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
+                if (!estaciones || estaciones.length === 0) {
+                    estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
+                    return;
                 }
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.estacion_id;
+                    opt.textContent = est.nombre_estacion;
+                    estacionSelect.appendChild(opt);
+                });
             } catch (error) {
                 console.error('Error al cargar estaciones:', error);
-                select.innerHTML = '<option value="">Error al cargar</option>';
+                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
+                estacionSelect.disabled = true;
             }
         }
+
+        // === Eventos ===
+        document.getElementById('ccpFilter').addEventListener('change', (e) => {
+            const ccpId = e.target.value;
+            if (ccpId) {
+                cargarEstacionesPorCCP(ccpId);
+            } else {
+                document.getElementById('estacionFilter').innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
+                document.getElementById('estacionFilter').disabled = true;
+            }
+        });
 
         document.getElementById('estacionFilter').addEventListener('change', async (e) => {
             const estacionId = e.target.value;
@@ -388,6 +411,7 @@
             }
         });
 
+        // === Cargar estadísticas (igual que en el original) ===
         async function cargarEstadisticas(estacionId) {
             const estacionNombre = document.querySelector(`#estacionFilter option[value="${estacionId}"]`).textContent;
             nombreEstacionActual = estacionNombre;
@@ -561,8 +585,10 @@
             document.getElementById('filtroItems').value = '';
         }
 
-        // === Iniciar carga de estaciones al cargar la página ===
-        cargarEstacionesCapital();
+        // === Inicializar con CCP de REDIP CAPITAL ===
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEstacionesPorCCP('ccp_distrito_capital');
+        });
     </script>
 </body>
 </html>
