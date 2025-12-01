@@ -3,22 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ubicaciones - REDIP OCCIDENTAL</title>
+    <title>Editar Ubicaciones - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        #map {
-            height: 500px;
-            border-radius: 12px;
-            margin-top: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
         .tabs {
             display: flex;
             gap: 2px;
-            margin: 25px 0 15px;
+            margin: 20px 0 15px;
             background: #e2e8f0;
             border-radius: 10px;
             padding: 4px;
@@ -39,74 +33,103 @@
             color: #0c2440;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        .search-box {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #cbd5e0;
-            border-radius: 10px;
-            font-size: 15px;
+        .entidad-card {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
             margin-bottom: 15px;
-            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: border-color 0.3s;
         }
-        .ubicacion-card {
-            background: #f8fafc;
-            padding: 14px;
-            border-radius: 10px;
-            margin-bottom: 12px;
-            border-left: 4px solid #3182ce;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .entidad-card.active {
+            border: 2px solid #3182ce;
+            background: #edf7ff;
         }
-        .tipo-estacion { border-left-color: #3182ce; }
-        .tipo-servicio { border-left-color: #805ad5; }
-        .ubicacion-card h4 {
+        .entidad-card h4 {
             color: #0c2440;
-            margin: 0;
+            margin: 0 0 12px;
             font-size: 16px;
         }
-        .no-enlace {
-            color: #e53e3e;
-            font-style: italic;
-            font-size: 12px;
-            margin-top: 4px;
+        .coord-inputs, .ruta-input {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
         }
-        .rutas-btn {
-            background: linear-gradient(135deg, #0c2440, #1a365d);
-            color: white;
+        .coord-inputs input,
+        .ruta-input input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .ruta-input label {
+            display: block;
+            margin-bottom: 6px;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .save-btn, .delete-btn {
+            flex: 1;
+            padding: 10px;
             border: none;
             border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
             font-weight: bold;
         }
-        .rutas-btn:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-            opacity: 0.7;
+        .save-btn {
+            background: linear-gradient(135deg, #0c2440, #1a365d);
+            color: white;
         }
-        .lista-contenedor {
+        .delete-btn {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+        }
+        .save-btn:hover {
+            background: linear-gradient(135deg, #1a365d, #0c2440);
+        }
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #c53030, #9b2c2c);
+        }
+        #map {
+            height: 400px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .instructions {
+            background: #f0f9ff;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3182ce;
+            font-size: 14px;
+            color: #0c2440;
+        }
+        .contenedor-lista {
             max-height: 400px;
             overflow-y: auto;
             padding-right: 8px;
         }
-        .lista-contenedor::-webkit-scrollbar {
-            width: 8px;
+        .contenedor-lista::-webkit-scrollbar {
+            width: 6px;
         }
-        .lista-contenedor::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        .lista-contenedor::-webkit-scrollbar-thumb {
+        .contenedor-lista::-webkit-scrollbar-thumb {
             background: #cbd5e0;
-            border-radius: 4px;
+            border-radius: 3px;
         }
-        .no-resultados {
+        .loading {
             text-align: center;
-            color: #718096;
-            padding: 20px;
-            font-style: italic;
+            color: #4a5568;
+            padding: 15px;
         }
     </style>
 </head>
@@ -122,31 +145,37 @@
     <div id="container" class="container" style="max-width: 1000px; padding: 40px;">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Ubicaciones - REDIP OCCIDENTAL</h1>
+            <h1 class="title">Editar Ubicaciones</h1>
         </div>
         <p id="ccpNombreDisplay" style="text-align: center; color: #4a5568; margin-bottom: 20px; font-size: 16px;">
             Cargando...
         </p>
+        <div class="instructions">
+            <strong>Instrucciones:</strong><br>
+            1. Seleccione una pestaña (Estaciones o Servicios).<br>
+            2. Haga clic en una entidad.<br>
+            3. Haga clic en el mapa para asignar coordenadas.<br>
+            4. Pegue un enlace de Google Maps en "Enlace de Rutas".<br>
+            5. Use "Guardar" para actualizar.
+        </div>
         <!-- Mapa -->
         <div id="map"></div>
-        <!-- Botón de edición -->
-        <button id="btnEditar" class="action-btn" style="margin-top: 20px; padding: 12px; font-size: 15px; width: 100%;">
-            ✏️ Editar Ubicaciones
-        </button>
         <!-- Pestañas -->
         <div class="tabs">
-            <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
-            <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
+            <button class="tab-btn active" data-tab="estaciones">👮 Estaciones Policiales</button>
+            <button class="tab-btn" data-tab="servicios">📋 Servicios Administrativos</button>
         </div>
-        <!-- Barra de búsqueda -->
-        <input type="text" id="searchInput" class="search-box" placeholder="Buscar por nombre...">
-        <!-- Lista dinámica -->
-        <div class="lista-contenedor">
-            <div id="listaEstaciones"></div>
-            <div id="listaServicios" style="display:none;"></div>
+        <!-- Listados -->
+        <div class="contenedor-lista">
+            <div id="listaEstaciones">
+                <div class="loading">Cargando estaciones...</div>
+            </div>
+            <div id="listaServicios" style="display:none;">
+                <div class="loading">Cargando servicios...</div>
+            </div>
         </div>
         <button id="btnVolver" class="back-btn" style="margin-top: 20px; padding: 10px 20px;">
-            ← Volver a Opciones
+            ← Volver a Ubicaciones
         </button>
     </div>
     <!-- Leaflet JS -->
@@ -162,126 +191,91 @@
             alert('⚠️ Datos de CCP no válidos.');
             window.history.back();
         }
-        document.getElementById('ccpNombreDisplay').textContent = `CCP: ${ccpNombre}`;
-        // Inicializar mapa
+        document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
         const map = L.map('map').setView([10.1667, -67.6167], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-        let todasEstaciones = [];
-        let todosServicios = [];
+        let entidadActiva = null;
+        let tipoEntidadActiva = null; // 'estacion' o 'servicio'
+        let markers = {};
+
         async function cargarEntidades() {
+            if (!ccpId) {
+                document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ CCP ID no válido.</p>';
+                return;
+            }
             try {
-                // ✅ Cargar estaciones policiales con campos correctos
-                const { data: estaciones, error: errEst } = await supabase
+                // ✅ Cargar estaciones con campos correctos
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
-                // ✅ Cargar servicios administrativos (campos ya correctos)
-                const { data: servicios, error: errServ } = await supabase
+                if (estError) throw new Error(`Estaciones: ${estError.message}`);
+                renderizarLista('listaEstaciones', estaciones || [], 'estacion');
+
+                // ✅ Cargar servicios (campos ya correctos)
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-                if (errEst && errServ) {
-                    throw new Error('Error al cargar datos de estaciones y servicios.');
-                }
-                // ✅ Mapear a un formato unificado
-                todasEstaciones = (estaciones || []).map(e => ({
-                    id: e.estacion_id,
-                    nombre: e.nombre_estacion,
-                    latitud: e.latitud,
-                    longitud: e.longitud,
-                    enlace_rutas: e.enlace_rutas
-                }));
-                todosServicios = servicios || [];
-                // Mostrar en el mapa
-                const todosLosMarcadores = [];
-                // Estaciones
-                todasEstaciones.forEach(est => {
-                    if (est.latitud && est.longitud) {
-                        todosLosMarcadores.push({
-                            lat: est.latitud,
-                            lng: est.longitud,
-                            nombre: est.nombre,
-                            tipo: 'Estación Policial',
-                            clase: 'estacion'
-                        });
-                    }
-                });
-                // Servicios
-                todosServicios.forEach(serv => {
-                    if (serv.latitud && serv.longitud) {
-                        todosLosMarcadores.push({
-                            lat: serv.latitud,
-                            lng: serv.longitud,
-                            nombre: serv.nombre,
-                            tipo: 'Servicio Administrativo',
-                            clase: 'servicio'
-                        });
-                    }
-                });
-                // Añadir marcadores al mapa
-                if (todosLosMarcadores.length > 0) {
-                    todosLosMarcadores.forEach(ub => {
-                        const marker = L.marker([ub.lat, ub.lng]).addTo(map);
-                        marker.bindPopup(`<b>${ub.nombre}</b><br>Tipo: ${ub.tipo}`);
-                    });
-                    // Ajustar vista del mapa
-                    const group = L.featureGroup(todosLosMarcadores.map(ub => L.marker([ub.lat, ub.lng])));
-                    map.fitBounds(group.getBounds().pad(0.1));
-                } else {
-                    document.getElementById('ccpNombreDisplay').innerHTML += 
-                        `<br><em style="color:#e53e3e;">⚠️ No hay ubicaciones con coordenadas.</em>`;
-                }
-                // Renderizar listas
-                renderizarListas();
+                if (servError) throw new Error(`Servicios: ${servError.message}`);
+                renderizarLista('listaServicios', servicios || [], 'servicio');
             } catch (error) {
                 console.error('Error al cargar entidades:', error);
-                document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ Error al cargar datos.</p>';
+                const msg = error.message || 'Error desconocido';
+                document.getElementById('listaEstaciones').innerHTML = `<p style="color:#e53e3e;">❌ ${msg}</p>`;
+                document.getElementById('listaServicios').innerHTML = `<p style="color:#e53e3e;">❌ ${msg}</p>`;
             }
         }
-        // Renderizar listas (con búsqueda)
-        function renderizarListas() {
-            const termino = document.getElementById('searchInput').value.toLowerCase();
-            // Filtrar estaciones
-            const estacionesFiltradas = todasEstaciones.filter(e => 
-                e.nombre.toLowerCase().includes(termino)
-            );
-            renderizarLista('listaEstaciones', estacionesFiltradas, 'estacion');
-            // Filtrar servicios
-            const serviciosFiltradas = todosServicios.filter(s => 
-                s.nombre.toLowerCase().includes(termino)
-            );
-            renderizarLista('listaServicios', serviciosFiltradas, 'servicio');
-        }
-        function renderizarLista(contenedorId, items, tipo) {
+
+        function renderizarLista(contenedorId, entidades, tipo) {
             const contenedor = document.getElementById(contenedorId);
-            if (items.length === 0) {
-                contenedor.innerHTML = '<div class="no-resultados">No se encontraron resultados.</div>';
+            contenedor.innerHTML = '';
+            if (entidades.length === 0) {
+                contenedor.innerHTML = '<p style="text-align:center; color:#666;">No hay registros.</p>';
                 return;
             }
-            let html = '';
-            items.forEach(item => {
-                const tieneEnlace = item.enlace_rutas && item.enlace_rutas.trim() !== '';
-                const enlaceSeguro = tieneEnlace ? item.enlace_rutas.replace(/'/g, "\\'") : '';
-                const icono = tipo === 'estacion' ? '👮' : '📋';
-                html += `
-                    <div class="ubicacion-card tipo-${tipo}">
-                        <div>
-                            <h4>${icono} ${item.nombre}</h4>
-                            ${!tieneEnlace ? '<p class="no-enlace">⚠️ Enlace no configurado</p>' : ''}
-                        </div>
-                        <button class="rutas-btn" ${tieneEnlace ? '' : 'disabled'}
-                                onclick="${tieneEnlace ? `window.open('${enlaceSeguro}', '_blank')` : `alert('⚠️ Enlace no configurado para esta ubicación.')`}">
-                            Rutas
-                        </button>
+            entidades.forEach(ent => {
+                // ✅ Usar el campo de ID correcto según el tipo
+                const id = tipo === 'estacion' ? ent.estacion_id : ent.id;
+                const nombre = tipo === 'estacion' ? ent.nombre_estacion : ent.nombre;
+
+                const card = document.createElement('div');
+                card.className = 'entidad-card';
+                card.dataset.id = id;
+                card.dataset.tipo = tipo;
+                card.innerHTML = `
+                    <h4>${nombre}</h4>
+                    <div class="coord-inputs">
+                        <input type="number" step="any" id="lat-${tipo}-${id}" placeholder="Latitud" value="${ent.latitud || ''}">
+                        <input type="number" step="any" id="lng-${tipo}-${id}" placeholder="Longitud" value="${ent.longitud || ''}">
+                    </div>
+                    <div class="ruta-input">
+                        <label for="ruta-${tipo}-${id}">Enlace de Rutas (Google Maps)</label>
+                        <input type="url" id="ruta-${tipo}-${id}" placeholder="Pegue aquí el enlace" value="${ent.enlace_rutas || ''}">
+                    </div>
+                    <div class="btn-group">
+                        <button class="save-btn" data-id="${id}" data-tipo="${tipo}">Guardar</button>
+                        <button class="delete-btn" data-id="${id}" data-tipo="${tipo}">Eliminar Coords</button>
                     </div>
                 `;
+                contenedor.appendChild(card);
+
+                if (ent.latitud && ent.longitud) {
+                    const lat = parseFloat(ent.latitud);
+                    const lng = parseFloat(ent.longitud);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        const marker = L.marker([lat, lng]).addTo(map);
+                        marker.bindPopup(nombre);
+                        markers[`${tipo}-${id}`] = marker;
+                    }
+                }
             });
-            contenedor.innerHTML = html;
         }
+
         // Eventos de pestañas
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -292,16 +286,134 @@
                 document.getElementById('listaServicios').style.display = tab === 'servicios' ? 'block' : 'none';
             });
         });
-        // Evento de búsqueda
-        document.getElementById('searchInput').addEventListener('input', renderizarListas);
-        // Botones
-        document.getElementById('btnEditar').addEventListener('click', () => {
-            window.location.href = `editar-ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+
+        // Eventos de interacción
+        document.getElementById('container').addEventListener('click', (e) => {
+            if (e.target.closest('.entidad-card')) {
+                const card = e.target.closest('.entidad-card');
+                document.querySelectorAll('.entidad-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                entidadActiva = card.dataset.id;
+                tipoEntidadActiva = card.dataset.tipo;
+            }
+            if (e.target.classList.contains('save-btn')) {
+                const id = e.target.dataset.id;
+                const tipo = e.target.dataset.tipo;
+                guardarEntidad(id, tipo);
+            }
+            if (e.target.classList.contains('delete-btn')) {
+                const id = e.target.dataset.id;
+                const tipo = e.target.dataset.tipo;
+                eliminarCoordenadas(id, tipo);
+            }
         });
+
+        // Clic en el mapa
+        map.on('click', function(e) {
+            if (!entidadActiva || !tipoEntidadActiva) {
+                alert('⚠️ Primero seleccione una entidad de la lista.');
+                return;
+            }
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            document.getElementById(`lat-${tipoEntidadActiva}-${entidadActiva}`).value = lat.toFixed(6);
+            document.getElementById(`lng-${tipoEntidadActiva}-${entidadActiva}`).value = lng.toFixed(6);
+
+            const key = `${tipoEntidadActiva}-${entidadActiva}`;
+            if (markers[key]) {
+                map.removeLayer(markers[key]);
+                delete markers[key];
+            }
+            const nombre = document.querySelector(`.entidad-card[data-id="${entidadActiva}"] h4`).textContent;
+            const newMarker = L.marker([lat, lng]).addTo(map);
+            newMarker.bindPopup(nombre);
+            markers[key] = newMarker;
+            alert(`✅ Coordenadas asignadas.`);
+        });
+
+        // ✅ Guardar con clave primaria correcta
+        async function guardarEntidad(id, tipo) {
+            const latInput = document.getElementById(`lat-${tipo}-${id}`);
+            const lngInput = document.getElementById(`lng-${tipo}-${id}`);
+            const rutaInput = document.getElementById(`ruta-${tipo}-${id}`);
+
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            const enlaceRutas = rutaInput.value.trim();
+
+            if ((latInput.value || lngInput.value) && (isNaN(lat) || isNaN(lng))) {
+                alert('Por favor ingrese coordenadas válidas.');
+                return;
+            }
+
+            try {
+                const updateData = { enlace_rutas: enlaceRutas || null };
+                if (latInput.value && lngInput.value) {
+                    updateData.latitud = lat;
+                    updateData.longitud = lng;
+                }
+
+                // ✅ Actualizar usando la clave primaria correcta
+                if (tipo === 'estacion') {
+                    const { error } = await supabase
+                        .from('estaciones_policiales')
+                        .update(updateData)
+                        .eq('estacion_id', id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabase
+                        .from('servicios_administrativos')
+                        .update(updateData)
+                        .eq('id', id);
+                    if (error) throw error;
+                }
+
+                alert('✅ Datos guardados con éxito.');
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                alert('❌ Error al guardar los datos.');
+            }
+        }
+
+        // ✅ Eliminar con clave primaria correcta
+        async function eliminarCoordenadas(id, tipo) {
+            if (!confirm('¿Está seguro de que desea eliminar las coordenadas?')) return;
+
+            try {
+                if (tipo === 'estacion') {
+                    const { error } = await supabase
+                        .from('estaciones_policiales')
+                        .update({ latitud: null, longitud: null })
+                        .eq('estacion_id', id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await supabase
+                        .from('servicios_administrativos')
+                        .update({ latitud: null, longitud: null })
+                        .eq('id', id);
+                    if (error) throw error;
+                }
+
+                document.getElementById(`lat-${tipo}-${id}`).value = '';
+                document.getElementById(`lng-${tipo}-${id}`).value = '';
+
+                const key = `${tipo}-${id}`;
+                if (markers[key]) {
+                    map.removeLayer(markers[key]);
+                    delete markers[key];
+                }
+
+                alert('🗑️ Coordenadas eliminadas con éxito.');
+            } catch (error) {
+                console.error('Error al eliminar:', error);
+                alert('❌ Error al eliminar las coordenadas.');
+            }
+        }
+
         document.getElementById('btnVolver').addEventListener('click', () => {
-            window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
-        // Iniciar
+
         cargarEntidades();
     </script>
 </body>
