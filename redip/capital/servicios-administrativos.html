@@ -88,11 +88,9 @@
                 return;
             }
             const servicioNombre = document.getElementById('servicioSelect').options[document.getElementById('servicioSelect').selectedIndex].text;
-            // ✅ Redirige al formulario correcto para servicios en REDIP CAPITAL
-            window.location.href = `formulario-inspeccion-servicio.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}`;
-        });
+   
+           window.location.href = `redip/capital/formulario-servicio.html?ccpId=...&servicioId=...`;
         document.getElementById('btnVolver').addEventListener('click', () => {
-            // ✅ Vuelve al index de REDIP CAPITAL con los parámetros del CCP
             window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
     </script>
