@@ -81,9 +81,9 @@
             const select = document.getElementById('estacionSelect');
             try {
                 const { data: estaciones, error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion')
-                    .eq('ccp_id', ccpId)
+                    .from('estaciones_policiales') // ✅ Nombre correcto de la tabla
+                    .select('estacion_id, nombre_estacion') // ✅ Campos reales de tu tabla
+                    .eq('ccp_id', ccpId) // ✅ Campo correcto
                     .order('nombre_estacion', { ascending: true });
                 if (error) throw error;
                 if (!estaciones || estaciones.length === 0) {
@@ -94,8 +94,8 @@
                 select.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
-                    opt.value = est.estacion_id;
-                    opt.textContent = est.nombre_estacion;
+                    opt.value = est.estacion_id;        // ✅ campo real
+                    opt.textContent = est.nombre_estacion; // ✅ campo real
                     select.appendChild(opt);
                 });
                 select.disabled = false;
