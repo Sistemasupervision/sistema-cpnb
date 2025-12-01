@@ -224,14 +224,18 @@
                     <label for="ccpFilter">Seleccione CCP:</label>
                     <select id="ccpFilter">
                         <option value="">-- Elija un CCP --</option>
-                        <!-- Solo incluimos el CCP de la REDIP CAPITAL -->
-                        <option value="ccp_distrito_capital" selected>CCP DISTRICTO CAPITAL</option>
+                        <option value="ccp_distrito_capital">CCP DISTRITO CAPITAL</option>
+                        <option value="ccp_altos_mirandinos">CCP ALTOS MIRANDINOS</option>
+                        <option value="ccp_barlovento">CCP BARLOVENTO</option>
+                        <option value="ccp_la_guaira">CCP LA GUAIRA</option>
+                        <option value="ccp_miranda_ciudad_fajardo">CCP MIRANDA / CIUDAD FAJARDO</option>
+                        <option value="ccp_valles_del_tuy">CCP VALLES DEL TUY</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label for="estacionFilter">Seleccione Estación:</label>
                     <select id="estacionFilter" disabled>
-                        <option value="">-- Cargando estaciones... --</option>
+                        <option value="">-- Primero seleccione un CCP --</option>
                     </select>
                 </div>
             </div>
@@ -362,11 +366,13 @@
         let paginaActual = 1;
         let totalPaginas = 1;
 
-        // === Al cargar la página, preseleccionar CCP y cargar estaciones ===
-        async function cargarEstacionesPorCCP(ccpId) {
+        // === Cargar estaciones al seleccionar CCP ===
+        document.getElementById('ccpFilter').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
-            estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
-            estacionSelect.disabled = true;
+            estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
+            estacionSelect.disabled = !ccpId;
+            if (!ccpId) return;
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
@@ -374,8 +380,6 @@
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
                 if (error) throw error;
-                estacionSelect.disabled = false;
-                estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
                 if (!estaciones || estaciones.length === 0) {
                     estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
                     return;
@@ -388,32 +392,19 @@
                 });
             } catch (error) {
                 console.error('Error al cargar estaciones:', error);
-                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
-                estacionSelect.disabled = true;
-            }
-        }
-
-        // === Eventos ===
-        document.getElementById('ccpFilter').addEventListener('change', (e) => {
-            const ccpId = e.target.value;
-            if (ccpId) {
-                cargarEstacionesPorCCP(ccpId);
-            } else {
-                document.getElementById('estacionFilter').innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
-                document.getElementById('estacionFilter').disabled = true;
+                alert('Error al cargar las estaciones');
             }
         });
 
-        document.getElementById('estacionFilter').addEventListener('change', async (e) => {
-            const estacionId = e.target.value;
-            if (estacionId) {
-                await cargarEstadisticas(estacionId);
-            }
+        document.getElementById('estacionFilter').addEventListener('change', async () => {
+            const estacionId = document.getElementById('estacionFilter').value;
+            if (!estacionId) return;
+            await cargarEstadisticas(estacionId);
         });
 
-        // === Cargar estadísticas (igual que en el original) ===
+        // === Cargar y calcular estadísticas ===
         async function cargarEstadisticas(estacionId) {
-            const estacionNombre = document.querySelector(`#estacionFilter option[value="${estacionId}"]`).textContent;
+            const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
             nombreEstacionActual = estacionNombre;
             document.getElementById('seleccionContainer').style.display = 'none';
             document.getElementById('resultadosContainer').style.display = 'none';
@@ -452,20 +443,24 @@
                 document.getElementById('mensajeCarga').style.display = 'none';
                 document.getElementById('resultadosContainer').style.display = 'block';
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error al cargar estadísticas:', error);
                 document.getElementById('mensajeCarga').style.display = 'none';
-                document.getElementById('mensajeSinDatos').textContent = 'Error al cargar datos.';
+                document.getElementById('mensajeSinDatos').textContent = 'Error al cargar los datos.';
                 document.getElementById('mensajeSinDatos').style.display = 'block';
             }
         }
 
         function calcularEstadisticas(items) {
             const resultado = {};
-            todosLosItems.forEach(item => resultado[item] = 0);
+            todosLosItems.forEach(item => {
+                resultado[item] = 0;
+            });
             const agrupado = {};
             items.forEach(item => {
                 if (item.cumple === true) {
-                    if (!agrupado[item.item_nombre]) agrupado[item.item_nombre] = [];
+                    if (!agrupado[item.item_nombre]) {
+                        agrupado[item.item_nombre] = [];
+                    }
                     agrupado[item.item_nombre].push(parseFloat(item.porcentaje_cumplimiento) || 0);
                 }
             });
@@ -479,6 +474,7 @@
             return resultado;
         }
 
+        // === Actualizar vista ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
@@ -488,14 +484,18 @@
             document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
             document.getElementById('btnAnterior').disabled = paginaActual === 1;
             document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
-            document.getElementById('statsHeader').textContent = 
-                `Estadísticas para: ${nombreEstacionActual} (Ítems ${(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–${Math.min(paginaActual * ITEMS_POR_PAGINA, todosLosItems.length)} de ${todosLosItems.length})`;
         }
 
         function renderizarGrafico(itemsPagina) {
             const ctx = document.getElementById('cumplimientoChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-            const labels = itemsPagina.map(k => nombresItems[k].split('.')[0]);
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            const labels = itemsPagina.map(k => {
+                const texto = nombresItems[k];
+                const num = texto.split('.')[0];
+                return num;
+            });
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
             chartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -507,7 +507,8 @@
                         backgroundColor: 'rgba(49, 130, 206, 0.8)',
                         borderColor: 'rgba(49, 130, 206, 1)',
                         borderWidth: 1,
-                        borderRadius: 6
+                        borderRadius: 6,
+                        borderSkipped: false
                     }]
                 },
                 options: {
@@ -515,22 +516,39 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'top' },
+                        legend: { 
+                            position: 'top',
+                            labels: { font: { size: 13 } }
+                        },
                         tooltip: {
                             callbacks: {
-                                label: ctx => {
-                                    const idx = (paginaActual - 1) * ITEMS_POR_PAGINA + ctx.dataIndex;
-                                    return `${nombresItems[todosLosItems[idx]]}: ${ctx.parsed.x}%`;
+                                label: function(context) {
+                                    const idx = (paginaActual - 1) * ITEMS_POR_PAGINA + context.dataIndex;
+                                    const nombreCompleto = nombresItems[todosLosItems[idx]];
+                                    return `${nombreCompleto}: ${context.parsed.x}%`;
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
-                        y: { grid: { display: false } }
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: value => value + '%',
+                                font: { size: 12 }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            ticks: { font: { size: 12 } },
+                            grid: { display: false }
+                        }
                     }
                 }
             });
+            document.getElementById('statsHeader').textContent = 
+                `Estadísticas para: ${nombreEstacionActual} (Ítems ${(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–${Math.min(paginaActual * ITEMS_POR_PAGINA, todosLosItems.length)} de ${todosLosItems.length})`;
         }
 
         function renderizarTabla(itemsPagina) {
@@ -542,7 +560,9 @@
                 const porcentaje = estadisticasTotales[key] || 0;
                 if (nombre.toLowerCase().includes(filtro)) {
                     const tr = document.createElement('tr');
-                    let clase = porcentaje >= 80 ? 'alto' : porcentaje >= 50 ? 'medio' : 'bajo';
+                    let clase = 'alto';
+                    if (porcentaje < 50) clase = 'bajo';
+                    else if (porcentaje < 80) clase = 'medio';
                     tr.innerHTML = `
                         <td>${nombre}</td>
                         <td class="porcentaje-valor ${clase}">${porcentaje}%</td>
@@ -552,6 +572,7 @@
             });
         }
 
+        // === Paginación y filtro ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
             if (paginaActual > 1) {
                 paginaActual--;
@@ -585,10 +606,9 @@
             document.getElementById('filtroItems').value = '';
         }
 
-        // === Inicializar con CCP de REDIP CAPITAL ===
-        document.addEventListener('DOMContentLoaded', () => {
-            cargarEstacionesPorCCP('ccp_distrito_capital');
-        });
+        async function exportarEstadisticasAPDF() {
+            alert('Exportación a PDF no implementada en esta versión mejorada.\nPuedes usar la función de impresión del navegador (Ctrl+P).');
+        }
     </script>
 </body>
 </html>
