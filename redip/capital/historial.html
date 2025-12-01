@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        /* (El mismo CSS que en tu archivo original — se mantiene sin cambios) */
         .container {
             max-width: 1000px;
             padding: 40px;
@@ -428,7 +427,7 @@
                 <div class="input-group" style="flex: 1; min-width: 300px;">
                     <label for="ccpFilter">Filtrar por CCP:</label>
                     <select id="ccpFilter" class="filter-select">
-                        <option value="">Todos los CCP</option>
+                        <option value="">-- Cargando CCPs --</option>
                         <!-- Opciones se cargarán dinámicamente -->
                     </select>
                 </div>
@@ -474,32 +473,27 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         const urlParams = new URLSearchParams(window.location.search);
         const ccpIdDesdeUrl = urlParams.get('ccpId');
         const ccpNombreDesdeUrl = urlParams.get('ccpNombre');
-
         const hoy = new Date();
         const hace30Dias = new Date();
         hace30Dias.setDate(hoy.getDate() - 30);
         document.getElementById('fechaHasta').valueAsDate = hoy;
         document.getElementById('fechaDesde').valueAsDate = hace30Dias;
         document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-
         let inspeccionesCache = [];
         let paginaActual = 1;
         const registrosPorPagina = 10;
         let inspeccionIdActual = null;
-
         if (ccpNombreDesdeUrl) {
             document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombreDesdeUrl)}`;
         } else {
             document.getElementById('ccpNombreDisplay').style.display = 'none';
         }
-
-        // === 🔒 VERIFICAR ACCESO: SOLO REDIP CAPITAL O ADMIN ===
+        // === 🔒 VERIFICAR ACCESO: SOLO CAPITAL O ADMIN ===
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión para acceder a esta página.');
                 window.location.href = '../../index.html';
@@ -527,31 +521,28 @@
                 window.location.href = '../../index.html';
             }
         }
-
         // === CARGAR SOLO CCPs DE REDIP CAPITAL ===
         async function cargarCCPsCapital() {
-            const ccpSelect = document.getElementById('ccpFilter');
+            const select = document.getElementById('ccpFilter');
             try {
-                const { data: ccps, error } = await supabase
+                const {  ccps, error } = await supabase
                     .from('ccps')
                     .select('ccp_id, nombre_ccp')
                     .eq('redip', 'capital')
                     .order('nombre_ccp', { ascending: true });
                 if (error) throw error;
-                ccpSelect.innerHTML = '<option value="">Todos los CCP</option>';
+                select.innerHTML = '<option value="">Todos los CCP</option>';
                 ccps.forEach(ccp => {
                     const opt = document.createElement('option');
                     opt.value = ccp.ccp_id;
                     opt.textContent = ccp.nombre_ccp;
-                    ccpSelect.appendChild(opt);
+                    select.appendChild(opt);
                 });
             } catch (error) {
                 console.error('Error al cargar CCPs:', error);
-                alert('⚠️ Error al cargar los CCP de REDIP CAPITAL.');
+                select.innerHTML = '<option value="">Error al cargar</option>';
             }
         }
-
-        // === CARGAR ESTACIONES Y SERVICIOS SEGÚN CCP (SOLO DE CAPITAL) ===
         async function cargarEstacionesYServicios(ccpId) {
             const estacionSelect = document.getElementById('estacionFilter');
             const servicioSelect = document.getElementById('servicioFilter');
@@ -559,7 +550,7 @@
             servicioSelect.innerHTML = '<option value="">Todos los servicios</option>';
             if (!ccpId) return;
             try {
-                const { data: estaciones, error: estError } = await supabase
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
@@ -572,7 +563,7 @@
                         estacionSelect.appendChild(opt);
                     });
                 }
-                const { data: servicios, error: servError } = await supabase
+                const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
@@ -590,44 +581,34 @@
                 alert('⚠️ Error al cargar estaciones o servicios.');
             }
         }
-
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             await cargarEstacionesYServicios(ccpId);
         });
-
-        // === CARGAR HISTORIAL (FILTRANDO POR CCPs DE CAPITAL) ===
         async function cargarHistorial(fechaDesde = null, fechaHasta = null, ccpId = null, estacionId = null, servicioId = null) {
             try {
-                // Obtener todos los CCPs de REDIP CAPITAL
-                const { data: ccpsCapital, error: ccpError } = await supabase
+                // ✅ Cargar solo CCPs de redip = 'capital'
+                const {  ccpsCapital, error: ccpError } = await supabase
                     .from('ccps')
                     .select('ccp_id')
                     .eq('redip', 'capital');
                 if (ccpError) throw ccpError;
                 const ccpIds = ccpsCapital.map(c => c.ccp_id);
-
-                // Obtener estaciones y servicios de esos CCPs
-                const { data: estaciones, error: estError } = await supabase
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id')
                     .in('ccp_id', ccpIds);
-                const { data: servicios, error: servError } = await supabase
+                const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id')
                     .in('ccp_id', ccpIds);
                 if (estError || servError) throw new Error('Error al cargar entidades.');
-
                 const estacionIds = estaciones ? estaciones.map(e => e.estacion_id) : [];
                 const servicioIds = servicios ? servicios.map(s => s.id) : [];
-
-                // Construir condiciones de filtrado
                 let query = supabase
                     .from('inspecciones')
                     .select('id, created_at, observaciones_generales, inspector_email, estacion_id, servicio_id, proxima_inspeccion')
                     .order('created_at', { ascending: false });
-
-                // Filtros por fechas
                 if (fechaDesde && fechaHasta) {
                     const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
                     const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
@@ -635,8 +616,6 @@
                         .gte('created_at', desdeISO)
                         .lte('created_at', hastaISO + 'T23:59:59.999Z');
                 }
-
-                // Filtros por entidad
                 const condiciones = [];
                 if (estacionId) {
                     query = query.eq('estacion_id', estacionId);
@@ -649,20 +628,16 @@
                     if (serviciosDelCCP.length > 0) condiciones.push(`servicio_id.in.(${serviciosDelCCP.join(',')})`);
                     if (condiciones.length > 0) query = query.or(condiciones.join(','));
                 } else {
-                    // Sin CCP seleccionado → filtrar por todos los de REDIP CAPITAL
                     if (estacionIds.length > 0) condiciones.push(`estacion_id.in.(${estacionIds.join(',')})`);
                     if (servicioIds.length > 0) condiciones.push(`servicio_id.in.(${servicioIds.join(',')})`);
                     if (condiciones.length > 0) query = query.or(condiciones.join(','));
                 }
-
-                const { data: inspecciones, error } = await query;
+                const {  inspecciones, error } = await query;
                 if (error) throw error;
-
-                // Cargar ítems para cumplimiento
                 const idsInspecciones = inspecciones.map(i => i.id);
                 let itemsPorInspeccion = {};
                 if (idsInspecciones.length > 0) {
-                    const { data: items, error: itemsError } = await supabase
+                    const {  items, error: itemsError } = await supabase
                         .from('items_inspeccion')
                         .select('inspeccion_id, cumple')
                         .in('inspeccion_id', idsInspecciones);
@@ -676,21 +651,17 @@
                         });
                     }
                 }
-
-                // Mapear nombres de entidades
-                const { data: todasEstaciones, error: estAllError } = await supabase
+                const {  todasEstaciones, error: estAllError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion');
-                const { data: todosServicios, error: servAllError } = await supabase
+                const {  todosServicios, error: servAllError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre');
                 if (estAllError || servAllError) throw new Error('Error al cargar entidades.');
-
                 const estacionMap = {};
                 const servicioMap = {};
                 todasEstaciones.forEach(est => estacionMap[est.estacion_id] = est.nombre_estacion);
                 todosServicios.forEach(serv => servicioMap[serv.id] = serv.nombre);
-
                 inspeccionesCache = inspecciones.map(insp => {
                     let nombreEntidad = 'Entidad no encontrada';
                     let tipo = 'desconocido';
@@ -705,11 +676,9 @@
                     const porcentaje = stats.total > 0 ? Math.round((stats.cumplidos / stats.total) * 100) : 0;
                     return { ...insp, nombre_entidad: nombreEntidad, tipo, porcentaje_cumplimiento: porcentaje };
                 });
-
                 paginaActual = 1;
                 renderizarLista();
                 renderizarPaginacion();
-
             } catch (error) {
                 console.error('Error al cargar historial:', error);
                 document.getElementById('inspeccionesList').innerHTML = 
@@ -718,8 +687,6 @@
                 renderizarPaginacion();
             }
         }
-
-        // === FUNCIONES RESTANTES (igual que en el original) ===
         function renderizarLista() {
             const inicio = (paginaActual - 1) * registrosPorPagina;
             const fin = inicio + registrosPorPagina;
@@ -738,7 +705,6 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                // (lógica de estado, alertas, botones — sin cambios)
                 let estadoClase = 'estado-verde';
                 let alertaHTML = '';
                 let mostrarBoton = false;
@@ -801,7 +767,6 @@
                 contenedor.appendChild(card);
             });
         }
-
         function renderizarPaginacion() {
             const totalPaginas = Math.ceil(inspeccionesCache.length / registrosPorPagina);
             const paginacionDiv = document.getElementById('pagination');
@@ -847,7 +812,6 @@
             };
             paginacionDiv.appendChild(nextBtn);
         }
-
         function aplicarFiltro() {
             const desde = document.getElementById('fechaDesde').value;
             const hasta = document.getElementById('fechaHasta').value;
@@ -860,20 +824,493 @@
             }
             cargarHistorial(desde, hasta, ccpId, estacionId, servicioId);
         }
-
-        // === FUNCIONES DE DETALLE, PDF, MODALES (sin cambios en lógica) ===
-        async function mostrarDetalle(inspeccionId) { /* ... mismo código que en original ... */ }
-        function cerrarModal() { document.getElementById('detalleModal').style.display = 'none'; }
+        // === FUNCIONES COMPLETAS (IGUALES AL ORIGINAL) ===
+        async function mostrarDetalle(inspeccionId) {
+            try {
+                const { data: items, error: itemsError } = await supabase
+                    .from('items_inspeccion')
+                    .select('item_nombre, cumple, observacion, porcentaje_cumplimiento')
+                    .eq('inspeccion_id', inspeccionId);
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('created_at, observaciones_generales, estacion_id, servicio_id, proxima_inspeccion')
+                    .eq('id', inspeccionId)
+                    .single();
+                if (itemsError || inspError) {
+                    console.error('Error cargando datos:', itemsError || inspError);
+                    alert('No se pudieron cargar los detalles.');
+                    return;
+                }
+                let nombreEntidad = 'Entidad no disponible';
+                let tipo = 'desconocido';
+                if (inspeccion.estacion_id) {
+                    const { data: estacionData, error: estError } = await supabase
+                        .from('estaciones_policiales')
+                        .select('nombre_estacion')
+                        .eq('estacion_id', inspeccion.estacion_id)
+                        .single();
+                    if (!estError && estacionData) {
+                        nombreEntidad = estacionData.nombre_estacion;
+                        tipo = 'estacion';
+                    }
+                } else if (inspeccion.servicio_id) {
+                    const { data: servicioData, error: servError } = await supabase
+                        .from('servicios_administrativos')
+                        .select('nombre')
+                        .eq('id', inspeccion.servicio_id)
+                        .single();
+                    if (!servError && servicioData) {
+                        nombreEntidad = servicioData.nombre;
+                        tipo = 'servicio';
+                    }
+                }
+                const nombresAmigables = {
+                    nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
+                    acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
+                    dossier_comandante: "3.verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación,exposición de motivos para la creación y activación,justificación actual de su funcionamiento,documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
+                    conocimiento_ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
+                    conocimiento_estatuto_personal: "5. Verificar en físico y el conocimiento sobre el reglamento sobre el estatuto de la función policial en materia de administración de personal y desarrollo de la carrera policial",
+                    conocimiento_reglamento_disciplinario: "6. Verificar en físico y el conocimiento sobre el reglamento de la función policial sobre el régimen disciplinario",
+                    estructura_organizativa: "7. Verificar el conocimiento de la estructura organizativa del CPNB y la aplicación de la estructura funcional del CCP.",
+                    manuales_normas_procedimientos: "8. Verificar los manuales de normas y procedimientos operativos vigentes, actualizado.",
+                    plan_trabajo_anual: "9. Verificar el plan de trabajo anual, cumplimiento y logros.",
+                    infraestructura_identificacion: "10. Verificar que las infraestructuras físicas cumplan con la adecuada identificación establecidas por la institución, incluyendo los servicios ubicados fuera de las instalaciones del CCP.",
+                    direccion_atencion_victima: "11. Verificación de la activación de la brigada policial especial de protección y asistencia a las  víctimas  testigos  y  demás  sujetos procesales",
+                    oficina_gestion_humana: "12. Verificar con la oficina de gestión humana cpnb: relación del personal, plan anual de vacaciones, plan vacacional, reposos, ascensos, tramitaciones de bajas, planes de entrenamiento y reentrenamiento tramitaciones de comisión de servicio",
+                    documentacion_personal: "13. Constatar en el personal policial, la existencia de la documentación (se hará con muestra representativa). Carnet único policial, cédula de identidad, licencia de conducir y certificado médico, declaración de impuesto sobre la renta y jurada de patrimonio, carnet de la patria, porte de armas. si aplica, inscripción en la correspondiente caja de ahorros.",
+                    uniforme_presentacion: "14. Constatar el uso correcto del uniforme y presentación personal: corte de cabello, rasuradouniforme limpio, botas pulidas, cabello recogido, uñas cortas (caso femenino uñas y maquillaje colores claros)",
+                    practica_induccion_orden_publico: "15. Verificar que la unidad posea y haya realizado practica de los planes de reacción inmediata, defensa y de evacuación.",
+                    entrenamiento_armamento: "16. Verificar si los funcionarios reciben entrenamiento en el manejo de armamento orgánico.",
+                    talleres_manejo_defensivo: "17. Verificar la realización de talleres de manejo defensivo y de servicio de seguridad vial a los conductores de unidades tipo moto y vehículos.",
+                    conocimientos_primeros_auxilios: "18. Verificar si los efectivos poseen los conocimientos mínimos necesarios de primeros auxilios.",
+                    acciones_moral_disciplina: "19. Verificar las acciones tomadas por el coordinador o coordinadora del ccp para elevar la moral, mantener la disciplina, espíritu de cuerpo, bienestar y salud del personal.",
+                    conocimiento_pensamiento_bolivariano: "20. Verificar el conocimiento del pensamiento bolivariano sobre el legado del libertador Simón Bolívar y el comandante supremo Hugo Chávez al personal policial.",
+                    instruccion_etica_moral: "21. Verificar si constantemente se instruye al personal sobre honestidad, ética, moralidad y espíritu de cuerpo, revisar registros en el libro de charlas y servicio de día.",
+                    talleres_ministerio_publico: "22. Verificar talleres dictados al personal por parte de autoridades del ministerio público, judiciales y consultor jurídico, sobre procedimientos y cumplimiento del debido proceso, derechos humanos y derecho internacional humanitario.",
+                    conocimiento_lineamientos_cpnb: "23. Constatar el conocimiento del coordinador o coordinadora del ccp en relación a los lineamientos para ejercer el control de normas, ordenes, procedimientos e instrucciones impartidas por la directiva del CPNB ¿qué acciones ha realizado para su difusión e implementación?",
+                    cursos_sustanciacion_expedientes: "24. Constatar la realización de cursos de sustanciación de expedientes administrativos, actas policiales y pericias judiciales para el personal de la unidad.",
+                    cumplimiento_entrenamiento_fisico: "25.Verificar el cumplimiento del entrenamiento en cuanto: educación física, orden público",
+                    dotacion_trajes_antimotines: "26. Verificar si la dotación de los trajes antimotines es suficiente para la capacidad operativa del CCP.",
+                    practica_tecnicas_policiales: "27. Verificar si el personal ha realizado practica de: tiro de combate con escopeta, tiro de combate y policial con pistola 9mm, mantenimiento y preservación del armamento, mantenimiento, control y restablecimiento del orden público, uso progresivo y diferenciado de la fuerza, defensa personal, orden cerrado, combate en áreas confinadas, instalación de puntos de control (DIRECTIVA MPPRIJP-MPPD), inspección de personas, y revisión de vehículos, embarcaciones y aeronaves.",
+                    numero_funcionarios_suficiente: "28. Constatar que el numero de funcionarios adscrito a la unidad, sea suficiente para cumplir con los servicios policiales.",
+                    personal_empleado_servicios: "29. Verificar que el personal policial del CCP inspeccionado, este siendo empleado para cumplir con los servicios de policiales.",
+                    servicios_autorizados_mpprijp: "30. Verificar que los únicos servicios a ser prestados por parte de los efectivos del cuerpo de Policía Nacional Bolivariana fuera de la unidad serán aquellos autorizados por el ministro o ministra del poder popular las relaciones interiores justicia y paz y el comando general del Cuerpo de Policía Nacional Bolivariana a través del; por lo tanto ninguna autoridad civil ni militar podrá solicitar este tipo de apoyos sin ser canalizados a través de las instancias antes mencionadas. en caso de estar autorizados, deberán tomar las acciones para que en aquellos lugares aislados, prever los relevos durante la noche, comunicación por cualquier medio (teléfono o radio), verificando su situación cada hora en horario nocturno y cada 4 horas en horario diurno, así como también patrullajes constantes si la zona donde se presta el servicio de alta peligrosidad.",
+                    publicaciones_procedimientos: "31. Verificar los siguientes aspectos en	las	publicaciones de los procedimientos: el backing institucional de la Policía Nacional Bolivariana en todas las unidades operativas, uso obligatorio de mesa o mesones según sea el caso, con mantel, para los elementos retenidos de poco tamaño, realizar las fotos en alta definición, realizar las fotos por separado de acuerdo al tamaño de los efectos retenidos según sea el caso y prohibido que aparezcan efectivos policiales en la fotos de los procedimientos realizados,",
+                    libros_novedades: "32. Verificar en los libros de novedades: la realización diaria de la izada y arreada de la bandera de venezuela en los ccp, estaciones policiales, la información impartida en las formaciones diarias con los funcionarios, el cumplimiento de las instrucciones sobre el mínimo personal requerido por comisión debe ser de seis (06) hombres, con un oficial jefe como jerarquía mínima (boleta de comisión), al mando, constatar que el personal policial tenga conocimiento que esta prohibido las persecuciones, salvo excepciones en casos de emergencias, y deberá estar bajo el criterio y conocimiento del jefe o jefa de la unidad, que el personal policial tome las medidas de seguridad durante el desempeño del servicio y/o comisión (uso de chaleco anti balas, armamento, pito y linterna).",
+                    libro_actas_reuniones: "33. Verificar en el	libro de reuniones	las	actas	de	reuniones	de coordinación con los entes gubernamentales o empresas privadas.",
+                    libro_reuniones_personal: "34. Verificar el libro de reuniones con el personal policial y civil adscrito al ccp, con las planificaciones semanales realizadas por el jefe de cada servicios del CCP.",
+                    archivo_general_expedientes: "35. Verificación del archivo general.",
+                    libro_entrevistas_funcionarios: "36. verificar el libro de entrevistas del coordinador o coordinadora del ccp con los funcionarios de su jurisdicción.",
+                    supervision_libros: "37. verifica regularmente las anotaciones en los siguientes libros: Entrada y salida de armamento, inspección y jefe de los servicios, ordenes de carácter permanente y libro de ronda.",
+                    cumplimiento_normativa_instalaciones: "38. Verificar el cumplimiento de la normativa para: parque de armas, sala de evidencias.",
+                    bienes_publicos_registrados: "39. Verificación que los bienes públicos existentes estén de acuerdo con los registrados en la oficina de gestión administrativa CPNB.",
+                    resguardo_detenido: "40. verificar las condiciones con respecto al resguardo del detenido: seguridad de las instalaciones, medidas de control, condiciones de los funcionarios, condiciones de los privados de libertad y cumplimiento de las normativas para el traslado de los privados de libertad.",
+                    equipos_control_incendios: "41. Verificar la existencia y operatividad de equipos de control de incendios, tales como extintores, cajón de arena, entre otros.",
+                    equipos_comunicacion: "42. Verificar la cantidad de equipos de comunicación pertenecientes al ccp y las condición de los mismos",
+                    plan_hospedaje_personal: "43. Verificar que el coordinador o coordinadora del ccp. tenga previsto un plan de hospedaje para el personal de apoyo y reemplazos.",
+                    calidad_vida_personal: "44. Verificar	la	calidad	de	vida,	alimentación,	servicios	básicos, habitabilidad, confort y bienestar del personal policial de la unidad inspeccionada.",
+                    plan_visita_estaciones: "45. Verificar el plan de visita de inspección de todas las estaciones policiales de la jurisdicción del ccp inspeccionado. (verificar si las instalaciones policiales ubicados en lugares aislados o en arterias viales distantes ofrecen las condiciones de seguridad, correspondientes)",
+                    servicio_medico: "46. Verificar si existe una enfermería en el CCP.",
+                    unidad_recepcion_denuncias: "47. verificar la existencia de la unidad recepción de denuncias, quejas y reclamos recibidos en coordinación con los tribunales, fiscalía del ministerio público, defensoría del pueblo a nivel estadal y municipal y la comunidad",
+                    areas_esparcimiento: "48. Verificar las instalaciones de las áreas de esparcimiento tales como comedores y dormitorios (televisores, muebles, mesas sillas)",
+                    vehiculos_operativos: "49. Constatar la cantidad de vehículos operativos, inoperativos y el plan de mantenimiento existente del ccp inspeccionada. ¿que acciones de comando se han tomado en relación a estos vehículos siniestrados?",
+                    placa_policial_vehiculos: "50. Verificar que todos los vehículos pertenecientes al parque automotor tenga placa policial",
+                    vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos son suficientes para el desempeño de los servicios de policiales.",
+                    vehiculos_donados_inventario: "52. Verificar si el ccp ha recibido vehículos donados o en comodato y si se han incluidos en el inventario nacional del CPNB.",
+                    accesorios_seguridad_vehiculos: "53. Verificar los accesorios de seguridad que debe llevar todo vehículos.",
+                    necesidades_repuestos_vehiculos: "54. Constatar las necesidades o requerimientos de repuestos, cauchos y accesorios de vehículos de la unidad inspeccionada.",
+                    identificacion_vehiculos_policiales: "55. Verificar que los vehículos policiales estén plenamente identificados con los logos policiales correspondientes, cautelera y equipo P.A operativo",
+                    informes_parques_armas: "56. Verificar los informes de inspecciones realizadas a los parques de armas por la oficina de gestión administrativa cpnb y elaborar un acta de inspección con los resultados.",
+                    supervision_pac: "57. Verificar las acciones de comando establecidas en la supervisión y control de los puntos de atención al ciudadano (p.a.c). (permitan el normal flujo de los productos de primera necesidad (comida y medicamentos) que forman parte del sistema nacional de abastecimiento del gobierno bolivariano)",
+                    vademecum_actualizado: "58. Verificar y revisar el vademecum general del ccp, debidamente actualizado por las estaciones policiales.",
+                    despliegues_policiales: "59. Supervisar el cumplimiento de los despliegues policiales emanados por la oficina de operaciones policiales y las actividades extraordinarias realizadas por el CCP.",
+                    supervision_personal_mando: "60. Constatar si hay mayor nivel de supervisión y control sobre el personal, para cumplir en todo momento el principio de mando y conducción de mantener informado a tu personal, sobre la situación actual.",
+                    planes_contra_trafico_ilicito: "61. Verificar los planes para contrarrestar el tráfico ilícito, distribución y comercialización de sustancias estupefacientes y psicotrópicas, alimentos de la cesta básica, materiales estratégicos, hidrocarburos, armamento y delitos comunes.",
+                    conocimiento_lineamientos_derechos_humanos: "62. Constatar	que	el	personal	policial	tenga	conocimiento	de	los lineamientos de instrucción en materia de: derechos humanos, derecho internacional humanitario: armas letales, orden público, unidades tácticas policiales y los procedimiento con niños, niñas y adolescentes, igualdad y equidad de género.",
+                    registro_actuaciones_cop: "63. Verificar el registro y control de las actuaciones positivas y negativas al personal en el centro de operaciones policiales (COP) del ccp, por cuadrante de paz.",
+                    rendicion_procedimientos_cop: "64. Verificar el cumplimiento de la rendición de los procedimiento ejecutados por los servicios policiales al centro de operación policial (cop) del ccp, para su consolidación y rendición a la región de su subscripción.",
+                    archivos_informes_rendicion: "65. Revisión de los archivos de los informes de rendición de cuenta de los procedimientos policiales.",
+                    informes_preliminares_actuacion: "66. Verificar la elaboración de los informes preliminares de actuación policial.",
+                    estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
+                };
+                let fechaFormateada = 'Fecha no disponible';
+                if (inspeccion.created_at) {
+                    const fechaObj = new Date(inspeccion.created_at);
+                    if (!isNaN(fechaObj.getTime())) {
+                        fechaFormateada = fechaObj.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: #0c2440; margin: 0;">Detalles de la Inspección</h2>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="exportarInspeccionAPDF('${inspeccionId}')" style="background: #e53e3e; color: white; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; cursor: pointer;">📄 PDF</button>
+                            <span class="close-modal" onclick="cerrarModal()" style="cursor:pointer; font-size: 28px; color: #666;">&times;</span>
+                        </div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">${tipo === 'servicio' ? 'Servicio' : 'Estación'}:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${nombreEntidad}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Fecha de inspección:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${fechaFormateada}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong style="color: #0c2440; display: block; margin-bottom: 5px;">Próxima inspección programada:</strong>
+                                <span style="font-size: 16px; color: #2d3748;">${inspeccion.proxima_inspeccion ? inspeccion.proxima_inspeccion : 'No programada'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                const itemsMap = {};
+                (items || []).forEach(item => {
+                    itemsMap[item.item_nombre] = item;
+                });
+                html += `<div style="margin-bottom: 20px;"><strong style="color: #0c2440; font-size: 18px;">Ítems Inspeccionados:</strong></div>`;
+                Object.entries(nombresAmigables).forEach(([clave, textoCompleto]) => {
+                    const item = itemsMap[clave];
+                    const cumple = item ? item.cumple : null;
+                    const observacion = item ? item.observacion : '';
+                    const porcentaje = item && item.porcentaje_cumplimiento ? item.porcentaje_cumplimiento : 0;
+                    let estadoTexto = 'No evaluado';
+                    let estadoEstilo = 'background: #e2e8f0; color: #4a5568;';
+                    let porcentajeTexto = '';
+                    if (cumple !== null) {
+                        estadoTexto = cumple ? 'Sí' : 'No';
+                        porcentajeTexto = cumple ? ` (${porcentaje}%)` : '';
+                        estadoEstilo = cumple
+                            ? 'background: #c6f6d5; color: #22543d;'
+                            : 'background: #fed7d7; color: #9b2c2c;';
+                    }
+                    html += `
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="margin-bottom: 8px;">
+                                <span style="font-weight: bold; color: #0c2440; font-size: 15px; display: block; line-height: 1.4;">${textoCompleto}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                <span style="padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 14px; ${estadoEstilo}">
+                                    ${estadoTexto}${porcentajeTexto}
+                                </span>
+                            </div>
+                            ${observacion ? `
+                                <div style="padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 14px; color: #4a5568; font-style: italic; margin-top: 8px;">
+                                    <strong>Observación:</strong> ${observacion}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                if (inspeccion.observaciones_generales) {
+                    html += `
+                        <div style="background: #f0f9ff; border: 1px solid #bee3f8; border-radius: 10px; padding: 15px; margin-top: 20px;">
+                            <strong style="color: #0c2440; display: block; margin-bottom: 8px;">Observaciones Generales:</strong>
+                            <div style="font-size: 15px; color: #2d3748; line-height: 1.5;">${inspeccion.observaciones_generales}</div>
+                        </div>
+                    `;
+                }
+                document.getElementById('detalleContenido').innerHTML = html;
+                document.getElementById('detalleModal').style.display = 'flex';
+                inspeccionIdActual = inspeccionId;
+            } catch (error) {
+                console.error('Error al cargar detalles:', error);
+                alert('Error al cargar los detalles de la inspección.');
+            }
+        }
+        function cerrarModal() {
+            document.getElementById('detalleModal').style.display = 'none';
+        }
         document.getElementById('detalleModal').addEventListener('click', (e) => {
             if (e.target.id === 'detalleModal') cerrarModal();
         });
-        async function exportarInspeccionAPDF(inspeccionId) { /* ... mismo código ... */ }
-        async function exportarHistorialAPDF() { /* ... mismo código ... */ }
-        function abrirModalFecha(inspeccionId) { inspeccionIdActual = inspeccionId; document.getElementById('modalFecha').style.display = 'flex'; }
-        function cerrarModalFecha() { document.getElementById('modalFecha').style.display = 'none'; document.getElementById('nuevaFechaInput').value = ''; }
-        async function confirmarNuevaFecha() { /* ... mismo código ... */ }
-        function volverAIndex() { window.location.href = 'index.html'; }
-
+        async function exportarInspeccionAPDF(inspeccionId) {
+            if (!inspeccionId) {
+                alert('⚠️ No se ha seleccionado una inspección.');
+                return;
+            }
+            try {
+                const { data: inspeccion, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('estacion_id, servicio_id')
+                    .eq('id', inspeccionId)
+                    .single();
+                if (inspError) throw inspError;
+                let tipo = 'desconocido';
+                if (inspeccion.estacion_id) tipo = 'estacion';
+                else if (inspeccion.servicio_id) tipo = 'servicio';
+                const { data: nuevoReporte, error: insertError } = await supabase
+                    .from('reportes')
+                    .insert({ inspeccion_id: inspeccionId })
+                    .select('id, fecha_generacion')
+                    .single();
+                if (insertError) throw insertError;
+                const fechaGen = new Date(nuevoReporte.fecha_generacion);
+                const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
+                const consecutivo = String(nuevoReporte.id).padStart(6, '0');
+                // ✅ Cambiado a REDIP CAPITAL
+                const numeroReporte = `CPNB-REDIP-CAPITAL-${fechaStr}-${consecutivo}`;
+                await supabase
+                    .from('reportes')
+                    .update({ numero_reporte: numeroReporte })
+                    .eq('id', nuevoReporte.id);
+                const content = document.getElementById('detalleContenido');
+                const htmlContent = `
+    <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 100px; height: 100px; object-fit: contain;">
+            <h1 style="color: #0c2440; margin-top: 10px; font-size: 22px;">REPORTE DE INSPECCIÓN</h1>
+            <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+            <p style="color: #2d3748; font-size: 16px; margin-top: 8px; font-weight: bold;">N° de Reporte: ${numeroReporte}</p>
+        </div>
+        <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3182ce; font-size: 11px; line-height: 1.5; color: #2d3748; text-align: justify;">
+            La seguridad ciudadana es un pilar fundamental para el desarrollo y bienestar de la nación, un compromiso ineludible del Estado venezolano y una misión primordial encomendada a nuestros organismos de seguridad. En este contexto, la Policía Nacional Bolivariana (PNB), como cuerpo garante del orden y la paz social, se rige por los principios de eficiencia, eficacia y transparencia en todas sus actuaciones.<br><br>
+            La&nbsp;Ley Orgánica del Servicio de Policía y del Cuerpo de Policía Nacional Bolivariana, en su&nbsp;Artículo 58, establece de manera clara la necesidad de mecanismos de supervisión y control internos para garantizar la correcta prestación del servicio, el uso adecuado de los recursos y el cumplimiento de las normativas. Este artículo fundamenta la imperativa de que todos los componentes operativos y administrativos de la PNB sean objeto de una revisión constante y sistemática.<br><br>
+            En consonancia con las políticas públicas emanadas por el Gobierno Bolivariano de Venezuela, este programa se alinea estratégicamente con dos vértices de gestión cruciales:<br><br>
+            1. <strong>Vértice 8: Seguridad Integral y Defensa de la Nación:</strong>&nbsp;Entendiendo que la capacidad operativa de la PNB para salvaguardar la vida y los bienes de los ciudadanos depende directamente de la calidad de su infraestructura y equipamiento. La supervisión proactiva de los inmuebles y sus condiciones asegura espacios óptimos para el desempeño policial y la atención al ciudadano, contribuyendo directamente a fortalecer la capacidad de respuesta frente a los desafíos de seguridad.<br><br>
+            2. <strong>Vértice 9: Desarrollo Tecnológico y Soberanía Científica:</strong>&nbsp;Reconociendo que la modernización y la innovación son herramientas indispensables en la lucha contra el crimen y en la optimización del servicio policial. La supervisión del equipamiento tecnológico no solo busca garantizar su operatividad y mantenimiento, sino también promover su actualización constante y el uso eficiente de las herramientas digitales que permiten una gestión policial más inteligente, conectada y oportuna.<br><br>
+            3. <strong>Vértice 11: Geopolítica de la Transformación.</strong> Un software de supervisión de estructuras y bienes tecnológicos no es solo una herramienta de gestión, sino que, se convierte en un instrumento para fortalecer la autonomía, la eficiencia, la seguridad y el conocimiento tecnológico de Venezuela, elementos esenciales para su posicionamiento en el nuevo orden geopolítico mundial.<br><br>
+            Por tanto, el presente Programa de Supervisión Integral de Recursos e Infraestructura surge de la necesidad de establecer un modelo de gestión que asegure la operatividad, funcionalidad y adecuación de todos los inmuebles bajo la jurisdicción de la PNB, así como la correcta gestión, mantenimiento y aprovechamiento del equipamiento tecnológico que soporta su vital labor. A través de este programa, se busca fortalecer la capacidad institucional, optimizar la inversión de recursos públicos y, en última instancia, elevar los estándares del servicio policial para beneficio de todo el pueblo venezolano.
+        </div>
+        ${content.innerHTML}
+        <div style="margin-top: 50px; page-break-inside: avoid;">
+            <h3 style="text-align: center; color: #0c2440; margin-bottom: 25px; font-size: 16px;">Firmas de Conformidad</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin-top: 20px; font-size: 14px;">
+                <div style="border-top: 1px solid #000; padding-top: 5px; text-align: center;">Inspector</div>
+                <div style="border-top: 1px solid #000; padding-top: 5px; text-align: center;">Jefe de la Estación Policial</div>
+                <div style="border-top: 1px solid #000; padding-top: 5px; text-align: center;">Coordinador del CCP</div>
+                <div style="border-top: 1px solid #000; padding-top: 5px; text-align: center;">Director de la REDIP</div>
+            </div>
+        </div>
+        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+            Fecha de generación: ${new Date().toLocaleString('es-ES')}
+        </div>
+    </div>
+`;
+                const printDiv = document.createElement('div');
+                printDiv.innerHTML = htmlContent;
+                document.body.appendChild(printDiv);
+                printDiv.style.position = 'fixed';
+                printDiv.style.left = '-9999px';
+                const canvas = await html2canvas(printDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= 297;
+                while (heightLeft >= 0) {
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, heightLeft - imgHeight, imgWidth, imgHeight);
+                    heightLeft -= 297;
+                }
+                pdf.save(`reporte_cpnb_${numeroReporte}.pdf`);
+                document.body.removeChild(printDiv);
+                alert(`✅ Reporte generado.\nN°: ${numeroReporte}`);
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('❌ Error al generar el reporte. Verifique que la tabla "reportes" exista.');
+            }
+        }
+        async function exportarHistorialAPDF() {
+            if (!inspeccionesCache || inspeccionesCache.length === 0) {
+                alert("No hay inspecciones para exportar.");
+                return;
+            }
+            let tablaHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; width: 770px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" style="width: 80px; height: 80px; object-fit: contain;">
+                        <h2 style="color: #0c2440; margin-top: 10px; font-size: 20px;">HISTORIAL DE INSPECCIONES - REDIP CAPITAL</h2>
+                        <p style="color: #4a5568; font-size: 14px;">Cuerpo de Policía Nacional Bolivariana</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+                        <thead>
+                            <tr style="background-color: #0c2440; color: white;">
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Entidad</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tipo</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Fecha</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Cumplimiento</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Próxima Inspección</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            inspeccionesCache.forEach(insp => {
+                const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                const tipo = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
+                const estado = insp.proxima_inspeccion ? 
+                    (new Date(insp.proxima_inspeccion) < new Date() ? 'Vencida' : 'Programada') : 
+                    'No asignada';
+                const estadoColor = insp.proxima_inspeccion && new Date(insp.proxima_inspeccion) < new Date() ? 
+                    '#e53e3e' : 
+                    (insp.proxima_inspeccion ? '#d69e2e' : '#4a5568');
+                tablaHTML += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px; border: 1px solid #ddd;">${insp.nombre_entidad}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${tipo}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${fechaInspeccion}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${insp.porcentaje_cumplimiento}%</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${insp.proxima_inspeccion || '—'}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${estadoColor}; font-weight: bold;">${estado}</td>
+                    </tr>
+                `;
+            });
+            tablaHTML += `
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                        Fecha de generación: ${new Date().toLocaleString('es-ES')}
+                    </div>
+                </div>
+            `;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = tablaHTML;
+            document.body.appendChild(tempDiv);
+            tempDiv.style.position = 'fixed';
+            tempDiv.style.left = '-9999px';
+            try {
+                const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, logging: false });
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                let page = 1;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    pdf.addPage();
+                    position = heightLeft - imgHeight;
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    page++;
+                }
+                const fechaStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                pdf.save(`historial_inspecciones_cpnb_capital_${fechaStr}.pdf`);
+            } catch (error) {
+                console.error('Error al generar PDF del historial:', error);
+                alert('❌ Error al generar el PDF del historial.');
+            } finally {
+                document.body.removeChild(tempDiv);
+            }
+        }
+        function abrirModalFecha(inspeccionId) {
+            inspeccionIdActual = inspeccionId;
+            document.getElementById('modalFecha').style.display = 'flex';
+        }
+        function cerrarModalFecha() {
+            document.getElementById('modalFecha').style.display = 'none';
+            document.getElementById('nuevaFechaInput').value = '';
+        }
+        async function confirmarNuevaFecha() {
+            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
+            if (!nuevaFecha) {
+                alert("Por favor seleccione una fecha.");
+                return;
+            }
+            try {
+                const { error } = await supabase
+                    .from('inspecciones')
+                    .update({ proxima_inspeccion: nuevaFecha })
+                    .eq('id', inspeccionIdActual);
+                if (error) throw error;
+                alert("✅ Reinspección actualizada correctamente.");
+                cerrarModalFecha();
+                const inspeccionIndex = inspeccionesCache.findIndex(i => i.id === inspeccionIdActual);
+                if (inspeccionIndex !== -1) {
+                    inspeccionesCache[inspeccionIndex].proxima_inspeccion = nuevaFecha;
+                    const cardElement = document.querySelector(`[data-inspeccion-id="${inspeccionIdActual}"]`);
+                    if (cardElement) {
+                        // Reutilizar función original
+                        const insp = inspeccionesCache[inspeccionIndex];
+                        const fechaInspeccion = new Date(insp.created_at).toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        let estadoClase = 'estado-verde';
+                        let alertaHTML = '';
+                        let mostrarBoton = false;
+                        const hoyStr = (function() {
+                            const h = new Date();
+                            const offset = h.getTimezoneOffset();
+                            return new Date(h.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+                        })();
+                        if (insp.proxima_inspeccion) {
+                            if (insp.proxima_inspeccion <= hoyStr) {
+                                estadoClase = 'estado-rojo';
+                                alertaHTML = '<span class="alerta-pendiente">⚠️ ¡Reinspección vencida!</span>';
+                                mostrarBoton = true;
+                            } else {
+                                const hoy = new Date(hoyStr);
+                                const fechaProxima = new Date(insp.proxima_inspeccion);
+                                const diffTime = fechaProxima - hoy;
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                if (diffDays >= 0 && diffDays <= 7) {
+                                    estadoClase = 'estado-amarillo';
+                                }
+                            }
+                        }
+                        let claseCumplimiento = 'cumplimiento-bajo';
+                        if (insp.porcentaje_cumplimiento >= 80) claseCumplimiento = 'cumplimiento-alto';
+                        else if (insp.porcentaje_cumplimiento >= 60) claseCumplimiento = 'cumplimiento-medio';
+                        const tipoIcono = insp.tipo === 'servicio' ? '📄' : '👮';
+                        const tipoTexto = insp.tipo === 'servicio' ? 'Servicio' : 'Estación';
+                        cardElement.innerHTML = `
+                            <div class="card-header">
+                                <div class="estacion-info">
+                                    <div class="inspeccion-estacion">
+                                        ${tipoIcono} ${tipoTexto}: <strong>${insp.nombre_entidad}</strong>
+                                        <span class="estado-indicador ${estadoClase}"></span>
+                                    </div>
+                                    ${alertaHTML}
+                                </div>
+                                <div class="cumplimiento-badge ${claseCumplimiento}">
+                                    ${insp.porcentaje_cumplimiento}% cumplimiento
+                                </div>
+                            </div>
+                            <div class="meta-info">
+                                <div class="meta-item">
+                                    <span class="meta-label">Fecha y Hora</span>
+                                    <span class="meta-value">${fechaInspeccion}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Inspector</span>
+                                    <span class="meta-value">${insp.inspector_email}</span>
+                                </div>
+                            </div>
+                            <div class="botones-container">
+                                <button class="ver-btn" onclick="mostrarDetalle('${insp.id}')">Ver Detalles</button>
+                                ${mostrarBoton ? `<button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">✅ Marcar como reinspeccionada</button>` : ''}
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                alert("❌ Error al actualizar la reinspección.");
+            }
+        }
+        function volverAIndex() {
+            window.location.href = 'index.html';
+        }
         // === INICIAR ===
         verificarAcceso().then(async () => {
             await cargarCCPsCapital();
@@ -887,11 +1324,6 @@
                 cargarHistorial(desde, hasta);
             }
         });
-
-        // --- Incluir aquí las funciones completas de mostrarDetalle, exportarInspeccionAPDF, etc. ---
-        // (Por brevedad, omitimos el cuerpo de estas funciones ya que ya están en tu archivo original y no requieren cambios de lógica)
-        // Solo recuerda mantenerlas igual que en Historial.html.txt, ya que funcionan correctamente.
-
     </script>
 </body>
 </html>
