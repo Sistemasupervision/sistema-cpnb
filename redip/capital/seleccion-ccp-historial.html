@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seleccionar CCP - Historial</title>
+    <title>Seleccionar CCP - REDIP CAPITAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
 </head>
@@ -19,25 +19,19 @@
     <div id="container" class="container" style="max-width: 600px; padding: 50px;">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Seleccionar CCP para Historial</h1>
+            <h1 class="title">Seleccionar CCP - REDIP CAPITAL</h1>
         </div>
         <div class="input-group" style="margin-top: 30px;">
             <label for="ccpSelect">Seleccione CCP:</label>
-            <select id="ccpSelect" class="filter-select" style="width:100%; padding:14px; border-radius:12px; font-size:16px;">
-                <option value="">-- Elija un CCP --</option>
-                <option value="altos-mirandinos">CCP ALTOS MIRANDINOS</option>
-                <option value="barlovento">CCP BARLOVENTO</option>
-                <option value="ciudad-fajardo">CCP CIUDAD FAJARDO</option>
-                <option value="distrito-capital">CCP DISTRITO CAPITAL</option>
-                <option value="la-guaira">CCP LA GUAIRA</option>
-                <option value="valles-del-tuy">CCP VALLES DEL TUY</option>
+            <select id="ccpSelect" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px;">
+                <option value="">-- Cargando CCPs --</option>
             </select>
         </div>
-        <button id="btnVerHistorial" class="action-btn" style="margin-top: 25px; padding: 14px; font-size: 16px; width: 100%;">
+        <button id="btnIrHistorial" class="action-btn" style="margin-top: 25px; padding: 14px; font-size: 16px; width: 100%;">
             📋 Ver Historial de Inspecciones
         </button>
-        <button id="btnVolver" class="back-btn" style="margin-top: 15px; padding: 10px 20px; width: 100%;">
-            ← Volver al Panel
+        <button class="back-btn" style="margin-top: 15px; padding: 10px 20px; width: 100%;" onclick="window.location.href='index.html'">
+            ← Volver
         </button>
     </div>
     <script>
@@ -45,11 +39,13 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // === 🔒 Verificar acceso: solo capital o admin ===
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
+                alert('Debe iniciar sesión.');
                 window.location.href = '../../index.html';
-                return;
+                return false;
             }
             try {
                 const { data, error } = await supabase
@@ -58,30 +54,60 @@
                     .eq('user_id', user.id)
                     .single();
                 if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-                    alert('⚠️ No tiene permisos para acceder a REDIP CAPITAL.');
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL.');
                     window.location.href = '../../index.html';
+                    return false;
                 }
+                return true;
             } catch (err) {
-                alert('Error al verificar acceso.');
+                console.error('Error al verificar acceso:', err);
+                alert('Error de autenticación.');
                 window.location.href = '../../index.html';
+                return false;
             }
         }
 
-        document.getElementById('btnVerHistorial').addEventListener('click', () => {
+        // === Cargar solo CCPs de REDIP CAPITAL ===
+        async function cargarCCPsCapital() {
+            const select = document.getElementById('ccpSelect');
+            try {
+                const { data: ccps, error } = await supabase
+                    .from('ccps')
+                    .select('ccp_id, nombre_ccp')
+                    .eq('redip', 'capital')
+                    .order('nombre_ccp', { ascending: true });
+                if (error) throw error;
+                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+                ccps.forEach(ccp => {
+                    const opt = document.createElement('option');
+                    opt.value = ccp.ccp_id;
+                    opt.textContent = ccp.nombre_ccp;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar CCPs:', error);
+                select.innerHTML = '<option value="">Error al cargar</option>';
+                alert('⚠️ No se pudieron cargar los CCP de REDIP CAPITAL.');
+            }
+        }
+
+        document.getElementById('btnIrHistorial').addEventListener('click', () => {
             const ccpId = document.getElementById('ccpSelect').value;
             if (!ccpId) {
                 alert('Por favor seleccione un CCP.');
                 return;
             }
             const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
-            window.location.href = `historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            // ✅ Redirigir a Historial.html DENTRO de la carpeta capital/
+            window.location.href = `Historial.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
 
-        document.getElementById('btnVolver').addEventListener('click', () => {
-            window.location.href = 'index.html';
+        // === Iniciar ===
+        verificarAcceso().then(permitido => {
+            if (permitido) {
+                cargarCCPsCapital();
+            }
         });
-
-        verificarAcceso();
     </script>
 </body>
 </html>
