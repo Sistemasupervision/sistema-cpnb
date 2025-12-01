@@ -34,20 +34,22 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
         const servicioId = urlParams.get('servicioId');
         const servicioNombre = urlParams.get('servicioNombre');
+
         if (!ccpId || !servicioId || !servicioNombre) {
             alert('⚠️ Datos incompletos. Redirigiendo...');
-            window.location.href = './servicios-administrativos.html';
+            window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId || '')}&ccpNombre=${encodeURIComponent(ccpNombre || '')}`;
         }
 
         // === VERIFICAR ACCESO: SOLO CAPITAL O ADMIN ===
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 window.location.href = '../../index.html';
                 return false;
@@ -72,7 +74,7 @@
             }
         }
 
-        // === ÍTEMS Y NOMBRES (mantenidos igual) ===
+        // === DEFINICIÓN DE ÍTEMS (67 ÍTEMS) ===
         const items = [
             "nombramiento_comandante", "acta_entrega_recepcion", "dossier_comandante", "conocimiento_ley_organica",
             "conocimiento_estatuto_personal", "conocimiento_reglamento_disciplinario", "estructura_organizativa",
@@ -97,9 +99,9 @@
         ];
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
-            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
-            dossier_comandante: "3. verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación, exposición de motivos para la creación y activación, justificación actual de su funcionamiento, documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
-            conocimiento_ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
+            acta_entrega_recepcion: "Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
+            dossier_comandante: "3.verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación,exposición de motivos para la creación y activación,justificación actual de su funcionamiento,documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
+            conocimiento_ ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
             conocimiento_estatuto_personal: "5. Verificar en físico y el conocimiento sobre el reglamento sobre el estatuto de la función policial en materia de administración de personal y desarrollo de la carrera policial",
             conocimiento_reglamento_disciplinario: "6. Verificar en físico y el conocimiento sobre el reglamento de la función policial sobre el régimen disciplinario",
             estructura_organizativa: "7. Verificar el conocimiento de la estructura organizativa del CPNB y la aplicación de la estructura funcional del CCP.",
@@ -120,7 +122,7 @@
             talleres_ministerio_publico: "22. Verificar talleres dictados al personal por parte de autoridades del ministerio público, judiciales y consultor jurídico, sobre procedimientos y cumplimiento del debido proceso, derechos humanos y derecho internacional humanitario.",
             conocimiento_lineamientos_cpnb: "23. Constatar el conocimiento del coordinador o coordinadora del ccp en relación a los lineamientos para ejercer el control de normas, ordenes, procedimientos e instrucciones impartidas por la directiva del CPNB ¿qué acciones ha realizado para su difusión e implementación?",
             cursos_sustanciacion_expedientes: "24. Constatar la realización de cursos de sustanciación de expedientes administrativos, actas policiales y pericias judiciales para el personal de la unidad.",
-            cumplimiento_entrenamiento_fisico: "25. Verificar el cumplimiento del entrenamiento en cuanto: educación física, orden público",
+            cumplimiento_entrenamiento_fisico: "25.Verificar el cumplimiento del entrenamiento en cuanto: educación física, orden público",
             dotacion_trajes_antimotines: "26. Verificar si la dotación de los trajes antimotines es suficiente para la capacidad operativa del CCP.",
             practica_tecnicas_policiales: "27. Verificar si el personal ha realizado practica de: tiro de combate con escopeta, tiro de combate y policial con pistola 9mm, mantenimiento y preservación del armamento, mantenimiento, control y restablecimiento del orden público, uso progresivo y diferenciado de la fuerza, defensa personal, orden cerrado, combate en áreas confinadas, instalación de puntos de control (DIRECTIVA MPPRIJP-MPPD), inspección de personas, y revisión de vehículos, embarcaciones y aeronaves.",
             numero_funcionarios_suficiente: "28. Constatar que el numero de funcionarios adscrito a la unidad, sea suficiente para cumplir con los servicios policiales.",
@@ -165,36 +167,56 @@
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
 
-        // === VALIDAR Y RENDERIZAR ===
+        // === VALIDAR SERVICIO PERTENECE A REDIP CAPITAL ===
         async function validarYRenderizar() {
             const permitido = await verificarAcceso();
             if (!permitido) return;
+
             try {
-                const {  servicioValido, error: errorServicio } = await supabase
+                // Paso 1: validar que el servicio exista
+                const { data: servicioData, error: servicioError } = await supabase
                     .from('servicios_administrativos')
-                    .select('servicio_id, nombre_servicio, ccp_id')
-                    .eq('servicio_id', servicioId)
-                    .limit(1);
-                if (errorServicio || !servicioValido || servicioValido.length === 0) {
-                    alert("❌ El servicio seleccionado no existe en la base de datos.");
+                    .select('id, nombre, ccp_id')
+                    .eq('id', servicioId)
+                    .single();
+
+                if (servicioError || !servicioData) {
+                    alert("❌ El servicio administrativo no existe.");
                     window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
                     return;
                 }
+
+                // Paso 2: verificar que su CCP pertenezca a REDIP CAPITAL
+                const { data: ccpData, error: ccpError } = await supabase
+                    .from('ccps')
+                    .select('redip')
+                    .eq('ccp_id', servicioData.ccp_id)
+                    .single();
+
+                if (ccpError || !ccpData || ccpData.redip !== 'capital') {
+                    alert("⚠️ Este servicio no pertenece a la REDIP CAPITAL. Acceso denegado.");
+                    window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+                    return;
+                }
+
+                // Todo OK → renderizar
                 renderForm();
-            } catch (error) {
-                console.error("Error al validar el servicio:", error);
-                alert("⚠️ Error al cargar el servicio.");
+            } catch (err) {
+                console.error('Error en validación:', err);
+                alert('⚠️ Error al cargar el servicio.');
                 window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             }
         }
 
+        // === RENDERIZAR FORMULARIO ===
         function renderForm() {
+            const hoy = new Date().toISOString().split('T')[0];
             let formHtml = `
                 <div class="logo-container">
                     <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
                     <h1 class="title">Formulario de Inspección - Servicio Administrativo</h1>
                     <p style="text-align:center; color:#4a5568; margin-top:10px; font-size:16px;">
-                        Servicio: <strong>${servicioNombre}</strong> | CCP: <strong>${ccpNombre}</strong> (REDIP CAPITAL)
+                        Servicio: <strong>${servicioNombre}</strong> | CCP: <strong>${ccpNombre}</strong>
                     </p>
                 </div>
                 <form id="inspectionForm" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
@@ -253,7 +275,8 @@
                 </div>
                 <div class="input-group" style="margin-top:20px;">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-                    <input type="date" id="proximaInspeccion"
+                    <input type="date" id="proximaInspeccion" 
+                        min="${hoy}"
                         style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
                 </div>
                 <div style="text-align:center; margin-top:30px;">
@@ -264,7 +287,7 @@
             `;
             document.getElementById('container').innerHTML = formHtml;
 
-            // === EVENTOS DINÁMICOS (igual que en el original) ===
+            // === EVENTOS DINÁMICOS ===
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
                     const item = this.dataset.item;
@@ -327,11 +350,13 @@
                 e.preventDefault();
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 try {
-                    const {  { user } } = await supabase.auth.getUser();
+                    const { data: { user } } = await supabase.auth.getUser();
                     if (!user) throw new Error('Debe estar autenticado.');
+
                     const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                     const observacionesGenerales = document.getElementById('observacionesGenerales').value || null;
-                    const {  inspeccionData, error: inspError } = await supabase
+
+                    const { data: inspeccionData, error: inspError } = await supabase
                         .from('inspecciones')
                         .insert({
                             servicio_id: servicioId,
@@ -341,19 +366,22 @@
                         })
                         .select()
                         .single();
+
                     if (inspError) throw new Error(inspError.message || 'Error al crear la inspección.');
+
                     const itemsToInsert = [];
                     for (const item of items) {
                         const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
                         const valor = select.value;
                         if (valor === 'null') continue;
-                        let cumple = (valor === 'true');
+                        const cumple = valor === 'true';
                         const observacion = document.querySelector(`.observacion-text[data-item="${item}"]`).value || null;
                         let porcentaje = 0;
                         if (cumple) {
                             const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                             porcentaje = parseInt(slider?.value) || 0;
                         }
+
                         // Subir fotos
                         let foto1_url = null, foto2_url = null;
                         const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
@@ -376,7 +404,8 @@
                                 foto2_url = data.publicUrl;
                             }
                         }
-                        // Subir archivo adjunto
+
+                        // Subir archivo
                         let archivo_url = null;
                         const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
                         if (archivoFile) {
@@ -388,6 +417,7 @@
                                 archivo_url = data.publicUrl;
                             }
                         }
+
                         itemsToInsert.push({
                             inspeccion_id: inspeccionData.id,
                             item_nombre: item,
@@ -399,9 +429,12 @@
                             archivo_url: archivo_url
                         });
                     }
+
                     if (itemsToInsert.length === 0) throw new Error('Debe responder al menos un ítem.');
+
                     const { error: itemsError } = await supabase.from('items_inspeccion').insert(itemsToInsert);
                     if (itemsError) throw new Error(itemsError.message || 'Error al guardar los ítems.');
+
                     alert('✅ Inspección guardada con éxito.');
                     window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
                 } catch (error) {
