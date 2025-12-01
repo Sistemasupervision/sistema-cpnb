@@ -34,20 +34,45 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
         // === PARÁMETROS DE URL ===
         const urlParams = new URLSearchParams(window.location.search);
         const ccpId = urlParams.get('ccpId');
         const ccpNombre = urlParams.get('ccpNombre');
         const estacionId = urlParams.get('estacionId');
         const estacionNombre = urlParams.get('estacionNombre');
-
         if (!ccpId || !estacionId || !estacionNombre) {
-            alert(⚠️ Datos incompletos. Redirigiendo...');
-            window.history.back();
+            alert('⚠️ Datos incompletos. Redirigiendo...');
+            window.location.href = './formulario-seleccion-estacion.html';
         }
 
-        // === DEFINICIÓN DE ÍTEMS ===
+        // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL pueden acceder.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Redirigiendo...');
+                window.location.href = '../../index.html';
+                return false;
+            }
+        }
+
+        // === ÍTEMS Y NOMBRES (mantenidos exactamente igual) ===
         const items = [
             "nombramiento_comandante", "acta_entrega_recepcion", "dossier_comandante", "conocimiento_ley_organica",
             "conocimiento_estatuto_personal", "conocimiento_reglamento_disciplinario", "estructura_organizativa",
@@ -70,7 +95,6 @@
             "conocimiento_lineamientos_derechos_humanos", "registro_actuaciones_cop", "rendicion_procedimientos_cop",
             "archivos_informes_rendicion", "informes_preliminares_actuacion", "estatus_procesos_administrativos"
         ];
-
         const nombres = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
@@ -141,32 +165,30 @@
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
 
-        // === VALIDAR ESTACIÓN Y RENDERIZAR ===
+        // === VALIDAR Y RENDERIZAR ===
         async function validarYRenderizar() {
+            const permitido = await verificarAcceso();
+            if (!permitido) return;
             try {
-                // Validar que la estación exista en la base de datos
                 const { data: estacionValida, error: errorEstacion } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
                     .eq('estacion_id', estacionId)
                     .limit(1);
-
                 if (errorEstacion || !estacionValida || estacionValida.length === 0) {
-                    alert("❌ La estación seleccionada no existe en la base de datos. Por favor, elija una estación válida.");
-                    window.history.back();
+                    alert("❌ La estación seleccionada no existe en la base de datos.");
+                    window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
                     return;
                 }
-
                 renderForm();
             } catch (error) {
                 console.error("Error al validar la estación:", error);
-                alert("⚠️ Error al cargar la estación. Inténtelo de nuevo.");
-                window.history.back();
+                alert("⚠️ Error al cargar la estación.");
+                window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             }
         }
 
         function renderForm() {
-            const hoy = new Date().toISOString().split('T')[0];
             let formHtml = `
                 <div class="logo-container">
                     <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
@@ -231,8 +253,7 @@
                 </div>
                 <div class="input-group" style="margin-top:20px;">
                     <label style="font-weight: bold; color: #0c2440; font-size:16px;">Próxima inspección (opcional):</label>
-                    <input type="date" id="proximaInspeccion" 
-                        min="${hoy}"
+                    <input type="date" id="proximaInspeccion"
                         style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-top:8px; font-size:16px;">
                 </div>
                 <div style="text-align:center; margin-top:30px;">
@@ -307,23 +328,19 @@
                 try {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (!user) throw new Error('Debe estar autenticado.');
-                    
                     const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                     const observacionesGenerales = document.getElementById('observacionesGenerales').value || null;
-
                     const { data: inspeccionData, error: inspError } = await supabase
                         .from('inspecciones')
                         .insert({
-                            estacion_id: estacionId, // ✅ Ahora garantizamos que es un UUID válido
+                            estacion_id: estacionId,
                             inspector_email: user.email,
                             observaciones_generales: observacionesGenerales,
                             proxima_inspeccion: proximaFecha
                         })
                         .select()
                         .single();
-
                     if (inspError) throw new Error(inspError.message || 'Error al crear la inspección.');
-
                     const itemsToInsert = [];
                     for (const item of items) {
                         const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
@@ -336,7 +353,6 @@
                             const slider = document.querySelector(`.porcentaje-slider[data-item="${item}"]`);
                             porcentaje = parseInt(slider?.value) || 0;
                         }
-
                         // Subir fotos
                         let foto1_url = null, foto2_url = null;
                         const file1 = document.querySelector(`.foto-input[data-item="${item}"][data-index="0"]`)?.files[0];
@@ -359,7 +375,6 @@
                                 foto2_url = data.publicUrl;
                             }
                         }
-
                         // Subir archivo adjunto
                         let archivo_url = null;
                         const archivoFile = document.querySelector(`.archivo-input[data-item="${item}"]`)?.files[0];
@@ -372,7 +387,6 @@
                                 archivo_url = data.publicUrl;
                             }
                         }
-
                         itemsToInsert.push({
                             inspeccion_id: inspeccionData.id,
                             item_nombre: item,
@@ -384,12 +398,9 @@
                             archivo_url: archivo_url
                         });
                     }
-
                     if (itemsToInsert.length === 0) throw new Error('Debe responder al menos un ítem.');
-
                     const { error: itemsError } = await supabase.from('items_inspeccion').insert(itemsToInsert);
                     if (itemsError) throw new Error(itemsError.message || 'Error al guardar los ítems.');
-
                     alert('✅ Inspección guardada con éxito.');
                     window.location.href = `formulario-seleccion-estacion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
                 } catch (error) {
