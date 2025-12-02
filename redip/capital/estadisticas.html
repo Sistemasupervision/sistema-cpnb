@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas y Servicios - REDIP CAPITAL</title>
+    <title>Estadísticas - REDIP CAPITAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -199,7 +199,7 @@
             overflow-y: auto;
         }
         .chart-wrapper {
-            height: 500px;
+            height: 600px;
             position: relative;
             min-width: 800px;
         }
@@ -246,7 +246,7 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Estadísticas y Servicios - REDIP CAPITAL</h1>
+            <h1 class="title">Estadísticas - REDIP CAPITAL</h1>
         </div>
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver al Panel Principal
@@ -271,7 +271,7 @@
         <!-- Pestañas -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="estaciones">📊 Estadísticas por Estación</button>
-            <button class="tab-btn" data-tab="servicios">🏛️ Servicios Administrativos</button>
+            <button class="tab-btn" data-tab="servicios">📊 Estadísticas por Servicio Administrativo</button>
         </div>
 
         <!-- Contenido: Estaciones -->
@@ -317,18 +317,43 @@
 
         <!-- Contenido: Servicios -->
         <div id="servicios-content" class="tab-content">
-            <div id="resultadosServicios" style="display: none;">
-                <table id="tablaServicios">
-                    <thead>
-                        <tr>
-                            <th>Servicio Administrativo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cuerpoTablaServicios"></tbody>
-                </table>
+            <div class="filtro-container">
+                <div class="input-group">
+                    <label for="servicioFilter">Seleccione Servicio Administrativo:</label>
+                    <select id="servicioFilter" disabled>
+                        <option value="">-- Seleccione un CCP primero --</option>
+                    </select>
+                </div>
             </div>
-            <div id="mensajeCargaServ" class="loading" style="display: none;">Cargando servicios...</div>
-            <div id="mensajeSinDatosServ" class="no-data" style="display: none;">No hay servicios administrativos registrados para este CCP.</div>
+            <div id="resultadosServicios" style="display: none;">
+                <div class="stats-header" id="statsHeaderServicio"></div>
+                <div class="chart-container">
+                    <div class="chart-wrapper">
+                        <canvas id="cumplimientoChartServicio"></canvas>
+                    </div>
+                </div>
+                <div class="porcentajes-container">
+                    <div class="tabla-filtro">
+                        <input type="text" id="filtroItemsServicio" placeholder="Buscar ítem...">
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ítem</th>
+                                <th style="text-align: center;">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaItemsServicio"></tbody>
+                    </table>
+                    <div class="pagination-controls">
+                        <button id="btnAnteriorServicio" disabled>« Anterior</button>
+                        <span id="paginaActualServicio">Página 1</span>
+                        <button id="btnSiguienteServicio" disabled>Siguiente »</button>
+                    </div>
+                </div>
+            </div>
+            <div id="mensajeCargaServ" class="loading" style="display: none;">Cargando estadísticas...</div>
+            <div id="mensajeSinDatosServ" class="no-data" style="display: none;">No existen inspecciones para este servicio.</div>
         </div>
     </div>
 
@@ -348,32 +373,40 @@
             });
         });
 
-        // === Datos estáticos ===
+        // === Objeto de ítems (igual para ambos tipos) ===
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp...",
-            // ... (mantén todo el objeto completo como en tu archivo original hasta el ítem 67)
+            // ... (MANTIENE TODO EL OBJETO COMPLETO DE TU ARCHIVO ORIGINAL HASTA EL ÍTEM 67)
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
 
         const todosLosItems = Object.keys(nombresItems);
         const ITEMS_POR_PAGINA = 15;
-        let chartInstance = null;
-        let estadisticasTotales = {};
-        let nombreEstacionActual = '';
-        let paginaActual = 1;
-        let totalPaginas = 1;
 
-        // === Cargar estaciones y servicios al cambiar CCP ===
+        // === Variables para pestaña de estaciones ===
+        let chartInstanceEst = null;
+        let estadisticasTotalesEst = {};
+        let nombreEstacionActual = '';
+        let paginaActualEst = 1;
+        let totalPaginasEst = 1;
+
+        // === Variables para pestaña de servicios ===
+        let chartInstanceServ = null;
+        let estadisticasTotalesServ = {};
+        let nombreServicioActual = '';
+        let paginaActualServ = 1;
+        let totalPaginasServ = 1;
+
+        // === Cargar listas al cambiar CCP ===
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
+            const servicioSelect = document.getElementById('servicioFilter');
             estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
+            servicioSelect.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
             estacionSelect.disabled = !ccpId;
-
-            // Resetear vistas
-            document.getElementById('resultadosEstadisticas').style.display = 'none';
-            document.getElementById('resultadosServicios').style.display = 'none';
+            servicioSelect.disabled = !ccpId;
 
             if (!ccpId) return;
 
@@ -400,61 +433,90 @@
                 estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
             }
 
-            // Cargar servicios
+            // Cargar servicios administrativos
             try {
-                document.getElementById('mensajeCargaServ').style.display = 'block';
                 const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
-                    .select('nombre')
+                    .select('id, nombre')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
-                document.getElementById('mensajeCargaServ').style.display = 'none';
                 if (servError) throw servError;
-                const cuerpo = document.getElementById('cuerpoTablaServicios');
-                cuerpo.innerHTML = '';
-                if (!servicios || servicios.length === 0) {
-                    document.getElementById('mensajeSinDatosServ').style.display = 'block';
-                    document.getElementById('resultadosServicios').style.display = 'none';
-                    return;
+                if (servicios && servicios.length > 0) {
+                    servicios.forEach(serv => {
+                        const opt = document.createElement('option');
+                        opt.value = serv.id;
+                        opt.textContent = serv.nombre;
+                        servicioSelect.appendChild(opt);
+                    });
+                } else {
+                    servicioSelect.innerHTML = '<option value="">No hay servicios</option>';
                 }
-                servicios.forEach(s => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${s.nombre}</td>`;
-                    cuerpo.appendChild(tr);
-                });
-                document.getElementById('mensajeSinDatosServ').style.display = 'none';
-                document.getElementById('resultadosServicios').style.display = 'block';
             } catch (err) {
                 console.error('Error al cargar servicios:', err);
-                document.getElementById('mensajeCargaServ').style.display = 'none';
-                alert('Error al cargar los servicios administrativos');
+                servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
             }
         });
 
-        // === Estadísticas por estación ===
+        // === Eventos para estaciones ===
         document.getElementById('estacionFilter').addEventListener('change', async (e) => {
             const estacionId = e.target.value;
             if (estacionId) {
-                await cargarEstadisticas(estacionId);
+                await cargarEstadisticas('estacion', estacionId);
             }
         });
 
-        async function cargarEstadisticas(estacionId) {
-            const estacionNombre = document.querySelector(`#estacionFilter option[value="${estacionId}"]`).textContent;
-            nombreEstacionActual = estacionNombre;
-            document.getElementById('mensajeCargaEst').style.display = 'block';
-            document.getElementById('mensajeSinDatosEst').style.display = 'none';
+        // === Eventos para servicios ===
+        document.getElementById('servicioFilter').addEventListener('change', async (e) => {
+            const servicioId = e.target.value;
+            if (servicioId) {
+                await cargarEstadisticas('servicio', servicioId);
+            }
+        });
+
+        // === Función genérica para cargar estadísticas ===
+        async function cargarEstadisticas(tipo, id) {
+            let nombre = '';
+            let container, mensajeCarga, mensajeSinDatos, statsHeader, paginaActualVar;
+
+            if (tipo === 'estacion') {
+                nombre = document.querySelector(`#estacionFilter option[value="${id}"]`).textContent;
+                nombreEstacionActual = nombre;
+                container = document.getElementById('resultadosEstadisticas');
+                mensajeCarga = document.getElementById('mensajeCargaEst');
+                mensajeSinDatos = document.getElementById('mensajeSinDatosEst');
+                statsHeader = document.getElementById('statsHeader');
+                paginaActualVar = 'paginaActualEst';
+            } else {
+                nombre = document.querySelector(`#servicioFilter option[value="${id}"]`).textContent;
+                nombreServicioActual = nombre;
+                container = document.getElementById('resultadosServicios');
+                mensajeCarga = document.getElementById('mensajeCargaServ');
+                mensajeSinDatos = document.getElementById('mensajeSinDatosServ');
+                statsHeader = document.getElementById('statsHeaderServicio');
+                paginaActualVar = 'paginaActualServ';
+            }
+
+            container.style.display = 'none';
+            mensajeCarga.style.display = 'block';
+            mensajeSinDatos.style.display = 'none';
 
             try {
-                const { data: inspecciones, error: inspError } = await supabase
+                // Obtener inspecciones relacionadas
+                let query = supabase
                     .from('inspecciones')
-                    .select('id')
-                    .eq('estacion_id', estacionId);
+                    .select('id');
+
+                if (tipo === 'estacion') {
+                    query = query.eq('estacion_id', id);
+                } else {
+                    query = query.eq('servicio_id', id);
+                }
+
+                const { data: inspecciones, error: inspError } = await query;
                 if (inspError) throw inspError;
                 if (!inspecciones || inspecciones.length === 0) {
-                    document.getElementById('mensajeCargaEst').style.display = 'none';
-                    document.getElementById('mensajeSinDatosEst').style.display = 'block';
-                    document.getElementById('resultadosEstadisticas').style.display = 'none';
+                    mensajeCarga.style.display = 'none';
+                    mensajeSinDatos.style.display = 'block';
                     return;
                 }
 
@@ -465,23 +527,33 @@
                     .in('inspeccion_id', idsInspecciones);
                 if (itemsError) throw itemsError;
                 if (!items || items.length === 0) {
-                    document.getElementById('mensajeCargaEst').style.display = 'none';
-                    document.getElementById('mensajeSinDatosEst').style.display = 'block';
-                    document.getElementById('resultadosEstadisticas').style.display = 'none';
+                    mensajeCarga.style.display = 'none';
+                    mensajeSinDatos.style.display = 'block';
                     return;
                 }
 
-                estadisticasTotales = calcularEstadisticas(items);
-                totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
-                paginaActual = 1;
-                actualizarVista();
+                const estadisticas = calcularEstadisticas(items);
+                const totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
 
-                document.getElementById('mensajeCargaEst').style.display = 'none';
-                document.getElementById('resultadosEstadisticas').style.display = 'block';
+                if (tipo === 'estacion') {
+                    estadisticasTotalesEst = estadisticas;
+                    totalPaginasEst = totalPaginas;
+                    paginaActualEst = 1;
+                    actualizarVista('estacion');
+                } else {
+                    estadisticasTotalesServ = estadisticas;
+                    totalPaginasServ = totalPaginas;
+                    paginaActualServ = 1;
+                    actualizarVista('servicio');
+                }
+
+                mensajeCarga.style.display = 'none';
+                container.style.display = 'block';
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
-                document.getElementById('mensajeCargaEst').style.display = 'none';
-                alert('Error al cargar las estadísticas');
+                mensajeCarga.style.display = 'none';
+                mensajeSinDatos.textContent = 'Error al cargar los datos.';
+                mensajeSinDatos.style.display = 'block';
             }
         }
 
@@ -505,25 +577,46 @@
             return resultado;
         }
 
-        function actualizarVista() {
-            const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-            const fin = inicio + ITEMS_POR_PAGINA;
-            const itemsPagina = todosLosItems.slice(inicio, fin);
-            renderizarGrafico(itemsPagina);
-            renderizarTabla(itemsPagina);
-            document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
-            document.getElementById('btnAnterior').disabled = paginaActual === 1;
-            document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
-            document.getElementById('statsHeader').textContent = 
-                `Estadísticas para: ${nombreEstacionActual}`;
+        function actualizarVista(tipo) {
+            let inicio, fin, itemsPagina, paginaActual, totalPaginas, estadisticasTotales;
+            if (tipo === 'estacion') {
+                paginaActual = paginaActualEst;
+                totalPaginas = totalPaginasEst;
+                estadisticasTotales = estadisticasTotalesEst;
+                inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+                fin = inicio + ITEMS_POR_PAGINA;
+                itemsPagina = todosLosItems.slice(inicio, fin);
+                renderizarGrafico(itemsPagina, 'estacion', estadisticasTotales);
+                renderizarTabla(itemsPagina, 'estacion', estadisticasTotales);
+                document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
+                document.getElementById('btnAnterior').disabled = paginaActual === 1;
+                document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
+                document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacionActual}`;
+            } else {
+                paginaActual = paginaActualServ;
+                totalPaginas = totalPaginasServ;
+                estadisticasTotales = estadisticasTotalesServ;
+                inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+                fin = inicio + ITEMS_POR_PAGINA;
+                itemsPagina = todosLosItems.slice(inicio, fin);
+                renderizarGrafico(itemsPagina, 'servicio', estadisticasTotales);
+                renderizarTabla(itemsPagina, 'servicio', estadisticasTotales);
+                document.getElementById('paginaActualServicio').textContent = `Página ${paginaActual}`;
+                document.getElementById('btnAnteriorServicio').disabled = paginaActual === 1;
+                document.getElementById('btnSiguienteServicio').disabled = paginaActual === totalPaginas;
+                document.getElementById('statsHeaderServicio').textContent = `Estadísticas para: ${nombreServicioActual}`;
+            }
         }
 
-        function renderizarGrafico(itemsPagina) {
-            const ctx = document.getElementById('cumplimientoChart').getContext('2d');
+        function renderizarGrafico(itemsPagina, tipo, estadisticasTotales) {
+            const canvasId = tipo === 'estacion' ? 'cumplimientoChart' : 'cumplimientoChartServicio';
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const chartInstance = tipo === 'estacion' ? chartInstanceEst : chartInstanceServ;
             if (chartInstance) chartInstance.destroy();
+
             const labels = itemsPagina.map(k => nombresItems[k].split('.')[0]);
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
-            chartInstance = new Chart(ctx, {
+            const newChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -549,11 +642,19 @@
                     }
                 }
             });
+
+            if (tipo === 'estacion') {
+                chartInstanceEst = newChart;
+            } else {
+                chartInstanceServ = newChart;
+            }
         }
 
-        function renderizarTabla(itemsPagina) {
-            const tbody = document.getElementById('tablaItems');
-            const filtro = document.getElementById('filtroItems').value.toLowerCase();
+        function renderizarTabla(itemsPagina, tipo, estadisticasTotales) {
+            const tbodyId = tipo === 'estacion' ? 'tablaItems' : 'tablaItemsServicio';
+            const filtroId = tipo === 'estacion' ? 'filtroItems' : 'filtroItemsServicio';
+            const tbody = document.getElementById(tbodyId);
+            const filtro = document.getElementById(filtroId).value.toLowerCase();
             tbody.innerHTML = '';
             itemsPagina.forEach(key => {
                 const nombre = nombresItems[key];
@@ -570,23 +671,44 @@
             });
         }
 
+        // === Paginación estaciones ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
-            if (paginaActual > 1) {
-                paginaActual--;
-                actualizarVista();
+            if (paginaActualEst > 1) {
+                paginaActualEst--;
+                actualizarVista('estacion');
             }
         });
         document.getElementById('btnSiguiente').addEventListener('click', () => {
-            if (paginaActual < totalPaginas) {
-                paginaActual++;
-                actualizarVista();
+            if (paginaActualEst < totalPaginasEst) {
+                paginaActualEst++;
+                actualizarVista('estacion');
             }
         });
         document.getElementById('filtroItems').addEventListener('input', () => {
-            const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+            const inicio = (paginaActualEst - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
             const itemsPagina = todosLosItems.slice(inicio, fin);
-            renderizarTabla(itemsPagina);
+            renderizarTabla(itemsPagina, 'estacion', estadisticasTotalesEst);
+        });
+
+        // === Paginación servicios ===
+        document.getElementById('btnAnteriorServicio').addEventListener('click', () => {
+            if (paginaActualServ > 1) {
+                paginaActualServ--;
+                actualizarVista('servicio');
+            }
+        });
+        document.getElementById('btnSiguienteServicio').addEventListener('click', () => {
+            if (paginaActualServ < totalPaginasServ) {
+                paginaActualServ++;
+                actualizarVista('servicio');
+            }
+        });
+        document.getElementById('filtroItemsServicio').addEventListener('input', () => {
+            const inicio = (paginaActualServ - 1) * ITEMS_POR_PAGINA;
+            const fin = inicio + ITEMS_POR_PAGINA;
+            const itemsPagina = todosLosItems.slice(inicio, fin);
+            renderizarTabla(itemsPagina, 'servicio', estadisticasTotalesServ);
         });
     </script>
 </body>
