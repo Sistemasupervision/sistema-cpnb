@@ -14,6 +14,7 @@
             justify-content: center;
             align-items: flex-start;
             padding: 20px;
+            overflow-x: hidden;
         }
         .container {
             background: white;
@@ -208,12 +209,12 @@
             <label for="ccpSelect">Seleccione CCP:</label>
             <select id="ccpSelect" required>
                 <option value="">-- Elija un CCP --</option>
-                <option value="altos-mirandinos">CCP ALTOS MIRANDINOS</option>
-                <option value="barlovento">CCP BARLOVENTO</option>
-                <option value="ciudad-fajardo">CCP CIUDAD FAJARDO</option>
-                <option value="distrito-capital">CCP DISTRITO CAPITAL</option>
-                <option value="la-guaira">CCP LA GUAIRA</option>
-                <option value="valles-del-tuy">CCP VALLES DEL TUY</option>
+                <option value="ccp_altos_mirandinos">CCP ALTOS MIRANDINOS</option>
+                <option value="ccp_barlovento">CCP BARLOVENTO</option>
+                <option value="ccp_distrito_capital">CCP DISTRITO CAPITAL</option>
+                <option value="ccp_la_guaira">CCP LA GUAIRA</option>
+                <option value="ccp_miranda_ciudad_fajardo">CCP MIRANDA / CIUDAD FAJARDO</option>
+                <option value="ccp_valles_del_tuy">CCP VALLES DEL TUY</option>
             </select>
         </div>
         <div class="input-group">
@@ -235,7 +236,7 @@
         <button id="btnDescargarTodo" class="btn-descargar-todo" onclick="descargarTodo()" disabled>
             📥 Descargar Todos los Protocolos
         </button>
-        <a href="index.html" class="back-btn">← Volver a REDIP CAPITAL</a>
+        <a href="../capital/index.html" class="back-btn">← Volver a REDIP CAPITAL</a>
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
@@ -252,39 +253,78 @@
         let idActivo = null;
         let ccpSeleccionado = null;
 
-        // === VERIFICAR ACCESO A REDIP CAPITAL ===
+        // === VERIFICAR ACCESO ===
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
+                window.location.href = '../../index.html';
                 return false;
             }
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-            if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-                alert('⚠️ No tiene permisos para REDIP CAPITAL.');
-                window.location.href = 'index.html';
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('Acceso denegado. Solo usuarios de REDIP CAPITAL o administrador.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error de acceso:', err);
+                alert('Error de autenticación.');
+                window.location.href = '../../index.html';
                 return false;
             }
-            return true;
         }
 
-        document.getElementById('ccpSelect').addEventListener('change', () => {
-            ccpSeleccionado = document.getElementById('ccpSelect').value;
-            if (tipoActivo === 'estacion') {
-                document.getElementById('tabEstacion').click();
-            } else {
-                document.getElementById('tabServicio').click();
+        // === CARGAR UNIDADES ===
+        async function cargarUnidades(ccpId, tipo) {
+            const contenedor = tipo === 'estacion' 
+                ? document.getElementById('estacionSelect') 
+                : document.getElementById('servicioSelect');
+            contenedor.innerHTML = '<option value="">-- Cargando... --</option>';
+            contenedor.disabled = true;
+            try {
+                let data, error;
+                if (tipo === 'estacion') {
+                    ({ data, error } = await supabase
+                        .from('estaciones_policiales')
+                        .select('estacion_id, nombre_estacion')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre_estacion', { ascending: true }));
+                } else {
+                    ({ data, error } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id, nombre')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre', { ascending: true }));
+                }
+                if (error) throw error;
+                contenedor.innerHTML = '<option value="">-- Elija una unidad --</option>';
+                if (data && data.length > 0) {
+                    data.forEach(item => {
+                        const opt = document.createElement('option');
+                        opt.value = tipo === 'estacion' ? item.estacion_id : item.id;
+                        opt.textContent = item.nombre_estacion || item.nombre;
+                        contenedor.appendChild(opt);
+                    });
+                }
+                contenedor.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar unidades:', err);
+                contenedor.innerHTML = '<option value="">Error al cargar</option>';
+                contenedor.disabled = true;
             }
-        });
+        }
 
+        // === RENDERIZAR PESTAÑA ===
         function renderPestana(tipo) {
             const contenedor = document.getElementById('seleccionActiva');
-            const habilitar = !!ccpSeleccionado;
+            const habilitar = ccpSeleccionado && ccpSeleccionado.trim() !== '';
             document.getElementById('protocolosContainer').innerHTML = '';
             document.getElementById('btnDescargarTodo').disabled = true;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('activo'));
@@ -301,36 +341,16 @@
                     </div>
                 `;
                 if (habilitar) {
-                    (async () => {
-                        try {
-                            const { data: estaciones, error } = await supabase
-                                .from('estaciones_policiales')
-                                .select('id, nombre')
-                                .eq('ccp_id', ccpSeleccionado)
-                                .order('nombre', { ascending: true });
-                            if (error) throw error;
-                            const select = document.getElementById('estacionSelect');
-                            select.innerHTML = '<option value="">-- Elija una estación --</option>';
-                            estaciones.forEach(est => {
-                                const opt = document.createElement('option');
-                                opt.value = est.id;
-                                opt.textContent = est.nombre;
-                                select.appendChild(opt);
-                            });
-                            select.addEventListener('change', (e) => {
-                                idActivo = e.target.value || null;
-                                if (idActivo) {
-                                    renderizarProtocolos();
-                                    verificarArchivosExistentes();
-                                } else {
-                                    document.getElementById('protocolosContainer').innerHTML = '';
-                                }
-                            });
-                        } catch (err) {
-                            console.error('Error al cargar estaciones:', err);
-                            document.getElementById('estacionSelect').innerHTML = '<option value="">Error al cargar</option>';
+                    cargarUnidades(ccpSeleccionado, 'estacion');
+                    document.getElementById('estacionSelect').addEventListener('change', (e) => {
+                        idActivo = e.target.value || null;
+                        if (idActivo) {
+                            renderizarProtocolos();
+                            verificarArchivosExistentes();
+                        } else {
+                            document.getElementById('protocolosContainer').innerHTML = '';
                         }
-                    })();
+                    });
                 }
             } else {
                 document.getElementById('tabServicio').classList.add('activo');
@@ -345,43 +365,33 @@
                     </div>
                 `;
                 if (habilitar) {
-                    (async () => {
-                        try {
-                            const { data: servicios, error } = await supabase
-                                .from('servicios_administrativos')
-                                .select('id, nombre')
-                                .eq('ccp_id', ccpSeleccionado)
-                                .order('nombre', { ascending: true });
-                            if (error) throw error;
-                            const select = document.getElementById('servicioSelect');
-                            select.innerHTML = '<option value="">-- Elija un servicio --</option>';
-                            servicios.forEach(serv => {
-                                const opt = document.createElement('option');
-                                opt.value = serv.id;
-                                opt.textContent = serv.nombre;
-                                select.appendChild(opt);
-                            });
-                            select.addEventListener('change', (e) => {
-                                idActivo = e.target.value || null;
-                                if (idActivo) {
-                                    renderizarProtocolos();
-                                    verificarArchivosExistentes();
-                                } else {
-                                    document.getElementById('protocolosContainer').innerHTML = '';
-                                }
-                            });
-                        } catch (err) {
-                            console.error('Error al cargar servicios:', err);
-                            document.getElementById('servicioSelect').innerHTML = '<option value="">Error al cargar</option>';
+                    cargarUnidades(ccpSeleccionado, 'servicio');
+                    document.getElementById('servicioSelect').addEventListener('change', (e) => {
+                        idActivo = e.target.value || null;
+                        if (idActivo) {
+                            renderizarProtocolos();
+                            verificarArchivosExistentes();
+                        } else {
+                            document.getElementById('protocolosContainer').innerHTML = '';
                         }
-                    })();
+                    });
                 }
             }
         }
 
+        // === EVENTOS ===
+        document.getElementById('ccpSelect').addEventListener('change', (e) => {
+            ccpSeleccionado = e.target.value;
+            if (tipoActivo === 'estacion') {
+                renderPestana('estacion');
+            } else {
+                renderPestana('servicio');
+            }
+        });
         document.getElementById('tabEstacion').addEventListener('click', () => renderPestana('estacion'));
         document.getElementById('tabServicio').addEventListener('click', () => renderPestana('servicio'));
 
+        // === RENDERIZAR PROTOCOLOS ===
         function renderizarProtocolos() {
             const container = document.getElementById('protocolosContainer');
             container.innerHTML = '';
@@ -391,14 +401,14 @@
                 const tipoLabel = tipoActivo === 'estacion' ? 'Estación' : 'Servicio';
                 div.innerHTML = `
                     <div class="protocolo-titulo">${proto.nombre} (${tipoLabel})</div>
-                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf" data-archivo="${proto.archivo}" ${estadoArchivos[proto.id]?.existe ? 'disabled' : ''}>
-                    <div class="aviso-actualizacion" id="aviso_${proto.id}" style="${estadoArchivos[proto.id]?.existe ? 'display:block;' : 'display:none;'}">
+                    <input type="file" id="input_${proto.id}" class="archivo-input" accept=".pdf">
+                    <div class="aviso-actualizacion" id="aviso_${proto.id}" style="display:none;">
                       ⚠️ Al subir un nuevo archivo, el anterior será eliminado.
                     </div>
                     <div class="botones-item">
-                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? 'style="display:none;"' : ''}>📤 Subir</button>
-                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? '' : 'style="display:none;"'}>🔄 Actualizar</button>
-                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" ${estadoArchivos[proto.id]?.existe ? '' : 'style="display:none;"'}>📥 Descargar</button>
+                        <button class="btn btn-subir" onclick="subirArchivo('${proto.id}')">📤 Subir</button>
+                        <button class="btn btn-actualizar" onclick="actualizarArchivo('${proto.id}')" style="display:none;">🔄 Actualizar</button>
+                        <button class="btn btn-descargar" onclick="descargarArchivo('${proto.id}')" style="display:none;">📥 Descargar</button>
                     </div>
                     <div class="progress-container" id="progress_${proto.id}">
                         <div class="progress-bar"><div class="progress-fill" id="fill_${proto.id}"></div></div>
@@ -406,14 +416,23 @@
                     <div class="mensaje-item" id="mensaje_${proto.id}"></div>
                 `;
                 container.appendChild(div);
+                if (estadoArchivos[proto.id]?.existe) {
+                    document.getElementById(`input_${proto.id}`).disabled = true;
+                    document.getElementById(`aviso_${proto.id}`).style.display = 'block';
+                    const btns = div.querySelector('.botones-item');
+                    btns.children[0].style.display = 'none';      // Subir
+                    btns.children[1].style.display = 'inline-block'; // Actualizar
+                    btns.children[2].style.display = 'inline-block'; // Descargar
+                }
             });
         }
 
+        // === FUNCIONES DE ARCHIVO ===
         async function verificarArchivosExistentes() {
             if (!ccpSeleccionado || !tipoActivo || !idActivo) return;
             estadoArchivos = {};
             let existen = false;
-            const rutaBase = `protocolos-supervision/capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`;
+            const rutaBase = `capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/`;
             for (const proto of protocolos) {
                 const ruta = `${rutaBase}${proto.archivo}`;
                 try {
@@ -423,7 +442,7 @@
                         existen = true;
                     }
                 } catch (e) {
-                    // Archivo no existe — se ignora
+                    // Archivo no existe → ignorar
                 }
             }
             renderizarProtocolos();
@@ -441,10 +460,16 @@
         async function subirArchivo(id) {
             const input = document.getElementById(`input_${id}`);
             const archivo = input.files[0];
-            if (!archivo) return mostrarMensajeItem(id, '⚠️ Seleccione un archivo PDF', 'error');
-            if (!ccpSeleccionado || !tipoActivo || !idActivo) return mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad', 'error');
+            if (!archivo) {
+                mostrarMensajeItem(id, '⚠️ Seleccione un archivo PDF', 'error');
+                return;
+            }
+            if (!ccpSeleccionado || !tipoActivo || !idActivo) {
+                mostrarMensajeItem(id, '⚠️ Seleccione CCP y unidad', 'error');
+                return;
+            }
             const proto = protocolos.find(p => p.id === id);
-            const ruta = `protocolos-supervision/capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            const ruta = `capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
             const progressBar = document.getElementById(`progress_${id}`);
             const fillBar = document.getElementById(`fill_${id}`);
             progressBar.style.display = 'block';
@@ -461,25 +486,24 @@
                 mostrarMensajeItem(id, '❌ Error al subir el archivo', 'error');
             } finally {
                 progressBar.style.display = 'none';
+                input.value = '';
             }
         }
 
         async function actualizarArchivo(id) {
             const proto = protocolos.find(p => p.id === id);
             if (!proto) return mostrarMensajeItem(id, '❌ Ítem no encontrado', 'error');
-            const ruta = `protocolos-supervision/capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
+            const ruta = `capital/${ccpSeleccionado}/${tipoActivo}_${idActivo}/${proto.archivo}`;
             try {
                 const { error: deleteError } = await supabase.storage.from('protocolos-supervision').remove([ruta]);
-                if (deleteError && !deleteError.message.includes('not found')) {
-                    throw new Error('No se pudo eliminar el archivo anterior.');
-                }
+                if (deleteError) throw deleteError;
                 delete estadoArchivos[id];
                 renderizarProtocolos();
                 document.getElementById('btnDescargarTodo').disabled = Object.keys(estadoArchivos).length === 0;
-                mostrarMensajeItem(id, '✅ Archivo anterior eliminado. Puede subir uno nuevo.', 'exito');
+                mostrarMensajeItem(id, '✅ Archivo anterior eliminado.', 'exito');
             } catch (e) {
-                console.error('Error al actualizar archivo:', e);
-                mostrarMensajeItem(id, `❌ Error: ${e.message || 'No se pudo eliminar el archivo.'}`, 'error');
+                console.error('Error al eliminar:', e);
+                mostrarMensajeItem(id, '❌ Error al eliminar archivo.', 'error');
             }
         }
 
@@ -502,10 +526,10 @@
                     await new Promise(r => setTimeout(r, 500));
                 }
             }
-            alert('✅ Todos los archivos descargados');
+            alert('✅ Todos los archivos han sido descargados.');
         }
 
-        // Iniciar
+        // === INICIAR ===
         verificarAcceso().then(permitido => {
             if (permitido) {
                 renderPestana('estacion');
