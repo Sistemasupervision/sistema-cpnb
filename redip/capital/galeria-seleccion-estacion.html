@@ -264,19 +264,21 @@
                 return;
             }
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
                 if (error) throw error;
                 estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
-                estaciones.forEach(est => {
-                    const opt = document.createElement('option');
-                    opt.value = est.estacion_id;
-                    opt.textContent = est.nombre_estacion;
-                    estacionSelect.appendChild(opt);
-                });
+                if (estaciones && estaciones.length > 0) {
+                    estaciones.forEach(est => {
+                        const opt = document.createElement('option');
+                        opt.value = est.estacion_id;
+                        opt.textContent = est.nombre_estacion;
+                        estacionSelect.appendChild(opt);
+                    });
+                }
                 estacionSelect.disabled = false;
             } catch (err) {
                 console.error('Error al cargar estaciones:', err);
@@ -317,19 +319,21 @@
                 return;
             }
             try {
-                const {  servicios, error } = await supabase
+                const { data: servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
                 if (error) throw error;
                 servicioSelect.innerHTML = '<option value="">-- Elija un servicio --</option>';
-                servicios.forEach(serv => {
-                    const opt = document.createElement('option');
-                    opt.value = serv.id;
-                    opt.textContent = serv.nombre;
-                    servicioSelect.appendChild(opt);
-                });
+                if (servicios && servicios.length > 0) {
+                    servicios.forEach(serv => {
+                        const opt = document.createElement('option');
+                        opt.value = serv.id;
+                        opt.textContent = serv.nombre;
+                        servicioSelect.appendChild(opt);
+                    });
+                }
                 servicioSelect.disabled = false;
             } catch (err) {
                 console.error('Error al cargar servicios:', err);
