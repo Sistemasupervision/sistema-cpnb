@@ -253,7 +253,7 @@
         let idActivo = null;
         let ccpSeleccionado = null;
 
-        // === VERIFICAR ACCESO (CORREGIDO) ===
+        // === VERIFICAR ACCESO (CORREGIDO Y SEGURO) ===
         async function verificarAcceso() {
             const { data } = await supabase.auth.getUser();
             const user = data?.user;
