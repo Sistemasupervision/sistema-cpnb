@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas - REDIP OCCIDENTAL</title>
+    <title>Estadísticas - REDIP CAPITAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -246,31 +246,34 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Estadísticas - REDIP OCCIDENTAL</h1>
+            <h1 class="title">Estadísticas - REDIP CAPITAL</h1>
         </div>
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver al Panel Principal
         </button>
+
         <!-- Selector de CCP -->
         <div class="filtro-container">
             <div class="input-group">
                 <label for="ccpFilter">Seleccione CCP:</label>
                 <select id="ccpFilter">
                     <option value="">-- Elija un CCP --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
+                    <option value="ccp_distrito_capital">CCP DISTRITO CAPITAL</option>
+                    <option value="ccp_altos_mirandinos">CCP ALTOS MIRANDINOS</option>
+                    <option value="ccp_barlovento">CCP BARLOVENTO</option>
+                    <option value="ccp_la_guaira">CCP LA GUAIRA</option>
+                    <option value="ccp_miranda_ciudad_fajardo">CCP MIRANDA / CIUDAD FAJARDO</option>
+                    <option value="ccp_valles_del_tuy">CCP VALLES DEL TUY</option>
                 </select>
             </div>
         </div>
+
         <!-- Pestañas -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="estaciones">📊 Estadísticas por Estación</button>
             <button class="tab-btn" data-tab="servicios">📊 Estadísticas por Servicio Administrativo</button>
         </div>
+
         <!-- Contenido: Estaciones -->
         <div id="estaciones-content" class="tab-content active">
             <div class="filtro-container">
@@ -311,6 +314,7 @@
             <div id="mensajeCargaEst" class="loading" style="display: none;">Cargando estadísticas...</div>
             <div id="mensajeSinDatosEst" class="no-data" style="display: none;">No existen inspecciones para esta estación.</div>
         </div>
+
         <!-- Contenido: Servicios -->
         <div id="servicios-content" class="tab-content">
             <div class="filtro-container">
@@ -352,10 +356,12 @@
             <div id="mensajeSinDatosServ" class="no-data" style="display: none;">No existen inspecciones para este servicio.</div>
         </div>
     </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         // === Pestañas ===
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -366,6 +372,7 @@
                 document.getElementById(tabId + '-content').classList.add('active');
             });
         });
+
         // === Objeto de ítems COMPLETO (67 ítems) ===
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
@@ -436,19 +443,23 @@
             informes_preliminares_actuacion: "66. Verificar la elaboración de los informes preliminares de actuación policial.",
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
+
         const todosLosItems = Object.keys(nombresItems);
         const ITEMS_POR_PAGINA = 15;
+
         // === Variables para ambas pestañas ===
         let chartInstanceEst = null;
         let estadisticasTotalesEst = {};
         let nombreEstacionActual = '';
         let paginaActualEst = 1;
         let totalPaginasEst = 1;
+
         let chartInstanceServ = null;
         let estadisticasTotalesServ = {};
         let nombreServicioActual = '';
         let paginaActualServ = 1;
         let totalPaginasServ = 1;
+
         // === Cargar listas al cambiar CCP ===
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
@@ -458,7 +469,9 @@
             servicioSelect.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
             estacionSelect.disabled = !ccpId;
             servicioSelect.disabled = !ccpId;
+
             if (!ccpId) return;
+
             // Cargar estaciones
             try {
                 const { data: estaciones, error: estError } = await supabase
@@ -481,6 +494,7 @@
                 console.error('Error al cargar estaciones:', err);
                 estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
             }
+
             // Cargar servicios
             try {
                 const { data: servicios, error: servError } = await supabase
@@ -504,15 +518,18 @@
                 servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
             }
         });
+
         // === Eventos ===
         document.getElementById('estacionFilter').addEventListener('change', async (e) => {
             const estacionId = e.target.value;
             if (estacionId) await cargarEstadisticas('estacion', estacionId);
         });
+
         document.getElementById('servicioFilter').addEventListener('change', async (e) => {
             const servicioId = e.target.value;
             if (servicioId) await cargarEstadisticas('servicio', servicioId);
         });
+
         // === Función genérica para cargar estadísticas ===
         async function cargarEstadisticas(tipo, id) {
             let nombre = '';
@@ -532,9 +549,11 @@
                 mensajeSinDatos = document.getElementById('mensajeSinDatosServ');
                 statsHeader = document.getElementById('statsHeaderServicio');
             }
+
             container.style.display = 'none';
             mensajeCarga.style.display = 'block';
             mensajeSinDatos.style.display = 'none';
+
             try {
                 let inspecciones = [];
                 if (tipo === 'estacion') {
@@ -552,11 +571,13 @@
                     if (error) throw error;
                     inspecciones = insps;
                 }
+
                 if (!inspecciones || inspecciones.length === 0) {
                     mensajeCarga.style.display = 'none';
                     mensajeSinDatos.style.display = 'block';
                     return;
                 }
+
                 const idsInspecciones = inspecciones.map(i => i.id);
                 const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -568,7 +589,9 @@
                     mensajeSinDatos.style.display = 'block';
                     return;
                 }
+
                 const estadisticas = calcularEstadisticas(items);
+
                 if (tipo === 'estacion') {
                     estadisticasTotalesEst = estadisticas;
                     totalPaginasEst = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
@@ -580,6 +603,7 @@
                     paginaActualServ = 1;
                     actualizarVista('servicio');
                 }
+
                 mensajeCarga.style.display = 'none';
                 container.style.display = 'block';
                 statsHeader.textContent = `Estadísticas para: ${nombre}`;
@@ -588,6 +612,7 @@
                 alert('Error al cargar los datos.');
             }
         }
+
         function calcularEstadisticas(items) {
             const resultado = {};
             todosLosItems.forEach(item => resultado[item] = 0);
@@ -607,6 +632,7 @@
             });
             return resultado;
         }
+
         function actualizarVista(tipo) {
             let inicio, fin, itemsPagina, paginaActual, totalPaginas, estadisticasTotales;
             if (tipo === 'estacion') {
@@ -635,11 +661,13 @@
                 document.getElementById('btnSiguienteServicio').disabled = paginaActual === totalPaginas;
             }
         }
+
         function renderizarGrafico(itemsPagina, tipo, estadisticasTotales) {
             const canvasId = tipo === 'estacion' ? 'cumplimientoChart' : 'cumplimientoChartServicio';
             const ctx = document.getElementById(canvasId).getContext('2d');
             const chartInstance = tipo === 'estacion' ? chartInstanceEst : chartInstanceServ;
             if (chartInstance) chartInstance.destroy();
+
             const labels = itemsPagina.map(k => nombresItems[k].split('.')[0]);
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
             const newChart = new Chart(ctx, {
@@ -668,12 +696,14 @@
                     }
                 }
             });
+
             if (tipo === 'estacion') {
                 chartInstanceEst = newChart;
             } else {
                 chartInstanceServ = newChart;
             }
         }
+
         function renderizarTabla(itemsPagina, tipo, estadisticasTotales) {
             const tbodyId = tipo === 'estacion' ? 'tablaItems' : 'tablaItemsServicio';
             const filtroId = tipo === 'estacion' ? 'filtroItems' : 'filtroItemsServicio';
@@ -694,6 +724,7 @@
                 }
             });
         }
+
         // === Paginación ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
             if (paginaActualEst > 1) {
@@ -713,6 +744,7 @@
             const itemsPagina = todosLosItems.slice(inicio, fin);
             renderizarTabla(itemsPagina, 'estacion', estadisticasTotalesEst);
         });
+
         document.getElementById('btnAnteriorServicio').addEventListener('click', () => {
             if (paginaActualServ > 1) {
                 paginaActualServ--;
