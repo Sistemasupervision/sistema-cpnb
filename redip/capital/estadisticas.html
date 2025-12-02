@@ -352,7 +352,7 @@
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp...",
-            // ... (MANTIENES TODO EL OBJETO COMPLETO IGUAL QUE EN TU ARCHIVO ORIGINAL)
+            // ... (mantén todo el objeto completo como en tu archivo original hasta el ítem 67)
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
 
@@ -377,9 +377,9 @@
 
             if (!ccpId) return;
 
-            // Cargar estaciones (para pestaña 1)
+            // Cargar estaciones
             try {
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
@@ -400,10 +400,10 @@
                 estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
             }
 
-            // Cargar servicios (para pestaña 2)
+            // Cargar servicios
             try {
                 document.getElementById('mensajeCargaServ').style.display = 'block';
-                const {  servicios, error: servError } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('nombre')
                     .eq('ccp_id', ccpId)
@@ -446,7 +446,7 @@
             document.getElementById('mensajeSinDatosEst').style.display = 'none';
 
             try {
-                const {  inspecciones, error: inspError } = await supabase
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('id')
                     .eq('estacion_id', estacionId);
@@ -459,7 +459,7 @@
                 }
 
                 const idsInspecciones = inspecciones.map(i => i.id);
-                const {  items, error: itemsError } = await supabase
+                const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, porcentaje_cumplimiento')
                     .in('inspeccion_id', idsInspecciones);
@@ -525,11 +525,11 @@
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                 {
+                data: {
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento Promedio',
-                         data,
+                        data: data,
                         backgroundColor: 'rgba(49, 130, 206, 0.8)',
                         borderColor: 'rgba(49, 130, 206, 1)',
                         borderWidth: 1,
