@@ -253,21 +253,22 @@
         let idActivo = null;
         let ccpSeleccionado = null;
 
-        // === VERIFICAR ACCESO ===
+        // === VERIFICAR ACCESO (CORREGIDO) ===
         async function verificarAcceso() {
-            const {  { user } } = await supabase.auth.getUser();
+            const { data } = await supabase.auth.getUser();
+            const user = data?.user;
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = '../../index.html';
                 return false;
             }
             try {
-                const { data, error } = await supabase
+                const {  usuario, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                if (error || !usuario || (usuario.redip !== 'capital' && usuario.redip !== 'admin')) {
                     alert('Acceso denegado. Solo usuarios de REDIP CAPITAL o administrador.');
                     window.location.href = '../../index.html';
                     return false;
