@@ -253,54 +253,33 @@
         let idActivo = null;
         let ccpSeleccionado = null;
 
-        // === VERIFICAR ACCESO (corregido y seguro) ===
+        // === VERIFICAR ACCESO ===
         async function verificarAcceso() {
-            console.log("🔍 Verificando acceso para REDIP CAPITAL...");
-
-            const { data } = await supabase.auth.getUser();
-            const user = data?.user;
-
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 alert('Debe iniciar sesión.');
                 window.location.href = '../../index.html';
                 return false;
             }
-
-            console.log("✅ Usuario autenticado:", user.email);
-
             try {
-                const {  rol, error } = await supabase
+                const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
-
-                if (error || !rol) {
-                    console.error("❌ Error o usuario no encontrado en 'usuarios_redip':", error);
-                    alert('Acceso denegado. Usuario no encontrado en el sistema.');
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('Acceso denegado. Solo usuarios de REDIP CAPITAL o administrador.');
                     window.location.href = '../../index.html';
                     return false;
                 }
-
-                console.log("✅ Rol encontrado:", rol.redip);
-
-                if (rol.redip === 'admin' || rol.redip === 'capital') {
-                    console.log("✅ Acceso permitido.");
-                    return true;
-                }
-
-                alert('Acceso denegado. Solo usuarios de REDIP CAPITAL o administrador.');
-                window.location.href = '../../index.html';
-                return false;
-
+                return true;
             } catch (err) {
-                console.error('Error inesperado en verificación:', err);
+                console.error('Error de acceso:', err);
                 alert('Error de autenticación.');
                 window.location.href = '../../index.html';
                 return false;
             }
         }
-
         // === CARGAR UNIDADES ===
         async function cargarUnidades(ccpId, tipo) {
             const contenedor = tipo === 'estacion' 
