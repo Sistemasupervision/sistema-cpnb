@@ -253,35 +253,42 @@
         let idActivo = null;
         let ccpSeleccionado = null;
 
-        // === VERIFICAR ACCESO (CORREGIDO Y SEGURO) ===
-        async function verificarAcceso() {
-            const { data } = await supabase.auth.getUser();
-            const user = data?.user;
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            try {
-                const {  usuario, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !usuario || (usuario.redip !== 'capital' && usuario.redip !== 'admin')) {
-                    alert('Acceso denegado. Solo usuarios de REDIP CAPITAL o administrador.');
-                    window.location.href = '../../index.html';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                console.error('Error de acceso:', err);
-                alert('Error de autenticación.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-        }
+   async function verificarAcceso() {
+    // 1. Obtener usuario autenticado
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    if (!user) {
+        alert('Debe iniciar sesión.');
+        window.location.href = '../../index.html';
+        return false;
+    }
 
+    // 2. Buscar su rol en 'usuarios_redip'
+    const { data: usuario, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip')
+        .eq('user_id', user.id)
+        .single();
+
+    // 3. Si hay error o no se encuentra, denegar
+    if (error || !usuario || !usuario.redip) {
+        console.error('Usuario no encontrado en usuarios_redip o error:', error);
+        alert('Acceso denegado. No tienes permisos para REDIP CAPITAL.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+
+    // 4. Permitir acceso si es 'admin' o 'capital' (insensible a mayúsculas)
+    const rol = String(usuario.redip).trim().toLowerCase();
+    if (rol === 'admin' || rol === 'capital') {
+        return true;
+    }
+
+    // 5. Si no coincide, denegar
+    alert('Acceso denegado. Solo usuarios de REDIP CAPITAL o administrador.');
+    window.location.href = '../../index.html';
+    return false;
+}
         // === CARGAR UNIDADES ===
         async function cargarUnidades(ccpId, tipo) {
             const contenedor = tipo === 'estacion' 
