@@ -602,6 +602,7 @@
 
                 mensajeCarga.style.display = 'none';
                 container.style.display = 'block';
+                statsHeader.textContent = `Estadísticas para: ${nombre}`;
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
                 alert('Error al cargar los datos.');
@@ -642,7 +643,6 @@
                 document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
                 document.getElementById('btnAnterior').disabled = paginaActual === 1;
                 document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
-                document.getElementById('statsHeader').textContent = `Estadísticas para: ${nombreEstacionActual}`;
             } else {
                 paginaActual = paginaActualServ;
                 totalPaginas = totalPaginasServ;
@@ -655,7 +655,6 @@
                 document.getElementById('paginaActualServicio').textContent = `Página ${paginaActual}`;
                 document.getElementById('btnAnteriorServicio').disabled = paginaActual === 1;
                 document.getElementById('btnSiguienteServicio').disabled = paginaActual === totalPaginas;
-                document.getElementById('statsHeaderServicio').textContent = `Estadísticas para: ${nombreServicioActual}`;
             }
         }
 
@@ -722,7 +721,7 @@
             });
         }
 
-        // === Paginación estaciones ===
+        // === Paginación ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
             if (paginaActualEst > 1) {
                 paginaActualEst--;
@@ -742,7 +741,6 @@
             renderizarTabla(itemsPagina, 'estacion', estadisticasTotalesEst);
         });
 
-        // === Paginación servicios ===
         document.getElementById('btnAnteriorServicio').addEventListener('click', () => {
             if (paginaActualServ > 1) {
                 paginaActualServ--;
