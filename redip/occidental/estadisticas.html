@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas - REDIP OCCIDENTAL</title>
+    <title>Estadísticas de Inspecciones - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -62,7 +64,14 @@
             font-weight: bold;
             margin-bottom: 25px;
         }
-        .back-btn {
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .back-btn,
+        .pdf-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
@@ -72,52 +81,18 @@
             align-items: center;
             gap: 8px;
             font-weight: bold;
+        }
+        .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
-            margin-bottom: 20px;
         }
-        .back-btn:hover {
+        .pdf-btn {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+        }
+        .back-btn:hover,
+        .pdf-btn:hover {
             opacity: 0.9;
-        }
-        .tabs {
-            display: flex;
-            margin: 20px 0;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .tab-btn {
-            padding: 12px 24px;
-            border: none;
-            background: none;
-            font-size: 16px;
-            font-weight: 600;
-            color: #4a5568;
-            cursor: pointer;
-            position: relative;
-            transition: color 0.2s;
-        }
-        .tab-btn.active {
-            color: #2c5282;
-        }
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #2c5282;
-            border-radius: 2px;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
         .filtro-container {
             display: flex;
@@ -148,25 +123,6 @@
             font-size: 15px;
             background-color: white;
             font-weight: 500;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 15px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        th {
-            background: #edf2f7;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        tr:hover {
-            background: #f8fafc;
         }
         .loading, .no-data {
             text-align: center;
@@ -206,14 +162,41 @@
         .porcentajes-container {
             margin-top: 25px;
         }
+        .tabla-filtro {
+            margin-bottom: 15px;
+        }
         .tabla-filtro input {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e0;
             border-radius: 8px;
             font-size: 14px;
-            margin-bottom: 15px;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #edf2f7;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        .porcentaje-valor {
+            font-weight: bold;
+            text-align: center;
+        }
+        .porcentaje-valor.bajo { color: #e53e3e; }
+        .porcentaje-valor.medio { color: #dd6b20; }
+        .porcentaje-valor.alto { color: #38a169; }
         .pagination-controls {
             display: flex;
             justify-content: center;
@@ -223,161 +206,93 @@
         .pagination-controls button {
             padding: 8px 16px;
             font-size: 14px;
-            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
         }
-        .pagination-controls button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .porcentaje-valor {
-            font-weight: bold;
-            text-align: center;
-        }
-        .porcentaje-valor.bajo { color: #e53e3e; }
-        .porcentaje-valor.medio { color: #dd6b20; }
-        .porcentaje-valor.alto { color: #38a169; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Estadísticas - REDIP OCCIDENTAL</h1>
+            <h1 class="title">Estadísticas de Inspecciones - REDIP OCCIDENTAL</h1>
         </div>
-        <button class="back-btn" onclick="window.location.href='index.html'">
-            ← Volver al Panel Principal
-        </button>
-
-        <!-- Selector de CCP -->
-        <div class="filtro-container">
-            <div class="input-group">
-                <label for="ccpFilter">Seleccione CCP:</label>
-                <select id="ccpFilter">
-                    <option value="">-- Elija un CCP --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Pestañas -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="estaciones">📊 Estadísticas por Estación</button>
-            <button class="tab-btn" data-tab="servicios">📊 Estadísticas por Servicio Administrativo</button>
-        </div>
-
-        <!-- Contenido: Estaciones -->
-        <div id="estaciones-content" class="tab-content active">
+        <div id="seleccionContainer">
+            <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
+                ← Volver al Panel Principal
+            </button>
             <div class="filtro-container">
+                <div class="input-group">
+                    <label for="ccpFilter">Seleccione CCP:</label>
+                    <select id="ccpFilter">
+                        <option value="">-- Elija un CCP --</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur_del_lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
+                        <option value="lara">CCPE LARA</option>
+                        <option value="falcon">CCPE FALCÓN</option>
+                    </select>
+                </div>
                 <div class="input-group">
                     <label for="estacionFilter">Seleccione Estación:</label>
                     <select id="estacionFilter" disabled>
-                        <option value="">-- Seleccione un CCP primero --</option>
+                        <option value="">-- Primero seleccione un CCP --</option>
                     </select>
                 </div>
             </div>
-            <div id="resultadosEstadisticas" style="display: none;">
-                <div class="stats-header" id="statsHeader"></div>
-                <div class="chart-container">
-                    <div class="chart-wrapper">
-                        <canvas id="cumplimientoChart"></canvas>
-                    </div>
-                </div>
-                <div class="porcentajes-container">
-                    <div class="tabla-filtro">
-                        <input type="text" id="filtroItems" placeholder="Buscar ítem...">
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Ítem</th>
-                                <th style="text-align: center;">%</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaItems"></tbody>
-                    </table>
-                    <div class="pagination-controls">
-                        <button id="btnAnterior" disabled>« Anterior</button>
-                        <span id="paginaActual">Página 1</span>
-                        <button id="btnSiguiente" disabled>Siguiente »</button>
-                    </div>
-                </div>
-            </div>
-            <div id="mensajeCargaEst" class="loading" style="display: none;">Cargando estadísticas...</div>
-            <div id="mensajeSinDatosEst" class="no-data" style="display: none;">No existen inspecciones para esta estación.</div>
         </div>
-
-        <!-- Contenido: Servicios -->
-        <div id="servicios-content" class="tab-content">
-            <div class="filtro-container">
-                <div class="input-group">
-                    <label for="servicioFilter">Seleccione Servicio Administrativo:</label>
-                    <select id="servicioFilter" disabled>
-                        <option value="">-- Seleccione un CCP primero --</option>
-                    </select>
+        <div id="resultadosContainer" style="display: none;">
+            <div class="stats-header" id="statsHeader"></div>
+            <div class="action-buttons">
+                <button class="back-btn" onclick="volverASeleccion()">
+                    ← Seleccionar otra estación
+                </button>
+            </div>
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <canvas id="cumplimientoChart"></canvas>
                 </div>
             </div>
-            <div id="resultadosServicios" style="display: none;">
-                <div class="stats-header" id="statsHeaderServicio"></div>
-                <div class="chart-container">
-                    <div class="chart-wrapper">
-                        <canvas id="cumplimientoChartServicio"></canvas>
-                    </div>
+            <div class="porcentajes-container">
+                <div class="tabla-filtro">
+                    <input type="text" id="filtroItems" placeholder="Buscar ítem...">
                 </div>
-                <div class="porcentajes-container">
-                    <div class="tabla-filtro">
-                        <input type="text" id="filtroItemsServicio" placeholder="Buscar ítem...">
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Ítem</th>
-                                <th style="text-align: center;">%</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaItemsServicio"></tbody>
-                    </table>
-                    <div class="pagination-controls">
-                        <button id="btnAnteriorServicio" disabled>« Anterior</button>
-                        <span id="paginaActualServicio">Página 1</span>
-                        <button id="btnSiguienteServicio" disabled>Siguiente »</button>
-                    </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ítem</th>
+                            <th style="text-align: center;">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaItems"></tbody>
+                </table>
+                <!-- Controles de paginación -->
+                <div class="pagination-controls">
+                    <button id="btnAnterior" class="back-btn" disabled>« Anterior</button>
+                    <span id="paginaActual" style="align-self: center; font-weight: bold; color: #2d3748;">Página 1</span>
+                    <button id="btnSiguiente" class="back-btn" disabled>Siguiente »</button>
                 </div>
             </div>
-            <div id="mensajeCargaServ" class="loading" style="display: none;">Cargando estadísticas...</div>
-            <div id="mensajeSinDatosServ" class="no-data" style="display: none;">No existen inspecciones para este servicio.</div>
+        </div>
+        <div id="mensajeCarga" class="loading" style="display: none;">Cargando estadísticas...</div>
+        <div id="mensajeSinDatos" class="no-data" style="display: none;">
+            <div style="text-align: center; padding: 20px;">
+                <p>No existen inspecciones para esta estación.</p>
+                <button onclick="volverASeleccion()" 
+                        style="background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; margin-top: 10px; cursor: pointer;">
+                    ← Volver a Selección
+                </button>
+            </div>
         </div>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-        // === Pestañas ===
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                const tabId = btn.getAttribute('data-tab');
-                document.getElementById(tabId + '-content').classList.add('active');
-            });
-        });
-
-        // === Objeto de ítems COMPLETO (67 ítems) ===
+        // ✅ Mismos nombres que en tu archivo original
         const nombresItems = {
-            nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
+              nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
-            dossier_comandante: "3. verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación, exposición de motivos para la creación y activación, justificación actual de su funcionamiento, documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
+            dossier_comandante: "3.verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación,exposición de motivos para la creación y activación,justificación actual de su funcionamiento,documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
             conocimiento_ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
             conocimiento_estatuto_personal: "5. Verificar en físico y el conocimiento sobre el reglamento sobre el estatuto de la función policial en materia de administración de personal y desarrollo de la carrera policial",
             conocimiento_reglamento_disciplinario: "6. Verificar en físico y el conocimiento sobre el reglamento de la función policial sobre el régimen disciplinario",
@@ -385,11 +300,11 @@
             manuales_normas_procedimientos: "8. Verificar los manuales de normas y procedimientos operativos vigentes, actualizado.",
             plan_trabajo_anual: "9. Verificar el plan de trabajo anual, cumplimiento y logros.",
             infraestructura_identificacion: "10. Verificar que las infraestructuras físicas cumplan con la adecuada identificación establecidas por la institución, incluyendo los servicios ubicados fuera de las instalaciones del CCP.",
-            direccion_atencion_victima: "11. Verificación de la activación de la brigada policial especial de protección y asistencia a las víctimas testigos y demás sujetos procesales",
+            direccion_atencion_victima: "11. Verificación de la activación de la brigada policial especial de protección y asistencia a las  víctimas  testigos  y  demás  sujetos procesales",
             oficina_gestion_humana: "12. Verificar con la oficina de gestión humana cpnb: relación del personal, plan anual de vacaciones, plan vacacional, reposos, ascensos, tramitaciones de bajas, planes de entrenamiento y reentrenamiento tramitaciones de comisión de servicio",
             documentacion_personal: "13. Constatar en el personal policial, la existencia de la documentación (se hará con muestra representativa). Carnet único policial, cédula de identidad, licencia de conducir y certificado médico, declaración de impuesto sobre la renta y jurada de patrimonio, carnet de la patria, porte de armas. si aplica, inscripción en la correspondiente caja de ahorros.",
-            uniforme_presentacion: "14. Constatar el uso correcto del uniforme y presentación personal: corte de cabello, rasurado, uniforme limpio, botas pulidas, cabello recogido, uñas cortas (caso femenino uñas y maquillaje colores claros)",
-            practica_induccion_orden_publico: "15. Verificar que la unidad posea y haya realizado práctica de los planes de reacción inmediata, defensa y de evacuación.",
+            uniforme_presentacion: "14. Constatar el uso correcto del uniforme y presentación personal: corte de cabello, rasuradouniforme limpio, botas pulidas, cabello recogido, uñas cortas (caso femenino uñas y maquillaje colores claros)",
+            practica_induccion_orden_publico: "15. Verificar que la unidad posea y haya realizado practica de los planes de reacción inmediata, defensa y de evacuación.",
             entrenamiento_armamento: "16. Verificar si los funcionarios reciben entrenamiento en el manejo de armamento orgánico.",
             talleres_manejo_defensivo: "17. Verificar la realización de talleres de manejo defensivo y de servicio de seguridad vial a los conductores de unidades tipo moto y vehículos.",
             conocimientos_primeros_auxilios: "18. Verificar si los efectivos poseen los conocimientos mínimos necesarios de primeros auxilios.",
@@ -399,15 +314,15 @@
             talleres_ministerio_publico: "22. Verificar talleres dictados al personal por parte de autoridades del ministerio público, judiciales y consultor jurídico, sobre procedimientos y cumplimiento del debido proceso, derechos humanos y derecho internacional humanitario.",
             conocimiento_lineamientos_cpnb: "23. Constatar el conocimiento del coordinador o coordinadora del ccp en relación a los lineamientos para ejercer el control de normas, ordenes, procedimientos e instrucciones impartidas por la directiva del CPNB ¿qué acciones ha realizado para su difusión e implementación?",
             cursos_sustanciacion_expedientes: "24. Constatar la realización de cursos de sustanciación de expedientes administrativos, actas policiales y pericias judiciales para el personal de la unidad.",
-            cumplimiento_entrenamiento_fisico: "25. Verificar el cumplimiento del entrenamiento en cuanto: educación física, orden público",
+            cumplimiento_entrenamiento_fisico: "25.Verificar el cumplimiento del entrenamiento en cuanto: educación física, orden público",
             dotacion_trajes_antimotines: "26. Verificar si la dotación de los trajes antimotines es suficiente para la capacidad operativa del CCP.",
-            practica_tecnicas_policiales: "27. Verificar si el personal ha realizado práctica de: tiro de combate con escopeta, tiro de combate y policial con pistola 9mm, mantenimiento y preservación del armamento, mantenimiento, control y restablecimiento del orden público, uso progresivo y diferenciado de la fuerza, defensa personal, orden cerrado, combate en áreas confinadas, instalación de puntos de control (DIRECTIVA MPPRIJP-MPPD), inspección de personas, y revisión de vehículos, embarcaciones y aeronaves.",
-            numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios adscrito a la unidad, sea suficiente para cumplir con los servicios policiales.",
+            practica_tecnicas_policiales: "27. Verificar si el personal ha realizado practica de: tiro de combate con escopeta, tiro de combate y policial con pistola 9mm, mantenimiento y preservación del armamento, mantenimiento, control y restablecimiento del orden público, uso progresivo y diferenciado de la fuerza, defensa personal, orden cerrado, combate en áreas confinadas, instalación de puntos de control (DIRECTIVA MPPRIJP-MPPD), inspección de personas, y revisión de vehículos, embarcaciones y aeronaves.",
+            numero_funcionarios_suficiente: "28. Constatar que el numero de funcionarios adscrito a la unidad, sea suficiente para cumplir con los servicios policiales.",
             personal_empleado_servicios: "29. Verificar que el personal policial del CCP inspeccionado, este siendo empleado para cumplir con los servicios de policiales.",
             servicios_autorizados_mpprijp: "30. Verificar que los únicos servicios a ser prestados por parte de los efectivos del cuerpo de Policía Nacional Bolivariana fuera de la unidad serán aquellos autorizados por el ministro o ministra del poder popular las relaciones interiores justicia y paz y el comando general del Cuerpo de Policía Nacional Bolivariana a través del; por lo tanto ninguna autoridad civil ni militar podrá solicitar este tipo de apoyos sin ser canalizados a través de las instancias antes mencionadas. en caso de estar autorizados, deberán tomar las acciones para que en aquellos lugares aislados, prever los relevos durante la noche, comunicación por cualquier medio (teléfono o radio), verificando su situación cada hora en horario nocturno y cada 4 horas en horario diurno, así como también patrullajes constantes si la zona donde se presta el servicio de alta peligrosidad.",
-            publicaciones_procedimientos: "31. Verificar los siguientes aspectos en las publicaciones de los procedimientos: el backing institucional de la Policía Nacional Bolivariana en todas las unidades operativas, uso obligatorio de mesa o mesones según sea el caso, con mantel, para los elementos retenidos de poco tamaño, realizar las fotos en alta definición, realizar las fotos por separado de acuerdo al tamaño de los efectos retenidos según sea el caso y prohibido que aparezcan efectivos policiales en la fotos de los procedimientos realizados,",
+            publicaciones_procedimientos: "31. Verificar los siguientes aspectos en	las	publicaciones de los procedimientos: el backing institucional de la Policía Nacional Bolivariana en todas las unidades operativas, uso obligatorio de mesa o mesones según sea el caso, con mantel, para los elementos retenidos de poco tamaño, realizar las fotos en alta definición, realizar las fotos por separado de acuerdo al tamaño de los efectos retenidos según sea el caso y prohibido que aparezcan efectivos policiales en la fotos de los procedimientos realizados,",
             libros_novedades: "32. Verificar en los libros de novedades: la realización diaria de la izada y arreada de la bandera de venezuela en los ccp, estaciones policiales, la información impartida en las formaciones diarias con los funcionarios, el cumplimiento de las instrucciones sobre el mínimo personal requerido por comisión debe ser de seis (06) hombres, con un oficial jefe como jerarquía mínima (boleta de comisión), al mando, constatar que el personal policial tenga conocimiento que esta prohibido las persecuciones, salvo excepciones en casos de emergencias, y deberá estar bajo el criterio y conocimiento del jefe o jefa de la unidad, que el personal policial tome las medidas de seguridad durante el desempeño del servicio y/o comisión (uso de chaleco anti balas, armamento, pito y linterna).",
-            libro_actas_reuniones: "33. Verificar en el libro de reuniones las actas de reuniones de coordinación con los entes gubernamentales o empresas privadas.",
+            libro_actas_reuniones: "33. Verificar en el	libro de reuniones	las	actas	de	reuniones	de coordinación con los entes gubernamentales o empresas privadas.",
             libro_reuniones_personal: "34. Verificar el libro de reuniones con el personal policial y civil adscrito al ccp, con las planificaciones semanales realizadas por el jefe de cada servicios del CCP.",
             archivo_general_expedientes: "35. Verificación del archivo general.",
             libro_entrevistas_funcionarios: "36. verificar el libro de entrevistas del coordinador o coordinadora del ccp con los funcionarios de su jurisdicción.",
@@ -418,7 +333,7 @@
             equipos_control_incendios: "41. Verificar la existencia y operatividad de equipos de control de incendios, tales como extintores, cajón de arena, entre otros.",
             equipos_comunicacion: "42. Verificar la cantidad de equipos de comunicación pertenecientes al ccp y las condición de los mismos",
             plan_hospedaje_personal: "43. Verificar que el coordinador o coordinadora del ccp. tenga previsto un plan de hospedaje para el personal de apoyo y reemplazos.",
-            calidad_vida_personal: "44. Verificar la calidad de vida, alimentación, servicios básicos, habitabilidad, confort y bienestar del personal policial de la unidad inspeccionada.",
+            calidad_vida_personal: "44. Verificar	la	calidad	de	vida,	alimentación,	servicios	básicos, habitabilidad, confort y bienestar del personal policial de la unidad inspeccionada.",
             plan_visita_estaciones: "45. Verificar el plan de visita de inspección de todas las estaciones policiales de la jurisdicción del ccp inspeccionado. (verificar si las instalaciones policiales ubicados en lugares aislados o en arterias viales distantes ofrecen las condiciones de seguridad, correspondientes)",
             servicio_medico: "46. Verificar si existe una enfermería en el CCP.",
             unidad_recepcion_denuncias: "47. verificar la existencia de la unidad recepción de denuncias, quejas y reclamos recibidos en coordinación con los tribunales, fiscalía del ministerio público, defensoría del pueblo a nivel estadal y municipal y la comunidad",
@@ -436,143 +351,75 @@
             despliegues_policiales: "59. Supervisar el cumplimiento de los despliegues policiales emanados por la oficina de operaciones policiales y las actividades extraordinarias realizadas por el CCP.",
             supervision_personal_mando: "60. Constatar si hay mayor nivel de supervisión y control sobre el personal, para cumplir en todo momento el principio de mando y conducción de mantener informado a tu personal, sobre la situación actual.",
             planes_contra_trafico_ilicito: "61. Verificar los planes para contrarrestar el tráfico ilícito, distribución y comercialización de sustancias estupefacientes y psicotrópicas, alimentos de la cesta básica, materiales estratégicos, hidrocarburos, armamento y delitos comunes.",
-            conocimiento_lineamientos_derechos_humanos: "62. Constatar que el personal policial tenga conocimiento de los lineamientos de instrucción en materia de: derechos humanos, derecho internacional humanitario: armas letales, orden público, unidades tácticas policiales y los procedimiento con niños, niñas y adolescentes, igualdad y equidad de género.",
+            conocimiento_lineamientos_derechos_humanos: "62. Constatar	que	el	personal	policial	tenga	conocimiento	de	los lineamientos de instrucción en materia de: derechos humanos, derecho internacional humanitario: armas letales, orden público, unidades tácticas policiales y los procedimiento con niños, niñas y adolescentes, igualdad y equidad de género.",
             registro_actuaciones_cop: "63. Verificar el registro y control de las actuaciones positivas y negativas al personal en el centro de operaciones policiales (COP) del ccp, por cuadrante de paz.",
             rendicion_procedimientos_cop: "64. Verificar el cumplimiento de la rendición de los procedimiento ejecutados por los servicios policiales al centro de operación policial (cop) del ccp, para su consolidación y rendición a la región de su subscripción.",
             archivos_informes_rendicion: "65. Revisión de los archivos de los informes de rendición de cuenta de los procedimientos policiales.",
             informes_preliminares_actuacion: "66. Verificar la elaboración de los informes preliminares de actuación policial.",
             estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
-
         const todosLosItems = Object.keys(nombresItems);
         const ITEMS_POR_PAGINA = 15;
-
-        // === Variables para ambas pestañas ===
-        let chartInstanceEst = null;
-        let estadisticasTotalesEst = {};
+        let chartInstance = null;
+        let estadisticasTotales = {};
         let nombreEstacionActual = '';
-        let paginaActualEst = 1;
-        let totalPaginasEst = 1;
-
-        let chartInstanceServ = null;
-        let estadisticasTotalesServ = {};
-        let nombreServicioActual = '';
-        let paginaActualServ = 1;
-        let totalPaginasServ = 1;
-
-        // === Cargar listas al cambiar CCP ===
+        let paginaActual = 1;
+        let totalPaginas = 1;
+        // === Cargar estaciones al seleccionar CCP ===
         document.getElementById('ccpFilter').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpFilter').value;
             const estacionSelect = document.getElementById('estacionFilter');
-            const servicioSelect = document.getElementById('servicioFilter');
             estacionSelect.innerHTML = '<option value="">-- Seleccione una estación --</option>';
-            servicioSelect.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
             estacionSelect.disabled = !ccpId;
-            servicioSelect.disabled = !ccpId;
-
             if (!ccpId) return;
-
-            // Cargar estaciones
             try {
-                const {  estaciones, error: estError } = await supabase
+                // ✅ Usar 'estacion_id' y 'nombre_estacion' como en tu archivo original
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion')
+                    .select('estacion_id, nombre_estacion, ccp_id')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
-                if (estError) throw estError;
-                if (estaciones && estaciones.length > 0) {
-                    estaciones.forEach(est => {
-                        const opt = document.createElement('option');
-                        opt.value = est.estacion_id;
-                        opt.textContent = est.nombre_estacion;
-                        estacionSelect.appendChild(opt);
-                    });
-                } else {
+                if (error) throw error;
+                if (!estaciones || estaciones.length === 0) {
                     estacionSelect.innerHTML = '<option value="">No hay estaciones</option>';
-                }
-            } catch (err) {
-                console.error('Error al cargar estaciones:', err);
-                estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
-            }
-
-            // Cargar servicios
-            try {
-                const {  servicios, error: servError } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-                if (servError) throw servError;
-                if (servicios && servicios.length > 0) {
-                    servicios.forEach(serv => {
-                        const opt = document.createElement('option');
-                        opt.value = serv.id;
-                        opt.textContent = serv.nombre;
-                        servicioSelect.appendChild(opt);
-                    });
-                } else {
-                    servicioSelect.innerHTML = '<option value="">No hay servicios</option>';
-                }
-            } catch (err) {
-                console.error('Error al cargar servicios:', err);
-                servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
-            }
-        });
-
-        // === Eventos ===
-        document.getElementById('estacionFilter').addEventListener('change', async (e) => {
-            const estacionId = e.target.value;
-            if (estacionId) await cargarEstadisticas('estacion', estacionId);
-        });
-
-        document.getElementById('servicioFilter').addEventListener('change', async (e) => {
-            const servicioId = e.target.value;
-            if (servicioId) await cargarEstadisticas('servicio', servicioId);
-        });
-
-        // === Función genérica para cargar estadísticas ===
-        async function cargarEstadisticas(tipo, id) {
-            let nombre = '';
-            let container, mensajeCarga, mensajeSinDatos, statsHeader;
-            if (tipo === 'estacion') {
-                nombre = document.querySelector(`#estacionFilter option[value="${id}"]`).textContent;
-                nombreEstacionActual = nombre;
-                container = document.getElementById('resultadosEstadisticas');
-                mensajeCarga = document.getElementById('mensajeCargaEst');
-                mensajeSinDatos = document.getElementById('mensajeSinDatosEst');
-                statsHeader = document.getElementById('statsHeader');
-            } else {
-                nombre = document.querySelector(`#servicioFilter option[value="${id}"]`).textContent;
-                nombreServicioActual = nombre;
-                container = document.getElementById('resultadosServicios');
-                mensajeCarga = document.getElementById('mensajeCargaServ');
-                mensajeSinDatos = document.getElementById('mensajeSinDatosServ');
-                statsHeader = document.getElementById('statsHeaderServicio');
-            }
-
-            container.style.display = 'none';
-            mensajeCarga.style.display = 'block';
-            mensajeSinDatos.style.display = 'none';
-
-            try {
-                let query = supabase
-                    .from('inspecciones')
-                    .select('id');
-
-                if (tipo === 'estacion') {
-                    query = query.eq('estacion_id', id);
-                } else {
-                    query = query.eq('servicio_id', id);
-                }
-
-                const {  inspecciones, error: inspError } = await query;
-                if (inspError) throw inspError;
-                if (!inspecciones || inspecciones.length === 0) {
-                    mensajeCarga.style.display = 'none';
-                    mensajeSinDatos.style.display = 'block';
                     return;
                 }
-
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.estacion_id; // ✅ UUID
+                    opt.textContent = est.nombre_estacion; // ✅ Nombre legible
+                    estacionSelect.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error al cargar estaciones:', error);
+                alert('Error al cargar las estaciones');
+            }
+        });
+        document.getElementById('estacionFilter').addEventListener('change', async () => {
+            const estacionId = document.getElementById('estacionFilter').value;
+            if (!estacionId) return;
+            await cargarEstadisticas(estacionId);
+        });
+        // === Cargar y calcular estadísticas ===
+        async function cargarEstadisticas(estacionId) {
+            const estacionNombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
+            nombreEstacionActual = estacionNombre;
+            document.getElementById('seleccionContainer').style.display = 'none';
+            document.getElementById('resultadosContainer').style.display = 'none';
+            document.getElementById('mensajeCarga').style.display = 'block';
+            document.getElementById('mensajeSinDatos').style.display = 'none';
+            try {
+                // ✅ Filtrar por estacion_id (UUID)
+                const {  inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('id')
+                    .eq('estacion_id', estacionId);
+                if (inspError) throw inspError;
+                if (!inspecciones || inspecciones.length === 0) {
+                    document.getElementById('mensajeCarga').style.display = 'none';
+                    document.getElementById('mensajeSinDatos').style.display = 'block';
+                    return;
+                }
                 const idsInspecciones = inspecciones.map(i => i.id);
                 const {  items, error: itemsError } = await supabase
                     .from('items_inspeccion')
@@ -580,42 +427,34 @@
                     .in('inspeccion_id', idsInspecciones);
                 if (itemsError) throw itemsError;
                 if (!items || items.length === 0) {
-                    mensajeCarga.style.display = 'none';
-                    mensajeSinDatos.style.display = 'block';
+                    document.getElementById('mensajeCarga').style.display = 'none';
+                    document.getElementById('mensajeSinDatos').style.display = 'block';
                     return;
                 }
-
-                const estadisticas = calcularEstadisticas(items);
-                const totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
-
-                if (tipo === 'estacion') {
-                    estadisticasTotalesEst = estadisticas;
-                    totalPaginasEst = totalPaginas;
-                    paginaActualEst = 1;
-                    actualizarVista('estacion');
-                } else {
-                    estadisticasTotalesServ = estadisticas;
-                    totalPaginasServ = totalPaginas;
-                    paginaActualServ = 1;
-                    actualizarVista('servicio');
-                }
-
-                mensajeCarga.style.display = 'none';
-                container.style.display = 'block';
-                statsHeader.textContent = `Estadísticas para: ${nombre}`;
+                estadisticasTotales = calcularEstadisticas(items);
+                totalPaginas = Math.ceil(todosLosItems.length / ITEMS_POR_PAGINA);
+                paginaActual = 1;
+                actualizarVista();
+                document.getElementById('mensajeCarga').style.display = 'none';
+                document.getElementById('resultadosContainer').style.display = 'block';
             } catch (error) {
                 console.error('Error al cargar estadísticas:', error);
-                alert('Error al cargar los datos.');
+                document.getElementById('mensajeCarga').style.display = 'none';
+                document.getElementById('mensajeSinDatos').textContent = 'Error al cargar los datos.';
+                document.getElementById('mensajeSinDatos').style.display = 'block';
             }
         }
-
         function calcularEstadisticas(items) {
             const resultado = {};
-            todosLosItems.forEach(item => resultado[item] = 0);
+            todosLosItems.forEach(item => {
+                resultado[item] = 0;
+            });
             const agrupado = {};
             items.forEach(item => {
                 if (item.cumple === true) {
-                    if (!agrupado[item.item_nombre]) agrupado[item.item_nombre] = [];
+                    if (!agrupado[item.item_nombre]) {
+                        agrupado[item.item_nombre] = [];
+                    }
                     agrupado[item.item_nombre].push(parseFloat(item.porcentaje_cumplimiento) || 0);
                 }
             });
@@ -628,47 +467,31 @@
             });
             return resultado;
         }
-
-        function actualizarVista(tipo) {
-            let inicio, fin, itemsPagina, paginaActual, totalPaginas, estadisticasTotales;
-            if (tipo === 'estacion') {
-                paginaActual = paginaActualEst;
-                totalPaginas = totalPaginasEst;
-                estadisticasTotales = estadisticasTotalesEst;
-                inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-                fin = inicio + ITEMS_POR_PAGINA;
-                itemsPagina = todosLosItems.slice(inicio, fin);
-                renderizarGrafico(itemsPagina, 'estacion', estadisticasTotales);
-                renderizarTabla(itemsPagina, 'estacion', estadisticasTotales);
-                document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
-                document.getElementById('btnAnterior').disabled = paginaActual === 1;
-                document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
-            } else {
-                paginaActual = paginaActualServ;
-                totalPaginas = totalPaginasServ;
-                estadisticasTotales = estadisticasTotalesServ;
-                inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-                fin = inicio + ITEMS_POR_PAGINA;
-                itemsPagina = todosLosItems.slice(inicio, fin);
-                renderizarGrafico(itemsPagina, 'servicio', estadisticasTotales);
-                renderizarTabla(itemsPagina, 'servicio', estadisticasTotales);
-                document.getElementById('paginaActualServicio').textContent = `Página ${paginaActual}`;
-                document.getElementById('btnAnteriorServicio').disabled = paginaActual === 1;
-                document.getElementById('btnSiguienteServicio').disabled = paginaActual === totalPaginas;
-            }
+        // === Actualizar vista ===
+        function actualizarVista() {
+            const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+            const fin = inicio + ITEMS_POR_PAGINA;
+            const itemsPagina = todosLosItems.slice(inicio, fin);
+            renderizarGrafico(itemsPagina);
+            renderizarTabla(itemsPagina);
+            document.getElementById('paginaActual').textContent = `Página ${paginaActual}`;
+            document.getElementById('btnAnterior').disabled = paginaActual === 1;
+            document.getElementById('btnSiguiente').disabled = paginaActual === totalPaginas;
         }
-
-        function renderizarGrafico(itemsPagina, tipo, estadisticasTotales) {
-            const canvasId = tipo === 'estacion' ? 'cumplimientoChart' : 'cumplimientoChartServicio';
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            const chartInstance = tipo === 'estacion' ? chartInstanceEst : chartInstanceServ;
-            if (chartInstance) chartInstance.destroy();
-
-            const labels = itemsPagina.map(k => nombresItems[k].split('.')[0]);
+        function renderizarGrafico(itemsPagina) {
+            const ctx = document.getElementById('cumplimientoChart').getContext('2d');
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            const labels = itemsPagina.map(k => {
+                const texto = nombresItems[k];
+                const num = texto.split('.')[0];
+                return num;
+            });
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
-            const newChart = new Chart(ctx, {
+            chartInstance = new Chart(ctx, {
                 type: 'bar',
-                 {
+                data: {  // ✅ CORREGIDO: se añade "data:"
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento Promedio',
@@ -676,7 +499,8 @@
                         backgroundColor: 'rgba(49, 130, 206, 0.8)',
                         borderColor: 'rgba(49, 130, 206, 1)',
                         borderWidth: 1,
-                        borderRadius: 6
+                        borderRadius: 6,
+                        borderSkipped: false
                     }]
                 },
                 options: {
@@ -684,34 +508,52 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'top' }
+                        legend: { 
+                            position: 'top',
+                            labels: { font: { size: 13 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const idx = (paginaActual - 1) * ITEMS_POR_PAGINA + context.dataIndex;
+                                    const nombreCompleto = nombresItems[todosLosItems[idx]];
+                                    return `${nombreCompleto}: ${context.parsed.x}%`;
+                                }
+                            }
+                        }
                     },
                     scales: {
-                        x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
-                        y: { grid: { display: false } }
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: value => value + '%',
+                                font: { size: 12 }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            ticks: { font: { size: 12 } },
+                            grid: { display: false }
+                        }
                     }
                 }
             });
-
-            if (tipo === 'estacion') {
-                chartInstanceEst = newChart;
-            } else {
-                chartInstanceServ = newChart;
-            }
+            document.getElementById('statsHeader').textContent = 
+                `Estadísticas para: ${nombreEstacionActual} (Ítems ${(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–${Math.min(paginaActual * ITEMS_POR_PAGINA, todosLosItems.length)} de ${todosLosItems.length})`;
         }
-
-        function renderizarTabla(itemsPagina, tipo, estadisticasTotales) {
-            const tbodyId = tipo === 'estacion' ? 'tablaItems' : 'tablaItemsServicio';
-            const filtroId = tipo === 'estacion' ? 'filtroItems' : 'filtroItemsServicio';
-            const tbody = document.getElementById(tbodyId);
-            const filtro = document.getElementById(filtroId).value.toLowerCase();
+        function renderizarTabla(itemsPagina) {
+            const tbody = document.getElementById('tablaItems');
+            const filtro = document.getElementById('filtroItems').value.toLowerCase();
             tbody.innerHTML = '';
             itemsPagina.forEach(key => {
                 const nombre = nombresItems[key];
                 const porcentaje = estadisticasTotales[key] || 0;
                 if (nombre.toLowerCase().includes(filtro)) {
                     const tr = document.createElement('tr');
-                    let clase = porcentaje >= 80 ? 'alto' : porcentaje >= 50 ? 'medio' : 'bajo';
+                    let clase = 'alto';
+                    if (porcentaje < 50) clase = 'bajo';
+                    else if (porcentaje < 80) clase = 'medio';
                     tr.innerHTML = `
                         <td>${nombre}</td>
                         <td class="porcentaje-valor ${clase}">${porcentaje}%</td>
@@ -720,45 +562,41 @@
                 }
             });
         }
-
-        // === Paginación ===
+        // === Paginación y filtro ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
-            if (paginaActualEst > 1) {
-                paginaActualEst--;
-                actualizarVista('estacion');
+            if (paginaActual > 1) {
+                paginaActual--;
+                actualizarVista();
             }
         });
         document.getElementById('btnSiguiente').addEventListener('click', () => {
-            if (paginaActualEst < totalPaginasEst) {
-                paginaActualEst++;
-                actualizarVista('estacion');
+            if (paginaActual < totalPaginas) {
+                paginaActual++;
+                actualizarVista();
             }
         });
         document.getElementById('filtroItems').addEventListener('input', () => {
-            const inicio = (paginaActualEst - 1) * ITEMS_POR_PAGINA;
+            const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
             const itemsPagina = todosLosItems.slice(inicio, fin);
-            renderizarTabla(itemsPagina, 'estacion', estadisticasTotalesEst);
+            renderizarTabla(itemsPagina);
         });
-
-        document.getElementById('btnAnteriorServicio').addEventListener('click', () => {
-            if (paginaActualServ > 1) {
-                paginaActualServ--;
-                actualizarVista('servicio');
+        function volverASeleccion() {
+            document.getElementById('seleccionContainer').style.display = 'block';
+            document.getElementById('resultadosContainer').style.display = 'none';
+            document.getElementById('mensajeCarga').style.display = 'none';
+            document.getElementById('mensajeSinDatos').style.display = 'none';
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
             }
-        });
-        document.getElementById('btnSiguienteServicio').addEventListener('click', () => {
-            if (paginaActualServ < totalPaginasServ) {
-                paginaActualServ++;
-                actualizarVista('servicio');
-            }
-        });
-        document.getElementById('filtroItemsServicio').addEventListener('input', () => {
-            const inicio = (paginaActualServ - 1) * ITEMS_POR_PAGINA;
-            const fin = inicio + ITEMS_POR_PAGINA;
-            const itemsPagina = todosLosItems.slice(inicio, fin);
-            renderizarTabla(itemsPagina, 'servicio', estadisticasTotalesServ);
-        });
+            document.getElementById('tablaItems').innerHTML = '';
+            document.getElementById('statsHeader').textContent = '';
+            document.getElementById('filtroItems').value = '';
+        }
+        async function exportarEstadisticasAPDF() {
+            alert('Exportación a PDF no implementada en esta versión mejorada.\nPuedes usar la función de impresión del navegador (Ctrl+P).');
+        }
     </script>
 </body>
 </html>
