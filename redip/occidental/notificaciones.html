@@ -378,25 +378,25 @@
                     container.innerHTML = '<div class="no-data">⚠️ No hay CCPs asignados a OCCIDENTAL.</div>';
                     return;
                 }
+const {  estaciones, error: estError } = await supabase
+    .from('estaciones_policiales')
+    .select('estacion_id, nombre_estacion, ccp_id')
+    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+if (estError) throw estError;
+estacionesGlobales = estaciones || [];
 
-                // ✅ CORREGIDO: desestructuración y formato de UUIDs
-                const {  estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion, ccp_id')
-                    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
-                if (estError) throw estError;
-                estacionesGlobales = estaciones || [];
+// Servicios
+const {  servicios, error: servError } = await supabase
+    .from('servicios_administrativos')
+    .select('id, nombre, ccp_id')
+    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+if (servError) throw servError;
+serviciosGlobales = servicios || [];
 
-                const {  servicios, error: servError } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre, ccp_id')
-                    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
-                if (servError) throw servError;
-                serviciosGlobales = servicios || [];
-
-                const estacionIds = new Set(estaciones.map(e => e.estacion_id));
-                const servicioIds = new Set(servicios.map(s => s.id));
-
+// Ahora sí es seguro usar .map()
+const estacionIds = new Set(estacionesGlobales.map(e => e.estacion_id));
+const servicioIds = new Set(serviciosGlobales.map(s => s.id));
+                
                 if (estacionIds.size === 0 && servicioIds.size === 0) {
                     container.innerHTML = '<div class="no-data">⚠️ No hay unidades asociadas a OCCIDENTAL.</div>';
                     return;
