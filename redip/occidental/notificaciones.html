@@ -284,7 +284,6 @@
                 window.location.href = '../../index.html';
                 return false;
             }
-            // ✅ Permitir acceso si es 'occidental' O 'admin'
             if (data.redip !== 'occidental' && data.redip !== 'admin') {
                 alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
                 window.location.href = '../../index.html';
@@ -293,7 +292,7 @@
             return true;
         }
 
-        // === FUNCIONES PRINCIPALES DE LA PÁGINA ===
+        // === FUNCIONES PRINCIPALES ===
         async function obtenerCcpOcidental() {
             const { data, error } = await supabase
                 .from('ccps')
@@ -363,6 +362,7 @@
                 let nombreUnidad = 'Unidad desconocida';
                 let ccpId = '';
                 let tipoLabel = '❓ Unidad desconocida';
+
                 if (insp.estacion_id) {
                     const estacion = estacionesGlobales.find(e => e.estacion_id === insp.estacion_id);
                     if (estacion) {
@@ -371,6 +371,7 @@
                         tipoLabel = '👮 Estación Policial';
                     }
                 }
+
                 if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
                     const servicio = serviciosGlobales.find(s => s.id === insp.servicio_id);
                     if (servicio) {
@@ -379,6 +380,7 @@
                         tipoLabel = '📋 Servicio Administrativo';
                     }
                 }
+
                 const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
                 html += `
                     <div class="alerta-card">
@@ -400,6 +402,7 @@
             });
             html += '</div>';
             container.innerHTML = html;
+
             const totalPaginas = Math.ceil(todasInspecciones.length / itemsPorPagina);
             let paginacionHTML = '';
             for (let i = 1; i <= totalPaginas; i++) {
@@ -408,55 +411,70 @@
             document.getElementById('paginationContainer').innerHTML = paginacionHTML;
         }
 
-       async function cargarNotificaciones() {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const hoyStr = hoy.toISOString().split('T')[0];
-    const container = document.getElementById('alertasContainer');
+        async function cargarNotificaciones() {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const hoyStr = hoy.toISOString().split('T')[0];
+            const container = document.getElementById('alertasContainer');
 
-    try {
-        await cargarNombresCcp();
-        const ccpOcidental = await obtenerCcpOcidental();
+            try {
+                await cargarNombresCcp();
+                const ccpOcidental = await obtenerCcpOcidental();
 
-        // Cargar estaciones y servicios de OCCIDENTAL
-        const { data: estaciones, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('estacion_id, nombre_estacion, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (estError) throw estError;
-        estacionesGlobales = estaciones;
+                // Si no hay CCPs de OCCIDENTAL, salir
+                if (ccpOcidental.length === 0) {
+                    todasInspecciones = [];
+                    renderizarPagina(1);
+                    return;
+                }
 
-        const { data: servicios, error: servError } = await supabase
-            .from('servicios_administrativos')
-            .select('id, nombre, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (servError) throw servError;
-        serviciosGlobales = servicios;
+                const { data: estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('estacion_id, nombre_estacion, ccp_id')
+                    .in('ccp_id', ccpOcidental);
+                if (estError) throw estError;
+                estacionesGlobales = estaciones;
 
-        // Extraer IDs de unidades OCCIDENTALES
-        const estacionIds = estaciones.map(e => e.estacion_id);
-        const servicioIds = servicios.map(s => s.id);
+                const { data: servicios, error: servError } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre, ccp_id')
+                    .in('ccp_id', ccpOcidental);
+                if (servError) throw servError;
+                serviciosGlobales = servicios;
 
-        // Cargar solo inspecciones que pertenezcan a esas unidades
-        const { data: inspecciones, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('*')
-            .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
-            .or(
-                `estacion_id.in.(${estacionIds.join(',')}),` +
-                `servicio_id.in.(${servicioIds.join(',')})`
-            )
-            .order('proxima_inspeccion', { ascending: true });
+                // Extraer IDs
+                const estacionIds = estaciones.map(e => e.estacion_id);
+                const servicioIds = servicios.map(s => s.id);
 
-        if (inspError) throw inspError;
-        todasInspecciones = inspecciones || [];
-        renderizarPagina(1);
-    } catch (error) {
-        console.error('Error al cargar notificaciones:', error);
-        container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
-        document.getElementById('paginationContainer').innerHTML = '';
-    }
-}
+                let inspecciones = [];
+                // Solo si hay unidades, filtramos por ellas
+                if (estacionIds.length > 0 || servicioIds.length > 0) {
+                    const condiciones = [];
+                    if (estacionIds.length > 0) {
+                        condiciones.push(`estacion_id.in.(${estacionIds.join(',')})`);
+                    }
+                    if (servicioIds.length > 0) {
+                        condiciones.push(`servicio_id.in.(${servicioIds.join(',')})`);
+                    }
+                    const { data, error: inspError } = await supabase
+                        .from('inspecciones')
+                        .select('*')
+                        .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+                        .or(condiciones.join(','))
+                        .order('proxima_inspeccion', { ascending: true });
+                    if (inspError) throw inspError;
+                    inspecciones = data || [];
+                }
+
+                todasInspecciones = inspecciones;
+                renderizarPagina(1);
+            } catch (error) {
+                console.error('Error al cargar notificaciones:', error);
+                container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
+                document.getElementById('paginationContainer').innerHTML = '';
+            }
+        }
+
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
