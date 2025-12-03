@@ -204,6 +204,8 @@
 
         let redipUsuario = null;
         let esAdmin = false;
+
+        // Mapeo de CCP a REDIP (basado en ccps_rows.csv)
         const CCP_REDIS_MAP = {
             ccp_altos_mirandinos: 'capital',
             ccp_barlovento: 'capital',
@@ -219,11 +221,11 @@
             sur_del_lago: 'occidental'
         };
 
-        // === VERIFICAR ACCESO ===
+        // Función para verificar el acceso del usuario
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                alert('Debe iniciar sesión para acceder.');
+                // Si no hay sesión, redirigir al login
                 window.location.href = 'index.html';
                 return false;
             }
@@ -234,27 +236,28 @@
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
+
                 if (error || !data) {
-                    alert('No tiene permisos asignados. Contacte al administrador.');
-                    window.location.href = 'index.html';
-                    return false;
+                    throw new Error('Error al obtener REDIP del usuario');
                 }
 
                 redipUsuario = data.redip;
-                esAdmin = (redipUsuario === 'admin');
+                esAdmin = redipUsuario === 'admin';
+
                 return true;
+
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
-                alert('Error de autenticación.');
+                alert('⚠️ Error de autenticación. Redirigiendo...');
                 window.location.href = 'index.html';
                 return false;
             }
         }
 
-        // === CARGAR CCPs permitidos ===
+        // Función para cargar las opciones de CCP según el rol del usuario
         function cargarOpcionesCCP() {
             const select = document.getElementById('ccpSelect');
-            select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+            select.innerHTML = '<option value="">-- Seleccione un CCP --</option>';
 
             if (esAdmin) {
                 // Admin ve todos
@@ -264,7 +267,13 @@
                     { value: 'guajira', text: 'CCP GUAJIRA' },
                     { value: 'costa_oriental', text: 'CCPE COSTA ORIENTAL DEL LAGO' },
                     { value: 'lara', text: 'CCPE LARA' },
-                    { value: 'falcon', text: 'CCPE FALCÓN' }
+                    { value: 'falcon', text: 'CCPE FALCÓN' },
+                    { value: 'ccp_altos_mirandinos', text: 'CCP ALTOS MIRANDINOS' },
+                    { value: 'ccp_barlovento', text: 'CCP BARLOVENTO' },
+                    { value: 'ccp_distrito_capital', text: 'CCP DISTRITO CAPITAL' },
+                    { value: 'ccp_la_guaira', text: 'CCP LA GUAIRA' },
+                    { value: 'ccp_miranda_ciudad_fajardo', text: 'CCP MIRANDA / CIUDAD FAJARDO' },
+                    { value: 'ccp_valles_del_tuy', text: 'CCP VALLES DEL TUY' }
                 ];
                 opciones.forEach(op => {
                     const opt = document.createElement('option');
@@ -280,8 +289,10 @@
                     ccpDisponibles = ['metropolitano', 'sur_del_lago', 'guajira', 'costa_oriental', 'lara', 'falcon'];
                 } else if (redipUsuario === 'capital') {
                     ccpDisponibles = ['ccp_altos_mirandinos', 'ccp_barlovento', 'ccp_distrito_capital', 'ccp_la_guaira', 'ccp_miranda_ciudad_fajardo', 'ccp_valles_del_tuy'];
+                } else {
+                    // Para otras REDIPs, podrías agregar más aquí
+                    ccpDisponibles = [];
                 }
-                // Aquí puedes agregar otras REDIPs si las usas
 
                 const nombresCCP = {
                     'metropolitano': 'CCP METROPOLITANO',
@@ -443,7 +454,6 @@
 
         document.getElementById('btnCargarGaleria').addEventListener('click', () => {
             const ccpSelect = document.getElementById('ccpSelect');
-            const ccpId = ccpSelect.value;
             const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
             let entidadId = '', entidadNombre = '';
 
