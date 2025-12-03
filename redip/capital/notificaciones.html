@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notificaciones - REDIP CAPITAL</title>
+    <title>Notificaciones - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
@@ -237,11 +237,11 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP CAPITAL</h1>
+            <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP OCCIDENTAL</h1>
         </div>
         <div class="header-row">
-            <button class="back-btn" onclick="window.location.href='../capital/index.html'">
-                ← Volver a REDIP CAPITAL
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← Volver a REDIP OCCIDENTAL
             </button>
             <div class="reloj" id="reloj"></div>
         </div>
@@ -266,8 +266,8 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // --- VALIDACIÓN DE ACCESO: REDIP CAPITAL o ADMIN (compatible con Supabase v2) ---
-        async function verificarAccesoCapitalOAdmin() {
+        // --- VALIDACIÓN DE ACCESO: OCCIDENTAL o ADMIN (Supabase v2 compatible) ---
+        async function verificarAccesoOcidentalOAdmin() {
             const {  { session }, error: authError } = await supabase.auth.getSession();
             if (authError || !session || !session.user) {
                 alert('🔒 Acceso restringido. Debe iniciar sesión.');
@@ -288,23 +288,23 @@
                 return false;
             }
 
-            if (data.redip === 'capital' || data.redip === 'admin') {
+            if (data.redip === 'occidental' || data.redip === 'admin') {
                 return true;
             } else {
-                alert('🚫 Acceso denegado. Solo usuarios de REDIP CAPITAL o administradores pueden ver esta página.');
+                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden ver esta página.');
                 window.location.href = '../../index.html';
                 return false;
             }
         }
 
         // === FUNCIONES PRINCIPALES DE LA PÁGINA ===
-        async function obtenerCcpCapital() {
+        async function obtenerCcpOcidental() {
             const { data, error } = await supabase
                 .from('ccps')
                 .select('ccp_id')
-                .eq('redip', 'capital');
+                .eq('redip', 'occidental');
             if (error) {
-                console.error('Error al cargar CCPs de CAPITAL:', error);
+                console.error('Error al cargar CCPs de OCCIDENTAL:', error);
                 return [];
             }
             return data.map(row => row.ccp_id);
@@ -354,7 +354,7 @@
             const inspeccionesPagina = todasInspecciones.slice(inicio, fin);
             const container = document.getElementById('alertasContainer');
             if (inspeccionesPagina.length === 0) {
-                container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP CAPITAL.</div>';
+                container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
                 document.getElementById('paginationContainer').innerHTML = '';
                 return;
             }
@@ -420,19 +420,19 @@
             const container = document.getElementById('alertasContainer');
             try {
                 await cargarNombresCcp();
-                const ccpCapital = await obtenerCcpCapital();
+                const ccpOcidental = await obtenerCcpOcidental();
 
                 const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
-                    .in('ccp_id', ccpCapital);
+                    .in('ccp_id', ccpOcidental);
                 if (estError) throw estError;
                 estacionesGlobales = estaciones;
 
                 const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
-                    .in('ccp_id', ccpCapital);
+                    .in('ccp_id', ccpOcidental);
                 if (servError) throw servError;
                 serviciosGlobales = servicios;
 
@@ -485,7 +485,7 @@
 
         // --- EJECUCIÓN PRINCIPAL ---
         async function iniciar() {
-            const permitido = await verificarAccesoCapitalOAdmin();
+            const permitido = await verificarAccesoOcidentalOAdmin();
             if (permitido) {
                 setInterval(actualizarReloj, 1000);
                 actualizarReloj();
