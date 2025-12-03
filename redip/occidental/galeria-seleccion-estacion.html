@@ -3,59 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seleccionar para Galería - REDIP OCCIDENTAL</title>
+    <title>Seleccionar Estación - Galería</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        body {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
+        * {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
         }
-        .vector-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 0;
-        }
-        .vector-circle, .vector-line {
-            position: absolute;
-            background: rgba(255,255,255,0.05);
-            border-radius: 50%;
-        }
-        .vector-circle:nth-child(1) { width: 300px; height: 300px; top: -100px; right: -100px; }
-        .vector-circle:nth-child(2) { width: 200px; height: 200px; bottom: -50px; left: -50px; }
-        .vector-circle:nth-child(3) { width: 150px; height: 150px; top: 20%; left: 10%; }
-        .vector-circle:nth-child(4) { width: 250px; height: 250px; bottom: 10%; right: 15%; }
-        .vector-line {
-            width: 400px;
-            height: 3px;
-            transform: rotate(30deg);
-            top: 30%;
-            right: -100px;
-        }
-        .vector-line:nth-of-type(2) {
-            width: 300px;
-            height: 3px;
-            transform: rotate(-20deg);
-            top: 60%;
-            left: -100px;
+        body {
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
         }
         .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            width: 100%;
             max-width: 600px;
-            padding: 50px;
+            padding: 40px;
             position: relative;
             overflow: hidden;
             z-index: 10;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            margin: 40px auto;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .container::before {
             content: '';
@@ -64,7 +42,7 @@
             left: 0;
             right: 0;
             height: 8px;
-            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         .logo-container {
             text-align: center;
@@ -75,83 +53,53 @@
             height: 100px;
             object-fit: contain;
             margin: 0 auto 15px;
+            display: block;
         }
         .title {
-            color: #0c2440;
-            font-size: 22px;
-            font-weight: bold;
             text-align: center;
-        }
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .tab-btn {
-            padding: 12px 24px;
-            border: none;
-            background: none;
-            font-size: 16px;
-            font-weight: 600;
-            color: #4a5568;
-            cursor: pointer;
-            position: relative;
-        }
-        .tab-btn.active {
-            color: #2c5282;
-        }
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #2c5282;
-            border-radius: 2px;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
+            color: #0c2440;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 25px;
         }
         .input-group {
-            margin: 20px 0;
+            flex: 1;
+            min-width: 300px;
         }
         .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
+            font-size: 14px;
             color: #2d3748;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 600;
         }
         .input-group select {
             width: 100%;
-            padding: 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            background: white;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            font-size: 15px;
+            background-color: white;
+            font-weight: 500;
         }
         .action-btn, .back-btn {
             padding: 14px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 16px;
             cursor: pointer;
             font-weight: bold;
             width: 100%;
             text-align: center;
+            margin-top: 20px;
         }
         .action-btn {
             background: linear-gradient(135deg, #0c2440, #1a365d);
             color: white;
-            margin-top: 25px;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282, #1a365d);
             color: white;
-            margin-top: 15px;
         }
         .action-btn:disabled, .back-btn:disabled {
             opacity: 0.6;
@@ -160,31 +108,15 @@
     </style>
 </head>
 <body>
-    <div class="vector-bg">
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-line"></div>
-        <div class="vector-line"></div>
-    </div>
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Seleccionar para Galería - REDIP OCCIDENTAL</h1>
+            <h1 class="title">Seleccionar Estación para Galería</h1>
         </div>
-
-        <!-- Pestañas -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="estaciones">📍 Estación Policial</button>
-            <button class="tab-btn" data-tab="servicios">🏢 Servicio Administrativo</button>
-        </div>
-
-        <!-- Contenido: Estaciones -->
-        <div id="estaciones-content" class="tab-content active">
+        <div id="content">
             <div class="input-group">
-                <label for="ccpSelectEst">Seleccione CCP:</label>
-                <select id="ccpSelectEst">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect">
                     <option value="">-- Elija un CCP --</option>
                     <option value="metropolitano">CCP METROPOLITANO</option>
                     <option value="sur_del_lago">CCP SUR DEL LAGO</option>
@@ -200,84 +132,72 @@
                     <option value="">-- Primero seleccione un CCP --</option>
                 </select>
             </div>
-            <button id="btnCargarGaleriaEst" class="action-btn" disabled>
+            <button id="btnCargarGaleria" class="action-btn" disabled>
                 🖼️ Cargar Galería de Inspección
             </button>
-        </div>
-
-        <!-- Contenido: Servicios -->
-        <div id="servicios-content" class="tab-content">
-            <div class="input-group">
-                <label for="ccpSelectServ">Seleccione CCP:</label>
-                <select id="ccpSelectServ">
-                    <option value="">-- Elija un CCP --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="servicioSelect">Seleccione Servicio Administrativo:</label>
-                <select id="servicioSelect" disabled>
-                    <option value="">-- Primero seleccione un CCP --</option>
-                </select>
-            </div>
-            <button id="btnCargarGaleriaServ" class="action-btn" disabled>
-                🖼️ Cargar Galería de Inspección
+            <button id="btnVolver" class="back-btn">
+                ← Volver al Menú
             </button>
         </div>
-
-        <button id="btnVolver" class="back-btn">
-            ← Volver al Menú
-        </button>
     </div>
-
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === Pestañas ===
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                const tabId = btn.getAttribute('data-tab');
-                document.getElementById(tabId + '-content').classList.add('active');
-            });
-        });
+        // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
+        async function verificarAcceso() {
+            const {  { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden acceder.');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Redirigiendo...');
+                window.location.href = 'index.html';
+                return false;
+            }
+        }
 
-        // === Cargar estaciones ===
-        document.getElementById('ccpSelectEst').addEventListener('change', async () => {
-            const ccpId = document.getElementById('ccpSelectEst').value;
+        // === CARGAR ESTACIONES ===
+        document.getElementById('ccpSelect').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpSelect').value;
             const estacionSelect = document.getElementById('estacionSelect');
+            const btnCargar = document.getElementById('btnCargarGaleria');
             estacionSelect.disabled = true;
             estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
-            document.getElementById('btnCargarGaleriaEst').disabled = true;
+            btnCargar.disabled = true;
             if (!ccpId) {
                 estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
                 return;
             }
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
                 if (error) throw error;
                 estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
-                if (estaciones && estaciones.length > 0) {
-                    estaciones.forEach(est => {
-                        const opt = document.createElement('option');
-                        opt.value = est.estacion_id;
-                        opt.textContent = est.nombre_estacion;
-                        estacionSelect.appendChild(opt);
-                    });
-                }
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.estacion_id;
+                    opt.textContent = est.nombre_estacion;
+                    estacionSelect.appendChild(opt);
+                });
                 estacionSelect.disabled = false;
             } catch (err) {
                 console.error('Error al cargar estaciones:', err);
@@ -287,11 +207,12 @@
         });
 
         document.getElementById('estacionSelect').addEventListener('change', () => {
-            document.getElementById('btnCargarGaleriaEst').disabled = !document.getElementById('estacionSelect').value;
+            const estacionId = document.getElementById('estacionSelect').value;
+            document.getElementById('btnCargarGaleria').disabled = !estacionId;
         });
 
-        document.getElementById('btnCargarGaleriaEst').addEventListener('click', () => {
-            const ccpSelect = document.getElementById('ccpSelectEst');
+        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
+            const ccpSelect = document.getElementById('ccpSelect');
             const estacionSelect = document.getElementById('estacionSelect');
             const ccpId = ccpSelect.value;
             const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
@@ -301,67 +222,15 @@
                 alert('Seleccione una estación válida.');
                 return;
             }
-            const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
-            window.location.href = url;
-        });
-
-        // === Cargar servicios ===
-        document.getElementById('ccpSelectServ').addEventListener('change', async () => {
-            const ccpId = document.getElementById('ccpSelectServ').value;
-            const servicioSelect = document.getElementById('servicioSelect');
-            servicioSelect.disabled = true;
-            servicioSelect.innerHTML = '<option value="">-- Cargando... --</option>';
-            document.getElementById('btnCargarGaleriaServ').disabled = true;
-            if (!ccpId) {
-                servicioSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
-                return;
-            }
-            try {
-                const { data: servicios, error } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-                if (error) throw error;
-                servicioSelect.innerHTML = '<option value="">-- Elija un servicio --</option>';
-                if (servicios && servicios.length > 0) {
-                    servicios.forEach(serv => {
-                        const opt = document.createElement('option');
-                        opt.value = serv.id;
-                        opt.textContent = serv.nombre;
-                        servicioSelect.appendChild(opt);
-                    });
-                }
-                servicioSelect.disabled = false;
-            } catch (err) {
-                console.error('Error al cargar servicios:', err);
-                servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
-                alert('No se pudieron cargar los servicios administrativos.');
-            }
-        });
-
-        document.getElementById('servicioSelect').addEventListener('change', () => {
-            document.getElementById('btnCargarGaleriaServ').disabled = !document.getElementById('servicioSelect').value;
-        });
-
-        document.getElementById('btnCargarGaleriaServ').addEventListener('click', () => {
-            const ccpSelect = document.getElementById('ccpSelectServ');
-            const servicioSelect = document.getElementById('servicioSelect');
-            const ccpId = ccpSelect.value;
-            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
-            const servicioId = servicioSelect.value;
-            const servicioNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
-            if (!ccpId || !servicioId) {
-                alert('Seleccione un servicio válido.');
-                return;
-            }
-            const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}`;
-            window.location.href = url;
+            window.location.href = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
         });
 
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
+
+        // === INICIAR CON VERIFICACIÓN ===
+        verificarAcceso();
     </script>
 </body>
 </html>
