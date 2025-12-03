@@ -155,41 +155,30 @@
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Seleccionar para Galería</h1>
         </div>
-
         <button class="back-btn" id="btnVolverPanel">
             ← Volver al Panel Principal
         </button>
-
         <div class="filtro-container">
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
                 <select id="ccpSelect">
                     <option value="">-- Elija un CCP --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
                 </select>
             </div>
-
             <!-- PESTAÑAS -->
             <div class="tabs">
                 <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
                 <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
             </div>
-
-            <!-- CONTENEDOR DINÁMICO PARA EL SELECTOR -->
+            <!-- CONTENEDOR DINÁMICO -->
             <div id="selectorDinamico">
                 <div class="input-group">
                     <label for="estacionSelect">Seleccione Estación:</label>
                     <select id="estacionSelect" disabled>
-                        <option value="">-- Primero seleccione un CCP --</option>
+                        <option value="">-- Seleccione un CCP primero --</option>
                     </select>
                 </div>
             </div>
-
             <button id="btnCargarGaleria" class="action-btn" disabled>
                 🖼️ Cargar Galería de Inspección
             </button>
@@ -201,23 +190,81 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Variable para saber qué tipo de entidad se está seleccionando
-        let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
+        let tipoEntidad = 'estacion';
+        let redipUsuario = null;
+        let esAdmin = false;
 
-        // === FUNCIONES DE CARGA ===
+        // === 1. Verificar acceso ===
+        async function verificarAcceso() {
+            const {  { session } } = await supabase.auth.getSession();
+            if (!session?.user) {
+                alert('Debe iniciar sesión para acceder.');
+                window.location.href = 'login.html';
+                return false;
+            }
 
+            const userId = session.user.id;
+            const {  usuario, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', userId)
+                .single();
+
+            if (error) {
+                console.error('Error al obtener perfil:', error);
+                alert('No se pudo verificar su perfil. Contacte al administrador.');
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            if (usuario.redip === 'admin') {
+                esAdmin = true;
+                redipUsuario = null;
+            } else {
+                esAdmin = false;
+                redipUsuario = usuario.redip;
+            }
+            return true;
+        }
+
+        // === 2. Cargar CCPs permitidos ===
+        async function cargarCCPs() {
+            const select = document.getElementById('ccpSelect');
+            try {
+                const {  ccps, error } = await supabase
+                    .from('ccps')
+                    .select('ccp_id, nombre_ccp, redip');
+
+                if (error) throw error;
+
+                // Filtrar si no es admin
+                const listaFiltrada = esAdmin ? ccps : ccps.filter(c => c.redip === redipUsuario);
+
+                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+                listaFiltrada.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.ccp_id;
+                    opt.textContent = c.nombre_ccp;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Error al cargar CCPs:', err);
+                alert('No se pudieron cargar los CCPs.');
+            }
+        }
+
+        // === Funciones de carga ===
         async function cargarEstaciones(ccpId) {
             const select = document.getElementById('estacionSelect');
             try {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
                 if (error) throw error;
                 select.innerHTML = '<option value="">-- Seleccione una estación --</option>';
-                if (!estaciones || estaciones.length === 0) return;
-                estaciones.forEach(est => {
+                estaciones?.forEach(est => {
                     const opt = document.createElement('option');
                     opt.value = est.estacion_id;
                     opt.textContent = est.nombre_estacion;
@@ -230,50 +277,43 @@
             }
         }
 
-      async function cargarServicios(ccpId) {
-    const select = document.getElementById('servicioSelect');
-    try {
-        const { data: servicios, error } = await supabase
-            .from('servicios_administrativos')
-            .select('id, nombre')                 // ✅ Nombre real de las columnas
-            .eq('ccp_id', ccpId)
-            .order('nombre', { ascending: true });
-        if (error) throw error;
+        async function cargarServicios(ccpId) {
+            const select = document.getElementById('servicioSelect');
+            try {
+                const {  servicios, error } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
+                servicios?.forEach(serv => {
+                    const opt = document.createElement('option');
+                    opt.value = serv.id;
+                    opt.textContent = serv.nombre;
+                    select.appendChild(opt);
+                });
+                select.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar servicios:', err);
+                alert('No se pudieron cargar los servicios.');
+            }
+        }
 
-        select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
-        if (!servicios || servicios.length === 0) return;
-
-        servicios.forEach(serv => {
-            const opt = document.createElement('option');
-            opt.value = serv.id;                  // ✅
-            opt.textContent = serv.nombre;        // ✅
-            select.appendChild(opt);
-        });
-        select.disabled = false;
-    } catch (err) {
-        console.error('Error al cargar servicios:', err);
-        alert('No se pudieron cargar los servicios.');
-    }
-}
-
-        // === EVENTOS ===
-
-        // Evento de cambio del CCP
+        // === Eventos ===
         document.getElementById('ccpSelect').addEventListener('change', async () => {
-            const ccpId = document.getElementById('ccpSelect').value;
+            const ccpId = this.value;
             if (!ccpId) {
                 document.getElementById('selectorDinamico').innerHTML = `
                     <div class="input-group">
                         <label for="estacionSelect">Seleccione Estación:</label>
                         <select id="estacionSelect" disabled>
-                            <option value="">-- Primero seleccione un CCP --</option>
+                            <option value="">-- Seleccione un CCP primero --</option>
                         </select>
-                    </div>
-                `;
+                    </div>`;
                 return;
             }
 
-            // Recargar lista según la pestaña activa
             if (tipoEntidad === 'estacion') {
                 await cargarEstaciones(ccpId);
             } else {
@@ -281,87 +321,58 @@
             }
         });
 
-        // Evento de clic en las pestañas
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 tipoEntidad = btn.dataset.tab === 'estaciones' ? 'estacion' : 'servicio';
 
-                // Actualizar el contenido del selector dinámico
                 const selectorDiv = document.getElementById('selectorDinamico');
+                const ccpId = document.getElementById('ccpSelect').value;
+
                 if (tipoEntidad === 'estacion') {
                     selectorDiv.innerHTML = `
                         <div class="input-group">
                             <label for="estacionSelect">Seleccione Estación:</label>
                             <select id="estacionSelect" disabled>
-                                <option value="">-- Primero seleccione un CCP --</option>
+                                <option value="">-- Seleccione un CCP primero --</option>
                             </select>
-                        </div>
-                    `;
+                        </div>`;
                 } else {
                     selectorDiv.innerHTML = `
                         <div class="input-group">
                             <label for="servicioSelect">Seleccione Servicio:</label>
                             <select id="servicioSelect" disabled>
-                                <option value="">-- Primero seleccione un CCP --</option>
+                                <option value="">-- Seleccione un CCP primero --</option>
                             </select>
-                        </div>
-                    `;
+                        </div>`;
                 }
 
-                // Recargar la lista si ya hay un CCP seleccionado
-                const ccpId = document.getElementById('ccpSelect').value;
                 if (ccpId) {
-                    if (tipoEntidad === 'estacion') {
-                        cargarEstaciones(ccpId);
-                    } else {
-                        cargarServicios(ccpId);
-                    }
+                    if (tipoEntidad === 'estacion') cargarEstaciones(ccpId);
+                    else cargarServicios(ccpId);
                 }
             });
         });
 
-        // Evento de cambio del selector dinámico
-        document.getElementById('selectorDinamico').addEventListener('change', async (e) => {
-            if (e.target.id === 'estacionSelect' && tipoEntidad === 'estacion') {
-                const id = e.target.value;
-                if (id) {
-                    const nombre = e.target.options[e.target.selectedIndex].text;
-                    document.getElementById('btnCargarGaleria').disabled = false;
-                } else {
-                    document.getElementById('btnCargarGaleria').disabled = true;
-                }
-            } else if (e.target.id === 'servicioSelect' && tipoEntidad === 'servicio') {
-                const id = e.target.value;
-                if (id) {
-                    const nombre = e.target.options[e.target.selectedIndex].text;
-                    document.getElementById('btnCargarGaleria').disabled = false;
-                } else {
-                    document.getElementById('btnCargarGaleria').disabled = true;
-                }
-            }
+        document.getElementById('selectorDinamico').addEventListener('change', (e) => {
+            const valid = e.target.value;
+            document.getElementById('btnCargarGaleria').disabled = !valid;
         });
 
-        // Evento de clic del botón para cargar la galería
         document.getElementById('btnCargarGaleria').addEventListener('click', () => {
-            const ccpSelect = document.getElementById('ccpSelect');
-            const ccpId = ccpSelect.value;
-            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
-
-            let entidadId = '';
-            let entidadNombre = '';
+            const ccpId = document.getElementById('ccpSelect').value;
+            const ccpNombre = document.getElementById('ccpSelect').options[document.getElementById('ccpSelect').selectedIndex].text;
+            let entidadId = '', entidadNombre = '';
 
             if (tipoEntidad === 'estacion') {
-                const estacionSelect = document.getElementById('estacionSelect');
-                entidadId = estacionSelect.value;
-                entidadNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
-                document.getElementById('btnCargarGaleria').disabled = !entidadId;
+                const el = document.getElementById('estacionSelect');
+                entidadId = el.value;
+                entidadNombre = el.options[el.selectedIndex].text;
             } else {
-                const servicioSelect = document.getElementById('servicioSelect');
-                entidadId = servicioSelect.value;
-                entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
-                document.getElementById('btnCargarGaleria').disabled = !entidadId;
+                const el = document.getElementById('servicioSelect');
+                entidadId = el.value;
+                entidadNombre = el.options[el.selectedIndex].text;
             }
 
             if (!ccpId || !entidadId) {
@@ -369,20 +380,25 @@
                 return;
             }
 
-         let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            if (tipoEntidad === 'estacion') {
+                url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
+            } else {
+                url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
+            }
+            window.location.href = url;
+        });
 
-if (tipoEntidad === 'estacion') {
-    url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
-} else {
-    url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
-     }
-    window.location.href = url; 
-});
-
-        // Evento de clic del botón de volver
         document.getElementById('btnVolverPanel').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
+
+        // === Inicialización ===
+        (async () => {
+            const permitido = await verificarAcceso();
+            if (!permitido) return;
+            await cargarCCPs();
+        })();
     </script>
 </body>
 </html>
