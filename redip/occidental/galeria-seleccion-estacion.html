@@ -14,7 +14,7 @@
             font-family: 'Arial', sans-serif;
         }
         body {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -234,10 +234,10 @@
             const select = document.getElementById('servicioSelect');
             try {
                 const { data: servicios, error } = await supabase
-                    .from('estaciones_policiales') // Usamos la misma tabla
-                    .select('estacion_id as servicio_id, nombre_estacion as servicio_nombre')
+                    .from('servicios_administrativos')
+                    .select('id as servicio_id, nombre as servicio_nombre') // ✅ Campos correctos según tu CSV
                     .eq('ccp_id', ccpId)
-                    .order('nombre_estacion', { ascending: true });
+                    .order('nombre', { ascending: true });
                 if (error) throw error;
                 select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
                 if (!servicios || servicios.length === 0) return;
@@ -349,18 +349,17 @@
 
             let entidadId = '';
             let entidadNombre = '';
-            let urlParam = '';
 
             if (tipoEntidad === 'estacion') {
                 const estacionSelect = document.getElementById('estacionSelect');
                 entidadId = estacionSelect.value;
                 entidadNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
-                urlParam = `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
+                document.getElementById('btnCargarGaleria').disabled = !entidadId;
             } else {
                 const servicioSelect = document.getElementById('servicioSelect');
                 entidadId = servicioSelect.value;
                 entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
-                urlParam = `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
+                document.getElementById('btnCargarGaleria').disabled = !entidadId;
             }
 
             if (!ccpId || !entidadId) {
@@ -368,8 +367,8 @@
                 return;
             }
 
-            // Redirigir a galeria.html
-            const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}${urlParam}`;
+            // Redirigir a galeria.html con los parámetros correctos
+            const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}${tipoEntidad === 'estacion' ? `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}` : `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
             window.location.href = url;
         });
 
