@@ -243,35 +243,38 @@
             <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
                 ← Volver al Panel Principal
             </button>
-            <div class="filtro-container">
-                <div class="input-group">
-                    <label for="ccpFilter">Seleccione CCP:</label>
-                    <select id="ccpFilter">
-                        <option value="">-- Elija un CCP --</option>
-                        <option value="metropolitano">CCP METROPOLITANO</option>
-                        <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                        <option value="guajira">CCP GUAJIRA</option>
-                        <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                        <option value="lara">CCPE LARA</option>
-                        <option value="falcon">CCPE FALCÓN</option>
-                    </select>
-                </div>
-                <!-- Pestañas: Estaciones vs Servicios -->
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
-                    <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
-                </div>
-                <!-- Contenedores dinámicos -->
-                <div id="selectorDinamico">
-                    <div class="input-group">
-                        <label for="estacionFilter">Seleccione Estación:</label>
-                        <select id="estacionFilter" disabled>
-                            <option value="">-- Primero seleccione un CCP --</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+<!-- === Filtro Principal === -->
+<div class="filtro-container">
+    <div class="input-group">
+        <label for="ccpFilter">Seleccione CCP:</label>
+        <select id="ccpFilter">
+            <option value="">-- Elija un CCP --</option>
+            <option value="metropolitano">CCP METROPOLITANO</option>
+            <option value="sur_del_lago">CCP SUR DEL LAGO</option>
+            <option value="guajira">CCP GUAJIRA</option>
+            <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
+            <option value="lara">CCPE LARA</option>
+            <option value="falcon">CCPE FALCÓN</option>
+        </select>
+    </div>
+
+    <!-- Pestañas: Estaciones vs Servicios -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
+        <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
+    </div>
+
+    <!-- Contenedor Dinámico (se actualiza según la pestaña) -->
+    <div id="selectorDinamico">
+        <!-- Aquí se cargará dinámicamente el select de estación o servicio -->
+        <div class="input-group">
+            <label for="estacionFilter">Seleccione Estación:</label>
+            <select id="estacionFilter" disabled>
+                <option value="">-- Primero seleccione un CCP --</option>
+            </select>
         </div>
+    </div>
+</div>
         <div id="resultadosContainer" style="display: none;">
             <div class="stats-header" id="statsHeader"></div>
             <div class="action-buttons">
@@ -426,43 +429,68 @@
         let totalPaginas = 1;
         let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
 
-        // === PESTAÑAS ===
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                tipoEntidad = btn.dataset.tab === 'estaciones' ? 'estacion' : 'servicio';
-                const selectorDiv = document.getElementById('selectorDinamico');
-                if (tipoEntidad === 'estacion') {
-                    selectorDiv.innerHTML = `
-                        <div class="input-group">
-                            <label for="estacionFilter">Seleccione Estación:</label>
-                            <select id="estacionFilter" disabled>
-                                <option value="">-- Primero seleccione un CCP --</option>
-                            </select>
-                        </div>
-                    `;
-                } else {
-                    selectorDiv.innerHTML = `
-                        <div class="input-group">
-                            <label for="servicioFilter">Seleccione Servicio:</label>
-                            <select id="servicioFilter" disabled>
-                                <option value="">-- Primero seleccione un CCP --</option>
-                            </select>
-                        </div>
-                    `;
-                }
-                // Recargar lista si ya hay CCP seleccionado
-                const ccpId = document.getElementById('ccpFilter').value;
-                if (ccpId) {
-                    if (tipoEntidad === 'estacion') {
-                        cargarEstaciones(ccpId);
-                    } else {
-                        cargarServicios(ccpId);
-                    }
+       // === PESTAÑAS: ESTACIONES vs SERVICIOS ===
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tipo = btn.dataset.tab;
+
+        // Actualizar tipoEntidad
+        tipoEntidad = tipo;
+
+        // Generar selector dinámico
+        const selectorDiv = document.getElementById('selectorDinamico');
+        if (tipo === 'estaciones') {
+            selectorDiv.innerHTML = `
+                <div class="input-group">
+                    <label for="estacionFilter">Seleccione Estación:</label>
+                    <select id="estacionFilter" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
+                </div>
+            `;
+        } else {
+            selectorDiv.innerHTML = `
+                <div class="input-group">
+                    <label for="servicioFilter">Seleccione Servicio:</label>
+                    <select id="servicioFilter" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        // Recargar lista si ya hay un CCP seleccionado
+        const ccpId = document.getElementById('ccpFilter').value;
+        if (ccpId) {
+            if (tipo === 'estaciones') {
+                cargarEstaciones(ccpId);
+            } else {
+                cargarServicios(ccpId);
+            }
+        }
+
+        // Reasignar eventos (para los nuevos elementos)
+        if (tipo === 'estaciones') {
+            document.getElementById('estacionFilter').addEventListener('change', async () => {
+                const id = document.getElementById('estacionFilter').value;
+                if (id) {
+                    const nombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
+                    await cargarEstadisticas(id, 'estacion', nombre);
                 }
             });
-        });
+        } else {
+            document.getElementById('servicioFilter').addEventListener('change', async () => {
+                const id = document.getElementById('servicioFilter').value;
+                if (id) {
+                    const nombre = document.getElementById('servicioFilter').options[document.getElementById('servicioFilter').selectedIndex].text;
+                    await cargarEstadisticas(id, 'servicio', nombre);
+                }
+            });
+        }
+    });
+});
 
         // === CARGAR ESTACIONES ===
         async function cargarEstaciones(ccpId) {
