@@ -370,7 +370,7 @@
             return (data || []).map(row => row.ccp_id);
         }
 
-       async function cargarNotificaciones() {
+     async function cargarNotificaciones() {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const hoyStr = hoy.toISOString().split('T')[0];
