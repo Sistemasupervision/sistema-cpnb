@@ -367,9 +367,13 @@
                 return;
             }
 
-            // Redirigir a galeria.html con los parámetros correctos
-            const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}${tipoEntidad === 'estacion' ? `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}` const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}${tipoEntidad === 'estacion' ? `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}` : `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`}`;: `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
-            window.location.href = url;
+         let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+
+if (tipoEntidad === 'estacion') {
+    url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
+} else {
+    url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
+}
         });
 
         // Evento de clic del botón de volver
