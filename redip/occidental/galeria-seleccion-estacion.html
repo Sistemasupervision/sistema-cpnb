@@ -375,8 +375,8 @@ if (tipoEntidad === 'estacion') {
     url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
 } else {
     url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
-}
-        });
+    window.location.href = url; 
+});
 
         // Evento de clic del botón de volver
         document.getElementById('btnVolverPanel').addEventListener('click', () => {
