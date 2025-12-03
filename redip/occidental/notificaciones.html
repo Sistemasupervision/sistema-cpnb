@@ -276,7 +276,7 @@
 
         // === VALIDACIÓN DE ACCESO ===
         async function verificarAccesoOcidental() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {  { user } } = await supabase.auth.getUser();
             if (!user) {
                 mostrarMensajeAccesoDenegado("Debe iniciar sesión.");
                 return false;
@@ -384,7 +384,7 @@
                     return;
                 }
 
-                // Corregido: usar .data
+                // ✅ CORREGIDO: usar .data y formatear UUIDs correctamente
                 const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
@@ -433,7 +433,7 @@
 
             } catch (error) {
                 console.error("Error al cargar notificaciones:", error);
-                mostrarMensajeAccesoDenegado("Error al cargar notificaciones: " + (error.message || 'Error desconocido'));
+                mostrarMensajeAccesoDenegado("Error al cargar notificaciones: " + (error.message || 'Error desconocido.'));
             }
         }
 
