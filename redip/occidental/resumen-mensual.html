@@ -278,33 +278,93 @@
         let ccpNombres = {};
         let chartInstance = null;
         
-        async function verificarAccesoOcidental() {
+       // === VALIDACIÓN DE ACCESO A REDIP OCCIDENTAL ===
+async function verificarAccesoOcidental() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-        alert('🔒 Acceso restringido. Debe iniciar sesión.');
-        window.location.href = '../../index.html';
+        mostrarMensajeAccesoDenegado("Debe iniciar sesión.");
         return false;
     }
-
     const { data, error } = await supabase
         .from('usuarios_redip')
         .select('redip')
         .eq('user_id', user.id)
         .single();
-
     if (error || !data) {
-        alert('🚫 Su cuenta no tiene permisos asignados en el sistema.');
-        window.location.href = '../../index.html';
+        mostrarMensajeAccesoDenegado("Su cuenta no tiene permisos asignados en el sistema.");
         return false;
     }
-
     if (data.redip !== 'occidental' && data.redip !== 'admin') {
-        alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
-        window.location.href = '../../index.html';
+        mostrarMensajeAccesoDenegado("No tiene permisos para acceder a REDIP OCCIDENTAL. Por favor contacte al administrador.");
         return false;
     }
-
     return true;
+}
+
+function mostrarMensajeAccesoDenegado(mensaje) {
+    // Crear un contenedor oscuro para el modal
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+    overlay.style.zIndex = '9999';
+    overlay.style.display = 'flex';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+
+    // Crear el modal
+    const modal = document.createElement('div');
+    modal.style.background = '#1a1a1a';
+    modal.style.padding = '25px';
+    modal.style.borderRadius = '12px';
+    modal.style.maxWidth = '400px';
+    modal.style.width = '90%';
+    modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+    modal.style.color = 'white';
+    modal.style.fontFamily = 'Arial, sans-serif';
+
+    // Título
+    const titulo = document.createElement('div');
+    titulo.style.fontSize = '18px';
+    titulo.style.fontWeight = 'bold';
+    titulo.style.marginBottom = '15px';
+    titulo.textContent = 'sistemassupervision.github.io dice';
+
+    // Icono de advertencia y mensaje
+    const contenido = document.createElement('div');
+    contenido.style.fontSize = '16px';
+    contenido.style.lineHeight = '1.5';
+    contenido.innerHTML = `<span style="color: #ffcc00; font-size: 20px;">⚠️</span> ${mensaje}`;
+    
+    const boton = document.createElement('button');
+    boton.textContent = 'Aceptar';
+    boton.style.marginTop = '20px';
+    boton.style.padding = '10px 20px';
+    boton.style.backgroundColor = '#38a169';
+    boton.style.color = 'white';
+    boton.style.border = 'none';
+    boton.style.borderRadius = '8px';
+    boton.style.cursor = 'pointer';
+    boton.style.fontSize = '15px';
+    boton.style.fontWeight = 'bold';
+    boton.addEventListener('click', () => {
+        window.location.href = '../../index.html';
+        document.body.removeChild(overlay);
+    });
+
+    // Agregar elementos al modal
+    modal.appendChild(titulo);
+    modal.appendChild(contenido);
+    modal.appendChild(boton);
+
+    // Agregar modal al overlay
+    overlay.appendChild(modal);
+
+    // Mostrar el modal
+    document.body.appendChild(overlay);
 }
 
         // === Cargar CCPs de REDIP OCCIDENTAL ===
@@ -667,14 +727,18 @@
    async function iniciar() {
     const permitido = await verificarAccesoOcidental();
     if (permitido) {
+       // --- EJECUCIÓN PRINCIPAL ---
+async function iniciar() {
+    const permitido = await verificarAccesoOcidental();
+    if (permitido) {
         llenarSelectores();
         ['mesBase', 'anioBase', 'mesComparar', 'anioComparar'].forEach(id => {
             document.getElementById(id).addEventListener('change', cargarResumen);
         });
-        // Cargar resumen después de una breve pausa para evitar conflicto de UI
-        setTimeout(cargarResumen, 300);
+        cargarResumen();
     }
 }
+iniciar();
 
 iniciar();
         });
