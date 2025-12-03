@@ -229,32 +229,33 @@
 
     return true;
 }
-        // === 2. Cargar CCPs permitidos ===
-        async function cargarCCPs() {
-            const select = document.getElementById('ccpSelect');
-            try {
-                const {  ccps, error } = await supabase
-                    .from('ccps')
-                    .select('ccp_id, nombre_ccp, redip');
+      async function cargarCCPs() {
+    const select = document.getElementById('ccpSelect');
+    try {
+        const { data: ccps, error } = await supabase
+            .from('ccps')
+            .select('ccp_id, nombre_ccp, redip');
 
-                if (error) throw error;
+        if (error) throw error;
 
-                // Filtrar si no es admin
-                const listaFiltrada = esAdmin ? ccps : ccps.filter(c => c.redip === redipUsuario);
-
-                select.innerHTML = '<option value="">-- Elija un CCP --</option>';
-                listaFiltrada.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.ccp_id;
-                    opt.textContent = c.nombre_ccp;
-                    select.appendChild(opt);
-                });
-            } catch (err) {
-                console.error('Error al cargar CCPs:', err);
-                alert('No se pudieron cargar los CCPs.');
-            }
+        if (!ccps || !Array.isArray(ccps)) {
+            console.warn('ccps no es un arreglo:', ccps);
+            alert('No hay CCPs disponibles.');
+            return;
         }
 
+        select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+        ccps.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.ccp_id;
+            opt.textContent = c.nombre_ccp;
+            select.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Error al cargar CCPs:', err);
+        alert('No se pudieron cargar los CCPs. Verifique su conexión o permisos.');
+    }
+}
         // === Funciones de carga ===
         async function cargarEstaciones(ccpId) {
             const select = document.getElementById('estacionSelect');
