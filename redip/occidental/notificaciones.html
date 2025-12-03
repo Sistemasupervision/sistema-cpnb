@@ -429,54 +429,67 @@
 
 async function cargarNotificaciones() {
     const container = document.getElementById('alertasContainer');
-    // Opcional: mantener solo un mensaje genérico al inicio
-    container.innerHTML = '<div class="loading">Cargando notificaciones...</div>';
+    container.innerHTML = '<div class="loading">Cargando CCPs...</div>';
 
     try {
+        // Paso 1: Cargar nombres de CCPs
+        await cargarNombresCcp();
+        container.innerHTML = '<div class="loading">Obteniendo CCPs de OCCIDENTAL...</div>';
+
+        // Paso 2: Obtener CCPs de OCCIDENTAL
+        const ccpOcidental = await obtenerCcpOcidental();
+        if (ccpOcidental.length === 0) {
+            container.innerHTML = '<div class="no-data">⚠️ No se encontraron CCPs para OCCIDENTAL.</div>';
+            return;
+        }
+
+        container.innerHTML = '<div class="loading">Cargando estaciones...</div>';
+        const { data: estaciones, error: estError } = await supabase
+            .from('estaciones_policiales')
+            .select('estacion_id, nombre_estacion, ccp_id')
+            .in('ccp_id', ccpOcidental);
+        if (estError) throw new Error('Error al cargar estaciones: ' + estError.message);
+        estacionesGlobales = estaciones;
+
+        container.innerHTML = '<div class="loading">Cargando servicios...</div>';
+        const { data: servicios, error: servError } = await supabase
+            .from('servicios_administrativos')
+            .select('id, nombre, ccp_id')
+            .in('ccp_id', ccpOcidental);
+        if (servError) throw new Error('Error al cargar servicios: ' + servError.message);
+        serviciosGlobales = servicios;
+
+        // Paso 3: Cargar inspecciones (con timeout implícito)
+        container.innerHTML = '<div class="loading">Cargando inspecciones vencidas...</div>';
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const hoyStr = hoy.toISOString().split('T')[0];
 
-        await cargarNombresCcp();
-        const ccpOcidental = await obtenerCcpOcidental();
-        if (ccpOcidental.length === 0) {
-            container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
-            return;
-        }
+        // ⚠️ Usa select mínimo para depurar
+        const { data: inspeccionesRaw, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('id, estacion_id, servicio_id, proxima_inspeccion, created_at, inspector_email')
+            .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+            .limit(100); // ⬅️ Añade limit para evitar timeouts
 
-        const {  estaciones, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('estacion_id, nombre_estacion, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (estError) throw estError;
-        estacionesGlobales = estaciones;
+        if (inspError) throw new Error('Error al cargar inspecciones: ' + inspError.message);
 
-        const {  servicios, error: servError } = await supabase
-            .from('servicios_administrativos')
-            .select('id, nombre, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (servError) throw servError;
-        serviciosGlobales = servicios;
+        console.log('Inspecciones crudas recibidas:', inspeccionesRaw.length);
 
+        // Filtrar solo las que pertenecen a OCCIDENTAL
         const estacionIds = new Set(estaciones.map(e => e.estacion_id));
         const servicioIds = new Set(servicios.map(s => s.id));
-
-        const {  inspeccionesRaw, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('*')
-            .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`);
-
-        if (inspError) throw inspError;
 
         todasInspecciones = inspeccionesRaw.filter(insp =>
             (insp.estacion_id && estacionIds.has(insp.estacion_id)) ||
             (insp.servicio_id && servicioIds.has(insp.servicio_id))
         );
 
+        console.log('Inspecciones OCCIDENTAL vencidas:', todasInspecciones.length);
         renderizarPagina(1);
     } catch (error) {
-        console.error('Error al cargar notificaciones:', error);
-        container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
+        console.error('Error en cargarNotificaciones:', error);
+        container.innerHTML = `<div class="no-data">❌ Error: ${error.message}</div>`;
         document.getElementById('paginationContainer').innerHTML = '';
     }
 }
