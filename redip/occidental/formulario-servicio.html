@@ -72,29 +72,19 @@
             }
         }
 
-        // === VALIDAR QUE EL SERVICIO PERTENEZCA A REDIP OCCIDENTAL ===
+        // === VALIDAR SOLO QUE EL SERVICIO EXISTA Y PERTENEZCA AL CCP ===
         async function validarYServicio() {
             const permitido = await verificarAcceso();
             if (!permitido) return false;
             try {
-                const {  servicioValido, error } = await supabase
+                const { data: servicioValido, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, ccp_id')
                     .eq('id', servicioId)
+                    .eq('ccp_id', ccpId) // ✅ Solo validar que coincida con el ccpId de la URL
                     .single();
                 if (error || !servicioValido) {
-                    alert('❌ El servicio seleccionado no existe.');
-                    window.history.back();
-                    return false;
-                }
-                // Verificar que el ccp_id pertenece a REDIP occidental
-                const { data: ccpData } = await supabase
-                    .from('ccps')
-                    .select('redip')
-                    .eq('ccp_id', servicioValido.ccp_id)
-                    .single();
-                if (!ccpData || ccpData.redip !== 'occidental') {
-                    alert('⚠️ El servicio no pertenece a REDIP OCCIDENTAL.');
+                    alert('❌ El servicio seleccionado no existe o no pertenece al CCP.');
                     window.history.back();
                     return false;
                 }
@@ -107,7 +97,7 @@
             }
         }
 
-        // === DEFINICIÓN DE ÍTEMS (67 ÍTEMS - IGUAL QUE EN formulario-inspeccion.html) ===
+        // === DEFINICIÓN DE ÍTEMS (67 ÍTEMS) ===
         const items = [
             "nombramiento_comandante", "acta_entrega_recepcion", "dossier_comandante", "conocimiento_ley_organica",
             "conocimiento_estatuto_personal", "conocimiento_reglamento_disciplinario", "estructura_organizativa",
@@ -278,6 +268,7 @@
             </form>
             `;
             document.getElementById('container').innerHTML = formHtml;
+
             // === EVENTOS DINÁMICOS ===
             document.querySelectorAll('.cumple-select').forEach(select => {
                 select.addEventListener('change', function () {
@@ -332,7 +323,6 @@
             document.getElementById('backToServiciosBtn').addEventListener('click', () => {
                 window.location.href = `servicios-administrativos.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             });
-            // === GUARDAR INSPECCIÓN ===
             document.getElementById('inspectionForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 document.getElementById('loadingOverlay').style.display = 'flex';
@@ -343,7 +333,6 @@
                     }
                     const proximaFecha = document.getElementById('proximaInspeccion').value || null;
                     const observacionesGenerales = document.getElementById('observacionesGenerales').value || null;
-                    // ✅ INSERTAR EN inspecciones CON servicio_id
                     const { data: inspeccionData, error: inspError } = await supabase
                         .from('inspecciones')
                         .insert({
@@ -357,7 +346,6 @@
                     if (inspError) {
                         throw new Error(inspError.message || 'Error al crear la inspección.');
                     }
-                    // === GUARDAR ÍTEMS ===
                     const itemsToInsert = [];
                     for (const item of items) {
                         const select = document.querySelector(`.cumple-select[data-item="${item}"]`);
