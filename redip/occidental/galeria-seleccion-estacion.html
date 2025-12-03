@@ -230,29 +230,29 @@
             }
         }
 
-        async function cargarServicios(ccpId) {
-            const select = document.getElementById('servicioSelect');
-            try {
-                const { data: servicios, error } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id as servicio_id, nombre as servicio_nombre') // ✅ Campos correctos según tu CSV
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-                if (error) throw error;
-                select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
-                if (!servicios || servicios.length === 0) return;
-                servicios.forEach(serv => {
-                    const opt = document.createElement('option');
-                    opt.value = serv.servicio_id;
-                    opt.textContent = serv.servicio_nombre;
-                    select.appendChild(opt);
-                });
-                select.disabled = false;
-            } catch (err) {
-                console.error('Error al cargar servicios:', err);
-                alert('No se pudieron cargar los servicios.');
-            }
-        }
+   async function cargarServicios(ccpId) {
+    const select = document.getElementById('servicioSelect');
+    try {
+        const { data: servicios, error } = await supabase
+            .from('servicios_administrativos')
+            .select('id:servicio_id,nombre:servicio_nombre') // ✅ Así es la sintaxis correcta
+            .eq('ccp_id', ccpId)
+            .order('nombre', { ascending: true });
+        if (error) throw error;
+        select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
+        if (!servicios || servicios.length === 0) return;
+        servicios.forEach(serv => {
+            const opt = document.createElement('option');
+            opt.value = serv.servicio_id;      // Ahora el alias funciona
+            opt.textContent = serv.servicio_nombre;
+            select.appendChild(opt);
+        });
+        select.disabled = false;
+    } catch (err) {
+        console.error('Error al cargar servicios:', err);
+        alert('No se pudieron cargar los servicios.');
+    }
+}
 
         // === EVENTOS ===
 
