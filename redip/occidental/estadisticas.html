@@ -430,36 +430,68 @@
         let totalPaginas = 1;
         let tipoEntidad = 'estacion'; // o 'servicio'
 
-        // === PESTAÑAS ===
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                tipoEntidad = btn.dataset.tab === 'estaciones' ? 'estacion' : 'servicio';
-                const estacionSelect = document.getElementById('estacionFilter');
-                const servicioSelect = document.getElementById('servicioFilter');
-                const servicioContainer = document.getElementById('servicioFilterContainer');
-                if (tipoEntidad === 'estacion') {
-                    estacionSelect.disabled = false;
-                    servicioSelect.disabled = true;
-                    servicioContainer.style.display = 'none';
-                } else {
-                    estacionSelect.disabled = true;
-                    servicioSelect.disabled = false;
-                    servicioContainer.style.display = 'block';
-                }
-                // Recargar lista según CCP seleccionado
-                const ccpId = document.getElementById('ccpFilter').value;
-                if (ccpId) {
-                    if (tipoEntidad === 'estacion') {
-                        cargarEstaciones(ccpId);
-                    } else {
-                        cargarServicios(ccpId);
-                    }
+      // === PESTAÑAS: ESTACIONES vs SERVICIOS ===
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tipo = btn.dataset.tab;
+
+        // Actualizar tipoEntidad
+        tipoEntidad = tipo;
+
+        // Generar selector dinámico
+        const selectorDiv = document.getElementById('selectorEntidad');
+        if (tipo === 'estaciones') {
+            selectorDiv.innerHTML = `
+                <div class="input-group">
+                    <label for="estacionFilter">Seleccione Estación:</label>
+                    <select id="estacionFilter" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
+                </div>
+            `;
+        } else {
+            selectorDiv.innerHTML = `
+                <div class="input-group">
+                    <label for="servicioFilter">Seleccione Servicio:</label>
+                    <select id="servicioFilter" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        // Recargar lista si ya hay CCP seleccionado
+        const ccpId = document.getElementById('ccpFilter').value;
+        if (ccpId) {
+            if (tipo === 'estaciones') {
+                cargarEstaciones(ccpId);
+            } else {
+                cargarServicios(ccpId);
+            }
+        }
+
+        // Reasignar eventos
+        if (tipo === 'estaciones') {
+            document.getElementById('estacionFilter').addEventListener('change', async () => {
+                const id = document.getElementById('estacionFilter').value;
+                if (id) {
+                    const nombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
+                    await cargarEstadisticas(id, 'estacion', nombre);
                 }
             });
-        });
-
+        } else {
+            document.getElementById('servicioFilter').addEventListener('change', async () => {
+                const id = document.getElementById('servicioFilter').value;
+                if (id) {
+                    const nombre = document.getElementById('servicioFilter').options[document.getElementById('servicioFilter').selectedIndex].text;
+                    await cargarEstadisticas(id, 'servicio', nombre);
+                }
+            });
+        }
+    });
+});
         // === CARGAR ESTACIONES ===
         async function cargarEstaciones(ccpId) {
             const select = document.getElementById('estacionFilter');
