@@ -318,9 +318,9 @@
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-    // === VERIFICAR ACCESO ===
+    // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
     async function verificarAcceso() {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {  { user } } = await supabase.auth.getUser(); // ✅ CORRECTO
         if (!user) {
             window.location.href = 'index.html';
             return false;
@@ -347,10 +347,11 @@
 
     let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
 
-    // === CARGAR ESTACIONES Y SERVICIOS ===
+    // === CARGAR ENTIDADES ===
     async function cargarEntidades(ccpId) {
         const estacionSelect = document.getElementById('estacionSelect');
         const servicioSelect = document.getElementById('servicioSelect');
+
         if (estacionSelect) estacionSelect.disabled = true;
         if (servicioSelect) servicioSelect.disabled = true;
 
@@ -365,7 +366,7 @@
 
         try {
             if (tipoEntidad === 'estacion') {
-                const { data: estaciones, error } = await supabase
+                const {  estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
@@ -382,7 +383,7 @@
                     estacionSelect.disabled = false;
                 }
             } else {
-                const { data: servicios, error } = await supabase
+                const {  servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre')
                     .eq('ccp_id', ccpId)
@@ -423,9 +424,6 @@
                                 <option value="">-- Primero seleccione un CCP --</option>
                             </select>
                         </div>
-                        <button id="btnCargarGaleria" class="action-btn" disabled>
-                            🖼️ Cargar Galería de Inspección
-                        </button>
                     `;
                 } else {
                     selectorDinamico.innerHTML = `
@@ -435,9 +433,6 @@
                                 <option value="">-- Primero seleccione un CCP --</option>
                             </select>
                         </div>
-                        <button id="btnCargarGaleria" class="action-btn" disabled>
-                            🖼️ Cargar Galería de Inspección
-                        </button>
                     `;
                 }
 
@@ -446,16 +441,13 @@
                 if (ccpId) {
                     cargarEntidades(ccpId);
                 }
-
-                // Reasignar eventos (claves!)
-                setupEventListeners();
             });
         });
     }
 
-    // === CONFIGURAR EVENTOS DINÁMICOS ===
+    // === EVENTOS PRINCIPALES ===
     function setupEventListeners() {
-        // Evento CCP
+        // CCP
         const ccpSelect = document.getElementById('ccpSelect');
         if (ccpSelect) {
             ccpSelect.onchange = () => {
@@ -464,31 +456,24 @@
             };
         }
 
-        // Evento selector dinámico
-        const container = document.getElementById('selectorDinamico');
-        if (container) {
-            container.onclick = (e) => {
-                if (e.target.id === 'estacionSelect' || e.target.id === 'servicioSelect') {
-                    const select = e.target;
-                    const btn = document.getElementById('btnCargarGaleria');
-                    if (btn) btn.disabled = !select.value;
-                }
-            };
-        }
-
-        // Evento botón cargar galería
+        // Botón cargar galería
         const btnCargar = document.getElementById('btnCargarGaleria');
         if (btnCargar) {
             btnCargar.onclick = () => {
                 const ccpSelect = document.getElementById('ccpSelect');
-                const ccpId = ccpSelect.value;
-                const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
+                const ccpId = ccpSelect?.value;
+                const ccpNombre = ccpSelect?.options[ccpSelect.selectedIndex]?.text;
+
+                if (!ccpId) {
+                    alert('Seleccione un CCP.');
+                    return;
+                }
 
                 let urlParams = '';
                 if (tipoEntidad === 'estacion') {
                     const estacionSelect = document.getElementById('estacionSelect');
-                    const estacionId = estacionSelect.value;
-                    const estacionNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
+                    const estacionId = estacionSelect?.value;
+                    const estacionNombre = estacionSelect?.options[estacionSelect.selectedIndex]?.text;
                     if (!estacionId) {
                         alert('Seleccione una estación válida.');
                         return;
@@ -496,8 +481,8 @@
                     urlParams = `ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
                 } else {
                     const servicioSelect = document.getElementById('servicioSelect');
-                    const servicioId = servicioSelect.value;
-                    const servicioNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
+                    const servicioId = servicioSelect?.value;
+                    const servicioNombre = servicioSelect?.options[servicioSelect.selectedIndex]?.text;
                     if (!servicioId) {
                         alert('Seleccione un servicio válido.');
                         return;
