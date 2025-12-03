@@ -147,7 +147,7 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
-        .mensaje-acceso {
+        .mensaje-error {
             text-align: center;
             padding: 20px;
             color: #e53e3e;
@@ -193,8 +193,8 @@
                 🖼️ Cargar Galería de Inspección
             </button>
         </div>
-        <div id="mensajeAcceso" class="mensaje-acceso">
-            ⚠️ No tiene permisos para acceder a este CCP.
+        <div id="mensajeError" class="mensaje-error">
+            ⚠️ No tiene permisos para acceder a esta REDIP. Por favor contacte al administrador.
         </div>
     </div>
     <script>
@@ -204,8 +204,9 @@
 
         let redipUsuario = null;
         let esAdmin = false;
+        let tipoEntidad = 'estacion';
 
-        // Mapeo de CCP a REDIP (basado en ccps_rows.csv)
+        // Mapeo de ccp_id a redip
         const CCP_REDIS_MAP = {
             ccp_altos_mirandinos: 'capital',
             ccp_barlovento: 'capital',
@@ -221,11 +222,10 @@
             sur_del_lago: 'occidental'
         };
 
-        // Función para verificar el acceso del usuario
+        // === VERIFICAR ACCESO DEL USUARIO ===
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                // Si no hay sesión, redirigir al login
                 window.location.href = 'index.html';
                 return false;
             }
@@ -238,157 +238,107 @@
                     .single();
 
                 if (error || !data) {
-                    throw new Error('Error al obtener REDIP del usuario');
+                    throw new Error('No se pudo obtener la REDIP del usuario');
                 }
 
                 redipUsuario = data.redip;
                 esAdmin = redipUsuario === 'admin';
-
                 return true;
-
             } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error de autenticación. Redirigiendo...');
+                console.error('Error de autenticación:', err);
                 window.location.href = 'index.html';
                 return false;
             }
         }
 
-        // Función para cargar las opciones de CCP según el rol del usuario
+        // === CARGAR OPCIONES DE CCP SEGÚN EL ROL ===
         function cargarOpcionesCCP() {
             const select = document.getElementById('ccpSelect');
-            select.innerHTML = '<option value="">-- Seleccione un CCP --</option>';
+            select.innerHTML = '<option value="">-- Elija un CCP --</option>';
+
+            const opciones = [
+                { value: 'metropolitano', text: 'CCP METROPOLITANO' },
+                { value: 'sur_del_lago', text: 'CCP SUR DEL LAGO' },
+                { value: 'guajira', text: 'CCP GUAJIRA' },
+                { value: 'costa_oriental', text: 'CCPE COSTA ORIENTAL DEL LAGO' },
+                { value: 'lara', text: 'CCPE LARA' },
+                { value: 'falcon', text: 'CCPE FALCÓN' },
+                { value: 'ccp_altos_mirandinos', text: 'CCP ALTOS MIRANDINOS' },
+                { value: 'ccp_barlovento', text: 'CCP BARLOVENTO' },
+                { value: 'ccp_distrito_capital', text: 'CCP DISTRITO CAPITAL' },
+                { value: 'ccp_la_guaira', text: 'CCP LA GUAIRA' },
+                { value: 'ccp_miranda_ciudad_fajardo', text: 'CCP MIRANDA / CIUDAD FAJARDO' },
+                { value: 'ccp_valles_del_tuy', text: 'CCP VALLES DEL TUY' }
+            ];
 
             if (esAdmin) {
                 // Admin ve todos
-                const opciones = [
-                    { value: 'metropolitano', text: 'CCP METROPOLITANO' },
-                    { value: 'sur_del_lago', text: 'CCP SUR DEL LAGO' },
-                    { value: 'guajira', text: 'CCP GUAJIRA' },
-                    { value: 'costa_oriental', text: 'CCPE COSTA ORIENTAL DEL LAGO' },
-                    { value: 'lara', text: 'CCPE LARA' },
-                    { value: 'falcon', text: 'CCPE FALCÓN' },
-                    { value: 'ccp_altos_mirandinos', text: 'CCP ALTOS MIRANDINOS' },
-                    { value: 'ccp_barlovento', text: 'CCP BARLOVENTO' },
-                    { value: 'ccp_distrito_capital', text: 'CCP DISTRITO CAPITAL' },
-                    { value: 'ccp_la_guaira', text: 'CCP LA GUAIRA' },
-                    { value: 'ccp_miranda_ciudad_fajardo', text: 'CCP MIRANDA / CIUDAD FAJARDO' },
-                    { value: 'ccp_valles_del_tuy', text: 'CCP VALLES DEL TUY' }
-                ];
                 opciones.forEach(op => {
                     const opt = document.createElement('option');
                     opt.value = op.value;
                     opt.textContent = op.text;
                     select.appendChild(opt);
                 });
-                select.disabled = false;
-            } else if (redipUsuario) {
-                // Usuario normal: solo ve CCPs de su REDIP
-                let ccpDisponibles = [];
-                if (redipUsuario === 'occidental') {
-                    ccpDisponibles = ['metropolitano', 'sur_del_lago', 'guajira', 'costa_oriental', 'lara', 'falcon'];
-                } else if (redipUsuario === 'capital') {
-                    ccpDisponibles = ['ccp_altos_mirandinos', 'ccp_barlovento', 'ccp_distrito_capital', 'ccp_la_guaira', 'ccp_miranda_ciudad_fajardo', 'ccp_valles_del_tuy'];
-                } else {
-                    // Para otras REDIPs, podrías agregar más aquí
-                    ccpDisponibles = [];
-                }
-
-                const nombresCCP = {
-                    'metropolitano': 'CCP METROPOLITANO',
-                    'sur_del_lago': 'CCP SUR DEL LAGO',
-                    'guajira': 'CCP GUAJIRA',
-                    'costa_oriental': 'CCPE COSTA ORIENTAL DEL LAGO',
-                    'lara': 'CCPE LARA',
-                    'falcon': 'CCPE FALCÓN',
-                    'ccp_altos_mirandinos': 'CCP ALTOS MIRANDINOS',
-                    'ccp_barlovento': 'CCP BARLOVENTO',
-                    'ccp_distrito_capital': 'CCP DISTRITO CAPITAL',
-                    'ccp_la_guaira': 'CCP LA GUAIRA',
-                    'ccp_miranda_ciudad_fajardo': 'CCP MIRANDA / CIUDAD FAJARDO',
-                    'ccp_valles_del_tuy': 'CCP VALLES DEL TUY'
-                };
-
-                ccpDisponibles.forEach(ccpId => {
-                    const opt = document.createElement('option');
-                    opt.value = ccpId;
-                    opt.textContent = nombresCCP[ccpId] || ccpId;
-                    select.appendChild(opt);
+            } else {
+                // Usuario normal: solo ve los de su REDIP
+                const ccpPermitidos = Object.keys(CCP_REDIS_MAP)
+                    .filter(ccp => CCP_REDIS_MAP[ccp] === redipUsuario);
+                opciones.forEach(op => {
+                    if (ccpPermitidos.includes(op.value)) {
+                        const opt = document.createElement('option');
+                        opt.value = op.value;
+                        opt.textContent = op.text;
+                        select.appendChild(opt);
+                    }
                 });
-                select.disabled = false;
             }
+            select.disabled = false;
         }
 
-        // === VERIFICAR PERMISO PARA EL CCP SELECCIONADO ===
-        function tienePermisoParaCCP(ccpId) {
+        // === VERIFICAR PERMISO PARA UN CCP ===
+        function tienePermiso(ccpId) {
             if (esAdmin) return true;
             const redipCCP = CCP_REDIS_MAP[ccpId];
             return redipCCP === redipUsuario;
         }
 
-        // === FUNCIONES DE CARGA (sin cambios) ===
-        async function cargarEstaciones(ccpId) {
-            if (!tienePermisoParaCCP(ccpId)) {
-                document.getElementById('mensajeAcceso').style.display = 'block';
-                return;
-            }
-            document.getElementById('mensajeAcceso').style.display = 'none';
-            const select = document.getElementById('estacionSelect');
+        // === CARGAR ESTACIONES O SERVICIOS ===
+        async function cargarEntidades(ccpId, esEstacion = true) {
+            const selectId = esEstacion ? 'estacionSelect' : 'servicioSelect';
+            const select = document.getElementById(selectId);
+            const tabla = esEstacion ? 'estaciones_policiales' : 'servicios_administrativos';
+            const campoId = esEstacion ? 'estacion_id' : 'id';
+            const campoNombre = esEstacion ? 'nombre_estacion' : 'nombre';
+
             try {
-                const { data: estaciones, error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion')
+                const { data, error } = await supabase
+                    .from(tabla)
+                    .select(`${campoId}, ${campoNombre}`)
                     .eq('ccp_id', ccpId)
-                    .order('nombre_estacion', { ascending: true });
+                    .order(campoNombre, { ascending: true });
+
                 if (error) throw error;
-                select.innerHTML = '<option value="">-- Seleccione una estación --</option>';
-                estaciones.forEach(est => {
+                select.innerHTML = `<option value="">-- Seleccione una ${esEstacion ? 'estación' : 'servicio'} --</option>`;
+                data.forEach(item => {
                     const opt = document.createElement('option');
-                    opt.value = est.estacion_id;
-                    opt.textContent = est.nombre_estacion;
+                    opt.value = item[campoId];
+                    opt.textContent = item[campoNombre];
                     select.appendChild(opt);
                 });
                 select.disabled = false;
             } catch (err) {
-                console.error('Error al cargar estaciones:', err);
-                alert('No se pudieron cargar las estaciones.');
+                console.error('Error al cargar entidades:', err);
+                alert('No se pudieron cargar los datos.');
             }
         }
 
-        async function cargarServicios(ccpId) {
-            if (!tienePermisoParaCCP(ccpId)) {
-                document.getElementById('mensajeAcceso').style.display = 'block';
-                return;
-            }
-            document.getElementById('mensajeAcceso').style.display = 'none';
-            const select = document.getElementById('servicioSelect');
-            try {
-                const { data: servicios, error } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-                if (error) throw error;
-                select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
-                servicios.forEach(serv => {
-                    const opt = document.createElement('option');
-                    opt.value = serv.id;
-                    opt.textContent = serv.nombre;
-                    select.appendChild(opt);
-                });
-                select.disabled = false;
-            } catch (err) {
-                console.error('Error al cargar servicios:', err);
-                alert('No se pudieron cargar los servicios.');
-            }
-        }
-
-        // === EVENTOS (sin cambios, excepto validar permiso) ===
+        // === MANEJAR SELECCIÓN DE CCP ===
         document.getElementById('ccpSelect').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpSelect').value;
-            const mensaje = document.getElementById('mensajeAcceso');
+            const mensajeError = document.getElementById('mensajeError');
+            mensajeError.style.display = 'none';
+
             if (!ccpId) {
-                mensaje.style.display = 'none';
                 document.getElementById('selectorDinamico').innerHTML = `
                     <div class="input-group">
                         <label for="estacionSelect">Seleccione Estación:</label>
@@ -400,27 +350,33 @@
                 return;
             }
 
-            if (!tienePermisoParaCCP(ccpId)) {
-                mensaje.style.display = 'block';
+            if (!tienePermiso(ccpId)) {
+                mensajeError.style.display = 'block';
+                // Redirigir después de 3 segundos
+                setTimeout(() => {
+                    const redipBase = redipUsuario === 'admin' ? '' : `redip/${redipUsuario}/`;
+                    window.location.href = `${redipBase}index.html`;
+                }, 3000);
                 return;
             }
-            mensaje.style.display = 'none';
 
             if (tipoEntidad === 'estacion') {
-                await cargarEstaciones(ccpId);
+                await cargarEntidades(ccpId, true);
             } else {
-                await cargarServicios(ccpId);
+                await cargarEntidades(ccpId, false);
             }
         });
 
-        let tipoEntidad = 'estacion';
+        // === MANEJAR PESTAÑAS ===
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 tipoEntidad = btn.dataset.tab === 'estaciones' ? 'estacion' : 'servicio';
-                const selectorDiv = document.getElementById('selectorDinamico');
+
                 const ccpId = document.getElementById('ccpSelect').value;
+                const selectorDiv = document.getElementById('selectorDinamico');
+
                 if (tipoEntidad === 'estacion') {
                     selectorDiv.innerHTML = `
                         <div class="input-group">
@@ -440,49 +396,60 @@
                         </div>
                     `;
                 }
-                if (ccpId && tienePermisoParaCCP(ccpId)) {
-                    if (tipoEntidad === 'estacion') cargarEstaciones(ccpId);
-                    else cargarServicios(ccpId);
+
+                if (ccpId && tienePermiso(ccpId)) {
+                    if (tipoEntidad === 'estacion') {
+                        cargarEntidades(ccpId, true);
+                    } else {
+                        cargarEntidades(ccpId, false);
+                    }
                 }
             });
         });
 
+        // === EVENTO PARA CARGAR GALERÍA ===
         document.getElementById('selectorDinamico').addEventListener('change', (e) => {
-            const id = e.target.value;
-            document.getElementById('btnCargarGaleria').disabled = !id;
+            if ((e.target.id === 'estacionSelect' && tipoEntidad === 'estacion') ||
+                (e.target.id === 'servicioSelect' && tipoEntidad === 'servicio')) {
+                document.getElementById('btnCargarGaleria').disabled = !e.target.value;
+            }
         });
 
-     document.getElementById('btnCargarGaleria').addEventListener('click', () => {
-    const ccpSelect = document.getElementById('ccpSelect');
-    const ccpId = ccpSelect.value; // ✅ Declarada con const
-    const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
+        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
+            const ccpSelect = document.getElementById('ccpSelect');
+            const ccpId = ccpSelect.value;
+            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
+            let entidadId = '', entidadNombre = '';
 
-    let entidadId = '';
-    let entidadNombre = '';
+            if (tipoEntidad === 'estacion') {
+                const estacionSelect = document.getElementById('estacionSelect');
+                entidadId = estacionSelect.value;
+                entidadNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
+            } else {
+                const servicioSelect = document.getElementById('servicioSelect');
+                entidadId = servicioSelect.value;
+                entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
+            }
 
-    if (tipoEntidad === 'estacion') {
-        const estacionSelect = document.getElementById('estacionSelect');
-        entidadId = estacionSelect.value;
-        entidadNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
-    } else {
-        const servicioSelect = document.getElementById('servicioSelect');
-        entidadId = servicioSelect.value;
-        entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
-    }
+            if (!ccpId || !entidadId) {
+                alert('Seleccione una entidad válida.');
+                return;
+            }
 
-    if (!ccpId || !entidadId) {
-        alert('Seleccione una entidad válida.');
-        return;
-    }
+            let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            if (tipoEntidad === 'estacion') {
+                url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
+            } else {
+                url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
+            }
+            window.location.href = url;
+        });
 
-    let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-    if (tipoEntidad === 'estacion') {
-        url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
-    } else {
-        url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
-    }
-    window.location.href = url;
-});
+        document.getElementById('btnVolverPanel').addEventListener('click', () => {
+            const redipBase = redipUsuario === 'admin' ? '' : `redip/${redipUsuario}/`;
+            window.location.href = `${redipBase}index.html`;
+        });
+
         // === INICIAR ===
         verificarAcceso().then((permitido) => {
             if (permitido) {
