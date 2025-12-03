@@ -12,49 +12,21 @@
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
-        }
-        .vector-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 0;
-        }
-        .vector-circle, .vector-line {
-            position: absolute;
-            background: rgba(255,255,255,0.05);
-            border-radius: 50%;
-        }
-        .vector-circle:nth-child(1) { width: 300px; height: 300px; top: -100px; right: -100px; }
-        .vector-circle:nth-child(2) { width: 200px; height: 200px; bottom: -50px; left: -50px; }
-        .vector-circle:nth-child(3) { width: 150px; height: 150px; top: 20%; left: 10%; }
-        .vector-circle:nth-child(4) { width: 250px; height: 250px; bottom: 10%; right: 15%; }
-        .vector-line {
-            width: 400px;
-            height: 3px;
-            transform: rotate(30deg);
-            top: 30%;
-            right: -100px;
-        }
-        .vector-line:nth-of-type(2) {
-            width: 300px;
-            height: 3px;
-            transform: rotate(-20deg);
-            top: 60%;
-            left: -100px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
         }
         .container {
-            max-width: 600px;
-            padding: 50px;
-            position: relative;
-            overflow: hidden;
-            z-index: 10;
+            max-width: 800px;
+            width: 100%;
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            margin: 40px auto;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
             border: 1px solid rgba(255,255,255,0.1);
         }
         .container::before {
@@ -66,7 +38,7 @@
             height: 8px;
             background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
         }
-        .logo-container {
+        .header {
             text-align: center;
             margin-bottom: 25px;
         }
@@ -81,21 +53,53 @@
             font-size: 22px;
             font-weight: bold;
             text-align: center;
+            margin-bottom: 20px;
         }
-
-        /* Estilos para las pestañas */
+        .back-btn {
+            background: #2c5282;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .form-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+        }
         .tabs {
             display: flex;
-            background: #e2e8f0;
-            border-radius: 12px;
-            padding: 5px;
-            margin-bottom: 20px;
             gap: 5px;
+            margin: 20px 0;
         }
         .tab-btn {
             flex: 1;
-            padding: 12px 16px;
-            background: white;
+            padding: 12px;
+            background: #e2e8f0;
             border: none;
             border-radius: 8px;
             font-weight: bold;
@@ -108,39 +112,20 @@
             color: #2d3748;
         }
         .tab-btn.active {
-            background: #3182ce;
-            color: white;
+            background: white;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: #0c2440;
         }
         .tab-btn:hover:not(.active) {
             background: #cbd5e0;
         }
-
         .content-section {
             display: none;
         }
         .content-section.active {
             display: block;
         }
-
-        .input-group {
-            margin: 20px 0;
-        }
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-        .input-group select {
-            width: 100%;
-            padding: 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            background: white;
-        }
-        .action-btn, .back-btn {
+        .action-btn {
             padding: 14px;
             border: none;
             border-radius: 12px;
@@ -149,50 +134,31 @@
             font-weight: bold;
             width: 100%;
             text-align: center;
-        }
-        .action-btn {
             background: linear-gradient(135deg, #0c2440, #1a365d);
             color: white;
             margin-top: 25px;
         }
-        .back-btn {
-            background: linear-gradient(135deg, #2c5282, #1a365d);
-            color: white;
-            margin-top: 15px;
-        }
-        .action-btn:disabled, .back-btn:disabled {
+        .action-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <div class="vector-bg">
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-circle"></div>
-        <div class="vector-line"></div>
-        <div class="vector-line"></div>
-    </div>
     <div class="container">
-        <div class="logo-container">
+        <div class="header">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Seleccionar Estación o Servicio</h1>
+            <h1 class="title">Estadísticas de Inspecciones</h1>
         </div>
 
-        <!-- PESTAÑAS -->
-        <div class="tabs">
-            <button id="tabEstaciones" class="tab-btn active" onclick="cambiarTab('estaciones')">
-                👮‍♂️ Estaciones
-            </button>
-            <button id="tabServicios" class="tab-btn" onclick="cambiarTab('servicios')">
-                📄 Servicios
-            </button>
-        </div>
+        <!-- Botón de Volver -->
+        <button id="btnVolverPanel" class="back-btn">
+            ← Volver al Panel Principal
+        </button>
 
-        <!-- SECCIÓN ESTACIONES -->
-        <div id="seccionEstaciones" class="content-section active">
+        <!-- Formulario Principal -->
+        <div class="form-section">
+            <!-- Selección de CCP -->
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
                 <select id="ccpSelect">
@@ -205,45 +171,42 @@
                     <option value="falcon">CCPE FALCÓN</option>
                 </select>
             </div>
-            <div class="input-group">
-                <label for="estacionSelect">Seleccione Estación Policial:</label>
-                <select id="estacionSelect" disabled>
-                    <option value="">-- Primero seleccione un CCP --</option>
-                </select>
+
+            <!-- PESTAÑAS -->
+            <div class="tabs">
+                <button id="tabEstaciones" class="tab-btn active" onclick="cambiarTab('estaciones')">
+                    👮‍♂️ Estaciones
+                </button>
+                <button id="tabServicios" class="tab-btn" onclick="cambiarTab('servicios')">
+                    📄 Servicios
+                </button>
             </div>
+
+            <!-- CONTENIDO DE ESTACIONES -->
+            <div id="seccionEstaciones" class="content-section active">
+                <div class="input-group">
+                    <label for="estacionSelect">Seleccione Estación:</label>
+                    <select id="estacionSelect" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- CONTENIDO DE SERVICIOS -->
+            <div id="seccionServicios" class="content-section">
+                <div class="input-group">
+                    <label for="servicioSelect">Seleccione Servicio:</label>
+                    <select id="servicioSelect" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botón para cargar la galería -->
             <button id="btnCargarGaleria" class="action-btn" disabled>
                 🖼️ Cargar Galería de Inspección
             </button>
         </div>
-
-        <!-- SECCIÓN SERVICIOS -->
-        <div id="seccionServicios" class="content-section">
-            <div class="input-group">
-                <label for="ccpSelectServicios">Seleccione CCP:</label>
-                <select id="ccpSelectServicios">
-                    <option value="">-- Elija un CCP --</option>
-                    <option value="metropolitano">CCP METROPOLITANO</option>
-                    <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                    <option value="guajira">CCP GUAJIRA</option>
-                    <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                    <option value="lara">CCPE LARA</option>
-                    <option value="falcon">CCPE FALCÓN</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="servicioSelect">Seleccione Servicio Administrativo:</label>
-                <select id="servicioSelect" disabled>
-                    <option value="">-- Primero seleccione un CCP --</option>
-                </select>
-            </div>
-            <button id="btnCargarGaleriaServicios" class="action-btn" disabled>
-                🖼️ Cargar Galería de Inspección
-            </button>
-        </div>
-
-        <button id="btnVolver" class="back-btn">
-            ← Volver al Menú
-        </button>
     </div>
 
     <script>
@@ -267,27 +230,28 @@
             }
         }
 
-        // ========================
-        // LÓGICA PARA ESTACIONES
-        // ========================
-        document.getElementById('ccpSelect').addEventListener('change', async () => {
-            const ccpId = document.getElementById('ccpSelect').value;
+        // Función para cargar las estaciones según el CCP seleccionado
+        async function cargarEstaciones(ccpId) {
             const estacionSelect = document.getElementById('estacionSelect');
             const btnCargar = document.getElementById('btnCargarGaleria');
             estacionSelect.disabled = true;
             estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
             btnCargar.disabled = true;
+
             if (!ccpId) {
                 estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
                 return;
             }
+
             try {
                 const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
+
                 if (error) throw error;
+
                 estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                 estaciones.forEach(est => {
                     const opt = document.createElement('option');
@@ -301,49 +265,30 @@
                 estacionSelect.innerHTML = '<option value="">Error al cargar</option>';
                 alert('No se pudieron cargar las estaciones.');
             }
-        });
+        }
 
-        document.getElementById('estacionSelect').addEventListener('change', () => {
-            const estacionId = document.getElementById('estacionSelect').value;
-            document.getElementById('btnCargarGaleria').disabled = !estacionId;
-        });
-
-        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
-            const ccpSelect = document.getElementById('ccpSelect');
-            const estacionSelect = document.getElementById('estacionSelect');
-            const ccpId = ccpSelect.value;
-            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
-            const estacionId = estacionSelect.value;
-            const estacionNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
-            if (!ccpId || !estacionId) {
-                alert('Seleccione una estación válida.');
-                return;
-            }
-            const url = `galeria.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            window.location.href = url;
-        });
-
-        // ========================
-        // LÓGICA PARA SERVICIOS
-        // ========================
-        document.getElementById('ccpSelectServicios').addEventListener('change', async () => {
-            const ccpId = document.getElementById('ccpSelectServicios').value;
+        // Función para cargar los servicios según el CCP seleccionado
+        async function cargarServicios(ccpId) {
             const servicioSelect = document.getElementById('servicioSelect');
-            const btnCargar = document.getElementById('btnCargarGaleriaServicios');
+            const btnCargar = document.getElementById('btnCargarGaleria');
             servicioSelect.disabled = true;
             servicioSelect.innerHTML = '<option value="">-- Cargando... --</option>';
             btnCargar.disabled = true;
+
             if (!ccpId) {
                 servicioSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
                 return;
             }
+
             try {
                 const { data: servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('estacion_id as servicio_id, nombre_estacion as servicio_nombre')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
+
                 if (error) throw error;
+
                 servicioSelect.innerHTML = '<option value="">-- Elija un servicio --</option>';
                 servicios.forEach(serv => {
                     const opt = document.createElement('option');
@@ -357,30 +302,69 @@
                 servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
                 alert('No se pudieron cargar los servicios.');
             }
+        }
+
+        // Evento de cambio del CCP
+        document.getElementById('ccpSelect').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpSelect').value;
+            const tabActiva = document.querySelector('.tab-btn.active').id;
+
+            if (tabActiva === 'tabEstaciones') {
+                await cargarEstaciones(ccpId);
+            } else if (tabActiva === 'tabServicios') {
+                await cargarServicios(ccpId);
+            }
+        });
+
+        // Eventos de cambio de selección para habilitar el botón
+        document.getElementById('estacionSelect').addEventListener('change', () => {
+            const estacionId = document.getElementById('estacionSelect').value;
+            document.getElementById('btnCargarGaleria').disabled = !estacionId;
         });
 
         document.getElementById('servicioSelect').addEventListener('change', () => {
             const servicioId = document.getElementById('servicioSelect').value;
-            document.getElementById('btnCargarGaleriaServicios').disabled = !servicioId;
+            document.getElementById('btnCargarGaleria').disabled = !servicioId;
         });
 
-        document.getElementById('btnCargarGaleriaServicios').addEventListener('click', () => {
-            const ccpSelect = document.getElementById('ccpSelectServicios');
-            const servicioSelect = document.getElementById('servicioSelect');
+        // Evento de clic del botón para cargar la galería
+        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
+            const ccpSelect = document.getElementById('ccpSelect');
             const ccpId = ccpSelect.value;
             const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
-            const servicioId = servicioSelect.value;
-            const servicioNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
-            if (!ccpId || !servicioId) {
-                alert('Seleccione un servicio válido.');
+            const tabActiva = document.querySelector('.tab-btn.active').id;
+
+            if (!ccpId) {
+                alert('Seleccione un CCP válido.');
                 return;
             }
-            const url = `galeria.html?servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}&ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+
+            let url = '';
+            if (tabActiva === 'tabEstaciones') {
+                const estacionSelect = document.getElementById('estacionSelect');
+                const estacionId = estacionSelect.value;
+                const estacionNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
+                if (!estacionId) {
+                    alert('Seleccione una estación válida.');
+                    return;
+                }
+                url = `galeria.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            } else if (tabActiva === 'tabServicios') {
+                const servicioSelect = document.getElementById('servicioSelect');
+                const servicioId = servicioSelect.value;
+                const servicioNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
+                if (!servicioId) {
+                    alert('Seleccione un servicio válido.');
+                    return;
+                }
+                url = `galeria.html?servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}&ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            }
+
             window.location.href = url;
         });
 
-        // Botón de volver
-        document.getElementById('btnVolver').addEventListener('click', () => {
+        // Evento de clic del botón de volver al panel principal
+        document.getElementById('btnVolverPanel').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
     </script>
