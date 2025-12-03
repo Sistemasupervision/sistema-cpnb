@@ -266,35 +266,28 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // --- VALIDACIÓN DE ACCESO: REDIP OCCIDENTAL o ADMIN (Supabase v2 compatible) ---
-        async function verificarAccesoOcidentalOAdmin() {
-            const { data: { session }, error: authError } = await supabase.auth.getSession();
-            if (authError || !session || !session.user) {
+        // --- VALIDACIÓN DE ACCESO A REDIP OCCIDENTAL ---
+        async function verificarAccesoOcidental() {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) {
                 alert('🔒 Acceso restringido. Debe iniciar sesión.');
                 window.location.href = '../../index.html';
                 return false;
             }
 
-            const user = session.user;
             const { data, error } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
                 .eq('user_id', user.id)
                 .single();
 
-            if (error || !data) {
-                alert('❌ No se pudo verificar su rol. Acceso denegado.');
+            if (error || !data || data.redip !== 'occidental') {
+                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL pueden ver esta página.');
                 window.location.href = '../../index.html';
                 return false;
             }
 
-            if (data.redip === 'occidental' || data.redip === 'admin') {
-                return true;
-            } else {
-                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden ver esta página.');
-                window.location.href = '../../index.html';
-                return false;
-            }
+            return true;
         }
 
         // === FUNCIONES PRINCIPALES DE LA PÁGINA ===
@@ -485,7 +478,7 @@
 
         // --- EJECUCIÓN PRINCIPAL ---
         async function iniciar() {
-            const permitido = await verificarAccesoOcidentalOAdmin();
+            const permitido = await verificarAccesoOcidental();
             if (permitido) {
                 setInterval(actualizarReloj, 1000);
                 actualizarReloj();
