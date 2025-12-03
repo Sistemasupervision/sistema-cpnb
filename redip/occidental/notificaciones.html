@@ -308,18 +308,18 @@
     console.log('Acceso concedido con rol:', data.redip);
     return true;
 }
-        // === FUNCIONES PRINCIPALES ===
-        async function obtenerCcpOcidental() {
-            const { data, error } = await supabase
-                .from('ccps')
-                .select('ccp_id')
-                .eq('redip', 'occidental');
-            if (error) {
-                console.error('Error al cargar CCPs de OCCIDENTAL:', error);
-                return [];
-            }
-            return data.map(row => row.ccp_id);
-        }
+       async function obtenerCcpOcidental() {
+    const { data, error } = await supabase
+        .from('ccps')
+        .select('ccp_id')
+        .eq('redip', 'occidental');
+    if (error) {
+        console.error('Error al cargar CCPs de OCCIDENTAL:', error);
+        return [];
+    }
+    // Protección: si data es undefined, retorna array vacío
+    return (data || []).map(row => row.ccp_id);
+}
 
         let ccpNombres = {};
         async function cargarNombresCcp() {
