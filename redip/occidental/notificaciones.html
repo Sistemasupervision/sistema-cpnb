@@ -370,74 +370,74 @@
             return (data || []).map(row => row.ccp_id);
         }
 
-    async function cargarNotificaciones() {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const hoyStr = hoy.toISOString().split('T')[0];
-    const container = document.getElementById('alertasContainer');
+        async function cargarNotificaciones() {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const hoyStr = hoy.toISOString().split('T')[0];
+            const container = document.getElementById('alertasContainer');
 
-    try {
-        await cargarNombresCcp();
-        const ccpOcidental = await obtenerCcpOcidental();
-        if (ccpOcidental.length === 0) {
-            container.innerHTML = '<div class="no-data">⚠️ No hay CCPs para OCCIDENTAL.</div>';
-            return;
+            try {
+                await cargarNombresCcp();
+                const ccpOcidental = await obtenerCcpOcidental();
+                if (!ccpOcidental || ccpOcidental.length === 0) {
+                    container.innerHTML = '<div class="no-data">⚠️ No hay CCPs asignados a OCCIDENTAL.</div>';
+                    return;
+                }
+
+                // ✅ CORREGIDO: usar .data y formatear UUIDs con comillas simples
+                const {  estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('estacion_id, nombre_estacion, ccp_id')
+                    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+                if (estError) throw estError;
+                estacionesGlobales = estaciones || [];
+
+                const {  servicios, error: servError } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre, ccp_id')
+                    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+                if (servError) throw servError;
+                serviciosGlobales = servicios || [];
+
+                const estacionIds = new Set(estaciones.map(e => e.estacion_id));
+                const servicioIds = new Set(servicios.map(s => s.id));
+
+                if (estacionIds.size === 0 && servicioIds.size === 0) {
+                    container.innerHTML = '<div class="no-data">⚠️ No hay unidades asociadas a OCCIDENTAL.</div>';
+                    return;
+                }
+
+                let condiciones = [];
+                if (estacionIds.size > 0) {
+                    const estIds = Array.from(estacionIds).map(id => `'${id}'`).join(',');
+                    condiciones.push(`estacion_id.in.(${estIds})`);
+                }
+                if (servicioIds.size > 0) {
+                    const servIds = Array.from(servicioIds).map(id => `'${id}'`).join(',');
+                    condiciones.push(`servicio_id.in.(${servIds})`);
+                }
+
+                const {  inspeccionesRaw, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('*')
+                    .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+                    .or(condiciones.join(','))
+                    .order('proxima_inspeccion', { ascending: true });
+
+                if (inspError) throw inspError;
+
+                todasInspecciones = (inspeccionesRaw || []).filter(insp =>
+                    (insp.estacion_id && estacionIds.has(insp.estacion_id)) ||
+                    (insp.servicio_id && servicioIds.has(insp.servicio_id))
+                );
+
+                renderizarPagina(1);
+
+            } catch (error) {
+                console.error("Error al cargar notificaciones:", error);
+                mostrarMensajeAccesoDenegado("Error al cargar notificaciones: " + (error.message || 'Error desconocido.'));
+            }
         }
-
-        // ✅ CORREGIDO: usar .data + UUIDs entre comillas simples
-        const {  estaciones, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('estacion_id, nombre_estacion, ccp_id')
-            .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
-        if (estError) throw estError;
-        estacionesGlobales = estaciones || [];
-
-        const {  servicios, error: servError } = await supabase
-            .from('servicios_administrativos')
-            .select('id, nombre, ccp_id')
-            .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
-        if (servError) throw servError;
-        serviciosGlobales = servicios || [];
-
-        const estacionIds = new Set(estaciones.map(e => e.estacion_id));
-        const servicioIds = new Set(servicios.map(s => s.id));
-
-        if (estacionIds.size === 0 && servicioIds.size === 0) {
-            container.innerHTML = '<div class="no-data">⚠️ No hay unidades asociadas a REDIP OCCIDENTAL.</div>';
-            return;
-        }
-
-        let condiciones = [];
-        if (estacionIds.size > 0) {
-            const estIds = Array.from(estacionIds).map(id => `'${id}'`).join(',');
-            condiciones.push(`estacion_id.in.(${estIds})`);
-        }
-        if (servicioIds.size > 0) {
-            const servIds = Array.from(servicioIds).map(id => `'${id}'`).join(',');
-            condiciones.push(`servicio_id.in.(${servIds})`);
-        }
-
-        const {  inspeccionesRaw, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('*')
-            .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
-            .or(condiciones.join(','))
-            .order('proxima_inspeccion', { ascending: true });
-
-        if (inspError) throw inspError;
-
-        todasInspecciones = (inspeccionesRaw || []).filter(insp =>
-            (insp.estacion_id && estacionIds.has(insp.estacion_id)) ||
-            (insp.servicio_id && servicioIds.has(insp.servicio_id))
-        );
-
-        renderizarPagina(1);
-
-    } catch (error) {
-        console.error("Error al cargar notificaciones:", error);
-        mostrarMensajeAccesoDenegado("Error al cargar notificaciones: " + (error.message || 'Error desconocido.'));
-    }
-} // ← ¡ESTA LLAVE CIERRA LA FUNCIÓN!
 
         // === RENDER Y PAGINACIÓN ===
         function renderizarPagina(pagina) {
