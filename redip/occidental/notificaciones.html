@@ -266,20 +266,18 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === Variables globales ===
-        let ccpOcidental = [];
-        let ccpNombres = {};
-        let inspeccionIdActual = null;
         let todasInspecciones = [];
         let estacionesGlobales = [];
         let serviciosGlobales = [];
+        let ccpNombres = {};
         const itemsPorPagina = 10;
         let paginaActual = 1;
+        let inspeccionIdActual = null;
 
-        // === VALIDACIÓN DE ACCESO A REDIP OCCIDENTAL ===
+        // === VALIDACIÓN DE ACCESO ===
         async function verificarAccesoOcidental() {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
                 mostrarMensajeAccesoDenegado("Debe iniciar sesión.");
                 return false;
             }
@@ -288,19 +286,14 @@
                 .select('redip')
                 .eq('user_id', user.id)
                 .single();
-            if (error || !data) {
-                mostrarMensajeAccesoDenegado("Su cuenta no tiene permisos asignados en el sistema.");
-                return false;
-            }
-            if (data.redip !== 'occidental' && data.redip !== 'admin') {
-                mostrarMensajeAccesoDenegado("No tiene permisos para acceder a REDIP OCCIDENTAL. Por favor contacte al administrador.");
+            if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                mostrarMensajeAccesoDenegado("Acceso denegado a REDIP OCCIDENTAL.");
                 return false;
             }
             return true;
         }
 
         function mostrarMensajeAccesoDenegado(mensaje) {
-            // Crear un contenedor oscuro para el modal
             const overlay = document.createElement('div');
             overlay.style.position = 'fixed';
             overlay.style.top = '0';
@@ -312,8 +305,6 @@
             overlay.style.display = 'flex';
             overlay.style.justifyContent = 'center';
             overlay.style.alignItems = 'center';
-
-            // Crear el modal
             const modal = document.createElement('div');
             modal.style.background = '#1a1a1a';
             modal.style.padding = '25px';
@@ -323,21 +314,15 @@
             modal.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
             modal.style.color = 'white';
             modal.style.fontFamily = 'Arial, sans-serif';
-
-            // Título
             const titulo = document.createElement('div');
             titulo.style.fontSize = '18px';
             titulo.style.fontWeight = 'bold';
             titulo.style.marginBottom = '15px';
             titulo.textContent = 'sistemassupervision.github.io dice';
-
-            // Icono de advertencia y mensaje
             const contenido = document.createElement('div');
             contenido.style.fontSize = '16px';
             contenido.style.lineHeight = '1.5';
             contenido.innerHTML = `<span style="color: #ffcc00; font-size: 20px;">⚠️</span> ${mensaje}`;
-
-            // Botón Aceptar
             const boton = document.createElement('button');
             boton.textContent = 'Aceptar';
             boton.style.marginTop = '20px';
@@ -353,120 +338,177 @@
                 window.location.href = '../../index.html';
                 document.body.removeChild(overlay);
             });
-
-            // Agregar elementos al modal
             modal.appendChild(titulo);
             modal.appendChild(contenido);
             modal.appendChild(boton);
-
-            // Agregar modal al overlay
             overlay.appendChild(modal);
-
-            // Mostrar el modal
             document.body.appendChild(overlay);
         }
 
-        // === Funciones principales de la página ===
+        // === CARGA DE DATOS ===
+        async function cargarNombresCcp() {
+            const { data, error } = await supabase
+                .from('ccps')
+                .select('ccp_id, nombre_ccp');
+            if (!error && data) {
+                ccpNombres = data.reduce((acc, row) => {
+                    acc[row.ccp_id] = row.nombre_ccp;
+                    return acc;
+                }, {});
+            }
+        }
+
         async function obtenerCcpOcidental() {
             const { data, error } = await supabase
                 .from('ccps')
                 .select('ccp_id')
                 .eq('redip', 'occidental');
             if (error) {
-                mostrarMensajeAccesoDenegado("Error al cargar CCPs de OCCIDENTAL: " + error.message);
+                console.error("Error al cargar CCPs:", error);
                 return [];
             }
             return (data || []).map(row => row.ccp_id);
         }
 
-    async function cargarNombresCcp() {
-    const { data, error } = await supabase
-        .from('ccps')
-        .select('ccp_id, nombre_ccp');
-    if (error) {
-        mostrarMensajeAccesoDenegado("Error al cargar nombres de CCPs: " + error.message);
-    } else {
-        console.log('Datos de CCPs:', data); // Agregado para depuración
-        ccpNombres = data.reduce((acc, row) => {
-            acc[row.ccp_id] = row.nombre_ccp;
-            return acc;
-        }, {});
-    }
-}
+        async function cargarNotificaciones() {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const hoyStr = hoy.toISOString().split('T')[0];
+            const container = document.getElementById('alertasContainer');
 
-async function obtenerCcpOcidental() {
-    const { data, error } = await supabase
-        .from('ccps')
-        .select('ccp_id')
-        .eq('redip', 'occidental');
-    if (error) {
-        mostrarMensajeAccesoDenegado("Error al cargar CCPs de OCCIDENTAL: " + error.message);
-        return [];
-    }
-    console.log('CCPs de OCCIDENTAL:', data); // Agregado para depuración
-    return (data || []).map(row => row.ccp_id);
-}
+            try {
+                await cargarNombresCcp();
+                const ccpOcidental = await obtenerCcpOcidental();
+                if (!ccpOcidental || ccpOcidental.length === 0) {
+                    container.innerHTML = '<div class="no-data">⚠️ No hay CCPs asignados a OCCIDENTAL.</div>';
+                    return;
+                }
 
-async function cargarNotificaciones() {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const hoyStr = hoy.toISOString().split('T')[0];
-    const container = document.getElementById('alertasContainer');
-    try {
-        await cargarNombresCcp();
-        const ccpOcidental = await obtenerCcpOcidental();
-        console.log('CCPs obtenidos para OCCIDENTAL:', ccpOcidental); // Agregado para depuración
-        if (ccpOcidental.length === 0) {
-            container.innerHTML = '<div class="no-data">⚠️ No hay CCPs para OCCIDENTAL.</div>';
-            return;
-        }
-        const { data: estaciones, error: estError } = await supabase
-            .from('estaciones_policiales')
-            .select('estacion_id, nombre_estacion, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (estError) throw estError;
-        estacionesGlobales = estaciones;
-        console.log('Estaciones cargadas:', estacionesGlobales); // Agregado para depuración
+                // Corregido: usar .data
+                const {  estaciones, error: estError } = await supabase
+                    .from('estaciones_policiales')
+                    .select('estacion_id, nombre_estacion, ccp_id')
+                    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+                if (estError) throw estError;
+                estacionesGlobales = estaciones || [];
 
-        const { data: servicios, error: servError } = await supabase
-            .from('servicios_administrativos')
-            .select('id, nombre, ccp_id')
-            .in('ccp_id', ccpOcidental);
-        if (servError) throw servError;
-        serviciosGlobales = servicios;
-        console.log('Servicios cargados:', serviciosGlobales); // Agregado para depuración
+                const {  servicios, error: servError } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre, ccp_id')
+                    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+                if (servError) throw servError;
+                serviciosGlobales = servicios || [];
 
-        const estacionIds = new Set(estaciones.map(e => e.estacion_id));
-        const servicioIds = new Set(servicios.map(s => s.id));
-        let filtroUnidades = '';
-        const condiciones = [];
-        if (estacionIds.size > 0) {
-            condiciones.push(`estacion_id.in.(${Array.from(estacionIds).join(',')})`);
+                const estacionIds = new Set(estaciones.map(e => e.estacion_id));
+                const servicioIds = new Set(servicios.map(s => s.id));
+
+                if (estacionIds.size === 0 && servicioIds.size === 0) {
+                    container.innerHTML = '<div class="no-data">⚠️ No hay unidades asociadas a OCCIDENTAL.</div>';
+                    return;
+                }
+
+                let condiciones = [];
+                if (estacionIds.size > 0) {
+                    condiciones.push(`estacion_id.in.(${Array.from(estacionIds).map(id => `'${id}'`).join(',')})`);
+                }
+                if (servicioIds.size > 0) {
+                    condiciones.push(`servicio_id.in.(${Array.from(servicioIds).map(id => `'${id}'`).join(',')})`);
+                }
+
+                const {  inspeccionesRaw, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('*')
+                    .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+                    .or(condiciones.join(','))
+                    .order('proxima_inspeccion', { ascending: true });
+
+                if (inspError) throw inspError;
+
+                todasInspecciones = (inspeccionesRaw || []).filter(insp =>
+                    (insp.estacion_id && estacionIds.has(insp.estacion_id)) ||
+                    (insp.servicio_id && servicioIds.has(insp.servicio_id))
+                );
+
+                renderizarPagina(1);
+
+            } catch (error) {
+                console.error("Error al cargar notificaciones:", error);
+                mostrarMensajeAccesoDenegado("Error al cargar notificaciones: " + (error.message || 'Error desconocido'));
+            }
         }
-        if (servicioIds.size > 0) {
-            condiciones.push(`servicio_id.in.(${Array.from(servicioIds).join(',')})`);
+
+        // === RENDER Y PAGINACIÓN ===
+        function renderizarPagina(pagina) {
+            paginaActual = pagina;
+            const inicio = (pagina - 1) * itemsPorPagina;
+            const fin = inicio + itemsPorPagina;
+            const inspeccionesPagina = todasInspecciones.slice(inicio, fin);
+            const container = document.getElementById('alertasContainer');
+
+            if (inspeccionesPagina.length === 0) {
+                container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
+                document.getElementById('paginationContainer').innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="alertas-list">';
+            inspeccionesPagina.forEach(insp => {
+                const fechaProxima = insp.proxima_inspeccion
+                    ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
+                    : 'Sin fecha asignada';
+                const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                let nombreUnidad = 'Unidad desconocida';
+                let ccpId = '';
+                let tipoLabel = '❓ Unidad desconocida';
+
+                if (insp.estacion_id) {
+                    const estacion = estacionesGlobales.find(e => e.estacion_id === insp.estacion_id);
+                    if (estacion) {
+                        nombreUnidad = estacion.nombre_estacion;
+                        ccpId = estacion.ccp_id;
+                        tipoLabel = '👮 Estación Policial';
+                    }
+                }
+                if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
+                    const servicio = serviciosGlobales.find(s => s.id === insp.servicio_id);
+                    if (servicio) {
+                        nombreUnidad = servicio.nombre;
+                        ccpId = servicio.ccp_id;
+                        tipoLabel = '📋 Servicio Administrativo';
+                    }
+                }
+
+                const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
+                html += `
+                    <div class="alerta-card">
+                        <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
+                        <div class="alerta-detalles">
+                            <span>Última inspección: ${fechaInspeccion}</span>
+                            <span class="ccp-badge">${ccpNombre}</span>
+                        </div>
+                        <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
+                            ⚠️ Reinspección vencida desde: ${fechaProxima}
+                        </div>
+                        <div class="acciones">
+                            <button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">
+                                ✅ Marcar como reinspeccionada
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            const totalPaginas = Math.ceil(todasInspecciones.length / itemsPorPagina);
+            let paginacionHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                paginacionHTML += `<button class="page-btn ${i === paginaActual ? 'active' : ''}" onclick="renderizarPagina(${i})">${i}</button>`;
+            }
+            document.getElementById('paginationContainer').innerHTML = paginacionHTML;
         }
-        if (condiciones.length === 0) {
-            container.innerHTML = '<div class="no-data">⚠️ No hay unidades asociadas a REDIP OCCIDENTAL.</div>';
-            return;
-        }
-        const { data: inspeccionesRaw, error: inspError } = await supabase
-            .from('inspecciones')
-            .select('*')
-            .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
-            .or(condiciones.join(','))
-            .order('proxima_inspeccion', { ascending: true });
-        if (inspError) throw inspError;
-        console.log('Inspecciones cargadas:', inspeccionesRaw); // Agregado para depuración
-        todasInspecciones = inspeccionesRaw.filter(insp =>
-            (insp.estacion_id && estacionIds.has(insp.estacion_id)) ||
-            (insp.servicio_id && servicioIds.has(insp.servicio_id))
-        );
-        renderizarPagina(1);
-    } catch (error) {
-        mostrarMensajeAccesoDenegado("Error al cargar notificaciones: " + error.message);
-    }
-}
+
+        // === MODAL Y ACTUALIZACIÓN ===
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
@@ -493,17 +535,34 @@ async function cargarNotificaciones() {
                 cerrarModalFecha();
                 cargarNotificaciones();
             } catch (error) {
-                mostrarMensajeAccesoDenegado("Error al actualizar: " + error.message);
+                alert("❌ Error al actualizar: " + error.message);
             }
         }
 
-        // === Ejecución principal ===
+        // === RELOJ ===
+        function actualizarReloj() {
+            const ahora = new Date();
+            const opciones = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const formato = ahora.toLocaleDateString('es-ES', opciones);
+            document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
+        }
+
+        // === INICIO ===
         async function iniciar() {
             const permitido = await verificarAccesoOcidental();
             if (permitido) {
                 setInterval(actualizarReloj, 1000);
                 actualizarReloj();
-                document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+                const hoy = new Date().toISOString().split('T')[0];
+                document.getElementById('nuevaFechaInput').min = hoy;
                 await cargarNotificaciones();
             }
         }
