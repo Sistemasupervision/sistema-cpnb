@@ -370,7 +370,7 @@
             return (data || []).map(row => row.ccp_id);
         }
 
-     async function cargarNotificaciones() {
+    async function cargarNotificaciones() {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const hoyStr = hoy.toISOString().split('T')[0];
@@ -384,7 +384,7 @@
             return;
         }
 
-        // ✅ CORREGIDO: usar .data y formatear UUIDs con comillas simples
+        // ✅ CORREGIDO: usar .data + UUIDs entre comillas simples
         const {  estaciones, error: estError } = await supabase
             .from('estaciones_policiales')
             .select('estacion_id, nombre_estacion, ccp_id')
@@ -437,7 +437,7 @@
         console.error("Error al cargar notificaciones:", error);
         mostrarMensajeAccesoDenegado("Error al cargar notificaciones: " + (error.message || 'Error desconocido.'));
     }
-}
+} // ← ¡ESTA LLAVE CIERRA LA FUNCIÓN!
 
         // === RENDER Y PAGINACIÓN ===
         function renderizarPagina(pagina) {
