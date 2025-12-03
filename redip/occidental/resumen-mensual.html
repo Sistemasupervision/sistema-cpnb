@@ -277,6 +277,35 @@
         let ccpOcidental = [];
         let ccpNombres = {};
         let chartInstance = null;
+        
+        async function verificarAccesoOcidental() {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        alert('🔒 Acceso restringido. Debe iniciar sesión.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+
+    const { data, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip')
+        .eq('user_id', user.id)
+        .single();
+
+    if (error || !data) {
+        alert('🚫 Su cuenta no tiene permisos asignados en el sistema.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+
+    if (data.redip !== 'occidental' && data.redip !== 'admin') {
+        alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+
+    return true;
+}
 
         // === Cargar CCPs de REDIP OCCIDENTAL ===
         async function cargarCcpOcidental() {
@@ -635,10 +664,19 @@
             }
         }
 
-        // === Inicializar ===
+   async function iniciar() {
+    const permitido = await verificarAccesoOcidental();
+    if (permitido) {
         llenarSelectores();
         ['mesBase', 'anioBase', 'mesComparar', 'anioComparar'].forEach(id => {
             document.getElementById(id).addEventListener('change', cargarResumen);
+        });
+        // Cargar resumen después de una breve pausa para evitar conflicto de UI
+        setTimeout(cargarResumen, 300);
+    }
+}
+
+iniciar();
         });
         cargarResumen();
     </script>
