@@ -6,8 +6,6 @@
     <title>Estadísticas de Inspecciones - CPNB</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -261,7 +259,7 @@
                     <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
                     <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
                 </div>
-                <!-- Contenedor dinámico -->
+                <!-- Contenedor dinámico para el selector -->
                 <div id="selectorDinamico">
                     <div class="input-group">
                         <label for="estacionFilter">Seleccione Estación:</label>
@@ -320,9 +318,9 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
+        // ✅ CORREGIDO: sintaxis válida
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser(); // ✅ SINTAXIS CORRECTA
+            const { data: { user } } = await supabase.auth.getUser(); // ✅ CORRECTO
             if (!user) {
                 window.location.href = 'index.html';
                 return false;
@@ -659,11 +657,11 @@
             const data = itemsPagina.map(k => estadisticasTotales[k] || 0);
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                 {
+                data: {
                     labels: labels,
                     datasets: [{
                         label: '% de Cumplimiento Promedio',
-                         data,
+                        data: data,
                         backgroundColor: 'rgba(49, 130, 206, 0.8)',
                         borderColor: 'rgba(49, 130, 206, 1)',
                         borderWidth: 1,
