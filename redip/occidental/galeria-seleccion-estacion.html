@@ -230,21 +230,23 @@
             }
         }
 
-   async function cargarServicios(ccpId) {
+      async function cargarServicios(ccpId) {
     const select = document.getElementById('servicioSelect');
     try {
         const { data: servicios, error } = await supabase
             .from('servicios_administrativos')
-            .select('id:servicio_id,nombre:servicio_nombre') // ✅ Así es la sintaxis correcta
+            .select('id, nombre')                 // ✅ Nombre real de las columnas
             .eq('ccp_id', ccpId)
             .order('nombre', { ascending: true });
         if (error) throw error;
+
         select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
         if (!servicios || servicios.length === 0) return;
+
         servicios.forEach(serv => {
             const opt = document.createElement('option');
-            opt.value = serv.servicio_id;      // Ahora el alias funciona
-            opt.textContent = serv.servicio_nombre;
+            opt.value = serv.id;                  // ✅
+            opt.textContent = serv.nombre;        // ✅
             select.appendChild(opt);
         });
         select.disabled = false;
