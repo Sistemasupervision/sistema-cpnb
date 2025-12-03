@@ -243,19 +243,21 @@
             <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
                 ← Volver al Panel Principal
             </button>
-            <div class="filtro-container">
-                <div class="input-group">
-                    <label for="ccpFilter">Seleccione CCP:</label>
-                    <select id="ccpFilter">
-                        <option value="">-- Elija un CCP --</option>
-                        <option value="metropolitano">CCP METROPOLITANO</option>
-                        <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                        <option value="guajira">CCP GUAJIRA</option>
-                        <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                        <option value="lara">CCPE LARA</option>
-                        <option value="falcon">CCPE FALCÓN</option>
-                    </select>
-                </div>
+         <div class="filtro-container">
+    <div class="input-group">
+        <label for="ccpFilter">Seleccione CCP:</label>
+        <select id="ccpFilter">
+            <option value="">-- Elija un CCP --</option>
+            <option value="metropolitano">CCP METROPOLITANO</option>
+            <option value="sur_del_lago">CCP SUR DEL LAGO</option>
+            <option value="guajira">CCP GUAJIRA</option>
+            <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
+            <option value="lara">CCPE LARA</option>
+            <option value="falcon">CCPE FALCÓN</option>
+        </select>
+    </div>
+    <div id="selectorEntidad"></div>
+</div>
                 <!-- Pestañas: Estaciones vs Servicios -->
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
