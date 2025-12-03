@@ -264,7 +264,7 @@
         <div class="section">
             <h2 class="section-title">Resultados de la Comparación</h2>
             <div id="resumenContainer">
-                <div class="loading">Verificando acceso y cargando resumen...</div>
+                <div class="loading">Cargando resumen mensual...</div>
             </div>
         </div>
     </div>
@@ -272,36 +272,6 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-        // --- VERIFICACIÓN DE ACCESO: OCCIDENTAL o ADMIN ---
-        async function verificarAccesoOcidentalOAdmin() {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                alert('🔒 Acceso restringido. Debe iniciar sesión.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-
-            if (error || !data) {
-                alert('❌ No se pudo verificar su rol. Acceso denegado.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-
-            if (data.redip === 'occidental' || data.redip === 'admin') {
-                return true;
-            } else {
-                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden ver esta página.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-        }
 
         // === Variables globales ===
         let ccpOcidental = [];
@@ -375,81 +345,95 @@
             aniosComp.value = hoy.getMonth() === 0 ? hoy.getFullYear() - 1 : hoy.getFullYear();
         }
 
-        async function cargarDatosPorCCP(anio, mes) {
-            const rango = rangoMes(anio, mes);
-            const { data: estaciones, error: estError } = await supabase
-                .from('estaciones_policiales')
-                .select('estacion_id, ccp_id')
-                .in('ccp_id', ccpOcidental);
-            if (estError) throw estError;
-            if (estaciones.length === 0) return {};
-            const idsEstaciones = estaciones.map(e => e.estacion_id);
-            const estacionCCPMap = {};
-            estaciones.forEach(e => estacionCCPMap[e.estacion_id] = e.ccp_id);
-            const { data: inspecciones, error: inspError } = await supabase
-                .from('inspecciones')
-                .select('id, estacion_id')
-                .in('estacion_id', idsEstaciones)
-                .gte('created_at', rango.desde)
-                .lte('created_at', rango.hasta + 'T23:59:59.999Z');
-            if (inspError) throw inspError;
-            if (inspecciones.length === 0) return {};
-            const idsInspecciones = inspecciones.map(i => i.id);
-            const { data: items, error: itemsError } = await supabase
-                .from('items_inspeccion')
-                .select('inspeccion_id, cumple')
-                .in('inspeccion_id', idsInspecciones);
-            if (itemsError) throw itemsError;
-            const itemsPorInspeccion = {};
-            items.forEach(item => {
-                if (!itemsPorInspeccion[item.inspeccion_id]) {
-                    itemsPorInspeccion[item.inspeccion_id] = [];
-                }
-                itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
-            });
-            const metricasPorCCP = {};
-            inspecciones.forEach(insp => {
-                const ccp = estacionCCPMap[insp.estacion_id];
-                if (!ccp) return;
-                if (!metricasPorCCP[ccp]) {
-                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
-                }
-                metricasPorCCP[ccp].totalInspecciones++;
-                const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
-                metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
-                metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
-            });
-            const resultado = {};
-            Object.keys(metricasPorCCP).forEach(ccp => {
-                const m = metricasPorCCP[ccp];
-                resultado[ccp] = {
-                    inspecciones: m.totalInspecciones,
-                    porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
-                };
-            });
-            return resultado;
+     async function cargarDatosPorCCP(anio, mes) {
+    const rango = rangoMes(anio, mes);
+    // ✅ Corregido: ahora se selecciona 'estacion_id', no 'id'
+    const { data: estaciones, error: estError } = await supabase
+        .from('estaciones_policiales')
+        .select('estacion_id, ccp_id')
+        .in('ccp_id', ccpOcidental);
+    if (estError) throw estError;
+    if (estaciones.length === 0) return {};
+
+    // ✅ Usar 'estacion_id' en lugar de 'id'
+    const idsEstaciones = estaciones.map(e => e.estacion_id);
+    const estacionCCPMap = {};
+    estaciones.forEach(e => estacionCCPMap[e.estacion_id] = e.ccp_id); // ✅
+
+    const { data: inspecciones, error: inspError } = await supabase
+        .from('inspecciones')
+        .select('id, estacion_id')
+        .in('estacion_id', idsEstaciones) // ✅ esto ya es correcto
+        .gte('created_at', rango.desde)
+        .lte('created_at', rango.hasta + 'T23:59:59.999Z');
+    if (inspError) throw inspError;
+    if (inspecciones.length === 0) return {};
+
+    const idsInspecciones = inspecciones.map(i => i.id);
+    const { data: items, error: itemsError } = await supabase
+        .from('items_inspeccion')
+        .select('inspeccion_id, cumple')
+        .in('inspeccion_id', idsInspecciones);
+    if (itemsError) throw itemsError;
+
+    const itemsPorInspeccion = {};
+    items.forEach(item => {
+        if (!itemsPorInspeccion[item.inspeccion_id]) {
+            itemsPorInspeccion[item.inspeccion_id] = [];
         }
+        itemsPorInspeccion[item.inspeccion_id].push(item.cumple);
+    });
+
+    const metricasPorCCP = {};
+    inspecciones.forEach(insp => {
+        // ✅ Asegurarse de que estacion_id exista
+        const ccp = estacionCCPMap[insp.estacion_id];
+        if (!ccp) return; // Opcional: ignorar si no tiene CCP válido
+        if (!metricasPorCCP[ccp]) {
+            metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
+        }
+        metricasPorCCP[ccp].totalInspecciones++;
+        const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
+        metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
+        metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
+    });
+
+    const resultado = {};
+    Object.keys(metricasPorCCP).forEach(ccp => {
+        const m = metricasPorCCP[ccp];
+        resultado[ccp] = {
+            inspecciones: m.totalInspecciones,
+            porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
+        };
+    });
+    return resultado;
+}
 
         async function cargarResumen() {
             const container = document.getElementById('resumenContainer');
             try {
-                await cargarCcpOcidental();
+                await cargarCcpOcidental(); // ✅ Cargar los CCPs antes de usarlos
+
                 const anioBase = parseInt(document.getElementById('anioBase').value);
                 const mesBase = parseInt(document.getElementById('mesBase').value);
                 const anioComp = parseInt(document.getElementById('anioComparar').value);
                 const mesComp = parseInt(document.getElementById('mesComparar').value);
+
                 const metricasBase = await cargarDatosPorCCP(anioBase, mesBase);
                 const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
                 const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
                 const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
+
                 const metricasComp = await cargarDatosPorCCP(anioComp, mesComp);
                 const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
                 const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
                 const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
+
                 const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
                 const labels = todosCCP.map(k => ccpNombres[k] || k);
                 const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
                 const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
+
                 let html = `
                     <div class="resumen-cards">
                         <div class="card">
@@ -479,6 +463,7 @@
                     </div>
                 `;
                 container.innerHTML = html;
+
                 const ctx = document.getElementById('ccpChart').getContext('2d');
                 if (chartInstance) chartInstance.destroy();
                 chartInstance = new Chart(ctx, {
@@ -556,6 +541,7 @@
                 return;
             }
             try {
+                // ✅ Paso 1: Insertar en 'reportes' para obtener ID único
                 const { data: nuevoReporte, error: insertError } = await supabase
                     .from('reportes')
                     .insert({ tipo_reporte: 'RESUMEN_MENSUAL' })
@@ -570,14 +556,18 @@
                     alert('⚠️ Error: La inserción no devolvió datos.');
                     return;
                 }
+
                 const fechaGen = new Date(nuevoReporte.fecha_generacion);
                 const fechaStr = fechaGen.toISOString().slice(0, 10).replace(/-/g, '');
                 const consecutivo = String(nuevoReporte.id).padStart(6, '0');
                 const numeroReporte = `CPNB-REDIP-OCCIDENTAL-${fechaStr}-${consecutivo}`;
+
                 await supabase
                     .from('reportes')
                     .update({ numero_reporte: numeroReporte })
                     .eq('id', nuevoReporte.id);
+
+                // Continuar con PDF
                 const imgDataUrl = canvas.toDataURL('image/png');
                 const clone = document.getElementById('resumenContainer').cloneNode(true);
                 const chartImg = document.createElement('img');
@@ -589,6 +579,7 @@
                 if (canvasInClone && canvasInClone.parentElement) {
                     canvasInClone.parentElement.replaceWith(chartImg);
                 }
+
                 const printContent = document.createElement('div');
                 printContent.innerHTML = `
                     <div id="pdf-content" style="font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; width: 770px;">
@@ -610,6 +601,7 @@
                 document.body.appendChild(printContent);
                 printContent.style.position = 'fixed';
                 printContent.style.left = '-9999px';
+
                 const canvasPDF = await html2canvas(printContent, { scale: 2, useCORS: true, logging: false, allowTaint: true });
                 const { jsPDF } = window.jspdf;
                 const imgWidth = 210;
@@ -635,19 +627,12 @@
             }
         }
 
-        // === Inicializar con verificación de acceso ===
-        async function iniciar() {
-            const permitido = await verificarAccesoOcidentalOAdmin();
-            if (permitido) {
-                llenarSelectores();
-                ['mesBase', 'anioBase', 'mesComparar', 'anioComparar'].forEach(id => {
-                    document.getElementById(id).addEventListener('change', cargarResumen);
-                });
-                await cargarResumen();
-            }
-        }
-
-        iniciar();
+        // === Inicializar ===
+        llenarSelectores();
+        ['mesBase', 'anioBase', 'mesComparar', 'anioComparar'].forEach(id => {
+            document.getElementById(id).addEventListener('change', cargarResumen);
+        });
+        cargarResumen();
     </script>
 </body>
 </html>
