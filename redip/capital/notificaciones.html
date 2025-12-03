@@ -17,7 +17,7 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             padding: 20px;
         }
         .container {
@@ -58,13 +58,20 @@
             font-weight: bold;
             margin-bottom: 25px;
         }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
         .back-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
             font-size: 15px;
             cursor: pointer;
-            margin-bottom: 20px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -75,10 +82,21 @@
         .back-btn:hover {
             opacity: 0.9;
         }
+        .reloj {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0c2440;
+            background: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 10px;
+            min-width: 180px;
+            text-align: center;
+        }
         .alertas-list {
             display: flex;
             flex-direction: column;
             gap: 16px;
+            margin-bottom: 25px;
         }
         .alerta-card {
             background: #fee2e2;
@@ -131,6 +149,30 @@
             color: #666;
             font-size: 18px;
             padding: 30px;
+        }
+        /* Paginación */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .page-btn {
+            padding: 8px 14px;
+            border: 1px solid #cbd5e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .page-btn.active {
+            background: #2c5282;
+            color: white;
+            border-color: #2c5282;
+        }
+        .page-btn:hover:not(.active) {
+            background: #edf2f7;
         }
         /* Modal de fecha */
         #modalFecha {
@@ -197,12 +239,16 @@
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP CAPITAL</h1>
         </div>
-        <button class="back-btn" onclick="window.location.href='index.html'">
-            ← Volver a REDIP CAPITAL
-        </button>
-        <div id="alertasContainer">
-            <div class="loading">Cargando notificaciones...</div>
+        <div class="header-row">
+            <button class="back-btn" onclick="window.location.href='../capital/index.html'">
+                ← Volver a REDIP CAPITAL
+            </button>
+            <div class="reloj" id="reloj"></div>
         </div>
+        <div id="alertasContainer">
+            <div class="loading">Verificando acceso y cargando notificaciones...</div>
+        </div>
+        <div id="paginationContainer" class="pagination"></div>
     </div>
     <!-- Modal para seleccionar fecha -->
     <div id="modalFecha">
@@ -219,151 +265,207 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        const ccpCapital = [
-            'altos-mirandinos',
-            'barlovento',
-            'ciudad-fajardo',
-            'distrito-capital',
-            'la-guaira',
-            'valles-del-tuy'
-        ];
-        const ccpNombres = {
-            "altos-mirandinos": "CCP ALTOS MIRANDINOS",
-            "barlovento": "CCP BARLOVENTO",
-            "ciudad-fajardo": "CCP CIUDAD FAJARDO",
-            "distrito-capital": "CCP DISTRITO CAPITAL",
-            "la-guaira": "CCP LA GUAIRA",
-            "valles-del-tuy": "CCP VALLES DEL TUY"
-        };
-        let inspeccionIdActual = null;
-        document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
-        async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('Debe iniciar sesión.');
-                window.location.href = 'index.html';
+
+        // --- VALIDACIÓN DE ACCESO: REDIP CAPITAL o ADMIN ---
+        async function verificarAccesoCapitalOAdmin() {
+            const {  { session }, error: authError } = await supabase.auth.getSession();
+            if (authError || !session || !session.user) {
+                alert('🔒 Acceso restringido. Debe iniciar sesión.');
+                window.location.href = '../../index.html';
                 return false;
             }
+
+            const user = session.user;
             const { data, error } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
                 .eq('user_id', user.id)
                 .single();
-            if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
-                alert('⚠️ No tiene permisos para REDIP CAPITAL.');
-                window.location.href = 'index.html';
+
+            if (error || !data) {
+                alert('❌ No se pudo verificar su rol. Acceso denegado.');
+                window.location.href = '../../index.html';
                 return false;
             }
-            return true;
+
+            if (data.redip === 'capital' || data.redip === 'admin') {
+                return true;
+            } else {
+                alert('🚫 Acceso denegado. Solo usuarios de REDIP CAPITAL o administradores pueden ver esta página.');
+                window.location.href = '../../index.html';
+                return false;
+            }
         }
+
+        // === FUNCIONES PRINCIPALES DE LA PÁGINA ===
+        async function obtenerCcpCapital() {
+            const { data, error } = await supabase
+                .from('ccps')
+                .select('ccp_id')
+                .eq('redip', 'capital');
+            if (error) {
+                console.error('Error al cargar CCPs de CAPITAL:', error);
+                return [];
+            }
+            return data.map(row => row.ccp_id);
+        }
+
+        let ccpNombres = {};
+        async function cargarNombresCcp() {
+            const { data, error } = await supabase
+                .from('ccps')
+                .select('ccp_id, nombre_ccp');
+            if (error) {
+                console.error('Error al cargar nombres de CCPs:', error);
+            } else {
+                ccpNombres = data.reduce((acc, row) => {
+                    acc[row.ccp_id] = row.nombre_ccp;
+                    return acc;
+                }, {});
+            }
+        }
+
+        let inspeccionIdActual = null;
+        let todasInspecciones = [];
+        let estacionesGlobales = [];
+        let serviciosGlobales = [];
+        const itemsPorPagina = 10;
+        let paginaActual = 1;
+
+        function actualizarReloj() {
+            const ahora = new Date();
+            const opciones = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            const formato = ahora.toLocaleDateString('es-ES', opciones);
+            document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
+        }
+
+        function renderizarPagina(pagina) {
+            paginaActual = pagina;
+            const inicio = (pagina - 1) * itemsPorPagina;
+            const fin = inicio + itemsPorPagina;
+            const inspeccionesPagina = todasInspecciones.slice(inicio, fin);
+            const container = document.getElementById('alertasContainer');
+            if (inspeccionesPagina.length === 0) {
+                container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP CAPITAL.</div>';
+                document.getElementById('paginationContainer').innerHTML = '';
+                return;
+            }
+            let html = '<div class="alertas-list">';
+            inspeccionesPagina.forEach(insp => {
+                const fechaProxima = insp.proxima_inspeccion
+                    ? new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES')
+                    : 'Sin fecha asignada';
+                const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
+                let nombreUnidad = 'Unidad desconocida';
+                let ccpId = '';
+                let tipoLabel = '❓ Unidad desconocida';
+                if (insp.estacion_id) {
+                    const estacion = estacionesGlobales.find(e => e.estacion_id === insp.estacion_id);
+                    if (estacion) {
+                        nombreUnidad = estacion.nombre_estacion;
+                        ccpId = estacion.ccp_id;
+                        tipoLabel = '👮 Estación Policial';
+                    }
+                }
+                if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
+                    const servicio = serviciosGlobales.find(s => s.id === insp.servicio_id);
+                    if (servicio) {
+                        nombreUnidad = servicio.nombre;
+                        ccpId = servicio.ccp_id;
+                        tipoLabel = '📋 Servicio Administrativo';
+                    }
+                }
+                const ccpNombre = ccpNombres[ccpId] || ccpId || 'CCP desconocido';
+                html += `
+                    <div class="alerta-card">
+                        <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
+                        <div class="alerta-detalles">
+                            <span>Última inspección: ${fechaInspeccion}</span>
+                            <span class="ccp-badge">${ccpNombre}</span>
+                        </div>
+                        <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
+                            ⚠️ Reinspección vencida desde: ${fechaProxima}
+                        </div>
+                        <div class="acciones">
+                            <button class="btn-reinspeccion" onclick="abrirModalFecha('${insp.id}')">
+                                ✅ Marcar como reinspeccionada
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            const totalPaginas = Math.ceil(todasInspecciones.length / itemsPorPagina);
+            let paginacionHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                paginacionHTML += `<button class="page-btn ${i === paginaActual ? 'active' : ''}" onclick="renderizarPagina(${i})">${i}</button>`;
+            }
+            document.getElementById('paginationContainer').innerHTML = paginacionHTML;
+        }
+
         async function cargarNotificaciones() {
-            const hoy = new Date().toISOString().split('T')[0];
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const hoyStr = hoy.toISOString().split('T')[0];
             const container = document.getElementById('alertasContainer');
             try {
-                // === 1. Cargar estaciones de REDIP CAPITAL ===
-                const { data: estaciones, error: estError } = await supabase
+                await cargarNombresCcp();
+                const ccpCapital = await obtenerCcpCapital();
+
+                const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
-                    .select('id, nombre, ccp_id')
+                    .select('estacion_id, nombre_estacion, ccp_id')
                     .in('ccp_id', ccpCapital);
                 if (estError) throw estError;
-                const idsEstaciones = estaciones ? estaciones.map(e => e.id) : [];
-                // === 2. Cargar servicios de REDIP CAPITAL ===
-                const { data: servicios, error: servError } = await supabase
+                estacionesGlobales = estaciones;
+
+                const {  servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpCapital);
                 if (servError) throw servError;
-                const idsServicios = servicios ? servicios.map(s => s.id) : [];
-                // === 3. Inspecciones vencidas en estaciones ===
-                let inspeccionesEstaciones = [];
-                if (idsEstaciones.length > 0) {
-                    const { data, error } = await supabase
-                        .from('inspecciones')
-                        .select('id, proxima_inspeccion, created_at, estacion_id')
-                        .in('estacion_id', idsEstaciones)
-                        .lte('proxima_inspeccion', hoy)
-                        .order('proxima_inspeccion', { ascending: true });
-                    if (error) throw error;
-                    inspeccionesEstaciones = data || [];
-                }
-                // === 4. Inspecciones vencidas en servicios ===
-                let inspeccionesServicios = [];
-                if (idsServicios.length > 0) {
-                    const { data, error } = await supabase
-                        .from('inspecciones')
-                        .select('id, proxima_inspeccion, created_at, servicio_id')
-                        .in('servicio_id', idsServicios)
-                        .lte('proxima_inspeccion', hoy)
-                        .order('proxima_inspeccion', { ascending: true });
-                    if (error) throw error;
-                    inspeccionesServicios = data || [];
-                }
-                // === 5. Combinar y mostrar ===
-                const todasInspecciones = [
-                    ...inspeccionesEstaciones.map(i => ({ ...i, tipo: 'estacion' })),
-                    ...inspeccionesServicios.map(i => ({ ...i, tipo: 'servicio' }))
-                ];
-                if (todasInspecciones.length === 0) {
-                    container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP CAPITAL.</div>';
-                    return;
-                }
-                todasInspecciones.sort((a, b) => new Date(a.proxima_inspeccion) - new Date(b.proxima_inspeccion));
-                let html = '<div class="alertas-list">';
-                todasInspecciones.forEach(insp => {
-                    const fechaProxima = new Date(insp.proxima_inspeccion).toLocaleDateString('es-ES');
-                    const fechaInspeccion = new Date(insp.created_at).toLocaleDateString('es-ES');
-                    let nombreUnidad = '';
-                    let ccpId = '';
-                    let tipoLabel = '';
-                    if (insp.tipo === 'estacion') {
-                        const estacion = estaciones.find(e => e.id === insp.estacion_id);
-                        nombreUnidad = estacion ? estacion.nombre : 'Estación desconocida';
-                        ccpId = estacion ? estacion.ccp_id : '';
-                        tipoLabel = '👮 Estación Policial';
-                    } else {
-                        const servicio = servicios.find(s => s.id === insp.servicio_id);
-                        nombreUnidad = servicio ? servicio.nombre : 'Servicio desconocido';
-                        ccpId = servicio ? servicio.ccp_id : '';
-                        tipoLabel = '📋 Servicio Administrativo';
-                    }
-                    const ccpNombre = ccpNombres[ccpId] || ccpId;
-                    html += `
-                        <div class="alerta-card">
-                            <div class="alerta-titulo">${tipoLabel}: ${nombreUnidad}</div>
-                            <div class="alerta-detalles">
-                                <span>Última inspección: ${fechaInspeccion}</span>
-                                <span class="ccp-badge">${ccpNombre}</span>
-                            </div>
-                            <div style="margin-top: 10px; color: #dc2626; font-weight: bold;">
-                                ⚠️ Reinspección vencida desde: ${fechaProxima}
-                            </div>
-                            <div class="acciones">
-                                <button class="btn-reinspeccion" onclick="abrirModalFecha(${insp.id})">
-                                    ✅ Marcar como reinspeccionada
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
+                serviciosGlobales = servicios;
+
+                const {  inspecciones, error: inspError } = await supabase
+                    .from('inspecciones')
+                    .select('*')
+                    .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+                    .order('proxima_inspeccion', { ascending: true });
+                if (inspError) throw inspError;
+                todasInspecciones = inspecciones || [];
+
+                renderizarPagina(1);
             } catch (error) {
                 console.error('Error al cargar notificaciones:', error);
                 container.innerHTML = `<div class="no-data">❌ Error: ${error.message || 'No se pudieron cargar las notificaciones.'}</div>`;
+                document.getElementById('paginationContainer').innerHTML = '';
             }
         }
+
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
+
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
+
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
-            if (!nuevaFecha) {
-                alert("Por favor seleccione una fecha.");
+            if (!nuevaFecha || !inspeccionIdActual) {
+                alert("Seleccione una fecha válida.");
                 return;
             }
             try {
@@ -380,11 +482,19 @@
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
-        verificarAcceso().then(permitido => {
+
+        // --- EJECUCIÓN PRINCIPAL ---
+        async function iniciar() {
+            const permitido = await verificarAccesoCapitalOAdmin();
             if (permitido) {
-                cargarNotificaciones();
+                setInterval(actualizarReloj, 1000);
+                actualizarReloj();
+                document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
+                await cargarNotificaciones();
             }
-        });
+        }
+
+        iniciar();
     </script>
 </body>
 </html>
