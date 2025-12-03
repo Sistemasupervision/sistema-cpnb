@@ -266,32 +266,48 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // --- VALIDACIÓN DE ACCESO: permite 'occidental' o 'admin' ---
-        async function verificarAccesoOcidental() {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                alert('🔒 Acceso restringido. Debe iniciar sesión.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-            if (error || !data) {
-                alert('❌ Error al verificar sus permisos.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            if (data.redip !== 'occidental' && data.redip !== 'admin') {
-                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            return true;
-        }
+     async function verificarAccesoOcidental() {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        console.warn('No hay sesión activa');
+        alert('🔒 Acceso restringido. Debe iniciar sesión.');
+        window.location.href = '../../index.html';
+        return false;
+    }
 
+    console.log('Usuario autenticado:', user.id, user.email);
+
+    const { data, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip')
+        .eq('user_id', user.id)
+        .single();
+
+    if (error) {
+        console.error('Error al consultar usuarios_redip:', error);
+        alert('❌ Error interno al verificar permisos.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+
+    if (!data) {
+        console.warn('No se encontró registro en usuarios_redip para user_id:', user.id);
+        alert('🚫 Su cuenta no tiene permisos asignados en el sistema.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+
+    // ✅ Permitir 'occidental' o 'admin'
+    if (data.redip !== 'occidental' && data.redip !== 'admin') {
+        console.warn('Rol no autorizado:', data.redip);
+        alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+
+    console.log('Acceso concedido con rol:', data.redip);
+    return true;
+}
         // === FUNCIONES PRINCIPALES ===
         async function obtenerCcpOcidental() {
             const { data, error } = await supabase
