@@ -243,38 +243,35 @@
             <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
                 ← Volver al Panel Principal
             </button>
-<!-- === Filtro Principal === -->
-<div class="filtro-container">
-    <div class="input-group">
-        <label for="ccpFilter">Seleccione CCP:</label>
-        <select id="ccpFilter">
-            <option value="">-- Elija un CCP --</option>
-            <option value="metropolitano">CCP METROPOLITANO</option>
-            <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-            <option value="guajira">CCP GUAJIRA</option>
-            <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-            <option value="lara">CCPE LARA</option>
-            <option value="falcon">CCPE FALCÓN</option>
-        </select>
-    </div>
-
-    <!-- Pestañas: Estaciones vs Servicios -->
-    <div class="tabs">
-        <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
-        <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
-    </div>
-
-    <!-- Contenedor Dinámico (se actualiza según la pestaña) -->
-    <div id="selectorDinamico">
-        <!-- Aquí se cargará dinámicamente el select de estación o servicio -->
-        <div class="input-group">
-            <label for="estacionFilter">Seleccione Estación:</label>
-            <select id="estacionFilter" disabled>
-                <option value="">-- Primero seleccione un CCP --</option>
-            </select>
+            <div class="filtro-container">
+                <div class="input-group">
+                    <label for="ccpFilter">Seleccione CCP:</label>
+                    <select id="ccpFilter">
+                        <option value="">-- Elija un CCP --</option>
+                        <option value="metropolitano">CCP METROPOLITANO</option>
+                        <option value="sur_del_lago">CCP SUR DEL LAGO</option>
+                        <option value="guajira">CCP GUAJIRA</option>
+                        <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
+                        <option value="lara">CCPE LARA</option>
+                        <option value="falcon">CCPE FALCÓN</option>
+                    </select>
+                </div>
+                <!-- Pestañas: Estaciones vs Servicios -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
+                    <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
+                </div>
+                <!-- Contenedor dinámico -->
+                <div id="selectorDinamico">
+                    <div class="input-group">
+                        <label for="estacionFilter">Seleccione Estación:</label>
+                        <select id="estacionFilter" disabled>
+                            <option value="">-- Primero seleccione un CCP --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
         <div id="resultadosContainer" style="display: none;">
             <div class="stats-header" id="statsHeader"></div>
             <div class="action-buttons">
@@ -323,31 +320,33 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-    async function verificarAcceso() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        window.location.href = 'index.html';
-        return false;
-    }
-    try {
-        const { data, error } = await supabase
-            .from('usuarios_redip')
-            .select('redip')
-            .eq('user_id', user.id)
-            .single();
-        if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
-            alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden acceder.');
-            window.location.href = 'index.html';
-            return false;
+        // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser(); // ✅ SINTAXIS CORRECTA
+            if (!user) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden acceder.');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Redirigiendo...');
+                window.location.href = 'index.html';
+                return false;
+            }
         }
-        return true;
-    } catch (err) {
-        console.error('Error al verificar acceso:', err);
-        alert('⚠️ Error de autenticación. Redirigiendo...');
-        window.location.href = 'index.html';
-        return false;
-    }
-}
+
         // === ÍTEMS ===
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
@@ -427,74 +426,49 @@
         let totalPaginas = 1;
         let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
 
-       // === PESTAÑAS: ESTACIONES vs SERVICIOS ===
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const tipo = btn.dataset.tab;
-
-        // Actualizar tipoEntidad
-        tipoEntidad = tipo;
-
-        // Generar selector dinámico
-        const selectorDiv = document.getElementById('selectorDinamico');
-        if (tipo === 'estaciones') {
-            selectorDiv.innerHTML = `
-                <div class="input-group">
-                    <label for="estacionFilter">Seleccione Estación:</label>
-                    <select id="estacionFilter" disabled>
-                        <option value="">-- Primero seleccione un CCP --</option>
-                    </select>
-                </div>
-            `;
-        } else {
-            selectorDiv.innerHTML = `
-                <div class="input-group">
-                    <label for="servicioFilter">Seleccione Servicio:</label>
-                    <select id="servicioFilter" disabled>
-                        <option value="">-- Primero seleccione un CCP --</option>
-                    </select>
-                </div>
-            `;
-        }
-
-        // Recargar lista si ya hay un CCP seleccionado
-        const ccpId = document.getElementById('ccpFilter').value;
-        if (ccpId) {
-            if (tipo === 'estaciones') {
-                cargarEstaciones(ccpId);
-            } else {
-                cargarServicios(ccpId);
-            }
-        }
-
-        // Reasignar eventos (para los nuevos elementos)
-        if (tipo === 'estaciones') {
-            document.getElementById('estacionFilter').addEventListener('change', async () => {
-                const id = document.getElementById('estacionFilter').value;
-                if (id) {
-                    const nombre = document.getElementById('estacionFilter').options[document.getElementById('estacionFilter').selectedIndex].text;
-                    await cargarEstadisticas(id, 'estacion', nombre);
+        // === PESTAÑAS ===
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tipoEntidad = btn.dataset.tab === 'estaciones' ? 'estacion' : 'servicio';
+                const selectorDiv = document.getElementById('selectorDinamico');
+                if (tipoEntidad === 'estacion') {
+                    selectorDiv.innerHTML = `
+                        <div class="input-group">
+                            <label for="estacionFilter">Seleccione Estación:</label>
+                            <select id="estacionFilter" disabled>
+                                <option value="">-- Primero seleccione un CCP --</option>
+                            </select>
+                        </div>
+                    `;
+                } else {
+                    selectorDiv.innerHTML = `
+                        <div class="input-group">
+                            <label for="servicioFilter">Seleccione Servicio:</label>
+                            <select id="servicioFilter" disabled>
+                                <option value="">-- Primero seleccione un CCP --</option>
+                            </select>
+                        </div>
+                    `;
+                }
+                // Recargar lista si ya hay CCP seleccionado
+                const ccpId = document.getElementById('ccpFilter').value;
+                if (ccpId) {
+                    if (tipoEntidad === 'estacion') {
+                        cargarEstaciones(ccpId);
+                    } else {
+                        cargarServicios(ccpId);
+                    }
                 }
             });
-        } else {
-            document.getElementById('servicioFilter').addEventListener('change', async () => {
-                const id = document.getElementById('servicioFilter').value;
-                if (id) {
-                    const nombre = document.getElementById('servicioFilter').options[document.getElementById('servicioFilter').selectedIndex].text;
-                    await cargarEstadisticas(id, 'servicio', nombre);
-                }
-            });
-        }
-    });
-});
+        });
 
         // === CARGAR ESTACIONES ===
         async function cargarEstaciones(ccpId) {
             const select = document.getElementById('estacionFilter');
             try {
-                const {  estaciones, error } = await supabase
+                const { data: estaciones, error } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -519,7 +493,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         async function cargarServicios(ccpId) {
             const select = document.getElementById('servicioFilter');
             try {
-                const {  servicios, error } = await supabase
+                const { data: servicios, error } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
                     .eq('ccp_id', ccpId)
@@ -560,6 +534,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             }
         });
 
+        // === EVENTOS DINÁMICOS ===
         document.getElementById('selectorDinamico').addEventListener('change', async (e) => {
             if (e.target.id === 'estacionFilter' && tipoEntidad === 'estacion') {
                 const id = e.target.value;
@@ -610,7 +585,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
                 }
 
                 const idsInspecciones = inspecciones.map(i => i.id);
-                const {  items, error: itemsError } = await supabase
+                const { data: items, error: itemsError } = await supabase
                     .from('items_inspeccion')
                     .select('item_nombre, cumple, porcentaje_cumplimiento')
                     .in('inspeccion_id', idsInspecciones);
@@ -790,7 +765,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             document.getElementById('tablaItems').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
             document.getElementById('filtroItems').value = '';
-            // Restaurar vista inicial de selector
+            // Restaurar vista inicial
             document.getElementById('selectorDinamico').innerHTML = `
                 <div class="input-group">
                     <label for="estacionFilter">Seleccione Estación:</label>
@@ -802,10 +777,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelector('.tab-btn[data-tab="estaciones"]').classList.add('active');
             tipoEntidad = 'estacion';
-        }
-
-        async function exportarEstadisticasAPDF() {
-            alert('Exportación a PDF no implementada en esta versión mejorada.\nPuedes usar la función de impresión del navegador (Ctrl+P).');
         }
 
         // === INICIAR ===
