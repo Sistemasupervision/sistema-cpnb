@@ -66,7 +66,7 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-        .back-btn {
+        .back-btn, .admin-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
@@ -76,10 +76,16 @@
             align-items: center;
             gap: 8px;
             font-weight: bold;
+        }
+        .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
             color: white;
         }
-        .back-btn:hover {
+        .admin-btn {
+            background: linear-gradient(135deg, #7D0500, #B01B17);
+            color: white;
+        }
+        .back-btn:hover, .admin-btn:hover {
             opacity: 0.9;
         }
         .reloj {
@@ -150,7 +156,6 @@
             font-size: 18px;
             padding: 30px;
         }
-        /* Paginación */
         .pagination {
             display: flex;
             justify-content: center;
@@ -174,7 +179,6 @@
         .page-btn:hover:not(.active) {
             background: #edf2f7;
         }
-        /* Modal de fecha */
         #modalFecha {
             display: none;
             position: fixed;
@@ -240,9 +244,14 @@
             <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP OCCIDENTAL</h1>
         </div>
         <div class="header-row">
-            <button class="back-btn" onclick="window.location.href='index.html'">
-                ← Volver a REDIP OCCIDENTAL
-            </button>
+            <div>
+                <button class="back-btn" onclick="window.location.href='index.html'">
+                    ← Volver a REDIP OCCIDENTAL
+                </button>
+                <button id="adminBtn" class="admin-btn" style="display:none;" onclick="window.location.href='../admin-usuarios.html'">
+                    👤 Ir al Admin
+                </button>
+            </div>
             <div class="reloj" id="reloj"></div>
         </div>
         <div id="alertasContainer">
@@ -250,7 +259,7 @@
         </div>
         <div id="paginationContainer" class="pagination"></div>
     </div>
-    <!-- Modal para seleccionar fecha -->
+
     <div id="modalFecha">
         <div class="modal-content">
             <div class="modal-title">Nueva fecha de reinspección</div>
@@ -261,21 +270,24 @@
             </div>
         </div>
     </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // --- VALIDACIÓN DE ACCESO: OCCIDENTAL o ADMIN (Supabase v2 compatible) ---
-        async function verificarAccesoOcidentalOAdmin() {
-            const {  { session }, error: authError } = await supabase.auth.getSession();
-            if (authError || !session || !session.user) {
+        let usuarioRedip = null;
+        let esAdmin = false;
+
+        // --- VALIDACIÓN DE ACCESO: ADMIN o OCCIDENTAL ---
+        async function verificarAcceso() {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) {
                 alert('🔒 Acceso restringido. Debe iniciar sesión.');
                 window.location.href = '../../index.html';
                 return false;
             }
 
-            const user = session.user;
             const { data, error } = await supabase
                 .from('usuarios_redip')
                 .select('redip')
@@ -283,21 +295,30 @@
                 .single();
 
             if (error || !data) {
-                alert('❌ No se pudo verificar su rol. Acceso denegado.');
+                alert('❌ No se pudo verificar su rol.');
                 window.location.href = '../../index.html';
                 return false;
             }
 
-            if (data.redip === 'occidental' || data.redip === 'admin') {
-                return true;
-            } else {
+            usuarioRedip = data.redip;
+            esAdmin = (data.redip === 'admin');
+            const esOcidental = (data.redip === 'occidental');
+
+            if (!esAdmin && !esOcidental) {
                 alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden ver esta página.');
                 window.location.href = '../../index.html';
                 return false;
             }
+
+            // Mostrar botón de admin si es admin
+            if (esAdmin) {
+                document.getElementById('adminBtn').style.display = 'inline-flex';
+            }
+
+            return true;
         }
 
-        // === FUNCIONES PRINCIPALES DE LA PÁGINA ===
+        // === FUNCIONES PRINCIPALES ===
         async function obtenerCcpOcidental() {
             const { data, error } = await supabase
                 .from('ccps')
@@ -404,7 +425,6 @@
             });
             html += '</div>';
             container.innerHTML = html;
-
             const totalPaginas = Math.ceil(todasInspecciones.length / itemsPorPagina);
             let paginacionHTML = '';
             for (let i = 1; i <= totalPaginas; i++) {
@@ -422,28 +442,28 @@
                 await cargarNombresCcp();
                 const ccpOcidental = await obtenerCcpOcidental();
 
-                const {  estaciones, error: estError } = await supabase
+                const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (estError) throw estError;
                 estacionesGlobales = estaciones;
 
-                const {  servicios, error: servError } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, ccp_id')
                     .in('ccp_id', ccpOcidental);
                 if (servError) throw servError;
                 serviciosGlobales = servicios;
 
-                const {  inspecciones, error: inspError } = await supabase
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
                     .select('*')
                     .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
                     .order('proxima_inspeccion', { ascending: true });
+
                 if (inspError) throw inspError;
                 todasInspecciones = inspecciones || [];
-
                 renderizarPagina(1);
             } catch (error) {
                 console.error('Error al cargar notificaciones:', error);
@@ -483,9 +503,9 @@
             }
         }
 
-        // --- EJECUCIÓN PRINCIPAL ---
+        // --- INICIAR ---
         async function iniciar() {
-            const permitido = await verificarAccesoOcidentalOAdmin();
+            const permitido = await verificarAcceso();
             if (permitido) {
                 setInterval(actualizarReloj, 1000);
                 actualizarReloj();
