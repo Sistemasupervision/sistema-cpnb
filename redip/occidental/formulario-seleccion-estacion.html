@@ -44,74 +44,97 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Obtener parámetros de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const ccpId = urlParams.get('ccpId');
-        const ccpNombre = urlParams.get('ccpNombre');
-
-        if (!ccpId || !ccpNombre) {
-            alert('⚠️ Datos de CCP no válidos.');
-            window.history.back();
-            throw new Error('Faltan parámetros de CCP');
-        }
-
-        document.getElementById('ccpNombreDisplay').textContent = ccpNombre;
-
-        // ✅ FUNCIÓN CORREGIDA: usa los campos reales de la BD
-        async function cargarEstaciones() {
-            const select = document.getElementById('estacionSelect');
+        // ✅ VERIFICACIÓN DE ACCESO (solo occidental o admin)
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return false;
+            }
             try {
-                const { data: estaciones, error } = await supabase
-                    .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion')  // ✅ Campos correctos
-                    .eq('ccp_id', ccpId)                     // ✅ ccp_id existe
-                    .order('nombre_estacion', { ascending: true });
-
-                if (error) throw error;
-
-                if (!estaciones || estaciones.length === 0) {
-                    select.innerHTML = '<option value="">No hay estaciones disponibles</option>';
-                    select.disabled = true;
-                    return;
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ No tiene permisos para acceder a esta sección de REDIP OCCIDENTAL.\nPor favor contacte al administrador.');
+                    window.location.href = '../../index.html';
+                    return false;
                 }
-
-                select.innerHTML = '<option value="">-- Elija una estación --</option>';
-                estaciones.forEach(est => {
-                    const opt = document.createElement('option');
-                    opt.value = est.estacion_id;        // ✅
-                    opt.textContent = est.nombre_estacion; // ✅
-                    select.appendChild(opt);
-                });
-                select.disabled = false;
-            } catch (error) {
-                console.error('Error al cargar estaciones:', error);
-                select.innerHTML = '<option value="">Error al cargar</option>';
-                select.disabled = true;
-                alert('⚠️ No se pudieron cargar las estaciones. Contacte al administrador.');
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error al verificar su acceso. Contacte al administrador.');
+                window.location.href = '../../index.html';
+                return false;
             }
         }
 
-        // Inicializar
-        cargarEstaciones();
+        // Lógica principal
+        async function init() {
+            const accesoValido = await verificarAcceso();
+            if (!accesoValido) return;
 
-        // Evento: Cargar formulario de inspección
-        document.getElementById('btnCargarFormulario').addEventListener('click', () => {
-            const estacionId = document.getElementById('estacionSelect').value;
-            if (!estacionId) {
-                alert('Por favor seleccione una estación policial.');
+            const urlParams = new URLSearchParams(window.location.search);
+            const ccpId = urlParams.get('ccpId');
+            const ccpNombre = urlParams.get('ccpNombre');
+            if (!ccpId || !ccpNombre) {
+                alert('⚠️ Datos de CCP no válidos.');
+                window.history.back();
                 return;
             }
-            const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
-            
-            // Redirigir al formulario de inspección
-            window.location.href = `formulario-inspeccion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
-        });
+            document.getElementById('ccpNombreDisplay').textContent = ccpNombre;
 
-        // Evento: Volver a opciones
-        document.getElementById('btnVolver').addEventListener('click', () => {
-            // ✅ Mejor usar history.back() o volver a la página anterior específica
-            window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-        });
+            async function cargarEstaciones() {
+                const select = document.getElementById('estacionSelect');
+                try {
+                    const { data: estaciones, error } = await supabase
+                        .from('estaciones_policiales')
+                        .select('estacion_id, nombre_estacion')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre_estacion', { ascending: true });
+                    if (error) throw error;
+                    if (!estaciones || estaciones.length === 0) {
+                        select.innerHTML = '<option value="">No hay estaciones disponibles</option>';
+                        select.disabled = true;
+                        return;
+                    }
+                    select.innerHTML = '<option value="">-- Elija una estación --</option>';
+                    estaciones.forEach(est => {
+                        const opt = document.createElement('option');
+                        opt.value = est.estacion_id;
+                        opt.textContent = est.nombre_estacion;
+                        select.appendChild(opt);
+                    });
+                    select.disabled = false;
+                } catch (error) {
+                    console.error('Error al cargar estaciones:', error);
+                    select.innerHTML = '<option value="">Error al cargar</option>';
+                    select.disabled = true;
+                    alert('⚠️ No se pudieron cargar las estaciones. Contacte al administrador.');
+                }
+            }
+
+            document.getElementById('btnCargarFormulario').addEventListener('click', () => {
+                const estacionId = document.getElementById('estacionSelect').value;
+                if (!estacionId) {
+                    alert('Por favor seleccione una estación policial.');
+                    return;
+                }
+                const estacionNombre = document.getElementById('estacionSelect').options[document.getElementById('estacionSelect').selectedIndex].text;
+                window.location.href = `formulario-inspeccion.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
+            });
+
+            document.getElementById('btnVolver').addEventListener('click', () => {
+                window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            });
+
+            cargarEstaciones();
+        }
+
+        // Iniciar todo
+        init();
     </script>
 </body>
 </html>
