@@ -452,39 +452,37 @@
             document.getElementById('btnCargarGaleria').disabled = !id;
         });
 
-        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
-            const ccpSelect = document.getElementById('ccpSelect');
-            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
-            let entidadId = '', entidadNombre = '';
+     document.getElementById('btnCargarGaleria').addEventListener('click', () => {
+    const ccpSelect = document.getElementById('ccpSelect');
+    const ccpId = ccpSelect.value; // ✅ Declarada con const
+    const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
 
-            if (tipoEntidad === 'estacion') {
-                const estacionSelect = document.getElementById('estacionSelect');
-                entidadId = estacionSelect.value;
-                entidadNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
-            } else {
-                const servicioSelect = document.getElementById('servicioSelect');
-                entidadId = servicioSelect.value;
-                entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
-            }
+    let entidadId = '';
+    let entidadNombre = '';
 
-            if (!ccpId || !entidadId) {
-                alert('Seleccione una entidad válida.');
-                return;
-            }
+    if (tipoEntidad === 'estacion') {
+        const estacionSelect = document.getElementById('estacionSelect');
+        entidadId = estacionSelect.value;
+        entidadNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
+    } else {
+        const servicioSelect = document.getElementById('servicioSelect');
+        entidadId = servicioSelect.value;
+        entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
+    }
 
-            let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-            if (tipoEntidad === 'estacion') {
-                url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
-            } else {
-                url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
-            }
-            window.location.href = url;
-        });
+    if (!ccpId || !entidadId) {
+        alert('Seleccione una entidad válida.');
+        return;
+    }
 
-        document.getElementById('btnVolverPanel').addEventListener('click', () => {
-            window.location.href = 'index.html';
-        });
-
+    let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+    if (tipoEntidad === 'estacion') {
+        url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
+    } else {
+        url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
+    }
+    window.location.href = url;
+});
         // === INICIAR ===
         verificarAcceso().then((permitido) => {
             if (permitido) {
