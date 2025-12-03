@@ -194,35 +194,31 @@
         let redipUsuario = null;
         let esAdmin = false;
 
-        // === 1. Verificar acceso ===
      async function verificarAcceso() {
     const { data } = await supabase.auth.getSession();
     const session = data?.session;
 
     if (!session || !session.user) {
-        alert('Debe iniciar sesión para acceder a esta página.');
+        alert('Debe iniciar sesión para acceder.');
         window.location.href = 'login.html';
         return false;
     }
 
-    const user = session.user;
-    const email = user.email;
+    const userId = session.user.id;
 
-    // Obtener datos del usuario desde tu tabla
     const { data: usuario, error } = await supabase
         .from('usuarios_redip')
         .select('redip')
-        .eq('email', email)
+        .eq('user_id', userId)
         .single();
 
     if (error) {
-        console.error('Error al obtener datos del usuario:', error);
+        console.error('Error al obtener perfil del usuario:', error);
         alert('No se pudo verificar su perfil. Contacte al administrador.');
         window.location.href = 'login.html';
         return false;
     }
 
-    // Determinar rol
     if (usuario.redip === 'admin') {
         esAdmin = true;
         redipUsuario = null;
@@ -233,7 +229,6 @@
 
     return true;
 }
-
         // === 2. Cargar CCPs permitidos ===
         async function cargarCCPs() {
             const select = document.getElementById('ccpSelect');
