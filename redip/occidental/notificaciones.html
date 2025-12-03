@@ -6,12 +6,8 @@
     <title>Notificaciones - REDIP OCCIDENTAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-        }
+        /* ... (el mismo estilo que ya tienes) ... */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
         body {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
             min-height: 100vh;
@@ -150,7 +146,6 @@
             font-size: 18px;
             padding: 30px;
         }
-        /* Paginación */
         .pagination {
             display: flex;
             justify-content: center;
@@ -174,7 +169,6 @@
         .page-btn:hover:not(.active) {
             background: #edf2f7;
         }
-        /* Modal de fecha */
         #modalFecha {
             display: none;
             position: fixed;
@@ -250,7 +244,6 @@
         </div>
         <div id="paginationContainer" class="pagination"></div>
     </div>
-    <!-- Modal para seleccionar fecha -->
     <div id="modalFecha">
         <div class="modal-content">
             <div class="modal-title">Nueva fecha de reinspección</div>
@@ -266,6 +259,7 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+        // === Variables globales ===
         let todasInspecciones = [];
         let estacionesGlobales = [];
         let serviciosGlobales = [];
@@ -287,7 +281,7 @@
                 .eq('user_id', user.id)
                 .single();
             if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
-                mostrarMensajeAccesoDenegado("Acceso denegado a REDIP OCCIDENTAL.");
+                mostrarMensajeAccesoDenegado("No tiene permisos para acceder a REDIP OCCIDENTAL.");
                 return false;
             }
             return true;
@@ -345,7 +339,6 @@
             document.body.appendChild(overlay);
         }
 
-        // === CARGA DE DATOS ===
         async function cargarNombresCcp() {
             const { data, error } = await supabase
                 .from('ccps')
@@ -384,7 +377,7 @@
                     return;
                 }
 
-                // ✅ CORREGIDO: usar .data y formatear UUIDs con comillas simples
+                // ✅ CORREGIDO: desestructuración y formato de UUIDs
                 const {  estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, ccp_id')
@@ -439,7 +432,6 @@
             }
         }
 
-        // === RENDER Y PAGINACIÓN ===
         function renderizarPagina(pagina) {
             paginaActual = pagina;
             const inicio = (pagina - 1) * itemsPorPagina;
@@ -510,7 +502,6 @@
             document.getElementById('paginationContainer').innerHTML = paginacionHTML;
         }
 
-        // === MODAL Y ACTUALIZACIÓN ===
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
@@ -541,7 +532,6 @@
             }
         }
 
-        // === RELOJ ===
         function actualizarReloj() {
             const ahora = new Date();
             const opciones = { 
@@ -557,7 +547,6 @@
             document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
         }
 
-        // === INICIO ===
         async function iniciar() {
             const permitido = await verificarAccesoOcidental();
             if (permitido) {
@@ -569,7 +558,12 @@
             }
         }
 
-        iniciar();
+        // ✅ Iniciar cuando el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciar);
+        } else {
+            iniciar();
+        }
     </script>
 </body>
 </html>
