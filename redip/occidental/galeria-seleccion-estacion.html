@@ -313,63 +313,65 @@
             </div>
         </div>
     </div>
-    <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  <script>
+    const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
-        async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
+    // === VERIFICAR ACCESO ===
+    async function verificarAcceso() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            window.location.href = 'index.html';
+            return false;
+        }
+        try {
+            const { data, error } = await supabase
+                .from('usuarios_redip')
+                .select('redip')
+                .eq('user_id', user.id)
+                .single();
+            if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden acceder.');
                 window.location.href = 'index.html';
                 return false;
             }
-            try {
-                const { data, error } = await supabase
-                    .from('usuarios_redip')
-                    .select('redip')
-                    .eq('user_id', user.id)
-                    .single();
-                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
-                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden acceder.');
-                    window.location.href = 'index.html';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error de autenticación. Redirigiendo...');
-                window.location.href = 'index.html';
-                return false;
-            }
+            return true;
+        } catch (err) {
+            console.error('Error al verificar acceso:', err);
+            alert('⚠️ Error de autenticación. Redirigiendo...');
+            window.location.href = 'index.html';
+            return false;
+        }
+    }
+
+    let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
+
+    // === CARGAR ESTACIONES Y SERVICIOS ===
+    async function cargarEntidades(ccpId) {
+        const estacionSelect = document.getElementById('estacionSelect');
+        const servicioSelect = document.getElementById('servicioSelect');
+        if (estacionSelect) estacionSelect.disabled = true;
+        if (servicioSelect) servicioSelect.disabled = true;
+
+        if (estacionSelect) estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+        if (servicioSelect) servicioSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+
+        if (!ccpId) {
+            if (estacionSelect) estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
+            if (servicioSelect) servicioSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
+            return;
         }
 
-        // === VARIABLES GLOBALES ===
-        let tipoEntidad = 'estacion'; // Por defecto, empezamos con estaciones
-
-        // === CARGAR ESTACIONES Y SERVICIOS ===
-        document.getElementById('ccpFilter').addEventListener('change', async () => {
-            const ccpId = document.getElementById('ccpFilter').value;
-            const estacionSelect = document.getElementById('estacionFilter');
-            const servicioSelect = document.getElementById('servicioFilter');
-            estacionSelect.disabled = true;
-            estacionSelect.innerHTML = '<option value="">-- Cargando... --</option>';
-            servicioSelect.disabled = true;
-            servicioSelect.innerHTML = '<option value="">-- Cargando... --</option>';
-            if (!ccpId) {
-                estacionSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
-                servicioSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
-                return;
-            }
-            try {
-                if (tipoEntidad === 'estacion') {
-                    const { data: estaciones, error } = await supabase
-                        .from('estaciones_policiales')
-                        .select('estacion_id, nombre_estacion')
-                        .eq('ccp_id', ccpId)
-                        .order('nombre_estacion', { ascending: true });
-                    if (error) throw error;
+        try {
+            if (tipoEntidad === 'estacion') {
+                const { data: estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('estacion_id, nombre_estacion')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre_estacion', { ascending: true });
+                if (error) throw error;
+                if (estacionSelect) {
                     estacionSelect.innerHTML = '<option value="">-- Elija una estación --</option>';
                     estaciones.forEach(est => {
                         const opt = document.createElement('option');
@@ -378,13 +380,15 @@
                         estacionSelect.appendChild(opt);
                     });
                     estacionSelect.disabled = false;
-                } else {
-                    const { data: servicios, error } = await supabase
-                        .from('servicios_administrativos')
-                        .select('id, nombre')
-                        .eq('ccp_id', ccpId)
-                        .order('nombre', { ascending: true });
-                    if (error) throw error;
+                }
+            } else {
+                const { data: servicios, error } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                if (servicioSelect) {
                     servicioSelect.innerHTML = '<option value="">-- Elija un servicio --</option>';
                     servicios.forEach(serv => {
                         const opt = document.createElement('option');
@@ -394,13 +398,15 @@
                     });
                     servicioSelect.disabled = false;
                 }
-            } catch (err) {
-                console.error('Error al cargar entidades:', err);
-                alert('No se pudieron cargar las entidades.');
             }
-        });
+        } catch (err) {
+            console.error('Error al cargar entidades:', err);
+            alert('No se pudieron cargar las entidades.');
+        }
+    }
 
-        // === MANEJO DE PESTAÑAS ===
+    // === MANEJO DE PESTAÑAS ===
+    function setupPestañas() {
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -412,107 +418,110 @@
                 if (tipoEntidad === 'estacion') {
                     selectorDinamico.innerHTML = `
                         <div class="input-group">
-                            <label for="estacionFilter">Seleccione Estación:</label>
-                            <select id="estacionFilter" disabled>
+                            <label for="estacionSelect">Seleccione Estación:</label>
+                            <select id="estacionSelect" disabled>
                                 <option value="">-- Primero seleccione un CCP --</option>
                             </select>
                         </div>
+                        <button id="btnCargarGaleria" class="action-btn" disabled>
+                            🖼️ Cargar Galería de Inspección
+                        </button>
                     `;
-                    // Recargar estaciones si hay un CCP seleccionado
-                    if (document.getElementById('ccpFilter').value) {
-                        document.getElementById('ccpFilter').dispatchEvent(new Event('change'));
-                    }
                 } else {
                     selectorDinamico.innerHTML = `
                         <div class="input-group">
-                            <label for="servicioFilter">Seleccione Servicio Administrativo:</label>
-                            <select id="servicioFilter" disabled>
+                            <label for="servicioSelect">Seleccione Servicio Administrativo:</label>
+                            <select id="servicioSelect" disabled>
                                 <option value="">-- Primero seleccione un CCP --</option>
                             </select>
                         </div>
+                        <button id="btnCargarGaleria" class="action-btn" disabled>
+                            🖼️ Cargar Galería de Inspección
+                        </button>
                     `;
-                    // Recargar servicios si hay un CCP seleccionado
-                    if (document.getElementById('ccpFilter').value) {
-                        document.getElementById('ccpFilter').dispatchEvent(new Event('change'));
-                    }
                 }
+
+                // Recargar entidades si ya hay un CCP seleccionado
+                const ccpId = document.getElementById('ccpSelect').value;
+                if (ccpId) {
+                    cargarEntidades(ccpId);
+                }
+
+                // Reasignar eventos (claves!)
+                setupEventListeners();
             });
         });
+    }
 
-        // === EVENTOS PARA LOS SELECTORES DINÁMICOS ===
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'estacionFilter') {
-                const estacionId = e.target.value;
-                document.getElementById('btnCargarGaleria').disabled = !estacionId;
-            } else if (e.target.id === 'servicioFilter') {
-                const servicioId = e.target.value;
-                document.getElementById('btnCargarGaleria').disabled = !servicioId;
-            }
-        });
-
-        // === BOTÓN DE CARGAR GALERÍA ===
-        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
-            const ccpSelect = document.getElementById('ccpFilter');
-            const ccpId = ccpSelect.value;
-            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
-
-            if (!ccpId) {
-                alert('Seleccione un CCP.');
-                return;
-            }
-
-            if (tipoEntidad === 'estacion') {
-                const estacionSelect = document.getElementById('estacionFilter');
-                const estacionId = estacionSelect.value;
-                const estacionNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
-                if (!estacionId) {
-                    alert('Seleccione una estación válida.');
-                    return;
-                }
-                window.location.href = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
-            } else {
-                const servicioSelect = document.getElementById('servicioFilter');
-                const servicioId = servicioSelect.value;
-                const servicioNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
-                if (!servicioId) {
-                    alert('Seleccione un servicio válido.');
-                    return;
-                }
-                window.location.href = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}`;
-            }
-        });
-
-        // === FUNCIÓN PARA VOLVER A LA SELECCIÓN ===
-        function volverASeleccion() {
-            document.getElementById('seleccionContainer').style.display = 'block';
-            document.getElementById('resultadosContainer').style.display = 'none';
-            document.getElementById('mensajeCarga').style.display = 'none';
-            document.getElementById('mensajeSinDatos').style.display = 'none';
-            if (chartInstance) {
-                chartInstance.destroy();
-                chartInstance = null;
-            }
-            document.getElementById('tablaItems').innerHTML = '';
-            document.getElementById('statsHeader').textContent = '';
-            document.getElementById('filtroItems').value = '';
-            // Restaurar vista inicial
-            document.getElementById('selectorDinamico').innerHTML = `
-                <div class="input-group">
-                    <label for="estacionFilter">Seleccione Estación:</label>
-                    <select id="estacionFilter" disabled>
-                        <option value="">-- Primero seleccione un CCP --</option>
-                    </select>
-                </div>
-            `;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('.tab-btn[data-tab="estaciones"]').classList.add('active');
-            tipoEntidad = 'estacion';
+    // === CONFIGURAR EVENTOS DINÁMICOS ===
+    function setupEventListeners() {
+        // Evento CCP
+        const ccpSelect = document.getElementById('ccpSelect');
+        if (ccpSelect) {
+            ccpSelect.onchange = () => {
+                const ccpId = ccpSelect.value;
+                cargarEntidades(ccpId);
+            };
         }
 
-        // === INICIAR ===
-        verificarAcceso().then(() => {
-            // Los eventos ya están manejados
-        });
-    </script>
+        // Evento selector dinámico
+        const container = document.getElementById('selectorDinamico');
+        if (container) {
+            container.onclick = (e) => {
+                if (e.target.id === 'estacionSelect' || e.target.id === 'servicioSelect') {
+                    const select = e.target;
+                    const btn = document.getElementById('btnCargarGaleria');
+                    if (btn) btn.disabled = !select.value;
+                }
+            };
+        }
+
+        // Evento botón cargar galería
+        const btnCargar = document.getElementById('btnCargarGaleria');
+        if (btnCargar) {
+            btnCargar.onclick = () => {
+                const ccpSelect = document.getElementById('ccpSelect');
+                const ccpId = ccpSelect.value;
+                const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
+
+                let urlParams = '';
+                if (tipoEntidad === 'estacion') {
+                    const estacionSelect = document.getElementById('estacionSelect');
+                    const estacionId = estacionSelect.value;
+                    const estacionNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
+                    if (!estacionId) {
+                        alert('Seleccione una estación válida.');
+                        return;
+                    }
+                    urlParams = `ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
+                } else {
+                    const servicioSelect = document.getElementById('servicioSelect');
+                    const servicioId = servicioSelect.value;
+                    const servicioNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
+                    if (!servicioId) {
+                        alert('Seleccione un servicio válido.');
+                        return;
+                    }
+                    urlParams = `ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}`;
+                }
+                window.location.href = `galeria.html?${urlParams}`;
+            };
+        }
+
+        // Botón volver
+        const btnVolver = document.getElementById('btnVolver');
+        if (btnVolver) {
+            btnVolver.onclick = () => {
+                window.location.href = 'index.html';
+            };
+        }
+    }
+
+    // === INICIAR ===
+    verificarAcceso().then(() => {
+        setupPestañas();
+        setupEventListeners();
+    });
+</script>
 </body>
 </html>
