@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seleccionar Estación - Galería</title>
+    <title>Seleccionar Estación o Servicio - Galería</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
@@ -191,7 +191,7 @@
             </button>
         </div>
 
-        <!-- CONTENIDO DE ESTACIONES -->
+        <!-- SECCIÓN ESTACIONES -->
         <div id="seccionEstaciones" class="content-section active">
             <div class="input-group">
                 <label for="ccpSelect">Seleccione CCP:</label>
@@ -216,12 +216,29 @@
             </button>
         </div>
 
-        <!-- CONTENIDO DE SERVICIOS (vacío por ahora, puedes completarlo después) -->
+        <!-- SECCIÓN SERVICIOS -->
         <div id="seccionServicios" class="content-section">
-            <div style="text-align: center; padding: 30px; color: #4a5568;">
-                <h3>🔍 Próximamente: Gestión de Servicios Administrativos</h3>
-                <p>Esta sección permitirá seleccionar y gestionar servicios administrativos asociados a las estaciones.</p>
+            <div class="input-group">
+                <label for="ccpSelectServicios">Seleccione CCP:</label>
+                <select id="ccpSelectServicios">
+                    <option value="">-- Elija un CCP --</option>
+                    <option value="metropolitano">CCP METROPOLITANO</option>
+                    <option value="sur_del_lago">CCP SUR DEL LAGO</option>
+                    <option value="guajira">CCP GUAJIRA</option>
+                    <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
+                    <option value="lara">CCPE LARA</option>
+                    <option value="falcon">CCPE FALCÓN</option>
+                </select>
             </div>
+            <div class="input-group">
+                <label for="servicioSelect">Seleccione Servicio Administrativo:</label>
+                <select id="servicioSelect" disabled>
+                    <option value="">-- Primero seleccione un CCP --</option>
+                </select>
+            </div>
+            <button id="btnCargarGaleriaServicios" class="action-btn" disabled>
+                🖼️ Cargar Galería de Inspección
+            </button>
         </div>
 
         <button id="btnVolver" class="back-btn">
@@ -250,7 +267,9 @@
             }
         }
 
-        // Lógica de selección de estaciones (sin cambios)
+        // ========================
+        // LÓGICA PARA ESTACIONES
+        // ========================
         document.getElementById('ccpSelect').addEventListener('change', async () => {
             const ccpId = document.getElementById('ccpSelect').value;
             const estacionSelect = document.getElementById('estacionSelect');
@@ -300,10 +319,67 @@
                 alert('Seleccione una estación válida.');
                 return;
             }
-            const url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}`;
+            const url = `galeria.html?estacionId=${encodeURIComponent(estacionId)}&estacionNombre=${encodeURIComponent(estacionNombre)}&ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             window.location.href = url;
         });
 
+        // ========================
+        // LÓGICA PARA SERVICIOS
+        // ========================
+        document.getElementById('ccpSelectServicios').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpSelectServicios').value;
+            const servicioSelect = document.getElementById('servicioSelect');
+            const btnCargar = document.getElementById('btnCargarGaleriaServicios');
+            servicioSelect.disabled = true;
+            servicioSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+            btnCargar.disabled = true;
+            if (!ccpId) {
+                servicioSelect.innerHTML = '<option value="">-- Primero seleccione un CCP --</option>';
+                return;
+            }
+            try {
+                const { data: servicios, error } = await supabase
+                    .from('servicios_administrativos')
+                    .select('estacion_id as servicio_id, nombre_estacion as servicio_nombre')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre_estacion', { ascending: true });
+                if (error) throw error;
+                servicioSelect.innerHTML = '<option value="">-- Elija un servicio --</option>';
+                servicios.forEach(serv => {
+                    const opt = document.createElement('option');
+                    opt.value = serv.servicio_id;
+                    opt.textContent = serv.servicio_nombre;
+                    servicioSelect.appendChild(opt);
+                });
+                servicioSelect.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar servicios:', err);
+                servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
+                alert('No se pudieron cargar los servicios.');
+            }
+        });
+
+        document.getElementById('servicioSelect').addEventListener('change', () => {
+            const servicioId = document.getElementById('servicioSelect').value;
+            document.getElementById('btnCargarGaleriaServicios').disabled = !servicioId;
+        });
+
+        document.getElementById('btnCargarGaleriaServicios').addEventListener('click', () => {
+            const ccpSelect = document.getElementById('ccpSelectServicios');
+            const servicioSelect = document.getElementById('servicioSelect');
+            const ccpId = ccpSelect.value;
+            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
+            const servicioId = servicioSelect.value;
+            const servicioNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
+            if (!ccpId || !servicioId) {
+                alert('Seleccione un servicio válido.');
+                return;
+            }
+            const url = `galeria.html?servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}&ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            window.location.href = url;
+        });
+
+        // Botón de volver
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = 'index.html';
         });
