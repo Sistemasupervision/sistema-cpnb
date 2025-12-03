@@ -409,131 +409,139 @@
     return resultado;
 }
 
-        async function cargarResumen() {
-            const container = document.getElementById('resumenContainer');
-            try {
-                await cargarCcpOcidental(); // ✅ Cargar los CCPs antes de usarlos
+      async function cargarResumen() {
+    const container = document.getElementById('resumenContainer');
+    container.innerHTML = '<div class="loading">Cargando resumen mensual...</div>';
 
-                const anioBase = parseInt(document.getElementById('anioBase').value);
-                const mesBase = parseInt(document.getElementById('mesBase').value);
-                const anioComp = parseInt(document.getElementById('anioComparar').value);
-                const mesComp = parseInt(document.getElementById('mesComparar').value);
-
-                const metricasBase = await cargarDatosPorCCP(anioBase, mesBase);
-                const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
-                const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
-                const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
-
-                const metricasComp = await cargarDatosPorCCP(anioComp, mesComp);
-                const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
-                const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
-                const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
-
-                const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
-                const labels = todosCCP.map(k => ccpNombres[k] || k);
-                const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
-                const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
-
-                let html = `
-                    <div class="resumen-cards">
-                        <div class="card">
-                            <div class="card-label">Inspecciones<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
-                            <div class="card-value">${totalInspeccionesBase}</div>
-                        </div>
-                        <div class="card">
-                            <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
-                            <div class="card-value">${promedioBase}%</div>
-                        </div>
-                        <div class="card">
-                            <div class="card-label">Inspecciones<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
-                            <div class="card-value">${totalInspeccionesComp}</div>
-                        </div>
-                        <div class="card">
-                            <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
-                            <div class="card-value">${promedioComp}%</div>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440; font-weight: 600;">
-                            Comparación de Cumplimiento por CCP
-                        </h3>
-                        <div class="chart-wrapper">
-                            <canvas id="ccpChart"></canvas>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML = html;
-
-                const ctx = document.getElementById('ccpChart').getContext('2d');
-                if (chartInstance) chartInstance.destroy();
-                chartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: formatoMes(anioBase, mesBase),
-                                data: dataBase,
-                                backgroundColor: 'rgba(49, 130, 206, 0.85)',
-                                borderColor: 'rgba(49, 130, 206, 1)',
-                                borderWidth: 1,
-                                borderRadius: 6,
-                                barPercentage: 0.9
-                            },
-                            {
-                                label: formatoMes(anioComp, mesComp),
-                                data: dataComp,
-                                backgroundColor: 'rgba(239, 68, 68, 0.75)',
-                                borderColor: 'rgba(220, 38, 38, 1)',
-                                borderWidth: 1,
-                                borderRadius: 6,
-                                barPercentage: 0.9
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'top', labels: { font: { size: 13 } } },
-                            tooltip: {
-                                backgroundColor: 'rgba(12, 36, 64, 0.9)',
-                                titleFont: { size: 14 },
-                                bodyFont: { size: 13 },
-                                callbacks: {
-                                    label: function(context) {
-                                        return `${context.dataset.label}: ${context.parsed.y}%`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: {
-                                    precision: 0,
-                                    callback: v => v + '%',
-                                    font: { size: 12 }
-                                },
-                                grid: { color: 'rgba(0,0,0,0.05)' }
-                            },
-                            x: {
-                                ticks: { font: { size: 12 } },
-                                grid: { display: false }
-                            }
-                        },
-                        animation: {
-                            duration: 0
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('Error al cargar resumen:', error);
-                container.innerHTML = `<div class="error">❌ Error al cargar el resumen: ${error.message || 'Ver consola para más detalles'}</div>`;
-            }
+    try {
+        // ✅ 1. Asegurar que ccpOcidental esté cargado (solo la primera vez)
+        if (ccpOcidental.length === 0) {
+            await cargarCcpOcidental();
         }
 
+        const anioBase = parseInt(document.getElementById('anioBase').value);
+        const mesBase = parseInt(document.getElementById('mesBase').value);
+        const anioComp = parseInt(document.getElementById('anioComparar').value);
+        const mesComp = parseInt(document.getElementById('mesComparar').value);
+
+        // ✅ 2. Cargar ambos meses EN PARALELO
+        const [metricasBase, metricasComp] = await Promise.all([
+            cargarDatosPorCCP(anioBase, mesBase),
+            cargarDatosPorCCP(anioComp, mesComp)
+        ]);
+
+        const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
+        const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
+        const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
+
+        const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
+        const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
+        const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
+
+        const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
+        const labels = todosCCP.map(k => ccpNombres[k] || k);
+        const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
+        const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
+
+        let html = `
+            <div class="resumen-cards">
+                <div class="card">
+                    <div class="card-label">Inspecciones<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
+                    <div class="card-value">${totalInspeccionesBase}</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
+                    <div class="card-value">${promedioBase}%</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Inspecciones<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
+                    <div class="card-value">${totalInspeccionesComp}</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
+                    <div class="card-value">${promedioComp}%</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440; font-weight: 600;">
+                    Comparación de Cumplimiento por CCP
+                </h3>
+                <div class="chart-wrapper">
+                    <canvas id="ccpChart"></canvas>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+
+        const ctx = document.getElementById('ccpChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: formatoMes(anioBase, mesBase),
+                        data: dataBase,
+                        backgroundColor: 'rgba(49, 130, 206, 0.85)',
+                        borderColor: 'rgba(49, 130, 206, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.9
+                    },
+                    {
+                        label: formatoMes(anioComp, mesComp),
+                        data: dataComp,
+                        backgroundColor: 'rgba(239, 68, 68, 0.75)',
+                        borderColor: 'rgba(220, 38, 38, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.9
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 13 } } },
+                    tooltip: {
+                        backgroundColor: 'rgba(12, 36, 64, 0.9)',
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            precision: 0,
+                            callback: v => v + '%',
+                            font: { size: 12 }
+                        },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    },
+                    x: {
+                        ticks: { font: { size: 12 } },
+                        grid: { display: false }
+                    }
+                },
+                animation: {
+                    duration: 0
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error al cargar resumen:', error);
+        container.innerHTML = `<div class="error">❌ Error al cargar el resumen: ${error.message || 'Ver consola para más detalles'}</div>`;
+    }
+}
         async function exportarResumenAPDF() {
             const canvas = document.getElementById('ccpChart');
             if (!canvas) {
