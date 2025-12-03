@@ -353,46 +353,31 @@
             }
         }
 
-        async function obtenerCcpOcidental() {
-            const { data, error } = await supabase
-                .from('ccps')
-                .select('ccp_id')
-                .eq('redip', 'occidental');
-            if (error) {
-                console.error("Error al cargar CCPs:", error);
-                return [];
-            }
-            return (data || []).map(row => row.ccp_id);
-        }
+       // Obtener CCPs de OCCIDENTAL
+const ccpOcidental = await obtenerCcpOcidental();
+if (ccpOcidental.length === 0) {
+    container.innerHTML = '<div class="no-data">⚠️ No hay CCPs para OCCIDENTAL.</div>';
+    return;
+}
 
-        async function cargarNotificaciones() {
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            const hoyStr = hoy.toISOString().split('T')[0];
-            const container = document.getElementById('alertasContainer');
+// Construir condiciones para .or()
+const ccpConditions = ccpOcidental.map(id => `ccp_id.eq.${id}`).join(',');
 
-            try {
-                await cargarNombresCcp();
-                const ccpOcidental = await obtenerCcpOcidental();
-                if (!ccpOcidental || ccpOcidental.length === 0) {
-                    container.innerHTML = '<div class="no-data">⚠️ No hay CCPs asignados a OCCIDENTAL.</div>';
-                    return;
-                }
+// Cargar estaciones
 const {  estaciones, error: estError } = await supabase
     .from('estaciones_policiales')
     .select('estacion_id, nombre_estacion, ccp_id')
-    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+    .or(ccpConditions);
 if (estError) throw estError;
 estacionesGlobales = estaciones || [];
 
-// Servicios
+// Cargar servicios
 const {  servicios, error: servError } = await supabase
     .from('servicios_administrativos')
     .select('id, nombre, ccp_id')
-    .in('ccp_id', ccpOcidental.map(id => `'${id}'`).join(','));
+    .or(ccpConditions);
 if (servError) throw servError;
 serviciosGlobales = servicios || [];
-
 // Ahora sí es seguro usar .map()
 const estacionIds = new Set(estacionesGlobales.map(e => e.estacion_id));
 const servicioIds = new Set(serviciosGlobales.map(s => s.id));
