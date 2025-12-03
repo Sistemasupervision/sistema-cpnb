@@ -44,63 +44,96 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const ccpId = urlParams.get('ccpId');
-        const ccpNombre = urlParams.get('ccpNombre');
-
-        if (!ccpId || !ccpNombre) {
-            alert('⚠️ Datos de CCP no válidos.');
-            window.history.back();
-        }
-
-        document.getElementById('ccpNombreDisplay').textContent = ccpNombre;
-
-        // Cargar servicios desde Supabase (filtrados por ccp_id)
-        async function cargarServicios() {
+        // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../../index.html';
+                return false;
+            }
             try {
-                const { data: servicios, error } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre')
-                    .eq('ccp_id', ccpId)
-                    .order('nombre', { ascending: true });
-
-                const select = document.getElementById('servicioSelect');
-                if (error || !servicios || servicios.length === 0) {
-                    select.innerHTML = '<option value="">No hay servicios administrativos disponibles</option>';
-                    select.disabled = true;
-                    return;
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden acceder.');
+                    window.location.href = '../../index.html';
+                    return false;
                 }
-
-                select.innerHTML = '<option value="">-- Elija un servicio --</option>';
-                servicios.forEach(serv => {
-                    const opt = document.createElement('option');
-                    opt.value = serv.id;
-                    opt.textContent = serv.nombre;
-                    select.appendChild(opt);
-                });
-                select.disabled = false;
-            } catch (error) {
-                console.error('Error al cargar servicios:', error);
-                alert('Error al cargar los servicios administrativos.');
-                document.getElementById('servicioSelect').innerHTML = '<option value="">Error al cargar</option>';
-                document.getElementById('servicioSelect').disabled = true;
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Contacte al administrador.');
+                window.location.href = '../../index.html';
+                return false;
             }
         }
 
-        cargarServicios();
+        // Lógica principal
+        async function init() {
+            const accesoValido = await verificarAcceso();
+            if (!accesoValido) return;
 
-        document.getElementById('btnCargarFormulario').addEventListener('click', () => {
-            const servicioId = document.getElementById('servicioSelect').value;
-            if (!servicioId) {
-                alert('Por favor seleccione un servicio administrativo.');
+            const urlParams = new URLSearchParams(window.location.search);
+            const ccpId = urlParams.get('ccpId');
+            const ccpNombre = urlParams.get('ccpNombre');
+            if (!ccpId || !ccpNombre) {
+                alert('⚠️ Datos de CCP no válidos.');
+                window.history.back();
                 return;
             }
-            const servicioNombre = document.getElementById('servicioSelect').options[document.getElementById('servicioSelect').selectedIndex].text;
-            window.location.href = `formulario-servicio.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}`;
-        });
-     document.getElementById('btnVolver').addEventListener('click', () => {
-    window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
-        });
+            document.getElementById('ccpNombreDisplay').textContent = ccpNombre;
+
+            async function cargarServicios() {
+                try {
+                    const { data: servicios, error } = await supabase
+                        .from('servicios_administrativos')
+                        .select('id, nombre')
+                        .eq('ccp_id', ccpId)
+                        .order('nombre', { ascending: true });
+                    const select = document.getElementById('servicioSelect');
+                    if (error || !servicios || servicios.length === 0) {
+                        select.innerHTML = '<option value="">No hay servicios administrativos disponibles</option>';
+                        select.disabled = true;
+                        return;
+                    }
+                    select.innerHTML = '<option value="">-- Elija un servicio --</option>';
+                    servicios.forEach(serv => {
+                        const opt = document.createElement('option');
+                        opt.value = serv.id;
+                        opt.textContent = serv.nombre;
+                        select.appendChild(opt);
+                    });
+                    select.disabled = false;
+                } catch (error) {
+                    console.error('Error al cargar servicios:', error);
+                    alert('Error al cargar los servicios administrativos.');
+                    document.getElementById('servicioSelect').innerHTML = '<option value="">Error al cargar</option>';
+                    document.getElementById('servicioSelect').disabled = true;
+                }
+            }
+
+            document.getElementById('btnCargarFormulario').addEventListener('click', () => {
+                const servicioId = document.getElementById('servicioSelect').value;
+                if (!servicioId) {
+                    alert('Por favor seleccione un servicio administrativo.');
+                    return;
+                }
+                const servicioNombre = document.getElementById('servicioSelect').options[document.getElementById('servicioSelect').selectedIndex].text;
+                window.location.href = `formulario-servicio.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}&servicioId=${encodeURIComponent(servicioId)}&servicioNombre=${encodeURIComponent(servicioNombre)}`;
+            });
+
+            document.getElementById('btnVolver').addEventListener('click', () => {
+                window.location.href = `index.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            });
+
+            cargarServicios();
+        }
+
+        // Iniciar todo
+        init();
     </script>
 </body>
 </html>
