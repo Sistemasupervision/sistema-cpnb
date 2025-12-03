@@ -194,69 +194,32 @@
         let redipUsuario = null;
         let esAdmin = false;
 
-     async function verificarAcceso() {
-    const { data } = await supabase.auth.getSession();
-    const session = data?.session;
-
-    if (!session || !session.user) {
-        alert('Debe iniciar sesión para acceder.');
-        window.location.href = 'login.html';
-        return false;
-    }
-
-    const userId = session.user.id;
-
-    const { data: usuario, error } = await supabase
-        .from('usuarios_redip')
-        .select('redip')
-        .eq('user_id', userId)
-        .single();
-
-    if (error) {
-        console.error('Error al obtener perfil del usuario:', error);
-        alert('No se pudo verificar su perfil. Contacte al administrador.');
-        window.location.href = 'login.html';
-        return false;
-    }
-
-    if (usuario.redip === 'admin') {
-        esAdmin = true;
-        redipUsuario = null;
-    } else {
-        esAdmin = false;
-        redipUsuario = usuario.redip;
-    }
-
-    return true;
-}
-      async function cargarCCPs() {
-    const select = document.getElementById('ccpSelect');
-    try {
-        const { data: ccps, error } = await supabase
-            .from('ccps')
-            .select('ccp_id, nombre_ccp, redip');
-
-        if (error) throw error;
-
-        if (!ccps || !Array.isArray(ccps)) {
-            console.warn('ccps no es un arreglo:', ccps);
-            alert('No hay CCPs disponibles.');
-            return;
-        }
-
-        select.innerHTML = '<option value="">-- Elija un CCP --</option>';
-        ccps.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.ccp_id;
-            opt.textContent = c.nombre_ccp;
-            select.appendChild(opt);
-        });
-    } catch (err) {
-        console.error('Error al cargar CCPs:', err);
-        alert('No se pudieron cargar los CCPs. Verifique su conexión o permisos.');
-    }
-}
-        // === Funciones de carga ===
+// ✅ CORREGIDO: sintaxis válida
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser(); // ✅ CORRECTO
+            if (!user) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden acceder.');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Redirigiendo...');
+                window.location.href = 'index.html';
+                return false;
+            }
+        }      // === Funciones de carga ===
         async function cargarEstaciones(ccpId) {
             const select = document.getElementById('estacionSelect');
             try {
