@@ -265,359 +265,9 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        // --- VALIDACIÓN DE ACCESO A REDIP OCCIDENTAL ---
-        async function verificarAcceso() {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                alert('🔒 Acceso restringido. Debe iniciar sesión.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-            if (error || !data) {
-                alert('❌ No se pudo verificar su rol.');
-;
-rol.');
-ol.');
-ol.');
-e pudo verificar su rol.');
-ficar su rol.');
-do verificar su rol.');
-ar su rol.');
-verificar su rol.');
-o verificar su rol.');
- su rol.');
-car su rol.');
-udo verificar su rol.');
-ficar su rol.');
- se pudo verificar su rol.');
- verificar su rol.');
-udo verificar su rol.');
-o se pudo verificar su rol.');
-do verificar su rol.');
- verificar su rol.');
-se pudo verificar su rol.');
-icar su rol.');
-ificar su rol.');
- pudo verificar su rol.');
-verificar su rol.');
-ar su rol.');
-udo verificar su rol.');
-No se pudo verificar su rol.');
-rificar su rol.');
- su rol.');
-ar su rol.');
-icar su rol.');
-rificar su rol.');
-rificar su rol.');
-do verificar su rol.');
- pudo verificar su rol.');
-o verificar su rol.');
-erificar su rol.');
-ar su rol.');
-ificar su rol.');
-erificar su rol.');
-o verificar su rol.');
- No se pudo verificar su rol.');
-pudo verificar su rol.');
-su rol.');
-ar su rol.');
-rificar su rol.');
-ficar su rol.');
- pudo verificar su rol.');
-pudo verificar su rol.');
-e pudo verificar su rol.');
-udo verificar su rol.');
-car su rol.');
-verificar su rol.');
- su rol.');
-❌ No se pudo verificar su rol.');
-car su rol.');
-o verificar su rol.');
-e pudo verificar su rol.');
-ficar su rol.');
-rificar su rol.');
-ar su rol.');
-rificar su rol.');
- pudo verificar su rol.');
-ificar su rol.');
-);
-¡Claro! Aquí está el archivo `notificaciones.html` modificado **sin el botón de administración** (ADMIN), pero manteniendo el acceso para administradores y usuarios de REDIP OCCIDENTAL:
 
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notificaciones - REDIP OCCIDENTAL</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-        }
-        body {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            width: 100%;
-            max-width: 900px;
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
-        }
-        .logo-container {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .logo-img {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-            margin: 0 auto 15px;
-            display: block;
-        }
-        .title {
-            text-align: center;
-            color: #0c2440;
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 25px;
-        }
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .back-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: bold;
-            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
-            color: white;
-        }
-        .back-btn:hover {
-            opacity: 0.9;
-        }
-        .reloj {
-            font-size: 16px;
-            font-weight: bold;
-            color: #0c2440;
-            background: #e2e8f0;
-            padding: 8px 16px;
-            border-radius: 10px;
-            min-width: 180px;
-            text-align: center;
-        }
-        .alertas-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin-bottom: 25px;
-        }
-        .alerta-card {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            border-radius: 12px;
-            padding: 18px;
-            border-left: 4px solid #ef4444;
-        }
-        .alerta-titulo {
-            font-weight: bold;
-            color: #0c2440;
-            font-size: 17px;
-            margin-bottom: 8px;
-        }
-        .alerta-detalles {
-            font-size: 14px;
-            color: #4a5568;
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-        }
-        .ccp-badge {
-            background: #fecaca;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 13px;
-        }
-        .acciones {
-            margin-top: 12px;
-            display: flex;
-            gap: 10px;
-        }
-        .btn-reinspeccion {
-            padding: 8px 14px;
-            background: #dc2626;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            flex: 1;
-        }
-        .btn-reinspeccion:hover {
-            background: #b91c1c;
-        }
-        .loading, .no-data {
-            text-align: center;
-            color: #666;
-            font-size: 18px;
-            padding: 30px;
-        }
-        /* Paginación */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .page-btn {
-            padding: 8px 14px;
-            border: 1px solid #cbd5e0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .page-btn.active {
-            background: #2c5282;
-            color: white;
-            border-color: #2c5282;
-        }
-        .page-btn:hover:not(.active) {
-            background: #edf2f7;
-        }
-        /* Modal de fecha */
-        #modalFecha {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background: white;
-            padding: 25px;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #0c2440;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .modal-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #cbd5e0;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-        }
-        .modal-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 15px;
-        }
-        .btn-aceptar {
-            background: #38a169;
-            color: white;
-        }
-        .btn-cancelar {
-            background: #e2e8f0;
-            color: #4a5568;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="logo-container">
-            <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP OCCIDENTAL</h1>
-        </div>
-        <div class="header-row">
-            <button class="back-btn" onclick="window.location.href='index.html'">
-                ← Volver a REDIP OCCIDENTAL
-            </button>
-            <div class="reloj" id="reloj"></div>
-        </div>
-        <div id="alertasContainer">
-            <div class="loading">Verificando acceso y cargando notificaciones...</div>
-        </div>
-        <div id="paginationContainer" class="pagination"></div>
-    </div>
-    <!-- Modal para seleccionar fecha -->
-    <div id="modalFecha">
-        <div class="modal-content">
-            <div class="modal-title">Nueva fecha de reinspección</div>
-            <input type="date" id="nuevaFechaInput" class="modal-input" min="">
-            <div class="modal-buttons">
-                <button class="modal-btn btn-cancelar" onclick="cerrarModalFecha()">Cancelar</button>
-                <button class="modal-btn btn-aceptar" onclick="confirmarNuevaFecha()">Aceptar</button>
-            </div>
-        </div>
-    </div>
-    <script>
-        const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        // --- VALIDACIÓN DE ACCESO A REDIP ADMIN O OCCIDENTAL ---
-        async function verificarAcceso() {
+        // --- VALIDACIÓN DE ACCESO: permite 'occidental' o 'admin' ---
+        async function verificarAccesoOcidental() {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError || !user) {
                 alert('🔒 Acceso restringido. Debe iniciar sesión.');
@@ -630,20 +280,19 @@ ificar su rol.');
                 .eq('user_id', user.id)
                 .single();
             if (error || !data) {
-                alert('❌ No se pudo verificar su rol.');
+                alert('❌ Error al verificar sus permisos.');
                 window.location.href = '../../index.html';
                 return false;
             }
-            const usuarioRedip = data.redip;
-            const esAdmin = (usuarioRedip === 'admin');
-            const esOcidental = (usuarioRedip === 'occidental');
-            if (!esAdmin && !esOcidental) {
-                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden ver esta página.');
+            // ✅ Permitir acceso si es 'occidental' O 'admin'
+            if (data.redip !== 'occidental' && data.redip !== 'admin') {
+                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
                 window.location.href = '../../index.html';
                 return false;
             }
             return true;
         }
+
         // === FUNCIONES PRINCIPALES DE LA PÁGINA ===
         async function obtenerCcpOcidental() {
             const { data, error } = await supabase
@@ -656,6 +305,7 @@ ificar su rol.');
             }
             return data.map(row => row.ccp_id);
         }
+
         let ccpNombres = {};
         async function cargarNombresCcp() {
             const { data, error } = await supabase
@@ -670,12 +320,14 @@ ificar su rol.');
                 }, {});
             }
         }
+
         let inspeccionIdActual = null;
         let todasInspecciones = [];
         let estacionesGlobales = [];
         let serviciosGlobales = [];
         const itemsPorPagina = 10;
         let paginaActual = 1;
+
         function actualizarReloj() {
             const ahora = new Date();
             const opciones = { 
@@ -690,6 +342,7 @@ ificar su rol.');
             const formato = ahora.toLocaleDateString('es-ES', opciones);
             document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
         }
+
         function renderizarPagina(pagina) {
             paginaActual = pagina;
             const inicio = (pagina - 1) * itemsPorPagina;
@@ -754,6 +407,7 @@ ificar su rol.');
             }
             document.getElementById('paginationContainer').innerHTML = paginacionHTML;
         }
+
         async function cargarNotificaciones() {
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
@@ -788,14 +442,17 @@ ificar su rol.');
                 document.getElementById('paginationContainer').innerHTML = '';
             }
         }
+
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
+
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
+
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha || !inspeccionIdActual) {
@@ -816,9 +473,10 @@ ificar su rol.');
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
+
         // --- EJECUCIÓN PRINCIPAL ---
         async function iniciar() {
-            const permitido = await verificarAcceso();
+            const permitido = await verificarAccesoOcidental();
             if (permitido) {
                 setInterval(actualizarReloj, 1000);
                 actualizarReloj();
@@ -826,6 +484,7 @@ ificar su rol.');
                 await cargarNotificaciones();
             }
         }
+
         iniciar();
     </script>
 </body>
