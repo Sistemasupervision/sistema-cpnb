@@ -278,8 +278,7 @@
         let ccpNombres = {};
         let chartInstance = null;
         
-       // === VALIDACIÓN DE ACCESO A REDIP OCCIDENTAL ===
-async function verificarAccesoOcidental() {
+      async function verificarAccesoOcidental() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
         mostrarMensajeAccesoDenegado("Debe iniciar sesión.");
@@ -338,7 +337,8 @@ function mostrarMensajeAccesoDenegado(mensaje) {
     contenido.style.fontSize = '16px';
     contenido.style.lineHeight = '1.5';
     contenido.innerHTML = `<span style="color: #ffcc00; font-size: 20px;">⚠️</span> ${mensaje}`;
-    
+
+    // Botón Aceptar
     const boton = document.createElement('button');
     boton.textContent = 'Aceptar';
     boton.style.marginTop = '20px';
@@ -727,7 +727,7 @@ function mostrarMensajeAccesoDenegado(mensaje) {
    async function iniciar() {
     const permitido = await verificarAccesoOcidental();
     if (permitido) {
-       // --- EJECUCIÓN PRINCIPAL ---
+
 async function iniciar() {
     const permitido = await verificarAccesoOcidental();
     if (permitido) {
