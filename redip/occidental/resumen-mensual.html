@@ -261,30 +261,36 @@
 
         // === VERIFICAR ACCESO ===
         async function verificarAcceso() {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                alert('🔒 Acceso restringido. Debe iniciar sesión.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-
             try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) {
+                    alert('🔒 Acceso restringido. Debe iniciar sesión.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+
                 const { data, error } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
 
-                if (error || !data || (data.redip !== 'occidental' && data.redip !== 'admin')) {
+                if (error || !data) {
+                    alert('🚫 Su cuenta no tiene permisos asignados en el sistema.');
+                    window.location.href = '../../index.html';
+                    return false;
+                }
+
+                if (data.redip !== 'occidental' && data.redip !== 'admin') {
                     alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
                     window.location.href = '../../index.html';
                     return false;
                 }
+
                 return true;
             } catch (err) {
                 console.error('Error al verificar acceso:', err);
-                alert('⚠️ Error de autenticación. Redirigiendo...');
-                window.location.href = '../../index.html';
+                document.getElementById('resumenContainer').innerHTML = `<div class="error">❌ Error de autenticación: ${err.message || 'Ver consola'}</div>`;
                 return false;
             }
         }
@@ -299,10 +305,7 @@
                 .from('ccps')
                 .select('ccp_id, nombre_ccp')
                 .eq('redip', 'occidental');
-            if (error) {
-                console.error('Error al cargar CCPs de OCCIDENTAL:', error);
-                throw error;
-            }
+            if (error) throw error;
             ccpOcidental = data.map(row => row.ccp_id);
             ccpNombres = data.reduce((acc, row) => {
                 acc[row.ccp_id] = row.nombre_ccp;
@@ -336,7 +339,6 @@
                 opt1.value = anio;
                 opt1.textContent = anio;
                 aniosBase.appendChild(opt1);
-
                 const opt2 = document.createElement('option');
                 opt2.value = anio;
                 opt2.textContent = anio;
@@ -352,7 +354,6 @@
                 opt1.value = 11 - i;
                 opt1.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
                 mesesBase.appendChild(opt1);
-
                 const opt2 = document.createElement('option');
                 opt2.value = 11 - i;
                 opt2.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
@@ -486,7 +487,7 @@
                         datasets: [
                             {
                                 label: formatoMes(anioBase, mesBase),
-                                 dataBase,
+                                data: dataBase,
                                 backgroundColor: 'rgba(49, 130, 206, 0.85)',
                                 borderColor: 'rgba(49, 130, 206, 1)',
                                 borderWidth: 1,
@@ -495,7 +496,7 @@
                             },
                             {
                                 label: formatoMes(anioComp, mesComp),
-                                 dataComp,
+                                data: dataComp,
                                 backgroundColor: 'rgba(239, 68, 68, 0.75)',
                                 borderColor: 'rgba(220, 38, 38, 1)',
                                 borderWidth: 1,
@@ -631,7 +632,7 @@
             }
         }
 
-        // === INICIALIZAR ===
+        // === INICIAR ===
         async function iniciar() {
             const permitido = await verificarAcceso();
             if (permitido) {
@@ -643,7 +644,13 @@
             }
         }
 
-        iniciar();
+        // Llamada robusta con manejo de errores global
+        window.addEventListener('DOMContentLoaded', () => {
+            iniciar().catch(err => {
+                console.error('Error no capturado al iniciar el resumen mensual:', err);
+                document.getElementById('resumenContainer').innerHTML = `<div class="error">❌ Error crítico al iniciar. Ver consola.</div>`;
+            });
+        });
     </script>
 </body>
 </html>
