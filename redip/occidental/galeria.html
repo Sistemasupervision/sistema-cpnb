@@ -336,14 +336,19 @@
                     query = query.eq('servicio_id', entidadId);
                 }
 
-                if (fechaDesde) {
-                    const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
-                    query = query.gte('created_at', desdeISO);
-                }
-                if (fechaHasta) {
-                    const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
-                    query = query.lte('created_at', hastaISO + 'T23:59:59.999Z');
-                }
+         // Código CORREGIDO
+if (fechaDesde) {
+    // Convertimos la fecha a un timestamp en UTC a las 00:00:00
+    const desde = new Date(fechaDesde);
+    desde.setUTCHours(0, 0, 0, 0);
+    query = query.gte('created_at', desde.toISOString());
+}
+if (fechaHasta) {
+    // Convertimos la fecha a un timestamp en UTC a las 23:59:59.999
+    const hasta = new Date(fechaHasta);
+    hasta.setUTCHours(23, 59, 59, 999);
+    query = query.lte('created_at', hasta.toISOString());
+}
 
                 const { data: inspecciones, error: inspError } = await query;
                 if (inspError) throw inspError;
