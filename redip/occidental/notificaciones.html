@@ -237,8 +237,7 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <!-- ✅ Título con contador -->
-            <h1 class="title">⚠️ Reinspecciones Vencidas <span id="contadorNotificaciones" style="font-size: 18px; font-weight: normal; color: #e53e3e;">(0)</span></h1>
+            <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP OCCIDENTAL</h1>
         </div>
         <div class="header-row">
             <button class="back-btn" onclick="window.location.href='index.html'">
@@ -266,49 +265,57 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        async function verificarAccesoOcidental() {
-            const {  { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) {
-                alert('🔒 Acceso restringido. Debe iniciar sesión.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-            if (error) {
-                alert('❌ Error interno al verificar permisos.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            if (!data) {
-                alert('🚫 Su cuenta no tiene permisos asignados en el sistema.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            if (data.redip !== 'occidental' && data.redip !== 'admin') {
-                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-            return true;
-        }
-        async function obtenerCcpOcidental() {
-            const { data, error } = await supabase
-                .from('ccps')
-                .select('ccp_id')
-                .eq('redip', 'occidental');
-            if (error) {
-                console.error('Error al cargar CCPs de OCCIDENTAL:', error);
-                return [];
-            }
-            return (data || []).map(row => row.ccp_id);
-        }
+     async function verificarAccesoOcidental() {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        console.warn('No hay sesión activa');
+        alert('🔒 Acceso restringido. Debe iniciar sesión.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+    console.log('Usuario autenticado:', user.id, user.email);
+    const { data, error } = await supabase
+        .from('usuarios_redip')
+        .select('redip')
+        .eq('user_id', user.id)
+        .single();
+    if (error) {
+        console.error('Error al consultar usuarios_redip:', error);
+        alert('❌ Error interno al verificar permisos.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+    if (!data) {
+        console.warn('No se encontró registro en usuarios_redip para user_id:', user.id);
+        alert('🚫 Su cuenta no tiene permisos asignados en el sistema.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+    // ✅ Permitir 'occidental' o 'admin'
+    if (data.redip !== 'occidental' && data.redip !== 'admin') {
+        console.warn('Rol no autorizado:', data.redip);
+        alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o el administrador pueden ver esta página.');
+        window.location.href = '../../index.html';
+        return false;
+    }
+    console.log('Acceso concedido con rol:', data.redip);
+    return true;
+}
+       async function obtenerCcpOcidental() {
+    const { data, error } = await supabase
+        .from('ccps')
+        .select('ccp_id')
+        .eq('redip', 'occidental');
+    if (error) {
+        console.error('Error al cargar CCPs de OCCIDENTAL:', error);
+        return [];
+    }
+    // Protección: si data es undefined, retorna array vacío
+    return (data || []).map(row => row.ccp_id);
+}
         let ccpNombres = {};
         async function cargarNombresCcp() {
-            const {  {data, error} } = await supabase
+            const { data, error } = await supabase
                 .from('ccps')
                 .select('ccp_id, nombre_ccp');
             if (error) {
@@ -340,17 +347,12 @@
             const formato = ahora.toLocaleDateString('es-ES', opciones);
             document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
         }
-        // ✅ Función de renderizado actualizada con contador
         function renderizarPagina(pagina) {
             paginaActual = pagina;
             const inicio = (pagina - 1) * itemsPorPagina;
             const fin = inicio + itemsPorPagina;
             const inspeccionesPagina = todasInspecciones.slice(inicio, fin);
             const container = document.getElementById('alertasContainer');
-            
-            // ✅ ACTUALIZAR EL CONTADOR GLOBAL
-            document.getElementById('contadorNotificaciones').textContent = `(${todasInspecciones.length})`;
-
             if (inspeccionesPagina.length === 0) {
                 container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
                 document.getElementById('paginationContainer').innerHTML = '';
@@ -409,54 +411,61 @@
             }
             document.getElementById('paginationContainer').innerHTML = paginacionHTML;
         }
-        async function cargarNotificaciones() {
-            const container = document.getElementById('alertasContainer');
-            container.innerHTML = '<div class="loading">Cargando CCPs...</div>';
-            try {
-                await cargarNombresCcp();
-                container.innerHTML = '<div class="loading">Obteniendo CCPs de OCCIDENTAL...</div>';
-                const ccpOcidental = await obtenerCcpOcidental();
-                if (ccpOcidental.length === 0) {
-                    container.innerHTML = '<div class="no-data">⚠️ No se encontraron CCPs para OCCIDENTAL.</div>';
-                    return;
-                }
-                container.innerHTML = '<div class="loading">Cargando estaciones...</div>';
-                const {  {data: estaciones, error: estError} } = await supabase
-                    .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion, ccp_id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw new Error('Error al cargar estaciones: ' + estError.message);
-                estacionesGlobales = estaciones;
-                container.innerHTML = '<div class="loading">Cargando servicios...</div>';
-                const {  {data: servicios, error: servError} } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre, ccp_id')
-                    .in('ccp_id', ccpOcidental);
-                if (servError) throw new Error('Error al cargar servicios: ' + servError.message);
-                serviciosGlobales = servicios;
-                container.innerHTML = '<div class="loading">Cargando inspecciones vencidas...</div>';
-                const hoy = new Date();
-                hoy.setHours(0, 0, 0, 0);
-                const hoyStr = hoy.toISOString().split('T')[0];
-                const {  {data: inspeccionesRaw, error: inspError} } = await supabase
-                    .from('inspecciones')
-                    .select('id, estacion_id, servicio_id, proxima_inspeccion, created_at, inspector_email')
-                    .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
-                    .limit(100);
-                if (inspError) throw new Error('Error al cargar inspecciones: ' + inspError.message);
-                const estacionIds = new Set(estaciones.map(e => e.estacion_id));
-                const servicioIds = new Set(servicios.map(s => s.id));
-                todasInspecciones = inspeccionesRaw.filter(insp =>
-                    (insp.estacion_id && estacionIds.has(insp.estacion_id)) ||
-                    (insp.servicio_id && servicioIds.has(insp.servicio_id))
-                );
-                renderizarPagina(1);
-            } catch (error) {
-                console.error('Error en cargarNotificaciones:', error);
-                container.innerHTML = `<div class="no-data">❌ Error: ${error.message}</div>`;
-                document.getElementById('paginationContainer').innerHTML = '';
-            }
+async function cargarNotificaciones() {
+    const container = document.getElementById('alertasContainer');
+    container.innerHTML = '<div class="loading">Cargando CCPs...</div>';
+    try {
+        // Paso 1: Cargar nombres de CCPs
+        await cargarNombresCcp();
+        container.innerHTML = '<div class="loading">Obteniendo CCPs de OCCIDENTAL...</div>';
+        // Paso 2: Obtener CCPs de OCCIDENTAL
+        const ccpOcidental = await obtenerCcpOcidental();
+        if (ccpOcidental.length === 0) {
+            container.innerHTML = '<div class="no-data">⚠️ No se encontraron CCPs para OCCIDENTAL.</div>';
+            return;
         }
+        container.innerHTML = '<div class="loading">Cargando estaciones...</div>';
+        const { data: estaciones, error: estError } = await supabase
+            .from('estaciones_policiales')
+            .select('estacion_id, nombre_estacion, ccp_id')
+            .in('ccp_id', ccpOcidental);
+        if (estError) throw new Error('Error al cargar estaciones: ' + estError.message);
+        estacionesGlobales = estaciones;
+        container.innerHTML = '<div class="loading">Cargando servicios...</div>';
+        const { data: servicios, error: servError } = await supabase
+            .from('servicios_administrativos')
+            .select('id, nombre, ccp_id')
+            .in('ccp_id', ccpOcidental);
+        if (servError) throw new Error('Error al cargar servicios: ' + servError.message);
+        serviciosGlobales = servicios;
+        // Paso 3: Cargar inspecciones (con timeout implícito)
+        container.innerHTML = '<div class="loading">Cargando inspecciones vencidas...</div>';
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const hoyStr = hoy.toISOString().split('T')[0];
+        // ⚠️ Usa select mínimo para depurar
+        const { data: inspeccionesRaw, error: inspError } = await supabase
+            .from('inspecciones')
+            .select('id, estacion_id, servicio_id, proxima_inspeccion, created_at, inspector_email')
+            .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+            .limit(100); // ⬅️ Añade limit para evitar timeouts
+        if (inspError) throw new Error('Error al cargar inspecciones: ' + inspError.message);
+        console.log('Inspecciones crudas recibidas:', inspeccionesRaw.length);
+        // Filtrar solo las que pertenecen a OCCIDENTAL
+        const estacionIds = new Set(estaciones.map(e => e.estacion_id));
+        const servicioIds = new Set(servicios.map(s => s.id));
+        todasInspecciones = inspeccionesRaw.filter(insp =>
+            (insp.estacion_id && estacionIds.has(insp.estacion_id)) ||
+            (insp.servicio_id && servicioIds.has(insp.servicio_id))
+        );
+        console.log('Inspecciones OCCIDENTAL vencidas:', todasInspecciones.length);
+        renderizarPagina(1);
+    } catch (error) {
+        console.error('Error en cargarNotificaciones:', error);
+        container.innerHTML = `<div class="no-data">❌ Error: ${error.message}</div>`;
+        document.getElementById('paginationContainer').innerHTML = '';
+    }
+}
         // --- EJECUCIÓN PRINCIPAL ---
         async function iniciar() {
             const permitido = await verificarAccesoOcidental();
@@ -467,29 +476,11 @@
                 await cargarNotificaciones();
             }
         }
+
+        // ✅ Corrección: Usar una IIFE para llamar a `iniciar`
         (async () => {
             await iniciar();
         })();
-        // === FUNCIONES DEL MODAL (placeholder) ===
-        function abrirModalFecha(inspId) {
-            inspeccionIdActual = inspId;
-            document.getElementById('modalFecha').style.display = 'flex';
-        }
-        function cerrarModalFecha() {
-            document.getElementById('modalFecha').style.display = 'none';
-        }
-        function confirmarNuevaFecha() {
-            const nuevaFecha = document.getElementById('nuevaFechaInput').value;
-            if (!nuevaFecha) {
-                alert('Por favor seleccione una fecha.');
-                return;
-            }
-            // Aquí iría la lógica para actualizar la inspección en Supabase
-            alert('✅ Fecha de reinspección actualizada exitosamente.');
-            cerrarModalFecha();
-            // Recargar las notificaciones
-            cargarNotificaciones();
-        }
     </script>
 </body>
 </html>
