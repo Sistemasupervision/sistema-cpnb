@@ -195,8 +195,8 @@
 
         document.getElementById('ccpNombreDisplay').textContent = `CCP: ${decodeURIComponent(ccpNombre)}`;
 
-        // === VERIFICAR ACCESO: SOLO ADMIN ===
-        async function verificarAcceso() {
+        // === 🔒 VERIFICAR QUE EL USUARIO SEA ADMIN ===
+        async function verificarAccesoAdmin() {
             const { data, error } = await supabase.auth.getUser();
             if (error || !data?.user) {
                 window.location.href = '../../index.html';
@@ -204,11 +204,12 @@
             }
             const user = data.user;
             try {
-                const {  userData, error: userError } = await supabase
+                const { data: userData, error: userError } = await supabase
                     .from('usuarios_redip')
                     .select('redip')
                     .eq('user_id', user.id)
                     .single();
+
                 if (userError || !userData || userData.redip !== 'admin') {
                     alert('⚠️ Acceso denegado. Solo el administrador puede editar ubicaciones.');
                     window.location.href = '../../index.html';
@@ -223,19 +224,25 @@
             }
         }
 
-        // === VERIFICAR QUE EL CCP PERTENEZCA A LA REDIP CAPITAL ===
-        async function verificarCcpPerteneceACapital(ccpId) {
+        // === 🔒 VERIFICAR QUE EL CCP PERTENECE A REDIP CAPITAL ===
+        async function verificarCcpCapital(ccpId) {
             try {
                 const { data, error } = await supabase
                     .from('ccps')
                     .select('redip')
                     .eq('ccp_id', ccpId)
                     .single();
+
                 if (error || !data || data.redip !== 'capital') {
+                    alert('⚠️ El CCP seleccionado no pertenece a REDIP CAPITAL.');
+                    window.location.href = '../../index.html';
                     return false;
                 }
                 return true;
-            } catch {
+            } catch (err) {
+                console.error('Error al verificar CCP:', err);
+                alert('⚠️ CCP no válido.');
+                window.location.href = '../../index.html';
                 return false;
             }
         }
@@ -246,19 +253,15 @@
         }).addTo(map);
 
         let entidadActiva = null;
-        let tipoEntidadActiva = null; // 'estacion' o 'servicio'
+        let tipoEntidadActiva = null;
         let markers = {};
 
         async function cargarEntidades() {
-            const acceso = await verificarAcceso();
-            if (!acceso) return;
+            const accesoValido = await verificarAccesoAdmin();
+            if (!accesoValido) return;
 
-            const esValido = await verificarCcpPerteneceACapital(ccpId);
-            if (!esValido) {
-                alert('⚠️ El CCP seleccionado no pertenece a REDIP CAPITAL.');
-                window.location.href = './index.html';
-                return;
-            }
+            const ccpValido = await verificarCcpCapital(ccpId);
+            if (!ccpValido) return;
 
             if (!ccpId) {
                 document.getElementById('listaEstaciones').innerHTML = '<p style="color:#e53e3e;">❌ CCP ID no válido.</p>';
@@ -266,22 +269,22 @@
             }
 
             try {
-                // Estaciones policiales
                 const { data: estaciones, error: estError } = await supabase
                     .from('estaciones_policiales')
                     .select('estacion_id, nombre_estacion, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre_estacion', { ascending: true });
+
                 if (estError) throw new Error(`Estaciones: ${estError.message}`);
 
                 renderizarLista('listaEstaciones', estaciones || [], 'estacion');
 
-                // Servicios administrativos
-                const {  servicios, error: servError } = await supabase
+                const { data: servicios, error: servError } = await supabase
                     .from('servicios_administrativos')
                     .select('id, nombre, latitud, longitud, enlace_rutas')
                     .eq('ccp_id', ccpId)
                     .order('nombre', { ascending: true });
+
                 if (servError) throw new Error(`Servicios: ${servError.message}`);
 
                 renderizarLista('listaServicios', servicios || [], 'servicio');
@@ -335,7 +338,7 @@
             });
         }
 
-        // Pestañas
+        // Eventos de pestañas
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -346,7 +349,7 @@
             });
         });
 
-        // Interacción con tarjetas y botones
+        // Eventos de interacción
         document.getElementById('container').addEventListener('click', (e) => {
             if (e.target.closest('.entidad-card')) {
                 const card = e.target.closest('.entidad-card');
@@ -461,7 +464,6 @@
             }
         }
 
-        // Botón volver
         document.getElementById('btnVolver').addEventListener('click', () => {
             window.location.href = `ubicaciones.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
         });
