@@ -314,7 +314,7 @@
 
         document.getElementById('estacionInfo').textContent = `${tipoEntidad === 'estacion' ? 'Estación' : 'Servicio'}: ${entidadNombre} | CCP: ${ccpNombre}`;
 
-        document.getElementById('fechaHasta').valueAsDate = new Date();
+       cargarGaleria();
 
         let todasLasEntradas = [];
         let paginaActual = 1;
