@@ -254,12 +254,12 @@
                         <option value="falcon">CCPE FALCÓN</option>
                     </select>
                 </div>
-                <!-- Pestañas: Estaciones vs Servicios -->
+        
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
                     <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
                 </div>
-                <!-- Contenedor dinámico para el selector -->
+          
                 <div id="selectorDinamico">
                     <div class="input-group">
                         <label for="estacionFilter">Seleccione Estación:</label>
@@ -318,9 +318,9 @@
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // ✅ CORREGIDO: sintaxis válida
+
         async function verificarAcceso() {
-            const { data: { user } } = await supabase.auth.getUser(); // ✅ CORRECTO
+            const { data: { user } } = await supabase.auth.getUser(); 
             if (!user) {
                 window.location.href = 'index.html';
                 return false;
@@ -344,8 +344,6 @@
                 return false;
             }
         }
-
-        // === ÍTEMS ===
         const nombresItems = {
             nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
             acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
@@ -422,9 +420,8 @@
         let nombreEntidadActual = '';
         let paginaActual = 1;
         let totalPaginas = 1;
-        let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
+        let tipoEntidad = 'estacion'; 
 
-        // === PESTAÑAS ===
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -450,7 +447,7 @@
                         </div>
                     `;
                 }
-                // Recargar lista si ya hay CCP seleccionado
+          
                 const ccpId = document.getElementById('ccpFilter').value;
                 if (ccpId) {
                     if (tipoEntidad === 'estacion') {
@@ -462,7 +459,6 @@
             });
         });
 
-        // === CARGAR ESTACIONES ===
         async function cargarEstaciones(ccpId) {
             const select = document.getElementById('estacionFilter');
             try {
@@ -487,7 +483,6 @@
             }
         }
 
-        // === CARGAR SERVICIOS ===
         async function cargarServicios(ccpId) {
             const select = document.getElementById('servicioFilter');
             try {
@@ -531,8 +526,7 @@
                 await cargarServicios(ccpId);
             }
         });
-
-        // === EVENTOS DINÁMICOS ===
+        
         document.getElementById('selectorDinamico').addEventListener('change', async (e) => {
             if (e.target.id === 'estacionFilter' && tipoEntidad === 'estacion') {
                 const id = e.target.value;
@@ -549,7 +543,6 @@
             }
         });
 
-        // === CARGAR Y CALCULAR ESTADÍSTICAS ===
         async function cargarEstadisticas(entidadId, tipo, nombre) {
             nombreEntidadActual = nombre;
             tipoEntidad = tipo;
@@ -632,7 +625,6 @@
             return resultado;
         }
 
-        // === ACTUALIZAR VISTA ===
         function actualizarVista() {
             const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
             const fin = inicio + ITEMS_POR_PAGINA;
@@ -731,7 +723,6 @@
             });
         }
 
-        // === PAGINACIÓN Y FILTRO ===
         document.getElementById('btnAnterior').addEventListener('click', () => {
             if (paginaActual > 1) {
                 paginaActual--;
@@ -763,7 +754,7 @@
             document.getElementById('tablaItems').innerHTML = '';
             document.getElementById('statsHeader').textContent = '';
             document.getElementById('filtroItems').value = '';
-            // Restaurar vista inicial
+     
             document.getElementById('selectorDinamico').innerHTML = `
                 <div class="input-group">
                     <label for="estacionFilter">Seleccione Estación:</label>
@@ -777,9 +768,8 @@
             tipoEntidad = 'estacion';
         }
 
-        // === INICIAR ===
         verificarAcceso().then(() => {
-            // Eventos ya manejados
+
         });
     </script>
 </body>
