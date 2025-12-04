@@ -56,9 +56,15 @@
         .title {
             text-align: center;
             color: #0c2440;
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 25px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #4a5568;
+            font-size: 18px;
+            margin-bottom: 30px;
         }
         .back-btn {
             background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
@@ -72,30 +78,39 @@
             align-items: center;
             gap: 8px;
             font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .control-filtros {
-            display: flex;
-            gap: 15px;
             margin-bottom: 25px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            color: #0c2440;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
             flex-wrap: wrap;
             justify-content: center;
         }
-        .filtro-item {
-            min-width: 150px;
+        .input-group {
+            min-width: 200px;
         }
-        .filtro-item label {
+        .input-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
             color: #2d3748;
         }
-        .filtro-item select {
+        .input-group select {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 2px solid #cbd5e0;
-            border-radius: 8px;
-            font-size: 15px;
+            border-radius: 10px;
+            font-size: 16px;
         }
         .chart-container {
             margin: 30px 0;
@@ -108,38 +123,81 @@
             font-size: 18px;
             padding: 30px;
         }
+        .resumen-cards {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            min-width: 180px;
+        }
+        .card-label {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+        .card-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0c2440;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">📊 Resumen Mensual - REDIP OCCIDENTAL</h1>
+            <h1 class="title">Resumen Mensual - REDIP OCCIDENTAL</h1>
+            <p class="subtitle">Comparación de cumplimiento por Centro de Coordinación Policial (CCP)</p>
         </div>
+
         <button class="back-btn" onclick="window.location.href='index.html'">
             ← Volver a REDIP OCCIDENTAL
         </button>
-        <div class="control-filtros">
-            <div class="filtro-item">
-                <label for="anioSelector">Año</label>
-                <select id="anioSelector"></select>
-            </div>
-            <div class="filtro-item">
-                <label for="mesSelector">Mes</label>
-                <select id="mesSelector"></select>
+
+        <div class="section">
+            <h2 class="section-title">Seleccionar Meses para Comparar</h2>
+            <div class="controls">
+                <div class="input-group">
+                    <label for="mesBase">Mes Base</label>
+                    <select id="mesBase"></select>
+                </div>
+                <div class="input-group">
+                    <label for="anioBase">Año Base</label>
+                    <select id="anioBase"></select>
+                </div>
+                <div class="input-group">
+                    <label for="mesComparar">Mes Comparación</label>
+                    <select id="mesComparar"></select>
+                </div>
+                <div class="input-group">
+                    <label for="anioComparar">Año Comparación</label>
+                    <select id="anioComparar"></select>
+                </div>
             </div>
         </div>
-        <div class="chart-container">
-            <canvas id="resumenChart"></canvas>
+
+        <div class="section">
+            <h2 class="section-title">Resultados de la Comparación</h2>
+            <div id="resumenContainer">
+                <div class="loading">Verificando acceso y cargando datos...</div>
+            </div>
         </div>
-        <div id="cargaEstado"></div>
     </div>
+
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // === VERIFICAR ACCESO: SOLO OCCIDENTAL O ADMIN ===
+        // === VERIFICAR ACCESO ===
         async function verificarAcceso() {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError || !user) {
@@ -169,58 +227,72 @@
             }
         }
 
-        // === LÓGICA DEL RESUMEN MENSUAL (SIN CAMBIOS) ===
+        // === LÓGICA DEL RESUMEN (sin cambios en funcionalidad) ===
         let ccpOcidental = [];
         let ccpNombres = {};
         let chartInstance = null;
 
+        function formatoMes(anio, mes) {
+            return new Date(anio, mes).toLocaleString('es-ES', { month: 'short', year: 'numeric' }).replace('.', '');
+        }
+
         function rangoMes(anio, mes) {
-            const desde = new Date(anio, mes, 1);
-            const hasta = new Date(anio, mes + 1, 0);
+            const inicio = new Date(anio, mes, 1);
+            const fin = new Date(anio, mes + 1, 0);
             return {
-                desde: desde.toISOString().split('T')[0],
-                hasta: hasta.toISOString().split('T')[0]
+                desde: inicio.toISOString().split('T')[0],
+                hasta: fin.toISOString().split('T')[0]
             };
         }
 
-        async function cargarCCPsYAnios() {
+        async function cargarCcpOcidental() {
             const { data, error } = await supabase
                 .from('ccps')
-                .select('ccp_id, nombre_ccp, redip')
+                .select('ccp_id, nombre_ccp')
                 .eq('redip', 'occidental');
             if (error) throw error;
-            ccpOcidental = data.map(c => c.ccp_id);
-            ccpNombres = data.reduce((acc, c) => {
-                acc[c.ccp_id] = c.nombre_ccp;
+            ccpOcidental = data.map(row => row.ccp_id);
+            ccpNombres = data.reduce((acc, row) => {
+                acc[row.ccp_id] = row.nombre_ccp;
                 return acc;
             }, {});
+        }
 
-            const anioSelect = document.getElementById('anioSelector');
-            anioSelect.innerHTML = '';
-            const anioActual = new Date().getFullYear();
-            for (let anio = anioActual; anio >= anioActual - 2; anio--) {
-                const opt = document.createElement('option');
-                opt.value = anio;
-                opt.textContent = anio;
-                anioSelect.appendChild(opt);
-            }
-
-            const mesSelect = document.getElementById('mesSelector');
-            mesSelect.innerHTML = '';
-            const meses = [
+        async function cargarFiltros() {
+            const hoy = new Date();
+            const anios = document.querySelectorAll('#anioBase, #anioComparar');
+            const meses = document.querySelectorAll('#mesBase, #mesComparar');
+            const opcionesMeses = [
                 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
             ];
-            meses.forEach((nombre, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.textContent = nombre;
-                mesSelect.appendChild(opt);
+
+            // Años
+            for (let i = 0; i < 3; i++) {
+                const anio = hoy.getFullYear() - i;
+                anios.forEach(select => {
+                    const opt = document.createElement('option');
+                    opt.value = anio;
+                    opt.textContent = anio;
+                    select.appendChild(opt);
+                });
+            }
+
+            // Meses
+            opcionesMeses.forEach((nombre, idx) => {
+                meses.forEach(select => {
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.textContent = nombre;
+                    select.appendChild(opt);
+                });
             });
 
-            const hoy = new Date();
-            mesSelect.value = hoy.getMonth();
-            anioSelect.value = hoy.getFullYear();
+            // Valores por defecto
+            document.getElementById('anioBase').value = hoy.getFullYear();
+            document.getElementById('mesBase').value = hoy.getMonth();
+            document.getElementById('anioComparar').value = hoy.getFullYear();
+            document.getElementById('mesComparar').value = hoy.getMonth() > 0 ? hoy.getMonth() - 1 : 11;
         }
 
         async function cargarDatosPorCCP(anio, mes) {
@@ -230,8 +302,6 @@
                 .select('estacion_id, ccp_id')
                 .in('ccp_id', ccpOcidental);
             if (estError) throw estError;
-            if (estaciones.length === 0) return {};
-
             const idsEstaciones = estaciones.map(e => e.estacion_id);
             const estacionCCPMap = {};
             estaciones.forEach(e => estacionCCPMap[e.estacion_id] = e.ccp_id);
@@ -263,95 +333,134 @@
             const metricasPorCCP = {};
             inspecciones.forEach(insp => {
                 const ccp = estacionCCPMap[insp.estacion_id];
+                if (!ccp) return;
                 if (!metricasPorCCP[ccp]) {
-                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, itemsCumplidos: 0 };
+                    metricasPorCCP[ccp] = { totalInspecciones: 0, totalItems: 0, cumplidos: 0 };
                 }
                 metricasPorCCP[ccp].totalInspecciones++;
                 const itemsInspeccion = itemsPorInspeccion[insp.id] || [];
                 metricasPorCCP[ccp].totalItems += itemsInspeccion.length;
-                metricasPorCCP[ccp].itemsCumplidos += itemsInspeccion.filter(c => c).length;
+                metricasPorCCP[ccp].cumplidos += itemsInspeccion.filter(c => c === true).length;
             });
 
-            return metricasPorCCP;
+            const resultado = {};
+            Object.keys(metricasPorCCP).forEach(ccp => {
+                const m = metricasPorCCP[ccp];
+                resultado[ccp] = {
+                    inspecciones: m.totalInspecciones,
+                    porcentaje: m.totalItems > 0 ? Math.round((m.cumplidos / m.totalItems) * 100) : 0
+                };
+            });
+            return resultado;
         }
 
-        function renderizarGrafico(metricas) {
-            const ctx = document.getElementById('resumenChart').getContext('2d');
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
+        async function cargarResumen() {
+            const container = document.getElementById('resumenContainer');
+            try {
+                await cargarCcpOcidental();
 
-            const labels = Object.keys(metricas).map(ccpId => ccpNombres[ccpId] || ccpId);
-            const cumplimiento = Object.values(metricas).map(m => {
-                return m.totalItems > 0 ? Math.round((m.itemsCumplidos / m.totalItems) * 100) : 0;
-            });
+                const anioBase = parseInt(document.getElementById('anioBase').value);
+                const mesBase = parseInt(document.getElementById('mesBase').value);
+                const anioComp = parseInt(document.getElementById('anioComparar').value);
+                const mesComp = parseInt(document.getElementById('mesComparar').value);
 
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: '% de Cumplimiento',
-                        data: cumplimiento,
-                        backgroundColor: 'rgba(45, 123, 211, 0.7)',
-                        borderColor: 'rgba(45, 123, 211, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Porcentaje de Cumplimiento'
+                const metricasBase = await cargarDatosPorCCP(anioBase, mesBase);
+                const metricasComp = await cargarDatosPorCCP(anioComp, mesComp);
+
+                const totalInspeccionesBase = Object.values(metricasBase).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeBase = Object.values(metricasBase).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioBase = Object.keys(metricasBase).length > 0 ? Math.round(totalPorcentajeBase / Object.keys(metricasBase).length) : 0;
+
+                const totalInspeccionesComp = Object.values(metricasComp).reduce((sum, m) => sum + m.inspecciones, 0);
+                const totalPorcentajeComp = Object.values(metricasComp).reduce((sum, m) => sum + m.porcentaje, 0);
+                const promedioComp = Object.keys(metricasComp).length > 0 ? Math.round(totalPorcentajeComp / Object.keys(metricasComp).length) : 0;
+
+                const todosCCP = [...new Set([...Object.keys(metricasBase), ...Object.keys(metricasComp)])];
+                const labels = todosCCP.map(k => ccpNombres[k] || k);
+                const dataBase = todosCCP.map(k => metricasBase[k] ? metricasBase[k].porcentaje : 0);
+                const dataComp = todosCCP.map(k => metricasComp[k] ? metricasComp[k].porcentaje : 0);
+
+                let html = `
+                    <div class="resumen-cards">
+                        <div class="card">
+                            <div class="card-label">Inspecciones<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
+                            <div class="card-value">${totalInspeccionesBase}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioBase, mesBase)})</small></div>
+                            <div class="card-value">${promedioBase}%</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-label">Inspecciones<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
+                            <div class="card-value">${totalInspeccionesComp}</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-label">Cumplimiento Promedio<br><small>(${formatoMes(anioComp, mesComp)})</small></div>
+                            <div class="card-value">${promedioComp}%</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3 style="text-align: center; margin-bottom: 15px; color: #0c2440; font-weight: 600;">Comparación de Cumplimiento por CCP</h3>
+                        <canvas id="ccpChart"></canvas>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+
+                const ctx = document.getElementById('ccpChart').getContext('2d');
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: formatoMes(anioBase, mesBase),
+                                data: dataBase,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                            },
+                            {
+                                label: formatoMes(anioComp, mesComp),
+                                data: dataComp,
+                                backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Porcentaje de Cumplimiento'
+                                }
                             }
                         }
                     }
-                }
-            });
-        }
+                });
 
-        async function generarResumen() {
-            const anio = parseInt(document.getElementById('anioSelector').value);
-            const mes = parseInt(document.getElementById('mesSelector').value);
-            document.getElementById('cargaEstado').innerHTML = '<div class="loading">Cargando datos...</div>';
-
-            try {
-                const metricas = await cargarDatosPorCCP(anio, mes);
-                if (Object.keys(metricas).length === 0) {
-                    document.getElementById('cargaEstado').innerHTML = '<div class="no-data">✅ No hay datos para el período seleccionado.</div>';
-                    if (chartInstance) {
-                        chartInstance.destroy();
-                    }
-                } else {
-                    document.getElementById('cargaEstado').innerHTML = '';
-                    renderizarGrafico(metricas);
-                }
             } catch (error) {
-                console.error('Error al generar el resumen:', error);
-                document.getElementById('cargaEstado').innerHTML = `<div class="no-data">❌ Error: ${error.message}</div>`;
-                if (chartInstance) {
-                    chartInstance.destroy();
-                }
+                console.error('Error al cargar el resumen:', error);
+                container.innerHTML = `<div class="no-data">❌ Error: ${error.message}</div>`;
             }
         }
 
-        // === INICIAR: PRIMERO VERIFICAR ACCESO, LUEGO CARGAR DATOS ===
+        // === INICIAR ===
         async function iniciar() {
             const permitido = await verificarAcceso();
             if (permitido) {
-                await cargarCCPsYAnios();
-                document.getElementById('anioSelector').addEventListener('change', generarResumen);
-                document.getElementById('mesSelector').addEventListener('change', generarResumen);
-                await generarResumen();
+                await cargarFiltros();
+                document.getElementById('anioBase').addEventListener('change', cargarResumen);
+                document.getElementById('mesBase').addEventListener('change', cargarResumen);
+                document.getElementById('anioComparar').addEventListener('change', cargarResumen);
+                document.getElementById('mesComparar').addEventListener('change', cargarResumen);
+                await cargarResumen();
             }
         }
 
-        // Ejecutar la función de inicio
         iniciar();
     </script>
 </body>
