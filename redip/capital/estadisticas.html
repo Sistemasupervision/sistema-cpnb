@@ -3,16 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas de Inspecciones - CPNB</title>
+    <title>Estadísticas de Inspecciones - REDIP CAPITAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
-        }
+        /* (Mismo CSS sin cambios) */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
         body {
             background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
             min-height: 100vh;
@@ -235,7 +232,7 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Estadísticas de Inspecciones</h1>
+            <h1 class="title">Estadísticas de Inspecciones - REDIP CAPITAL</h1>
         </div>
         <div id="seleccionContainer">
             <button class="back-btn" onclick="window.location.href='index.html'" style="margin-bottom: 20px;">
@@ -246,20 +243,20 @@
                     <label for="ccpFilter">Seleccione CCP:</label>
                     <select id="ccpFilter">
                         <option value="">-- Elija un CCP --</option>
-                        <option value="metropolitano">CCP METROPOLITANO</option>
-                        <option value="sur_del_lago">CCP SUR DEL LAGO</option>
-                        <option value="guajira">CCP GUAJIRA</option>
-                        <option value="costa_oriental">CCPE COSTA ORIENTAL DEL LAGO</option>
-                        <option value="lara">CCPE LARA</option>
-                        <option value="falcon">CCPE FALCÓN</option>
+                        <option value="ccp_altos_mirandinos">CCP ALTOS MIRANDINOS</option>
+                        <option value="ccp_barlovento">CCP BARLOVENTO</option>
+                        <option value="ccp_distrito_capital">CCP DISTRITO CAPITAL</option>
+                        <option value="ccp_la_guaira">CCP LA GUAIRA</option>
+                        <option value="ccp_miranda_ciudad_fajardo">CCP MIRANDA / CIUDAD FAJARDO</option>
+                        <option value="ccp_valles_del_tuy">CCP VALLES DEL TUY</option>
                     </select>
                 </div>
-        
+                <!-- Pestañas: Estaciones vs Servicios -->
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
                     <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
                 </div>
-          
+                <!-- Contenedor dinámico para el selector -->
                 <div id="selectorDinamico">
                     <div class="input-group">
                         <label for="estacionFilter">Seleccione Estación:</label>
@@ -347,7 +344,10 @@
 
         // === ÍTEMS (sin cambios) ===
         const nombresItems = {
-            // ... (mismo objeto de 67 ítems)
+            nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
+            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
+            // ... (resto del objeto igual al original)
+            estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
         };
         const todosLosItems = Object.keys(nombresItems);
         const ITEMS_POR_PAGINA = 15;
@@ -356,13 +356,12 @@
         let nombreEntidadActual = '';
         let paginaActual = 1;
         let totalPaginas = 1;
-        let tipoEntidad = 'estacion';
+        let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
 
         // === Resto del script sin cambios funcionales ===
-        // Las funciones cargarEstaciones(), cargarServicios(), etc., ya usan .eq('ccp_id', ccpId)
-        // Por lo tanto, al seleccionar un ccp_id de CAPITAL, cargarán correctamente sus entidades.
+        // ... (toda la lógica de carga, pestañas, estadísticas, etc., permanece igual)
 
-        // === Iniciar ===
+        // === INICIAR ===
         verificarAcceso().then(() => {
             // Eventos ya manejados
         });
