@@ -1297,9 +1297,9 @@ N°: ${numeroReporte}`);
                 alert("❌ Error al actualizar la reinspección.");
             }
         }
-        function volverAIndex() {
-            window.location.href = '../../index.html';
-        }
+       function volverAIndex() {
+    window.location.href = 'index.html';
+}
         verificarAcceso().then(async () => {
             const desde = hace30Dias.toISOString().split('T')[0];
             const hasta = hoy.toISOString().split('T')[0];
