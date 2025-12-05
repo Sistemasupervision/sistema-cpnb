@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Galería de Inspección - REDIP CAPITAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
         * {
             margin: 0;
@@ -13,24 +14,26 @@
             font-family: 'Arial', sans-serif;
         }
         body {
-            background: linear-gradient(135deg, #0c2440 0%, #1a365d 50%, #2c5282 100%);
+            background: linear-gradient(135deg, #0c2440 0%, #1a365d 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             padding: 20px;
+            position: relative;
             overflow-x: hidden;
         }
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             width: 100%;
-            max-width: 900px;
+            max-width: 950px;
             padding: 40px;
             position: relative;
             overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .container::before {
             content: '';
@@ -39,142 +42,110 @@
             left: 0;
             right: 0;
             height: 8px;
-            background: linear-gradient(90deg, #ffcc00, #ff6b00, #ffcc00);
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6b00 50%, #ffcc00 100%);
         }
         .logo-container {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         .logo-img {
             width: 100px;
             height: 100px;
             object-fit: contain;
             margin: 0 auto 15px;
+            display: block;
         }
         .title {
+            text-align: center;
             color: #0c2440;
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 25px;
         }
-        #estacionInfo {
-            text-align: center;
-            color: #2d3748;
+        .back-btn {
+            background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             font-weight: bold;
             margin-bottom: 20px;
         }
-        #filtroFechas {
+        .filtro-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 25px;
             background: #f8fafc;
             padding: 20px;
             border-radius: 12px;
-            margin: 20px 0;
             border: 1px solid #e2e8f0;
         }
-        .galeria-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+        .input-group {
+            flex: 1;
+            min-width: 300px;
         }
-        .item-card {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .item-label {
-            text-align: center;
-            font-size: 13px;
-            color: #2d3748;
-            font-weight: bold;
-            margin: 8px 0;
-        }
-        .foto-item {
-            width: 100%;
-            max-height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin: 6px 0;
-            border: 1px solid #cbd5e0;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .foto-item:hover {
-            transform: scale(1.02);
-        }
-        .inspeccion-header {
-            grid-column: span 3;
-            background: #edf2f7;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 20px;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .no-fotos, .loading {
-            text-align: center;
-            color: #4a5568;
-            font-size: 18px;
-            padding: 40px;
-            grid-column: span 3;
-        }
-        #paginacionContainer {
-            display: flex;
-            justify-content: center;
-            margin-top: 25px;
-            gap: 10px;
-        }
-        .download-btn {
-            margin-top: 6px;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .btn-foto { background: #3182ce; color: white; }
-        .btn-archivo { background: #805ad5; color: white; margin-top: 6px; }
-        .back-btn {
-            background: linear-gradient(135deg, #2c5282, #1a365d);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 20px;
+        .input-group label {
             font-size: 14px;
-            cursor: pointer;
-            margin-top: 20px;
-            display: inline-block;
+            color: #2d3748;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 600;
         }
-        #zoomModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        .input-group select {
             width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            font-size: 15px;
+            background-color: white;
+            font-weight: 500;
         }
-        #zoomImage {
-            max-width: 90%;
-            max-height: 90%;
-            border: 3px solid white;
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin: 15px 0;
+            background: #e2e8f0;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
             border-radius: 8px;
-            object-fit: contain;
-        }
-        #closeZoom {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            color: white;
-            font-size: 30px;
+            font-weight: bold;
+            color: #4a5568;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #0c2440;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .action-btn {
+            background: linear-gradient(135deg, #0c2440, #1a365d);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+            margin-top: 25px;
+        }
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -183,342 +154,223 @@
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
             <h1 class="title">Galería de Inspección - REDIP CAPITAL</h1>
-            <div id="estacionInfo"></div>
         </div>
-        <div id="filtroFechas">
-            <h3 style="text-align:center; margin-bottom:15px; color:#0c2440;">Filtrar por Fecha</h3>
-            <div style="display:flex; gap:15px; flex-wrap:wrap;">
-                <div style="flex:1; min-width:200px;">
-                    <label for="fechaDesde">Desde:</label>
-                    <input type="date" id="fechaDesde" style="width:100%; padding:10px; border:1px solid #cbd5e0; border-radius:8px;">
-                </div>
-                <div style="flex:1; min-width:200px;">
-                    <label for="fechaHasta">Hasta:</label>
-                    <input type="date" id="fechaHasta" style="width:100%; padding:10px; border:1px solid #cbd5e0; border-radius:8px;">
-                </div>
-                <div style="display:flex; align-items:end;">
-                    <button id="aplicarFiltroBtn" class="back-btn" style="padding:10px; font-size:14px;">Aplicar</button>
+        <!-- ✅ CORREGIDO: ahora redirige al índice de REDIP CAPITAL -->
+        <button class="back-btn" id="btnVolverPanel">
+            ← Volver al Panel de REDIP CAPITAL
+        </button>
+        <div class="filtro-container">
+            <div class="input-group">
+                <label for="ccpSelect">Seleccione CCP:</label>
+                <select id="ccpSelect">
+                    <option value="">-- Elija un CCP --</option>
+                    <option value="ccp_altos_mirandinos">CCP ALTOS MIRANDINOS</option>
+                    <option value="ccp_barlovento">CCP BARLOVENTO</option>
+                    <option value="ccp_distrito_capital">CCP DISTRITO CAPITAL</option>
+                    <option value="ccp_la_guaira">CCP LA GUAIRA</option>
+                    <option value="ccp_miranda_ciudad_fajardo">CCP MIRANDA / CIUDAD FAJARDO</option>
+                    <option value="ccp_valles_del_tuy">CCP VALLES DEL TUY</option>
+                </select>
+            </div>
+            <!-- PESTAÑAS -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
+                <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
+            </div>
+            <!-- CONTENEDOR DINÁMICO -->
+            <div id="selectorDinamico">
+                <div class="input-group">
+                    <label for="estacionSelect">Seleccione Estación:</label>
+                    <select id="estacionSelect" disabled>
+                        <option value="">-- Primero seleccione un CCP --</option>
+                    </select>
                 </div>
             </div>
+            <button id="btnCargarGaleria" class="action-btn" disabled>
+                🖼️ Cargar Galería de Inspección
+            </button>
         </div>
-        <div id="galeriaContainer" class="galeria-container">
-            <div class="loading">Cargando galería...</div>
-        </div>
-        <div id="paginacionContainer" style="display:none;"></div>
-        <button id="btnVolver" class="back-btn">← Volver a Selección</button>
-    </div>
-    <div id="zoomModal">
-        <span id="closeZoom">&times;</span>
-        <img id="zoomImage" alt="Vista ampliada">
     </div>
     <script>
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        // ✅ Mismos 67 ítems que en tu sistema
-        const nombres = {
-            nombramiento_comandante: "1. Verificar el nombramiento como comandante del CCP.",
-            acta_entrega_recepcion: "2. Revisar acta de entrega y recepción del ccp. Verifique los asuntos pendientes y las acciones tomadas para la solución o tramitación. Resultados obtenidos las acciones tomadas",
-            dossier_comandante: "3. verificar que el comandante de la unidad posea el dossier contentivo de los siguientes documentos de la unidad: punto de cuenta o resolución de creación y activación, exposición de motivos para la creación y activación, justificación actual de su funcionamiento, documentos de propiedad o comodato del terreno e instalaciones, ficha catastral.",
-            conocimiento_ley_organica: "4. Verificar en físico y el conocimiento sobre la ley orgánica del servicio de policía, ley del cuerpo de Policía Nacional Bolivariana",
-            conocimiento_estatuto_personal: "5. Verificar en físico y el conocimiento sobre el reglamento sobre el estatuto de la función policial en materia de administración de personal y desarrollo de la carrera policial",
-            conocimiento_reglamento_disciplinario: "6. Verificar en físico y el conocimiento sobre el reglamento de la función policial sobre el régimen disciplinario",
-            estructura_organizativa: "7. Verificar el conocimiento de la estructura organizativa del CPNB y la aplicación de la estructura funcional del CCP.",
-            manuales_normas_procedimientos: "8. Verificar los manuales de normas y procedimientos operativos vigentes, actualizado.",
-            plan_trabajo_anual: "9. Verificar el plan de trabajo anual, cumplimiento y logros.",
-            infraestructura_identificacion: "10. Verificar que las infraestructuras físicas cumplan con la adecuada identificación establecidas por la institución, incluyendo los servicios ubicados fuera de las instalaciones del CCP.",
-            direccion_atencion_victima: "11. Verificación de la activación de la brigada policial especial de protección y asistencia a las víctimas testigos y demás sujetos procesales",
-            oficina_gestion_humana: "12. Verificar con la oficina de gestión humana cpnb: relación del personal, plan anual de vacaciones, plan vacacional, reposos, ascensos, tramitaciones de bajas, planes de entrenamiento y reentrenamiento tramitaciones de comisión de servicio",
-            documentacion_personal: "13. Constatar en el personal policial, la existencia de la documentación (se hará con muestra representativa). Carnet único policial, cédula de identidad, licencia de conducir y certificado médico, declaración de impuesto sobre la renta y jurada de patrimonio, carnet de la patria, porte de armas. si aplica, inscripción en la correspondiente caja de ahorros.",
-            uniforme_presentacion: "14. Constatar el uso correcto del uniforme y presentación personal: corte de cabello, rasurado, uniforme limpio, botas pulidas, cabello recogido, uñas cortas (caso femenino uñas y maquillaje colores claros)",
-            practica_induccion_orden_publico: "15. Verificar que la unidad posea y haya realizado práctica de los planes de reacción inmediata, defensa y de evacuación.",
-            entrenamiento_armamento: "16. Verificar si los funcionarios reciben entrenamiento en el manejo de armamento orgánico.",
-            talleres_manejo_defensivo: "17. Verificar la realización de talleres de manejo defensivo y de servicio de seguridad vial a los conductores de unidades tipo moto y vehículos.",
-            conocimientos_primeros_auxilios: "18. Verificar si los efectivos poseen los conocimientos mínimos necesarios de primeros auxilios.",
-            acciones_moral_disciplina: "19. Verificar las acciones tomadas por el coordinador o coordinadora del ccp para elevar la moral, mantener la disciplina, espíritu de cuerpo, bienestar y salud del personal.",
-            conocimiento_pensamiento_bolivariano: "20. Verificar el conocimiento del pensamiento bolivariano sobre el legado del libertador Simón Bolívar y el comandante supremo Hugo Chávez al personal policial.",
-            instruccion_etica_moral: "21. Verificar si constantemente se instruye al personal sobre honestidad, ética, moralidad y espíritu de cuerpo, revisar registros en el libro de charlas y servicio de día.",
-            talleres_ministerio_publico: "22. Verificar talleres dictados al personal por parte de autoridades del ministerio público, judiciales y consultor jurídico, sobre procedimientos y cumplimiento del debido proceso, derechos humanos y derecho internacional humanitario.",
-            conocimiento_lineamientos_cpnb: "23. Constatar el conocimiento del coordinador o coordinadora del ccp en relación a los lineamientos para ejercer el control de normas, ordenes, procedimientos e instrucciones impartidas por la directiva del CPNB ¿qué acciones ha realizado para su difusión e implementación?",
-            cursos_sustanciacion_expedientes: "24. Constatar la realización de cursos de sustanciación de expedientes administrativos, actas policiales y pericias judiciales para el personal de la unidad.",
-            cumplimiento_entrenamiento_fisico: "25. Verificar el cumplimiento del entrenamiento en cuanto: educación física, orden público",
-            dotacion_trajes_antimotines: "26. Verificar si la dotación de los trajes antimotines es suficiente para la capacidad operativa del CCP.",
-            practica_tecnicas_policiales: "27. Verificar si el personal ha realizado práctica de: tiro de combate con escopeta, tiro de combate y policial con pistola 9mm, mantenimiento y preservación del armamento, mantenimiento, control y restablecimiento del orden público, uso progresivo y diferenciado de la fuerza, defensa personal, orden cerrado, combate en áreas confinadas, instalación de puntos de control (DIRECTIVA MPPRIJP-MPPD), inspección de personas, y revisión de vehículos, embarcaciones y aeronaves.",
-            numero_funcionarios_suficiente: "28. Constatar que el número de funcionarios adscrito a la unidad, sea suficiente para cumplir con los servicios policiales.",
-            personal_empleado_servicios: "29. Verificar que el personal policial del CCP inspeccionado, este siendo empleado para cumplir con los servicios de policiales.",
-            servicios_autorizados_mpprijp: "30. Verificar que los únicos servicios a ser prestados por parte de los efectivos del cuerpo de Policía Nacional Bolivariana fuera de la unidad serán aquellos autorizados por el ministro o ministra del poder popular las relaciones interiores justicia y paz y el comando general del Cuerpo de Policía Nacional Bolivariana a través del; por lo tanto ninguna autoridad civil ni militar podrá solicitar este tipo de apoyos sin ser canalizados a través de las instancias antes mencionadas. en caso de estar autorizados, deberán tomar las acciones para que en aquellos lugares aislados, prever los relevos durante la noche, comunicación por cualquier medio (teléfono o radio), verificando su situación cada hora en horario nocturno y cada 4 horas en horario diurno, así como también patrullajes constantes si la zona donde se presta el servicio de alta peligrosidad.",
-            publicaciones_procedimientos: "31. Verificar los siguientes aspectos en las publicaciones de los procedimientos: el backing institucional de la Policía Nacional Bolivariana en todas las unidades operativas, uso obligatorio de mesa o mesones según sea el caso, con mantel, para los elementos retenidos de poco tamaño, realizar las fotos en alta definición, realizar las fotos por separado de acuerdo al tamaño de los efectos retenidos según sea el caso y prohibido que aparezcan efectivos policiales en la fotos de los procedimientos realizados,",
-            libros_novedades: "32. Verificar en los libros de novedades: la realización diaria de la izada y arreada de la bandera de venezuela en los ccp, estaciones policiales, la información impartida en las formaciones diarias con los funcionarios, el cumplimiento de las instrucciones sobre el mínimo personal requerido por comisión debe ser de seis (06) hombres, con un oficial jefe como jerarquía mínima (boleta de comisión), al mando, constatar que el personal policial tenga conocimiento que esta prohibido las persecuciones, salvo excepciones en casos de emergencias, y deberá estar bajo el criterio y conocimiento del jefe o jefa de la unidad, que el personal policial tome las medidas de seguridad durante el desempeño del servicio y/o comisión (uso de chaleco anti balas, armamento, pito y linterna).",
-            libro_actas_reuniones: "33. Verificar en el libro de reuniones las actas de reuniones de coordinación con los entes gubernamentales o empresas privadas.",
-            libro_reuniones_personal: "34. Verificar el libro de reuniones con el personal policial y civil adscrito al ccp, con las planificaciones semanales realizadas por el jefe de cada servicios del CCP.",
-            archivo_general_expedientes: "35. Verificación del archivo general.",
-            libro_entrevistas_funcionarios: "36. verificar el libro de entrevistas del coordinador o coordinadora del ccp con los funcionarios de su jurisdicción.",
-            supervision_libros: "37. verifica regularmente las anotaciones en los siguientes libros: Entrada y salida de armamento, inspección y jefe de los servicios, ordenes de carácter permanente y libro de ronda.",
-            cumplimiento_normativa_instalaciones: "38. Verificar el cumplimiento de la normativa para: parque de armas, sala de evidencias.",
-            bienes_publicos_registrados: "39. Verificación que los bienes públicos existentes estén de acuerdo con los registrados en la oficina de gestión administrativa CPNB.",
-            resguardo_detenido: "40. verificar las condiciones con respecto al resguardo del detenido: seguridad de las instalaciones, medidas de control, condiciones de los funcionarios, condiciones de los privados de libertad y cumplimiento de las normativas para el traslado de los privados de libertad.",
-            equipos_control_incendios: "41. Verificar la existencia y operatividad de equipos de control de incendios, tales como extintores, cajón de arena, entre otros.",
-            equipos_comunicacion: "42. Verificar la cantidad de equipos de comunicación pertenecientes al ccp y las condición de los mismos",
-            plan_hospedaje_personal: "43. Verificar que el coordinador o coordinadora del ccp. tenga previsto un plan de hospedaje para el personal de apoyo y reemplazos.",
-            calidad_vida_personal: "44. Verificar la calidad de vida, alimentación, servicios básicos, habitabilidad, confort y bienestar del personal policial de la unidad inspeccionada.",
-            plan_visita_estaciones: "45. Verificar el plan de visita de inspección de todas las estaciones policiales de la jurisdicción del ccp inspeccionado. (verificar si las instalaciones policiales ubicados en lugares aislados o en arterias viales distantes ofrecen las condiciones de seguridad, correspondientes)",
-            servicio_medico: "46. Verificar si existe una enfermería en el CCP.",
-            unidad_recepcion_denuncias: "47. verificar la existencia de la unidad recepción de denuncias, quejas y reclamos recibidos en coordinación con los tribunales, fiscalía del ministerio público, defensoría del pueblo a nivel estadal y municipal y la comunidad",
-            areas_esparcimiento: "48. Verificar las instalaciones de las áreas de esparcimiento tales como comedores y dormitorios (televisores, muebles, mesas sillas)",
-            vehiculos_operativos: "49. Constatar la cantidad de vehículos operativos, inoperativos y el plan de mantenimiento existente del ccp inspeccionada. ¿que acciones de comando se han tomado en relación a estos vehículos siniestrados?",
-            placa_policial_vehiculos: "50. Verificar que todos los vehículos pertenecientes al parque automotor tenga placa policial",
-            vehiculos_suficientes: "51. Verificar si la cantidad de vehículos operativos son suficientes para el desempeño de los servicios de policiales.",
-            vehiculos_donados_inventario: "52. Verificar si el ccp ha recibido vehículos donados o en comodato y si se han incluidos en el inventario nacional del CPNB.",
-            accesorios_seguridad_vehiculos: "53. Verificar los accesorios de seguridad que debe llevar todo vehículos.",
-            necesidades_repuestos_vehiculos: "54. Constatar las necesidades o requerimientos de repuestos, cauchos y accesorios de vehículos de la unidad inspeccionada.",
-            identificacion_vehiculos_policiales: "55. Verificar que los vehículos policiales estén plenamente identificados con los logos policiales correspondientes, cautelera y equipo P.A operativo",
-            informes_parques_armas: "56. Verificar los informes de inspecciones realizadas a los parques de armas por la oficina de gestión administrativa cpnb y elaborar un acta de inspección con los resultados.",
-            supervision_pac: "57. Verificar las acciones de comando establecidas en la supervisión y control de los puntos de atención al ciudadano (p.a.c). (permitan el normal flujo de los productos de primera necesidad (comida y medicamentos) que forman parte del sistema nacional de abastecimiento del gobierno bolivariano)",
-            vademecum_actualizado: "58. Verificar y revisar el vademecum general del ccp, debidamente actualizado por las estaciones policiales.",
-            despliegues_policiales: "59. Supervisar el cumplimiento de los despliegues policiales emanados por la oficina de operaciones policiales y las actividades extraordinarias realizadas por el CCP.",
-            supervision_personal_mando: "60. Constatar si hay mayor nivel de supervisión y control sobre el personal, para cumplir en todo momento el principio de mando y conducción de mantener informado a tu personal, sobre la situación actual.",
-            planes_contra_trafico_ilicito: "61. Verificar los planes para contrarrestar el tráfico ilícito, distribución y comercialización de sustancias estupefacientes y psicotrópicas, alimentos de la cesta básica, materiales estratégicos, hidrocarburos, armamento y delitos comunes.",
-            conocimiento_lineamientos_derechos_humanos: "62. Constatar que el personal policial tenga conocimiento de los lineamientos de instrucción en materia de: derechos humanos, derecho internacional humanitario: armas letales, orden público, unidades tácticas policiales y los procedimiento con niños, niñas y adolescentes, igualdad y equidad de género.",
-            registro_actuaciones_cop: "63. Verificar el registro y control de las actuaciones positivas y negativas al personal en el centro de operaciones policiales (COP) del ccp, por cuadrante de paz.",
-            rendicion_procedimientos_cop: "64. Verificar el cumplimiento de la rendición de los procedimiento ejecutados por los servicios policiales al centro de operación policial (cop) del ccp, para su consolidación y rendición a la región de su subscripción.",
-            archivos_informes_rendicion: "65. Revisión de los archivos de los informes de rendición de cuenta de los procedimientos policiales.",
-            informes_preliminares_actuacion: "66. Verificar la elaboración de los informes preliminares de actuación policial.",
-            estatus_procesos_administrativos: "67. Verificar el estatus de los procesos administrativos ante la ICAP del personal a su mando."
-        };
+        let tipoEntidad = 'estacion';
 
-        // === OBTENER PARÁMETROS DE URL ===
-        const urlParams = new URLSearchParams(window.location.search);
-        const estacionId = urlParams.get('estacionId');
-        const estacionNombre = urlParams.get('estacionNombre') || 'Desconocida';
-        const servicioId = urlParams.get('servicioId');
-        const servicioNombre = urlParams.get('servicioNombre') || 'Desconocido';
-        const ccpNombre = urlParams.get('ccpNombre') || 'Desconocido';
-
-        let tipoEntidad = null;
-        let entidadId = null;
-        let entidadNombre = null;
-
-        if (estacionId) {
-            tipoEntidad = 'estacion';
-            entidadId = estacionId;
-            entidadNombre = estacionNombre;
-        } else if (servicioId) {
-            tipoEntidad = 'servicio';
-            entidadId = servicioId;
-            entidadNombre = servicioNombre;
-        } else {
-            alert('⚠️ No se ha especificado una estación o servicio válido.');
-            window.history.back();
-            throw new Error('Falta entidad válida');
-        }
-
-        document.getElementById('estacionInfo').textContent = `${tipoEntidad === 'estacion' ? 'Estación' : 'Servicio'}: ${entidadNombre} | CCP: ${ccpNombre}`;
-
-        document.getElementById('fechaHasta').valueAsDate = new Date();
-
-        let todasLasEntradas = [];
-        let paginaActual = 1;
-        const entradasPorPagina = 12;
-
-        // === CARGAR DATOS ===
-        async function cargarGaleria(fechaDesde = null, fechaHasta = null) {
-            const contenedor = document.getElementById('galeriaContainer');
-            contenedor.innerHTML = '<div class="loading">Cargando...</div>';
+        async function verificarAcceso() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = 'index.html';
+                return false;
+            }
             try {
-                let query = supabase
-                    .from('inspecciones')
-                    .select('id, created_at')
-                    .order('created_at', { ascending: false });
-
-                if (tipoEntidad === 'estacion') {
-                    query = query.eq('estacion_id', entidadId);
-                } else {
-                    query = query.eq('servicio_id', entidadId);
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL o administradores pueden acceder.');
+                    window.location.href = 'index.html';
+                    return false;
                 }
-
-                if (fechaDesde) {
-                    const desdeISO = new Date(fechaDesde).toISOString().split('T')[0];
-                    query = query.gte('created_at', desdeISO);
-                }
-                if (fechaHasta) {
-                    const hastaISO = new Date(fechaHasta).toISOString().split('T')[0];
-                    query = query.lte('created_at', hastaISO + 'T23:59:59.999Z');
-                }
-
-                const { data: inspecciones, error: inspError } = await query;
-                if (inspError) throw inspError;
-                if (!inspecciones || inspecciones.length === 0) {
-                    contenedor.innerHTML = `<div class="no-fotos">No hay inspecciones registradas para este ${tipoEntidad === 'estacion' ? 'estación' : 'servicio'}.</div>`;
-                    document.getElementById('paginacionContainer').style.display = 'none';
-                    return;
-                }
-
-                const entradasPorFecha = {};
-                for (const insp of inspecciones) {
-                    const { data: items, error: itemError } = await supabase
-                        .from('items_inspeccion')
-                        .select('item_nombre, foto1_url, foto2_url, archivo_url')
-                        .eq('inspeccion_id', insp.id)
-                        .or('foto1_url.neq.null,foto2_url.neq.null,archivo_url.neq.null');
-                    if (itemError || !items || items.length === 0) continue;
-                    const fechaHora = new Date(insp.created_at).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    if (!entradasPorFecha[fechaHora]) {
-                        entradasPorFecha[fechaHora] = {};
-                    }
-                    for (const item of items) {
-                        const key = item.item_nombre;
-                        if (!entradasPorFecha[fechaHora][key]) {
-                            entradasPorFecha[fechaHora][key] = {
-                                fotos: [],
-                                archivo_url: null
-                            };
-                        }
-                        if (item.foto1_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto1_url);
-                        if (item.foto2_url) entradasPorFecha[fechaHora][key].fotos.push(item.foto2_url);
-                        if (item.archivo_url) entradasPorFecha[fechaHora][key].archivo_url = item.archivo_url;
-                    }
-                }
-
-                todasLasEntradas = [];
-                for (const [fecha, items] of Object.entries(entradasPorFecha)) {
-                    for (const [itemNombre, datos] of Object.entries(items)) {
-                        todasLasEntradas.push({ fecha, itemNombre, ...datos });
-                    }
-                }
-
-                paginaActual = 1;
-                mostrarPagina();
-                actualizarPaginacion();
-                document.getElementById('paginacionContainer').style.display = 'flex';
+                return true;
             } catch (err) {
-                console.error('Error:', err);
-                contenedor.innerHTML = `<div class="no-fotos">❌ Error al cargar los datos. Intente nuevamente.</div>`;
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Redirigiendo...');
+                window.location.href = 'index.html';
+                return false;
             }
         }
 
-        function mostrarPagina() {
-            const inicio = (paginaActual - 1) * entradasPorPagina;
-            const fin = inicio + entradasPorPagina;
-            const entradas = todasLasEntradas.slice(inicio, fin);
-            const contenedor = document.getElementById('galeriaContainer');
-            if (entradas.length === 0) {
-                contenedor.innerHTML = '<div class="no-fotos">No hay imágenes ni archivos.</div>';
-                return;
-            }
-            const porFecha = {};
-            entradas.forEach(e => {
-                if (!porFecha[e.fecha]) porFecha[e.fecha] = [];
-                porFecha[e.fecha].push(e);
-            });
-            contenedor.innerHTML = '';
-            Object.entries(porFecha).forEach(([fecha, items]) => {
-                const header = document.createElement('div');
-                header.className = 'inspeccion-header';
-                header.textContent = `Inspección del ${fecha}`;
-                contenedor.appendChild(header);
-                items.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'item-card';
-                    const label = document.createElement('div');
-                    label.className = 'item-label';
-                    label.textContent = nombres[item.itemNombre] || item.itemNombre;
-                    card.appendChild(label);
-                    item.fotos.forEach(fotoUrl => {
-                        const img = document.createElement('img');
-                        img.src = fotoUrl;
-                        img.className = 'foto-item';
-                        img.onclick = () => {
-                            document.getElementById('zoomImage').src = fotoUrl;
-                            document.getElementById('zoomModal').style.display = 'flex';
-                        };
-                        card.appendChild(img);
-                    });
-                    item.fotos.forEach((_, i) => {
-                        const btn = document.createElement('button');
-                        btn.className = 'download-btn btn-foto';
-                        btn.textContent = `📥 Descargar Foto ${i + 1}`;
-                        btn.onclick = async () => await descargar(item.fotos[i], item.itemNombre, 'foto');
-                        card.appendChild(btn);
-                    });
-                    if (item.archivo_url) {
-                        const btn = document.createElement('button');
-                        btn.className = 'download-btn btn-archivo';
-                        btn.textContent = '📎 Descargar Archivo';
-                        btn.onclick = async () => await descargar(item.archivo_url, item.itemNombre, 'archivo');
-                        card.appendChild(btn);
-                    }
-                    contenedor.appendChild(card);
+        async function cargarEstaciones(ccpId) {
+            const select = document.getElementById('estacionSelect');
+            try {
+                const { data: estaciones, error } = await supabase
+                    .from('estaciones_policiales')
+                    .select('estacion_id, nombre_estacion')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre_estacion', { ascending: true });
+                if (error) throw error;
+                select.innerHTML = '<option value="">-- Seleccione una estación --</option>';
+                if (!estaciones || estaciones.length === 0) return;
+                estaciones.forEach(est => {
+                    const opt = document.createElement('option');
+                    opt.value = est.estacion_id;
+                    opt.textContent = est.nombre_estacion;
+                    select.appendChild(opt);
                 });
-            });
-        }
-
-        async function descargar(url, item, tipo) {
-            try {
-                const res = await fetch(url);
-                const blob = await res.blob();
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                const ext = url.split('.').pop().split('?')[0] || 'bin';
-                const nombreItem = (nombres[item] || item).replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                a.download = `${tipo}_${nombreItem}.${ext}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(a.href);
+                select.disabled = false;
             } catch (err) {
-                console.error('Error al descargar:', err);
-                alert('No se pudo descargar el archivo.');
+                console.error('Error al cargar estaciones:', err);
+                alert('No se pudieron cargar las estaciones.');
             }
         }
 
-        function actualizarPaginacion() {
-            const totalPaginas = Math.ceil(todasLasEntradas.length / entradasPorPagina);
-            const contenedor = document.getElementById('paginacionContainer');
-            contenedor.innerHTML = '';
-            if (totalPaginas <= 1) return;
-            for (let i = 1; i <= totalPaginas; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = i;
-                btn.style.padding = '8px 12px';
-                btn.style.border = '1px solid #cbd5e0';
-                btn.style.borderRadius = '6px';
-                btn.style.background = i === paginaActual ? '#3182ce' : 'white';
-                btn.style.color = i === paginaActual ? 'white' : '#2d3748';
-                btn.onclick = () => {
-                    paginaActual = i;
-                    mostrarPagina();
-                };
-                contenedor.appendChild(btn);
+        async function cargarServicios(ccpId) {
+            const select = document.getElementById('servicioSelect');
+            try {
+                const { data: servicios, error } = await supabase
+                    .from('servicios_administrativos')
+                    .select('id, nombre')
+                    .eq('ccp_id', ccpId)
+                    .order('nombre', { ascending: true });
+                if (error) throw error;
+                select.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
+                if (!servicios || servicios.length === 0) return;
+                servicios.forEach(serv => {
+                    const opt = document.createElement('option');
+                    opt.value = serv.id;
+                    opt.textContent = serv.nombre;
+                    select.appendChild(opt);
+                });
+                select.disabled = false;
+            } catch (err) {
+                console.error('Error al cargar servicios:', err);
+                alert('No se pudieron cargar los servicios.');
             }
         }
 
-        // === EVENTOS ===
-        document.getElementById('aplicarFiltroBtn').addEventListener('click', () => {
-            const desde = document.getElementById('fechaDesde').value;
-            const hasta = document.getElementById('fechaHasta').value;
-            if (desde && new Date(desde) > new Date(hasta)) {
-                alert('La fecha "Desde" no puede ser mayor que "Hasta".');
+        document.getElementById('ccpSelect').addEventListener('change', async () => {
+            const ccpId = document.getElementById('ccpSelect').value;
+            if (!ccpId) {
+                document.getElementById('selectorDinamico').innerHTML = `
+                    <div class="input-group">
+                        <label for="estacionSelect">Seleccione Estación:</label>
+                        <select id="estacionSelect" disabled>
+                            <option value="">-- Primero seleccione un CCP --</option>
+                        </select>
+                    </div>
+                `;
                 return;
             }
-            cargarGaleria(desde || null, hasta || null);
+            if (tipoEntidad === 'estacion') {
+                await cargarEstaciones(ccpId);
+            } else {
+                await cargarServicios(ccpId);
+            }
         });
 
-        document.getElementById('btnVolver').addEventListener('click', () => {
-            window.history.back();
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tipoEntidad = btn.dataset.tab === 'estaciones' ? 'estacion' : 'servicio';
+                const selectorDiv = document.getElementById('selectorDinamico');
+                if (tipoEntidad === 'estacion') {
+                    selectorDiv.innerHTML = `
+                        <div class="input-group">
+                            <label for="estacionSelect">Seleccione Estación:</label>
+                            <select id="estacionSelect" disabled>
+                                <option value="">-- Primero seleccione un CCP --</option>
+                            </select>
+                        </div>
+                    `;
+                } else {
+                    selectorDiv.innerHTML = `
+                        <div class="input-group">
+                            <label for="servicioSelect">Seleccione Servicio:</label>
+                            <select id="servicioSelect" disabled>
+                                <option value="">-- Primero seleccione un CCP --</option>
+                            </select>
+                        </div>
+                    `;
+                }
+                const ccpId = document.getElementById('ccpSelect').value;
+                if (ccpId) {
+                    if (tipoEntidad === 'estacion') {
+                        cargarEstaciones(ccpId);
+                    } else {
+                        cargarServicios(ccpId);
+                    }
+                }
+            });
         });
 
-        document.getElementById('closeZoom').addEventListener('click', () => {
-            document.getElementById('zoomModal').style.display = 'none';
+        document.getElementById('selectorDinamico').addEventListener('change', (e) => {
+            if ((e.target.id === 'estacionSelect' && tipoEntidad === 'estacion') ||
+                (e.target.id === 'servicioSelect' && tipoEntidad === 'servicio')) {
+                document.getElementById('btnCargarGaleria').disabled = !e.target.value;
+            }
         });
 
-        // === CARGAR INICIAL ===
-        cargarGaleria();
+        document.getElementById('btnCargarGaleria').addEventListener('click', () => {
+            const ccpSelect = document.getElementById('ccpSelect');
+            const ccpId = ccpSelect.value;
+            const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
+            let entidadId = '';
+            let entidadNombre = '';
+            if (tipoEntidad === 'estacion') {
+                const estacionSelect = document.getElementById('estacionSelect');
+                entidadId = estacionSelect.value;
+                entidadNombre = estacionSelect.options[estacionSelect.selectedIndex].text;
+            } else {
+                const servicioSelect = document.getElementById('servicioSelect');
+                entidadId = servicioSelect.value;
+                entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
+            }
+            if (!ccpId || !entidadId) {
+                alert('Seleccione una entidad válida.');
+                return;
+            }
+            // ✅ Redirige a la misma página (galeria.html) con parámetros, asumiendo que está en carpeta de REDIP CAPITAL
+            let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
+            if (tipoEntidad === 'estacion') {
+                url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
+            } else {
+                url += `&servicioId=${encodeURIComponent(entidadId)}&servicioNombre=${encodeURIComponent(entidadNombre)}`;
+            }
+            window.location.href = url;
+        });
+
+        // ✅ CORREGIDO: redirige al panel de REDIP CAPITAL, no al raíz
+        document.getElementById('btnVolverPanel').addEventListener('click', () => {
+            window.location.href = 'index-capital.html'; // ⬅️ ASEGÚRATE DE QUE ESTE ARCHIVO EXISTA
+        });
+
+        verificarAcceso().then(() => {
+            // Listo
+        });
     </script>
 </body>
 </html>
