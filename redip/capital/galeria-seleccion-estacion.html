@@ -199,7 +199,7 @@
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                window.location.href = 'index.html';
+                window.location.href = 'index-capital.html';
                 return false;
             }
             try {
