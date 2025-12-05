@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galería de Inspección - REDIP CAPITAL</title>
+    <title>Seleccionar Estación - Galería (REDIP CAPITAL)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <style>
@@ -153,11 +153,10 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">Galería de Inspección - REDIP CAPITAL</h1>
+            <h1 class="title">Seleccionar para Galería (REDIP CAPITAL)</h1>
         </div>
-        <!-- ✅ CORREGIDO: ahora redirige al índice de REDIP CAPITAL -->
         <button class="back-btn" id="btnVolverPanel">
-            ← Volver al Panel de REDIP CAPITAL
+            ← Volver al Panel Principal
         </button>
         <div class="filtro-container">
             <div class="input-group">
@@ -177,7 +176,7 @@
                 <button class="tab-btn active" data-tab="estaciones">👮 Estaciones</button>
                 <button class="tab-btn" data-tab="servicios">📋 Servicios</button>
             </div>
-            <!-- CONTENEDOR DINÁMICO -->
+            <!-- CONTENEDOR DINÁMICO PARA EL SELECTOR -->
             <div id="selectorDinamico">
                 <div class="input-group">
                     <label for="estacionSelect">Seleccione Estación:</label>
@@ -195,7 +194,7 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-        let tipoEntidad = 'estacion';
+        let tipoEntidad = 'estacion'; // 'estacion' o 'servicio'
 
         async function verificarAcceso() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -340,6 +339,7 @@
             const ccpNombre = ccpSelect.options[ccpSelect.selectedIndex].text;
             let entidadId = '';
             let entidadNombre = '';
+
             if (tipoEntidad === 'estacion') {
                 const estacionSelect = document.getElementById('estacionSelect');
                 entidadId = estacionSelect.value;
@@ -349,11 +349,12 @@
                 entidadId = servicioSelect.value;
                 entidadNombre = servicioSelect.options[servicioSelect.selectedIndex].text;
             }
+
             if (!ccpId || !entidadId) {
                 alert('Seleccione una entidad válida.');
                 return;
             }
-            // ✅ Redirige a la misma página (galeria.html) con parámetros, asumiendo que está en carpeta de REDIP CAPITAL
+
             let url = `galeria.html?ccpId=${encodeURIComponent(ccpId)}&ccpNombre=${encodeURIComponent(ccpNombre)}`;
             if (tipoEntidad === 'estacion') {
                 url += `&estacionId=${encodeURIComponent(entidadId)}&estacionNombre=${encodeURIComponent(entidadNombre)}`;
@@ -363,9 +364,8 @@
             window.location.href = url;
         });
 
-        // ✅ CORREGIDO: redirige al panel de REDIP CAPITAL, no al raíz
         document.getElementById('btnVolverPanel').addEventListener('click', () => {
-            window.location.href = 'index-capital.html'; // ⬅️ ASEGÚRATE DE QUE ESTE ARCHIVO EXISTA
+            window.location.href = 'index.html';
         });
 
         verificarAcceso().then(() => {
