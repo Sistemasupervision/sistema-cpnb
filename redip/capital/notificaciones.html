@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notificaciones - REDIP OCCIDENTAL</title>
+    <title>Notificaciones - REDIP CAPITAL</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         * {
@@ -237,11 +237,12 @@
     <div class="container">
         <div class="logo-container">
             <img src="../../assets/img/LOGO-PNB.png" alt="Logo CPNB" class="logo-img">
-            <h1 class="title">⚠️ Reinspecciones Vencidas - REDIP OCCIDENTAL</h1>
+            <h1 class="title">⚠️ Reinspecciones Vencidas <span id="contadorNotificaciones" style="font-size: 18px; font-weight: normal; color: #e53e3e;">(0)</span></h1>
         </div>
         <div class="header-row">
-            <button class="back-btn" onclick="window.location.href='index.html'">
-                ← Volver a REDIP OCCIDENTAL
+            <!-- ✅ CORREGIDO: volver a PANEL de REDIP CAPITAL -->
+            <button class="back-btn" id="btnVolverPanel">
+                ← Volver a REDIP CAPITAL
             </button>
             <div class="reloj" id="reloj"></div>
         </div>
@@ -265,73 +266,80 @@
         const supabaseUrl = 'https://ksczzvtgncvxfrmtvmll.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzY3p6dnRnbmN2eGZybXR2bWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NjMyMzcsImV4cCI6MjA3NDMzOTIzN30.AuWa3uaRylpXhz_VUh097k5tgNHuDllN8j-Hrktwzno';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-        // --- VALIDACIÓN DE ACCESO: OCCIDENTAL o ADMIN (Supabase v2 compatible) ---
-        async function verificarAccesoOcidentalOAdmin() {
-            const {  { session }, error: authError } = await supabase.auth.getSession();
-            if (authError || !session || !session.user) {
-                alert('🔒 Acceso restringido. Debe iniciar sesión.');
-                window.location.href = '../../index.html';
+        
+        // ✅ VERIFICAR ACCESO: solo 'capital' o 'admin'
+        async function verificarAccesoCapital() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = 'index.html';
                 return false;
             }
-
-            const user = session.user;
-            const { data, error } = await supabase
-                .from('usuarios_redip')
-                .select('redip')
-                .eq('user_id', user.id)
-                .single();
-
-            if (error || !data) {
-                alert('❌ No se pudo verificar su rol. Acceso denegado.');
-                window.location.href = '../../index.html';
-                return false;
-            }
-
-            if (data.redip === 'occidental' || data.redip === 'admin') {
+            try {
+                const { data, error } = await supabase
+                    .from('usuarios_redip')
+                    .select('redip')
+                    .eq('user_id', user.id)
+                    .single();
+                if (error || !data || (data.redip !== 'capital' && data.redip !== 'admin')) {
+                    alert('⚠️ Acceso denegado. Solo usuarios de REDIP CAPITAL o administradores pueden acceder.');
+                    window.location.href = 'index.html';
+                    return false;
+                }
                 return true;
-            } else {
-                alert('🚫 Acceso denegado. Solo usuarios de REDIP OCCIDENTAL o administradores pueden ver esta página.');
-                window.location.href = '../../index.html';
+            } catch (err) {
+                console.error('Error al verificar acceso:', err);
+                alert('⚠️ Error de autenticación. Redirigiendo...');
+                window.location.href = 'index.html';
                 return false;
             }
         }
 
-        // === FUNCIONES PRINCIPALES DE LA PÁGINA ===
-        async function obtenerCcpOcidental() {
-            const { data, error } = await supabase
-                .from('ccps')
-                .select('ccp_id')
-                .eq('redip', 'occidental');
-            if (error) {
-                console.error('Error al cargar CCPs de OCCIDENTAL:', error);
-                return [];
-            }
-            return data.map(row => row.ccp_id);
-        }
-
+        // === VARIABLES GLOBALES ===
+        let todasInspecciones = [];
+        let estacionesGlobales = [];
+        let serviciosGlobales = [];
         let ccpNombres = {};
-        async function cargarNombresCcp() {
-            const { data, error } = await supabase
+        const itemsPorPagina = 10;
+        let paginaActual = 1;
+        let inspeccionIdActual = null;
+        // ✅ CCPs de REDIP CAPITAL
+        const CCP_IDS_CAPITAL = [
+            'ccp_altos_mirandinos',
+            'ccp_barlovento',
+            'ccp_distrito_capital',
+            'ccp_la_guaira',
+            'ccp_miranda_ciudad_fajardo',
+            'ccp_valles_del_tuy'
+        ];
+
+        // === CARGAR DATOS DE APOYO (solo CAPITAL) ===
+        async function cargarDatosDeApoyo() {
+            // Cargar nombres de CCPs
+            const { data: ccps, error: ccpError } = await supabase
                 .from('ccps')
-                .select('ccp_id, nombre_ccp');
-            if (error) {
-                console.error('Error al cargar nombres de CCPs:', error);
-            } else {
-                ccpNombres = data.reduce((acc, row) => {
+                .select('ccp_id, nombre_ccp')
+                .in('ccp_id', CCP_IDS_CAPITAL);
+            if (!ccpError) {
+                ccpNombres = ccps.reduce((acc, row) => {
                     acc[row.ccp_id] = row.nombre_ccp;
                     return acc;
                 }, {});
             }
+            // Cargar estaciones y servicios de REDIP CAPITAL
+            const { data: estaciones, error: estError } = await supabase
+                .from('estaciones_policiales')
+                .select('estacion_id, nombre_estacion, ccp_id')
+                .in('ccp_id', CCP_IDS_CAPITAL);
+            if (!estError) estacionesGlobales = estaciones;
+
+            const { data: servicios, error: servError } = await supabase
+                .from('servicios_administrativos')
+                .select('id, nombre, ccp_id')
+                .in('ccp_id', CCP_IDS_CAPITAL);
+            if (!servError) serviciosGlobales = servicios;
         }
 
-        let inspeccionIdActual = null;
-        let todasInspecciones = [];
-        let estacionesGlobales = [];
-        let serviciosGlobales = [];
-        const itemsPorPagina = 10;
-        let paginaActual = 1;
-
+        // === RELOJ ===
         function actualizarReloj() {
             const ahora = new Date();
             const opciones = { 
@@ -347,17 +355,21 @@
             document.getElementById('reloj').textContent = formato.charAt(0).toUpperCase() + formato.slice(1);
         }
 
+        // === RENDERIZAR ===
         function renderizarPagina(pagina) {
             paginaActual = pagina;
             const inicio = (pagina - 1) * itemsPorPagina;
             const fin = inicio + itemsPorPagina;
             const inspeccionesPagina = todasInspecciones.slice(inicio, fin);
             const container = document.getElementById('alertasContainer');
+            document.getElementById('contadorNotificaciones').textContent = `(${todasInspecciones.length})`;
+
             if (inspeccionesPagina.length === 0) {
-                container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP OCCIDENTAL.</div>';
+                container.innerHTML = '<div class="no-data">✅ No hay reinspecciones vencidas en REDIP CAPITAL.</div>';
                 document.getElementById('paginationContainer').innerHTML = '';
                 return;
             }
+
             let html = '<div class="alertas-list">';
             inspeccionesPagina.forEach(insp => {
                 const fechaProxima = insp.proxima_inspeccion
@@ -367,6 +379,7 @@
                 let nombreUnidad = 'Unidad desconocida';
                 let ccpId = '';
                 let tipoLabel = '❓ Unidad desconocida';
+
                 if (insp.estacion_id) {
                     const estacion = estacionesGlobales.find(e => e.estacion_id === insp.estacion_id);
                     if (estacion) {
@@ -374,8 +387,7 @@
                         ccpId = estacion.ccp_id;
                         tipoLabel = '👮 Estación Policial';
                     }
-                }
-                if (nombreUnidad === 'Unidad desconocida' && insp.servicio_id) {
+                } else if (insp.servicio_id) {
                     const servicio = serviciosGlobales.find(s => s.id === insp.servicio_id);
                     if (servicio) {
                         nombreUnidad = servicio.nombre;
@@ -405,6 +417,7 @@
             html += '</div>';
             container.innerHTML = html;
 
+            // Paginación
             const totalPaginas = Math.ceil(todasInspecciones.length / itemsPorPagina);
             let paginacionHTML = '';
             for (let i = 1; i <= totalPaginas; i++) {
@@ -413,36 +426,35 @@
             document.getElementById('paginationContainer').innerHTML = paginacionHTML;
         }
 
+        // === CARGAR NOTIFICACIONES (solo CAPITAL) ===
         async function cargarNotificaciones() {
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            const hoyStr = hoy.toISOString().split('T')[0];
             const container = document.getElementById('alertasContainer');
             try {
-                await cargarNombresCcp();
-                const ccpOcidental = await obtenerCcpOcidental();
+                await cargarDatosDeApoyo();
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const hoyStr = hoy.toISOString().split('T')[0];
 
-                const {  estaciones, error: estError } = await supabase
-                    .from('estaciones_policiales')
-                    .select('estacion_id, nombre_estacion, ccp_id')
-                    .in('ccp_id', ccpOcidental);
-                if (estError) throw estError;
-                estacionesGlobales = estaciones;
-
-                const {  servicios, error: servError } = await supabase
-                    .from('servicios_administrativos')
-                    .select('id, nombre, ccp_id')
-                    .in('ccp_id', ccpOcidental);
-                if (servError) throw servError;
-                serviciosGlobales = servicios;
-
-                const {  inspecciones, error: inspError } = await supabase
+                const { data: inspecciones, error: inspError } = await supabase
                     .from('inspecciones')
-                    .select('*')
-                    .or(`proxima_inspeccion.lte.${hoyStr},proxima_inspeccion.is.null`)
+                    .select('id, estacion_id, servicio_id, proxima_inspeccion, created_at, inspector_email')
+                    .lte('proxima_inspeccion', hoyStr)
                     .order('proxima_inspeccion', { ascending: true });
+
                 if (inspError) throw inspError;
-                todasInspecciones = inspecciones || [];
+
+                // ✅ Filtrar solo inspecciones que pertenezcan a REDIP CAPITAL
+                todasInspecciones = inspecciones.filter(insp => {
+                    if (insp.estacion_id) {
+                        const est = estacionesGlobales.find(e => e.estacion_id === insp.estacion_id);
+                        return est && CCP_IDS_CAPITAL.includes(est.ccp_id);
+                    }
+                    if (insp.servicio_id) {
+                        const serv = serviciosGlobales.find(s => s.id === insp.servicio_id);
+                        return serv && CCP_IDS_CAPITAL.includes(serv.ccp_id);
+                    }
+                    return false;
+                });
 
                 renderizarPagina(1);
             } catch (error) {
@@ -452,20 +464,19 @@
             }
         }
 
+        // === MODAL ===
         function abrirModalFecha(inspeccionId) {
             inspeccionIdActual = inspeccionId;
             document.getElementById('modalFecha').style.display = 'flex';
         }
-
         function cerrarModalFecha() {
             document.getElementById('modalFecha').style.display = 'none';
             document.getElementById('nuevaFechaInput').value = '';
         }
-
         async function confirmarNuevaFecha() {
             const nuevaFecha = document.getElementById('nuevaFechaInput').value;
             if (!nuevaFecha || !inspeccionIdActual) {
-                alert("Seleccione una fecha válida.");
+                alert('Seleccione una fecha válida.');
                 return;
             }
             try {
@@ -474,19 +485,24 @@
                     .update({ proxima_inspeccion: nuevaFecha })
                     .eq('id', inspeccionIdActual);
                 if (error) throw error;
-                alert("✅ Reinspección actualizada correctamente.");
+                alert('✅ Reinspección actualizada correctamente.');
                 cerrarModalFecha();
                 cargarNotificaciones();
             } catch (error) {
-                console.error("Error al actualizar:", error);
-                alert("❌ Error al actualizar la reinspección.");
+                console.error('Error al actualizar:', error);
+                alert('❌ Error al actualizar la reinspección.');
             }
         }
 
-        // --- EJECUCIÓN PRINCIPAL ---
+        // === INICIAR ===
         async function iniciar() {
-            const permitido = await verificarAccesoOcidentalOAdmin();
+            const permitido = await verificarAccesoCapital();
             if (permitido) {
+                // ✅ Botón "Volver" redirige a panel de REDIP CAPITAL
+                document.getElementById('btnVolverPanel').addEventListener('click', () => {
+                    window.location.href = 'index-capital.html';
+                });
+
                 setInterval(actualizarReloj, 1000);
                 actualizarReloj();
                 document.getElementById('nuevaFechaInput').min = new Date().toISOString().split('T')[0];
